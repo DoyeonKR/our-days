@@ -58,12 +58,12 @@ test("수조가 쓰는 곳 — 유령으로 다시 그리기 · 피 · 카메라
   assert.match(scene, /preyPhase\+=dt\*18\*pose\.vitality/, "먹이는 점차 힘을 잃는다");
   // 카메라는 먹이를 따라가고, 통째로 삼킨 뒤엔 사냥꾼을
   assert.match(scene, /\(meal&&meal\.t0>=0\?swimmers\.get\(meal\.style==="gulp"&&meal\.bitesDone>0\?meal\.predId:meal\.ghostId\):undefined\)\?\?swimmers\.get/);
-  assert.match(scene, /window\.dispatchEvent\(new Event\(MEAL_END_EVENT\)\)/, "장면이 끝나면 알린다");
+  assert.match(scene, /window\.dispatchEvent\(mealEndEvent\(\{n:m\.n,replay:m\.kind!=="real"\}\)\)/, "장면이 끝나면 그 소식 번호로 알린다");
   const game = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8");
-  assert.match(game, /const \[shown, setShown\] = useState\(!g\.ate\)/);
+  assert.match(game, /if \(waits && !late\) return null;/);
   assert.match(game, /aquaDangers\(a\)/);
-  assert.match(game, /window\.addEventListener\(MEAL_END_EVENT, show\)/, "소식 카드는 사냥 장면이 끝났다는 알림 뒤에");
-  assert.match(game, /setTimeout\(show, \(MEAL_LONGEST \+ MEAL_WAIT_MAX\) \* 1000/, "못 들으면 가장 긴 장면 + 모델 기다림 뒤에");
+  assert.match(game, /window\.addEventListener\(MEAL_END_EVENT, onEnd\)/, "소식 카드는 사냥 장면이 끝났다는 알림 뒤에(화면이 번호를 모은다)");
+  assert.match(game, /setTimeout\(\(\) => setLate\(true\), \(MEAL_LONGEST \+ MEAL_WAIT_MAX\) \* 1000/, "못 들으면 가장 긴 장면 + 모델 기다림 뒤에");
 });
 
 test("사냥 방식 · 이빨 — 사냥하는 종마다 정해져 있고, 방식마다 장면이 다르다", () => {
@@ -124,7 +124,7 @@ test("턱 — 다가가며 크게 벌리고, 뜯는 순간 콱 닫고, 물고 �
   const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
   // 먹고 있는 그 한 마리만(재질 복제) · 두족류는 턱 대신 감싸기 · 끝나면 원래 재질로
   assert.match(post, /const m = src\.clone\(\);/, "재질을 복제해 그 한 마리에만");
-  assert.match(scene, /meal!\.jaw\?\.restore\(\)/);
+  assert.match(scene, /m\.jaw\?\.restore\(\)/);
   assert.match(scene, /meal\.jaw\?\.set\(/);
   // 물빛이 붉게 · 뜯을 때 화면 흔들림 · 남은 뼈
   assert.match(scene, /lerp\(BLOOD_FOG,bloodLevel/);
@@ -214,12 +214,12 @@ test("모래에 붙은 물고기는 평소엔 그대로, 사냥 장면 곁이면
 test("다시 보기 — 잡아먹힌 물고기를 사냥꾼 시점으로(2026-11-12) · 떠난 사냥꾼은 잠깐 불러온다 · 본 소식 번호는 안 건드린다", () => {
   const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
   assert.match(scene, /replay\(n:number\)/);
-  assert.match(scene, /pid=has\?item\.id:-800000-replayN/, "수조를 떠난 사냥꾼은 임시로");
-  assert.match(scene, /mealSeen=keep/, "본 소식 번호는 그대로");
-  assert.match(scene, /if\(meal!\.predId<=-800000&&pred\)\{dropFish\(pred\)/, "장면이 끝나면 임시 사냥꾼을 뺀다(배포 빌드에서도)");
+  assert.match(scene, /const pick=replayHunter\(item,a\.fish,TEMP_HUNTER_ID-replayN,fishArtKey\)/, "수조를 떠났거나 자란 사냥꾼은 그때 모습으로 임시로");
+  assert.doesNotMatch(scene, /events\.meal=undefined/, "다시 보기는 안 본 소식 훑기를 거치지 않는다 — 본 소식 번호는 그대로");
+  assert.match(scene, /if\(m\.predId<=TEMP_HUNTER_ID&&pred\)\{/, "장면이 끝나면 임시 사냥꾼을 뺀다(배포 빌드에서도)");
   assert.match(scene, /const povGoal=meal&&meal\.pov&&meal\.t0>=0&&mealPredS/, "사냥꾼 시점 카메라");
   const tank = readFileSync(join(process.cwd(), "src/components/Aquarium3D.tsx"), "utf8");
-  assert.match(tank, /controller\.current\?\.replay\(replaySignal\.n\)/);
+  assert.match(tank, /onReplay\?\.\(tank\.replay\(replaySignal\.n\)\)/);
   const game = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8");
   assert.match(game, /className="tap aqua-replay" onClick=\{\(\) => startReplay\(g\.n\)\}/);
   assert.match(game, /사냥꾼 시점으로 다시 보기/);

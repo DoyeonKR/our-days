@@ -19,7 +19,7 @@ import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 // 먹이를 줄 때마다 뿌리는 자리가 다르다(같은 횟수 = 같은 자리) — 늘 가운데라 터널 축 · 돔 한가운데로 몰렸다(2026-11-11)
 import { feedSpot } from "@/lib/aqua3d/world";
-import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX } from "@/lib/aqua3d/hunt";
+import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWaits, mealEndOf } from "@/lib/aqua3d/hunt";
 import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
   aquaDangers, aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
@@ -65,19 +65,13 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const [coach, setCoach] = useState(() => !coachSeen("aquarium"));
   /** 먹이를 준 횟수 — 3D 수조가 바뀐 걸 보고 물고기를 수면으로 모은다(scene.feed) */
   const [feedN, setFeedN] = useState(0);
-  // 잡아먹힌 물고기 다시 보기(2026-11-12) — 사냥꾼 시점으로 수조에서 다시 그린다(Aquarium3D → scene.replay). k 는 누를 때마다 바뀐다
+  // 잡아먹힌 물고기 다시 보기(2026-11-12) — 사냥꾼 시점으로 수조에서 다시 그린다(Aquarium3D → scene.replay). k 는 누를 때마다 바뀐다.
+  //   replaying — 다시 보기가 도는 동안 소식 카드 줄을 멈춘다(2026-11-13: 다음 카드가 곧바로 장면을 덮었다). mealDone — 끝 알림을 받은 실제 사냥 장면의 소식 번호
   const [replay, setReplay] = useState<{ n: number; k: number } | null>(null);
   const [replayNote, setReplayNote] = useState<string | null>(null);
+  const [replaying, setReplaying] = useState(false);
+  const [mealDone, setMealDone] = useState<number[]>([]);
   const replayK = useRef(0);
-  const startReplay = (n: number) => {
-    setReplayNote(null);
-    replayK.current += 1;
-    setReplay({ n, k: replayK.current });
-    try { document.querySelector(".aqua-stage")?.scrollIntoView({ block: "start", behavior: "smooth" }); } catch { /* 스크롤 못 해도 장면은 돈다 */ }
-  };
-  const onReplay = useCallback((res: string) => {
-    setReplayNote(res === "busy" ? "지금 다른 사냥 장면이 나오는 중이에요 — 끝나면 다시 눌러 주세요" : res === "reduced" ? "움직임 줄이기 설정이라 장면을 보여 줄 수 없어요" : res === "ok" ? null : "이 장면은 다시 볼 수 없어요(모델을 불러오지 못했어요)");
-  }, []);
   const [authId, setAuthId] = useState<string | null>(null);
   const who = myUserId ?? authId ?? "me";
   const [row, setRow] = useState<IslandRow | null>(null);
@@ -185,6 +179,52 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
     requestAnimationFrame(() => stageRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }, []);
 
+  /** 다시 보기를 연다 — 카드는 수조 탭 밖에도 뜨므로 수조 탭으로 옮기고, 꾸미는 중이면 끝낸다(꾸미는 동안은 수조 시계가 서서 장면이 안 돈다).
+   *  요청은 수조가 준비될 때까지 Aquarium3D 가 들고 있다가 틀고, 결과(onReplay)를 받으면 지운다 */
+  const startReplay = (n: number) => {
+    setReplayNote(null);
+    replayK.current += 1;
+    setReplay({ n, k: replayK.current });
+    setReplaying(true);
+    setTab("tank");
+    setEditing(false);
+    setPlacing(null);
+    setMoving(false);
+    setDraft(null);
+    setSelDecor(null);
+    setSelFish(null);
+    showStage();
+  };
+  const onReplay = useCallback((res: string) => {
+    setReplay(null); // 처리한 요청 — 수조가 다시 붙어도(탭 · 연결 복구) 또 틀지 않는다
+    if (res === "ok") { setReplaying(true); return; }
+    setReplaying(false);
+    setReplayNote(res === "busy" ? "지금 다른 사냥 장면이 나오는 중이에요 — 끝나면 다시 눌러 주세요" : res === "reduced" ? "움직임 줄이기 설정이라 장면을 보여 줄 수 없어요" : res === "stopped" ? null : res === "error" ? "수조를 열지 못해 장면을 다시 볼 수 없어요" : "이 장면은 다시 볼 수 없어요(모델을 불러오지 못했어요)");
+  }, []);
+  // 수조가 쏘는 장면 끝 알림(hunt.ts mealEndOf) — 다시 보기 끝이면 카드 줄을 다시 열고, 실제 사냥이면 그 번호를 모아 둔다(카드는 붙기 전에 온 알림도 본다)
+  useEffect(() => {
+    const onEnd = (e: Event) => {
+      const d = mealEndOf(e);
+      if (!d) return;
+      if (d.replay) setReplaying(false);
+      else setMealDone((done) => (done.includes(d.n) ? done : [...done.slice(-19), d.n]));
+    };
+    window.addEventListener(MEAL_END_EVENT, onEnd);
+    return () => window.removeEventListener(MEAL_END_EVENT, onEnd);
+  }, []);
+  // 끝 알림을 못 들으면(수조가 닫힘 등) 가장 긴 장면 + 모델 기다림 + 물러나기 뒤에 카드 줄을 다시 연다. 요청이 수조에 닿은 뒤부터 잰다
+  useEffect(() => {
+    if (!replaying || replay) return;
+    const t = setTimeout(() => setReplaying(false), (MEAL_LONGEST + MEAL_WAIT_MAX + TEMP_LINGER) * 1000 + 3000);
+    return () => clearTimeout(t);
+  }, [replaying, replay]);
+  // 다시 보기 안내는 수조 위에 잠깐(4초)
+  useEffect(() => {
+    if (!replayNote) return;
+    const t = setTimeout(() => setReplayNote(null), 4000);
+    return () => clearTimeout(t);
+  }, [replayNote]);
+
   const shell = (children: ReactNode) => (
     <div className="aqua-shell fixed inset-0 z-[90] overflow-y-auto">
       <div className="mx-auto min-h-full w-full max-w-md pb-10">
@@ -290,7 +330,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
       {coach && <GameCoach fixed id="aquarium" title="우리 수조" steps={["낚시로 담은 물고기가 여기서 자라요", "먹이와 물을 챙겨 주면 오래 키워 다 큰 모습이 돼요", "장식을 사서 놓고, 수조를 넓힐 수 있어요"]} onDone={() => setCoach(false)} />}
       <div className="aqua-tabs" role="tablist" aria-label="우리 수조">
         {TABS.map(([k, label]) => (
-          <button key={k} type="button" role="tab" id={`aqua-tab-${k}`} aria-controls={`aqua-panel-${k}`} aria-selected={tab === k} className={`tap ${tab === k ? "is-on" : ""}`} disabled={busy} onClick={() => { setTab(k); setDraft(null); setPlacing(null); setMoving(false); }}>{label}</button>
+          <button key={k} type="button" role="tab" id={`aqua-tab-${k}`} aria-controls={`aqua-panel-${k}`} aria-selected={tab === k} className={`tap ${tab === k ? "is-on" : ""}`} disabled={busy} onClick={() => { if (k !== tab) { setReplay(null); setReplaying(false); } setTab(k); setDraft(null); setPlacing(null); setMoving(false); }}>{label}</button>
         ))}
       </div>
       {msg && <MsgTimer msg={msg} hold={!!justBought && (a.bag[justBought] ?? 0) > 0} onDone={() => setMsg((m) => (m === msg ? null : m))} />}
@@ -308,7 +348,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           <div ref={stageRef} className="aqua-stage">
             <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
               onFish={id => setSelFish(selFish === id ? null : id)}
-              onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} />
+              onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} replaying={replaying} replayNote={replayNote} />
           </div>
 
           {a.fish.length === 0 ? (
@@ -341,7 +381,6 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
                     </li>
                   ))}
                 </ul>
-                {replayNote && <p className="aqua-note" role="status">{replayNote}</p>}
               </section>
             )}
           </div>
@@ -621,7 +660,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
       )}
       </div>
 
-      {news[0] && <GrownCard key={news[0].n} g={news[0]} onNext={() => setLocalSeen(news[0].n)} onReplay={() => { setLocalSeen(news[0].n); startReplay(news[0].n); }} />}
+      {news[0] && !replaying && <GrownCard key={news[0].n} g={news[0]} waits={tab === "tank" && eatenCardWaits(news[0].n, news.filter((x) => x.ate).map((x) => x.n), mealDone)} onNext={() => setLocalSeen(news[0].n)} onReplay={() => { setLocalSeen(news[0].n); startReplay(news[0].n); }} />}
       {inspect && <DecorPreview artKey={inspect} onClose={() => setInspect(null)} />}
     </div>,
   );
@@ -636,19 +675,16 @@ export function dangerLine(dangers: { pred: AquaFish; prey: AquaFish }[]): strin
   return `${josa(who, "이/가")} 작은 물고기 ${prey.size}마리를 노려요`;
 }
 
-function GrownCard({ g, onNext, onReplay }: { g: AquaNews; onNext: () => void; onReplay?: () => void }) {
-  // 잡아먹기 소식은 수조의 사냥 장면이 끝난 뒤에 — 카드가 장면을 가리면 안 된다
-  const [shown, setShown] = useState(!g.ate);
+function GrownCard({ g, waits, onNext, onReplay }: { g: AquaNews; waits: boolean; onNext: () => void; onReplay?: () => void }) {
+  // 잡아먹기 소식은 수조의 사냥 장면이 끝난 뒤에 — 카드가 장면을 가리면 안 된다. waits = 수조가 그리는 장면(안 본 잡아먹기 중 가장 새 것)이고 그 번호의 끝 알림 전(hunt.ts eatenCardWaits).
+  //   다른 카드(그려지지 않는 장면 · 자람 · 알)는 바로. 끝 알림을 못 들으면(장면을 못 열었다 · 옛 수조) 가장 긴 장면 + 모델을 기다리는 상한 뒤에
+  const [late, setLate] = useState(false);
   useEffect(() => {
-    if (shown) return;
-    // 장면이 끝났다고 알리면 바로(수조 scene.ts 가 쏜다), 못 들으면(장면을 못 열었다 · 옛 수조) 가장 긴 장면 + 모델을 기다리는 상한 뒤에.
-    //   예전엔 늘 MEAL_LONGEST 뒤라, 모델이 오기를 기다렸다 장면이 늦게 열리면 카드가 뜯는 순간을 가렸다
-    const show = () => setShown(true);
-    window.addEventListener(MEAL_END_EVENT, show);
-    const t = setTimeout(show, (MEAL_LONGEST + MEAL_WAIT_MAX) * 1000 + 300);
-    return () => { clearTimeout(t); window.removeEventListener(MEAL_END_EVENT, show); };
-  }, [shown]);
-  if (!shown) return null;
+    if (!waits) return;
+    const t = setTimeout(() => setLate(true), (MEAL_LONGEST + MEAL_WAIT_MAX) * 1000 + 300);
+    return () => clearTimeout(t);
+  }, [waits]);
+  if (waits && !late) return null;
   return g.ate ? <EatenCard g={g} onNext={onNext} onReplay={onReplay} /> : <GrownCardInner g={g} onNext={onNext} />;
 }
 

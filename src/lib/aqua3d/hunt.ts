@@ -276,6 +276,49 @@ export function clearShot(tx: number, ty: number, tz: number, dist: number, lift
 /** 사냥 장면이 끝났다(수조가 window 에 쏜다) — 잡아먹기 소식 카드가 장면 뒤에 뜨게 */
 export const MEAL_END_EVENT = "ourdays:aqua-meal-end";
 
+/** 장면 끝 알림의 내용(2026-11-13 다시 보기 다듬기) — n: 그 소식 번호, replay: 다시 보기(· 개발 장면)였나.
+ *  예전엔 내용 없는 알림 하나라, 여러 마리가 한꺼번에 먹혀 가장 새 장면만 그릴 때도 · 다시 보기가 끝날 때도 아무 카드나 풀려났다.
+ *  카드는 제 번호의 실제 장면 끝만 듣는다(AquariumGame), 다시 보기 끝은 카드 줄을 다시 연다 */
+export type MealEnd = { n: number; replay: boolean };
+export const mealEndEvent = (d: MealEnd): Event => new CustomEvent<MealEnd>(MEAL_END_EVENT, { detail: { n: d.n, replay: d.replay } });
+/** 알림에서 내용을 꺼낸다 — 번호가 없으면(옛 수조) null */
+export function mealEndOf(e: Event): MealEnd | null {
+  const d = (e as CustomEvent<unknown>).detail as { n?: unknown; replay?: unknown } | null | undefined;
+  return d && typeof d.n === "number" && Number.isFinite(d.n) ? { n: d.n, replay: d.replay === true } : null;
+}
+
+/** 아직 이 기기에서 안 본 잡아먹기 소식 중 무엇을 장면으로 그리나 — 가장 새 것(play) 하나만. 나머지(skip)는 장면 없이 끝났다고 알려 그 카드가 바로 뜬다
+ *  (예전엔 둘째 카드가 오지 않을 알림을 기다리다 11.7초 뒤에야 떴다) */
+export function huntPlan<N extends { n: number; ate?: unknown }>(news: readonly N[], seen: number): { play: N | null; skip: number[] } {
+  const fresh = news.filter((x) => !!x.ate && x.n > seen);
+  if (!fresh.length) return { play: null, skip: [] };
+  const play = fresh.reduce((a, b) => (b.n > a.n ? b : a));
+  return { play, skip: fresh.filter((x) => x !== play).map((x) => x.n) };
+}
+
+/** 잡아먹기 카드가 장면 끝을 기다리나 — 아직 안 본 잡아먹기 소식 중 가장 새 것(수조가 그리는 장면)만, 그 번호의 끝 알림을 받기 전까지.
+ *  나머지 카드는 그려지지 않을 장면이라 바로 뜬다. 끝 알림은 카드가 붙기 전에 올 수 있어(오래된 카드부터 보여 준다) 화면이 번호를 모아 둔다 */
+export function eatenCardWaits(n: number, unseenEaten: readonly number[], ended: readonly number[]): boolean {
+  return unseenEaten.length > 0 && n === Math.max(...unseenEaten) && !ended.includes(n);
+}
+
+/** 다시 보기 · 개발 장면이 잠깐 불러오는 사냥꾼의 id(이 값 이하) — 상태 갱신이 지우지 않고(음수) 장면이 끝나면 빠진다 */
+export const TEMP_HUNTER_ID = -800000;
+type FishLook = { id: number; family: string; stage: 0 | 1 | 2; species?: string };
+/** 다시 보기 사냥꾼(2026-11-13) — 소식에 적힌 그때 모습(단계 · 종)으로 그린다. 예전엔 사냥꾼이 수조에 남아 있으면 지금 모습(다 자란 몸)으로 그려
+ *  잡아먹힌 물고기 목록의 그림과 달랐다. 수조의 그 물고기가 그때와 같은 모습(key)이면 그대로 쓰고(같은 물고기가 둘이 되지 않게), 아니면 그때 모습의 임시 사냥꾼(tempId) */
+export function replayHunter(item: FishLook, fish: readonly FishLook[], tempId: number, key: (f: Omit<FishLook, "id">) => string): { id: number; temp: FishLook | null } {
+  const look = { family: item.family, stage: item.stage, ...(item.species ? { species: item.species } : {}) };
+  const cur = fish.find((f) => f.id === item.id);
+  if (cur && key(cur) === key(look)) return { id: item.id, temp: null };
+  return { id: tempId, temp: { id: tempId, ...look } };
+}
+
+/** 장면이 끝난 임시 사냥꾼을 언제 빼나 — 카메라가 물러난 뒤(시점 povK · 사냥 카메라 focus 가 거의 0) 또는 TEMP_LINGER 초. 시계가 서 있으면(움직임 줄이기 · 멈춘 그리기) 바로.
+ *  예전엔 장면 끝 프레임에 빼서, 카메라가 아직 코앞일 때 사냥꾼이 툭 사라졌다 */
+export const TEMP_LINGER = 1.5;
+export const tempHunterGone = (t: number, povK: number, focusK: number, frozen: boolean) => frozen || t >= TEMP_LINGER || (povK < 0.05 && focusK < 0.15);
+
 /** 다시 보기 카메라(2026-11-13) [사용자: "사냥 리플레이 화면을 조금 더 넓은 화면에서 볼 수 있게 해줘 너무 줌인 되어있어서 잘 안보여"].
  *  예전엔 사냥꾼 머리 옆 눈 자리(몸 굵기 + 몸길이 30% 옆)라 주둥이와 먹이만 화면을 채웠다. 이제 사냥꾼 몸 · 둘 사이 · 먹이가 다 들어오는
  *  거리(세로 화면의 좁은 가로 시야로 잰다)만큼 사냥꾼 뒤 · 옆 · 조금 위로 물러나 둘을 함께 본다(어깨 너머).

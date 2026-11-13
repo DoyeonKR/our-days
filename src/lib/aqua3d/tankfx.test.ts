@@ -115,8 +115,9 @@ test("먹이 · 사냥 · 자라기 — 수조가 쓰는 곳", () => {
   assert.match(scene, /food\.step\(elapsed,dt,motion,reduced\.matches\)/);
   assert.match(scene, /foodTimer=window\.setTimeout\(\(\)=>\{if\(!disposed&&!active\)draw\(0\);\},FOOD_LIFE\*1000\+60\)/);
   // 움직임 줄이기 — 사냥 장면을 만들지 않고 끝났다고만 알린다 · 도중에 바뀌면 바로 끝낸다
-  assert.match(scene, /if\(reduced\.matches\)\{window\.setTimeout\(\(\)=>\{if\(!disposed\)window\.dispatchEvent\(new Event\(MEAL_END_EVENT\)\);\},250\);\}\s*else\{const ghost:AquaFish=/);
-  assert.match(scene, /if\(!pred\|\|!ghost\|\|reduced\.matches\)endMeal\(\);/);
+  assert.match(scene, /const opened=!reduced\.matches&&openMeal\(last,-last\.n,"real"\),done=opened\?plan\.skip:\[\.\.\.plan\.skip,last\.n\];/);
+  assert.match(scene, /window\.setTimeout\(\(\)=>\{if\(!disposed\)for\(const n of done\)window\.dispatchEvent\(mealEndEvent\(\{n,replay:false\}\)\);\},250\)/);
+  assert.match(scene, /if\(!pred\|\|!ghost\|\|reduced\.matches\)finishMeal\(\);/);
   assert.match(scene, /on\(reduced,"change",\(\)=>\{if\(!active\)draw\(0\);\}\)/);
   // 자라기 — 같은 Map 자리에서 갈아 끼운다(지우고 맨 뒤에 넣지 않는다) · 보정값은 id 로 옮긴다(0 으로 되돌리지 않는다) · 지난 자리에서 1초에 걸쳐
   assert.match(scene, /if\(old\)\{try\{addFish\(f,old\);\}/);
