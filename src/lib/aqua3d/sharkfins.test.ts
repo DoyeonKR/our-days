@@ -99,3 +99,19 @@ test("굳은 지느러미는 실제 메시에서 보인다 — 지느러미 뼈�
     assert.ok(sel.length >= 10 && d > 0.06, `${key} 지느러미 정점 ${sel.length}개가 ${d.toFixed(3)} 움직인다(몸길이 2)`);
   }
 });
+
+test("임시(코드) 모델도 상어 · 다랑어 가슴지느러미를 젓지 않는다 — 붕어는 그대로 젓는다(swimAngles)", () => {
+  const swing = (fam: string) => { let lo = 9, hi = -9; const out = new Float32Array(10); for (let k = 0; k < 120; k++) { swimAngles(bendProfile(fam), k * 0.2, { amp: 1 }, out); lo = Math.min(lo, out[6]); hi = Math.max(hi, out[6]); } return hi - lo; };
+  for (const fam of ["great_white", "hammerhead", "bluefin"]) assert.ok(swing(fam) < swing("crucian") * 0.25, `${fam} ${swing(fam).toFixed(3)} · 붕어 ${swing("crucian").toFixed(3)}`);
+});
+
+test("귀상어는 머리를 좌우로 휘젓는다 — 백상아리보다 머리(spine_0) 좌우 흔들림이 크다", async () => {
+  const head = async (key: string) => {
+    const { holder, scene } = await open(key), anim = fishMotion(scene, key, key), b = scene.getObjectByName("spine_0")!;
+    let lo = 9, hi = -9;
+    for (let k = 0; k < 600; k++) { holder.position.set(k / 60, 0, 0); anim(k / 60, 1, { dt: 1 / 60, effort: 1, amp: 1 }); const e = new T.Euler().setFromQuaternion(b.quaternion, "YXZ"); lo = Math.min(lo, e.y); hi = Math.max(hi, e.y); }
+    return hi - lo;
+  };
+  const hh = await head("hammerhead"), gw = await head("great_white");
+  assert.ok(hh > gw + 0.15, `귀상어 ${hh.toFixed(3)} · 백상아리 ${gw.toFixed(3)}`);
+});

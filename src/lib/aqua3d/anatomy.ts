@@ -225,7 +225,9 @@ export function swimAngles(p: BendProfile, phase: number, pose: SwimPose | undef
     for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; out[6 + s * 2] = sign * Math.sin(phase) * p.wing; out[7 + s * 2] = sign * Math.sin(phase - 0.65) * p.wing * 0.88; }
   } else {
     const f = phase * p.finRate;
-    for (let s = 0; s < 2; s++) { const sign = s && p.pect !== "alt" ? 1 : -1; out[6 + s * 2] = sign * Math.sin(f) * p.fin; out[7 + s * 2] = sign * Math.sin(f - 0.7) * p.fin * 1.3; }
+    // 굳은 가슴지느러미(상어 · 다랑어 · 새치)는 젓지 않는다 — 코드로 지은 임시 모델도 GLB(fishMotion 의 stiff)처럼 거의 멈춘 채 아주 조금만 떤다
+    const stiff = p.pect === "stiff" || p.pect === "fold";
+    for (let s = 0; s < 2; s++) { const sign = s && p.pect !== "alt" ? 1 : -1; out[6 + s * 2] = stiff ? sign * 0.015 * Math.sin(phase - 2.2) : sign * Math.sin(f) * p.fin; out[7 + s * 2] = stiff ? sign * 0.006 * Math.sin(phase - 2.2) : sign * Math.sin(f - 0.7) * p.fin * 1.3; }
   }
   return out;
 }

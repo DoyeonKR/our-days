@@ -59,3 +59,15 @@ test("모델 — 수달 꼬리는 위아래로, 물범 꼬리는 좌우로 흔�
   assert.ok(otter.y > otter.z * 2, `수달 위아래 ${otter.y.toFixed(3)} · 옆 ${otter.z.toFixed(3)}`);
   assert.ok(seal.z > seal.y * 2, `물범 옆 ${seal.z.toFixed(3)} · 위아래 ${seal.y.toFixed(3)}`);
 });
+
+test("해달은 쉬는 동안 배를 위로 하고 떠 있다 — 헤엄칠 땐 등이 위", async () => {
+  const b = readFileSync("public/aqua/models/fish/sea_otter.glb");
+  const g = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(() => webp as never).parseAsync(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, "");
+  const anim = fishMotion(g.scene, "sea_otter", "sea_otter"), root = g.scene.getObjectByName("spine_0")!;
+  const up = () => { g.scene.updateMatrixWorld(true); return new T.Vector3(0, 1, 0).applyQuaternion(root.getWorldQuaternion(new T.Quaternion())).y; };
+  const swimUp = (() => { anim(0, 1, { amp: 1, dt: 1 / 30 }); return up(); })();
+  for (let k = 0; k < 150; k++) anim(k / 30, 0.3, { amp: 0, dt: 1 / 30 });
+  const restUp = up();
+  for (let k = 0; k < 150; k++) anim(5 + k / 30, 1, { amp: 1, dt: 1 / 30 });
+  assert.ok(swimUp > 0.8 && restUp < -0.8 && up() > 0.8, `헤엄 ${swimUp.toFixed(2)} · 쉼 ${restUp.toFixed(2)} · 다시 헤엄 ${up().toFixed(2)}`);
+});

@@ -42059,7 +42059,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_fur_seal.glb",
       "triangles": 1952,
-      "bytes": 44936,
+      "bytes": 44976,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42081,7 +42081,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d3c4a518540f1a54819e11e3e876ada6d8a94e6a0aae20d443ea73d6f1148ee3",
-      "sha256": "c7aa88bd390d49b856c1b6b7cc887b6ad3a4d6bc00f519ebf6dcea8e3c8518cd",
+      "sha256": "6e6762b958f3545e8af21d3cfab0980d8f2677e954418483f9d1e44bb3ac6702",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -42155,7 +42155,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_fur_seal.glb",
       "triangles": 1952,
-      "bytes": 50936,
+      "bytes": 50964,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42177,7 +42177,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "94d969f0a0514b57102a5c7faf903ac095c4479451bf5fbaf05fb5779c7d38c8",
-      "sha256": "5d8f6e6d6c768a09c7157a4956509e6f212f156878f4b1a676ea1a15685f0606",
+      "sha256": "a3a03311a9811771a743d3384c6cf3dc34132024005c295ee903b36bc887d6cf",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -42251,7 +42251,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/fur_seal.glb",
       "triangles": 1952,
-      "bytes": 50996,
+      "bytes": 51028,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42273,7 +42273,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "af738988edbf9455274738494d51a9bffc6a065b35bac471b23e14f3cf221a43",
-      "sha256": "14865dce18371dc70944995b8cbd314ad7e2f3816f5d4dfdad327946dd376763",
+      "sha256": "41173746d24e70433fe030548c9dc4a8eba82c8d2bb7b0432d96c2a779629130",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -42347,7 +42347,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_steller_sea_lion.glb",
       "triangles": 1952,
-      "bytes": 45036,
+      "bytes": 45076,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42369,7 +42369,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "a400dcd59d21309b110fadff13dceacb058ced63d5d29711d3748e1415c0f999",
-      "sha256": "a21549948f30c892bf4c1ffe8787d1dd984762b845876ea77173e654ca51b14f",
+      "sha256": "cce92c92529355dce908c2db6f1be060dfb55366715896bde8f114a75194b360",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -42443,7 +42443,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_steller_sea_lion.glb",
       "triangles": 1952,
-      "bytes": 43460,
+      "bytes": 43488,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42465,7 +42465,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "9fbdcd70b60e7cbc320fcbfb96300608aeb969b98e347824e79f92c0bfa48327",
-      "sha256": "dd05568dcfc00fefb79ae44bcbb2b33b7186e35e68e49927c7b01c2e01f3cde1",
+      "sha256": "e570bde0f0d9139069c3eb13d07b7f9e81dc08713903b02c427496d76a542bb5",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -42539,7 +42539,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/steller_sea_lion.glb",
       "triangles": 1952,
-      "bytes": 48980,
+      "bytes": 49012,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42561,7 +42561,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "47ae0114d38fc066f447ae13e2fce9fc030ddce062db1b17506da1783ee8c4db",
-      "sha256": "1cbfdd379cc8cba4ec3c1261035c500ac526e52c4c0417e6d84440dd0fc3fb78",
+      "sha256": "2bb602bc60f82ecf091bf124e5eb5d5cbcd8b19c532efa0e4aa86961510f512e",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -42635,7 +42635,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_japanese_sea_lion.glb",
       "triangles": 1952,
-      "bytes": 43912,
+      "bytes": 43952,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42657,7 +42657,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "969e13df5e130cf5788ae3dacb988e03b5a8118981d4e1b46fb51f829ff40f82",
-      "sha256": "5649496b42e79d57d1c1dadcb9b5e4a9906786af53324ffe431905855ec3849f",
+      "sha256": "91d5009bc4b5a4c53c8a5f856ecb64ec382e8cc2f909c7b5ef8e69638a7f90e3",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",
@@ -42731,7 +42731,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_japanese_sea_lion.glb",
       "triangles": 1952,
-      "bytes": 45300,
+      "bytes": 45328,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42753,7 +42753,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "935153d7be828522737f8d97f52799306ff091199ee18e6eb1bac8e7c0c72768",
-      "sha256": "f1f103f97a217fe50cd5983a4116fd762bb94303a60e1f08e303851e99b84ee2",
+      "sha256": "a60a32717b365ae7157bba46d33c5b3a5dc68c8f1d2005911bc31e53de81b30c",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",
@@ -42827,7 +42827,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/japanese_sea_lion.glb",
       "triangles": 1952,
-      "bytes": 44868,
+      "bytes": 44900,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42849,7 +42849,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ea35320730f9f06b763e8959249925322615e6c7a5caea1bc85806a8b2dabfea",
-      "sha256": "d9ba0a0158993bf72bd85534fd8891d0a6118377ddc4ddff8ff33e99ac93a0a7",
+      "sha256": "07bb77906e71a9610f0cf50227e72d239a09b6b926a9a2a013b3410c5e43b48e",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",

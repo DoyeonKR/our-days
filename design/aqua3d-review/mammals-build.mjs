@@ -56,7 +56,7 @@ function sculpt(item,species){
  for(const sign of [-1,1]){
   const root=sign===1?6:8;
   const foreLength=(lion?.55:seal?.26:.19)*(1-baby*.18),front=[.37,-.10,sign*width*.48],end=[.37-foreLength,lion?-.40:seal?-.36:-.31,sign*(width*.72+(lion?.13:.07))];
-  paddle(front,end,lion?.105:seal?.075:.065,lion?.025:.04,t=>[[root,root+1,0,0],[1-t,t,0,0]],true);
+  paddle(front,end,lion?.125:seal?.075:.065,lion?.052:.04,t=>[[root,root+1,0,0],[1-t,t,0,0]],true);
   const hindX=river?-.50:sea?-.66:-.73,hindEnd=river?-.70:-1;
   paddle([hindX,-.045,sign*width*.30],[hindEnd,sea?-.16:-.02,sign*(sea?.23:river?.17:.22)],sea?.11:river?.06:.09,sea?.035:.025,t=>[[4,5,0,0],[1-t,t,0,0]]);
  }

@@ -520,7 +520,11 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
     return { x: X.clone().applyQuaternion(rel), y: Y.clone().applyQuaternion(rel), z: Z.clone().applyQuaternion(rel) };
   });
   const q3 = new T.Quaternion();
-  let pitchS = 0, turnS = 0, lastY = 0;
+  let pitchS = 0, turnS = 0, lastY = 0, rollS = 0;
+  // 해달(2026-11-13) — 쉬는 동안 수면에서 배를 위로 하고 떠 있다(몸 축으로 뒤집는다). 뿌리 뼈 좌표의 몸 축(모델 X)
+  const otterRoll = family === "sea_otter" && spine[0] ? (() => { inner.updateMatrixWorld(true); const rel = inner.getWorldQuaternion(new T.Quaternion()).invert().multiply(spine[0]!.bone.getWorldQuaternion(new T.Quaternion())).invert(); return X.clone().applyQuaternion(rel); })() : null;
+  // 귀상어 — 헤엄치며 머리를 좌우로 천천히 휘저어 바닥을 살핀다(머리 마디만, 몸은 그대로)
+  const sweepPh = family === "hammerhead" ? (inner.id % 17) * 0.7 : -1;
   return (time, effort, pose) => {
     // Respiration uses elapsed water time, not the locomotion beat (resting fish still ventilate).
     face?.animate(WATER_LIGHT.aquaTime.value || time);
@@ -619,7 +623,14 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       // 누운 광어 · 수달 · 해달 — 물결은 Z 축(위아래), 도는 C 자는 Y 축
       // 누운 몸 — 물결은 Z 축(위아래), 도는 C 자는 Y 축(모래 평면)
       spine.forEach((r, i) => turn(r, Z, angles[i], Y, turnCurl(wave, sp, i)));
+      if (otterRoll && spine[0]) {
+        // 쉬는 동안(amp 가 낮다) 0.8초에 걸쳐 뒤집고, 다시 헤엄치면 바로 선다
+        const target = Math.max(0, Math.min(1, 1 - ((sp.amp ?? 1) - 0.25) / 0.4)), k = dt > 0 && dt < 0.5 ? 1 - Math.exp(-dt / 0.8) : 0;
+        rollS += (target - rollS) * k;
+        if (rollS > 0.001) spine[0].bone.quaternion.multiply(q3.setFromAxisAngle(otterRoll, Math.PI * rollS * rollS * (3 - 2 * rollS)));
+      }
     } else {
+      if (sweepPh >= 0) { const sw = 0.13 * Math.sin((WATER_LIGHT.aquaTime.value || time) * 0.8 + sweepPh); angles[0] += sw; angles[1] -= sw * 0.6; }
       spine.forEach((r, i) => turn(r, Y, angles[i], i === 0 ? Z : undefined, i === 0 ? hoverPitch(clock, sp) : 0));
     }
     if (stiff) {
