@@ -598,7 +598,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       if(!povOn){povBox.setFromObject(mealPredS.root);povBox.getSize(povSize);povR=Math.max(povSize.y,Math.min(povSize.x,povSize.z))*.5;}
       // 어깨 너머로 넓게(2026-11-13) — 사냥꾼 몸 · 먹이가 다 들어오는 거리만큼 뒤 · 옆 · 조금 위로 물러난다(hunt.ts replayShot)
       const swallowed=meal!.style==="gulp"&&meal!.bitesDone>0;
-      const shotAt=(turn:number)=>{const c=Math.cos(turn),s=Math.sin(turn);return replayShot({p:P,fwd:povFwd,side:{x:povSide.x*c-povSide.z*s,y:0,z:povSide.x*s+povSide.z*c},len:L,r:povR,prey:mealGhost&&!swallowed?mealGhost.root.position:null,fov:camera.fov,aspect:camera.aspect,halfW:5*wide-.35,top:tallY(4.3,tall),floor:WORLD.floor+.6,back:-3*deep+.5});};
+      const shotAt=(turn:number)=>{const c=Math.cos(turn),s=Math.sin(turn);return replayShot({p:P,fwd:povFwd,side:{x:povSide.x*c-povSide.z*s,y:0,z:povSide.x*s+povSide.z*c},len:L,r:povR,prey:mealGhost&&!swallowed?mealGhost.root.position:null,fov:camera.fov,aspect:camera.aspect,halfW:5*wide-.35,top:tallY(4.3,tall),floor:WORLD.floor+.6,back:-3*deep+.5,front:inDome?3*deep-.3:undefined});}; // 돔 안 — 앞 바다 그림 벽(3·깊이+0.08) 너머로 나가면 그 판만 보였다
       // 멀리 물러나니 카메라와 장면 사이를 지나는 다른 물고기 · 장식이 화면을 막았다(디스커스가 상어를 통째로 가렸다) — 옆에서 ±30° · ±57° 돌린 자리 중 덜 가린 곳.
       // 물고 나면 자리를 굳히고, 지금 자리보다 한참(0.6) 나을 때만 옮긴다(곁을 지나는 물고기 하나에 넘어가지 않게 — 평소 사냥 카메라 clearShot 과 같은 문턱)
       if(!povOn)povTurn=0;

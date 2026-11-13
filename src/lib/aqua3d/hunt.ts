@@ -280,9 +280,9 @@ export const MEAL_END_EVENT = "ourdays:aqua-meal-end";
  *  예전엔 사냥꾼 머리 옆 눈 자리(몸 굵기 + 몸길이 30% 옆)라 주둥이와 먹이만 화면을 채웠다. 이제 사냥꾼 몸 · 둘 사이 · 먹이가 다 들어오는
  *  거리(세로 화면의 좁은 가로 시야로 잰다)만큼 사냥꾼 뒤 · 옆 · 조금 위로 물러나 둘을 함께 본다(어깨 너머).
  *  p · fwd · side — 사냥꾼 몸 가운데 · 앞 방향 · 카메라를 둘 옆(둘 다 단위 벡터), len · r — 몸길이 · 몸 굵기 반지름, prey — 먹이(삼켰으면 null),
- *  fov — 세로 시야(도), aspect — 가로 ÷ 세로, halfW — 옆벽까지(벽 너머면 벽만 보인다), top · floor — 카메라가 머물 높이, back — 뒤 바위 앞.
- *  앞유리 밖은 괜찮다(평소 카메라 자리). 순수 함수 — 장면(scene.ts)과 테스트가 같은 식을 쓴다 */
-export type ReplayShotIn = { p: Xyz; fwd: Xyz; side: Xyz; len: number; r: number; prey: Xyz | null; fov: number; aspect: number; halfW: number; top: number; floor: number; back: number };
+ *  fov — 세로 시야(도), aspect — 가로 ÷ 세로, halfW — 옆벽까지(벽 너머면 벽만 보인다), top · floor — 카메라가 머물 높이, back — 뒤 바위 앞,
+ *  front — 앞쪽 끝(빼면 끝없음 — 밖에서 볼 땐 앞유리 밖이 평소 카메라 자리다. 11단계 돔 안에선 앞에 바다 그림 벽이 있어 그 안쪽으로 막는다). 순수 함수 — 장면(scene.ts)과 테스트가 같은 식을 쓴다 */
+export type ReplayShotIn = { p: Xyz; fwd: Xyz; side: Xyz; len: number; r: number; prey: Xyz | null; fov: number; aspect: number; halfW: number; top: number; floor: number; back: number; front?: number };
 type Xyz = { x: number; y: number; z: number };
 export function replayShot(o: ReplayShotIn): { eye: Xyz; target: Xyz; dist: number } {
   const { p, fwd, side, len } = o;
@@ -297,12 +297,13 @@ export function replayShot(o: ReplayShotIn): { eye: Xyz; target: Xyz; dist: numb
   const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
   // 둘의 가운데를 기준으로 사냥꾼 뒤(0.35) · 옆(0.85) · 위(0.28)에 — 어깨 너머로 사냥꾼이 앞쪽, 먹이가 멀리
   const want = { x: target.x - fwd.x * dist * 0.35 + side.x * dist * 0.85, z: target.z - fwd.z * dist * 0.35 + side.z * dist * 0.85 };
-  const eye = { x: cl(want.x, -o.halfW, o.halfW), y: cl(target.y + dist * 0.28, o.floor, o.top), z: Math.max(o.back, want.z) };
+  const front = o.front ?? Infinity;
+  const eye = { x: cl(want.x, -o.halfW, o.halfW), y: cl(target.y + dist * 0.28, o.floor, o.top), z: cl(want.z, o.back, front) };
   // 옆벽 · 뒤 바위에 막혀 다가온 만큼은 앞(앞유리 쪽 — 막힘이 없다)으로 돌아 나가 거리를 지킨다. 그대로 두면 벽에 붙어 다시 확대됐다
   const lost = Math.hypot(want.x - eye.x, want.z - eye.z);
   if (lost > 1e-6) {
     const hx = eye.x - target.x, need = Math.hypot(want.x - target.x, want.z - target.z);
-    eye.z = Math.max(eye.z, target.z + Math.sqrt(Math.max(0, need * need - hx * hx)));
+    eye.z = Math.min(front, Math.max(eye.z, target.z + Math.sqrt(Math.max(0, need * need - hx * hx))));
   }
   return { eye, target, dist };
 }

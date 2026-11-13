@@ -271,6 +271,12 @@ test("다시 보기 카메라(2026-11-13) — 사냥꾼 몸과 먹이가 세로 
   // 벽 · 바위 · 수면
   const w = replayShot({ p: { x: 4.6, y: 1.8, z: -2 }, fwd: { x: 1, y: 0, z: 0 }, side: { x: 0, y: 0, z: -1 }, len: 4, r: 0.6, prey: { x: 8, y: 2, z: -2 }, fov, aspect, halfW: 4.65, top: 2, floor: -4.7, back: -2.5 });
   assert.ok(w.eye.x <= 4.65 && w.eye.y <= 2 && w.eye.z >= -2.5, JSON.stringify(w.eye));
+  // 11단계 돔 안 — 앞 바다 그림 벽 안쪽에 머문다(밀려 나갈 때도)
+  for (let i = 0; i < 400; i++) {
+    const yaw = (i / 400) * Math.PI * 2, fwd = { x: Math.cos(yaw), y: 0, z: Math.sin(yaw) };
+    const d = replayShot({ p: { x: ((i * 37) % 9) - 4, y: -3.3, z: ((i * 53) % 12) - 6 }, fwd, side: { x: 0, y: 0, z: 1 }, len: 1.5, r: 0.3, prey: { x: fwd.x * 2.5, y: -3, z: fwd.z * 2.5 }, fov: 58, aspect: 0.46, halfW: 4.65, top: 2, floor: -4.7, back: -6.7, front: 6.9 });
+    assert.ok(d.eye.z <= 6.9 + 1e-9, `돔 앞 벽 너머 ${d.eye.z}`);
+  }
   // 통째로 삼킨 뒤 — 입 앞을 본다
   const g = replayShot({ p: { x: 0, y: 0, z: 0 }, fwd: { x: 1, y: 0, z: 0 }, side: { x: 0, y: 0, z: 1 }, len: 2, r: 0.3, prey: null, fov, aspect, halfW: 9, top: 9, floor: -9, back: -9 });
   assert.ok(Math.abs(g.target.x - 0.6) < 1e-9 && g.dist >= 3.2, "삼킨 뒤엔 꼬리 ~ 입 앞의 가운데");
