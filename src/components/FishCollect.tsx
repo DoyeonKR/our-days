@@ -7,8 +7,7 @@ import FishRelics from "@/components/FishRelics";
 import FishTrophies from "@/components/FishTrophies";
 import FishMastery from "@/components/FishMastery";
 import FishContest from "@/components/FishContest";
-import { useState } from "react";
-import { FishJunk, FishSizes, SubTabs } from "@/components/FishingPanels";
+import { FishJunk, FishSizes } from "@/components/FishingPanels";
 
 export type FishTabProps = {
   st: IslandState;
@@ -26,17 +25,16 @@ export type FishTabProps = {
 };
 
 export default function FishCollect(p: FishTabProps) {
-  // 한 번에 한 갈래(2026-11-13) — 대회(맨 앞: 지난달 1등 상품도 이 칸이 받는다) · 기록(크기 · 어탁) · 편지 · 보물 · 쓰레기 · 숙련도
-  const [view, setView] = useState<"contest" | "record" | "bottle" | "relic" | "junk" | "mastery">("contest");
+  // 한눈에(2026-11-13) — 칸 버튼 없이 대회(맨 앞: 지난달 1등 상품도 이 칸이 받는다) · 크기 기록 · 어탁 · 편지 · 보물 · 쓰레기 · 숙련도를 그대로 펼친다
   return (
     <div className="fish-collect">
-      <SubTabs label="수집 갈래" cur={view} onPick={setView} items={[["contest", "대회"], ["record", "기록"], ...(p.couple ? [["bottle", "편지"] as const] : []), ["relic", "보물"], ["junk", "쓰레기"], ["mastery", "숙련도"]]} />
-      {view === "contest" && <FishContest {...p} />}
-      {view === "record" && <><FishSizes fs={p.fs} who={p.who} couple={p.couple} /><FishTrophies {...p} /></>}
-      {view === "bottle" && <FishBottles {...p} />}
-      {view === "relic" && <FishRelics {...p} />}
-      {view === "junk" && <FishJunk fs={p.fs} />}
-      {view === "mastery" && <FishMastery {...p} />}
+      <FishContest {...p} />
+      <FishSizes fs={p.fs} who={p.who} couple={p.couple} />
+      <FishTrophies {...p} />
+      <FishBottles {...p} />
+      <FishRelics {...p} />
+      <FishJunk fs={p.fs} />
+      <FishMastery {...p} />
     </div>
   );
 }

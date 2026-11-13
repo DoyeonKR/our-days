@@ -36,10 +36,11 @@ function GearList<T extends { key: string; name: string; price: number }>({ titl
 }) {
   return (
     <section className="aqua-card">
-      <header><strong>{title}</strong><small>{desc}</small></header>
+      <header><strong>{title} <span className="fish-step">{cur + 1}/{list.length}단계</span></strong><small>{desc}</small></header>
+      {/* 한눈에(2026-11-13) — 지금 쓰는 것과 다음에 살 것만 줄로, 그 뒤 단계는 이름만 한 줄(잠긴 줄이 버튼처럼 늘어서 있었다) */}
       <ul className="aqua-shop is-flat">
-        {list.map((x, i) => (
-          <li key={x.key} className={i > cur + 1 ? "is-locked" : ""}>
+        {list.map((x, i) => (i < cur || i > cur + 1) ? null : (
+          <li key={x.key}>
             <span className="aqua-shop-pic"><GearPic k={x.key} label={x.name} /></span>
             <span className="min-w-0 flex-1">
               <strong>{x.name}</strong>
@@ -49,10 +50,11 @@ function GearList<T extends { key: string; name: string; price: number }>({ titl
               <ActionButton disabled={busy || coins < x.price} onClick={onBuy}>
                 <span className="aqua-price"><Coin /> {x.price.toLocaleString()}</span>
               </ActionButton>
-            ) : <small>앞 단계 먼저</small>}
+            ) : null}
           </li>
         ))}
       </ul>
+      {cur + 2 < list.length && <p className="aqua-note fish-later">그다음: {list.slice(cur + 2).map((x) => x.name).join(" → ")}</p>}
     </section>
   );
 }
@@ -209,48 +211,26 @@ function RequestCard({ list, done, couple }: { list: readonly FishRequest[]; don
   );
 }
 
-/** 탭 안의 작은 칸 버튼(2026-11-13) [사용자: "낚시 메뉴 배치가 너무 지저분해 깔끔하게 배치해줘"] — 한 탭에 갈래가 여럿이면 한 번에 한 갈래만 보인다.
- *  dot 은 그 칸에 받을 것이 있을 때(목표 · 능력치 점수) 작은 점 */
-export function SubTabs<K extends string>({ items, cur, onPick, label }: { items: readonly (readonly [K, string, boolean?])[]; cur: K; onPick: (k: K) => void; label: string }) {
-  return (
-    <div className="fish-subtabs" role="group" aria-label={label}>
-      {items.map(([k, name, dot]) => (
-        <button key={k} type="button" aria-pressed={cur === k} className={`tap ${cur === k ? "is-on" : ""}`} onClick={() => onPick(k)}>
-          {name}{dot ? <i className="fish-subtab-dot" aria-label="받을 것 있음" /> : null}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 /** 목표 탭 — 오늘(의뢰 · 오늘의 목표 · 원정) · 낚시 목표(길게 가는 목표) · 주인 */
 export function FishStats({ fs, busy, today, who, exped, couple, cheered, requests, onCheer, onClaim }: {
   fs: FishingState; busy: boolean; today: string; who: string; exped: Expedition; couple: boolean; cheered: boolean;
   requests: { list: readonly FishRequest[]; done: readonly boolean[] }; onCheer: () => void; onClaim: (id: string) => void;
 }) {
-  const [view, setView] = useState<"today" | "goals" | "boss">("today");
+  // 한눈에(2026-11-13) [사용자: "버튼 없이 한눈에"] — 칸 버튼 없이 오늘 할 것 → 길게 가는 목표 → 주인 순서로 그대로 펼친다
   const daily = dailyGoals(fs, today), next = nextGoals(fs);
-  const ready = (list: readonly FishGoal[]) => list.some((g) => g.done && !g.claimed);
   return (
     <>
-      <SubTabs label="목표 갈래" cur={view} onPick={setView} items={[["today", "오늘", ready(daily)], ["goals", `낚시 목표 ${fs.goals.length}/${goalTotal()}`, ready(next)], ["boss", "주인"]]} />
-      {view === "today" && (
-        <>
-          <RequestCard list={requests.list} done={requests.done} couple={couple} />
-          <section className="aqua-card">
-            <header><strong>오늘의 목표</strong><small>날마다 새로 시작해요</small></header>
-            <ul className="fish-goals">{daily.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
-          </section>
-          <ExpedCard e={exped} who={who} couple={couple} cheered={cheered} onCheer={onCheer} />
-        </>
-      )}
-      {view === "goals" && (
-        <section className="aqua-card">
-          <header><strong>낚시 목표</strong><small>{fs.goals.length}/{goalTotal()} 달성</small></header>
-          <ul className="fish-goals">{next.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
-        </section>
-      )}
-      {view === "boss" && <BossList fs={fs} today={today} />}
+      <RequestCard list={requests.list} done={requests.done} couple={couple} />
+      <section className="aqua-card">
+        <header><strong>오늘의 목표</strong><small>날마다 새로 시작해요</small></header>
+        <ul className="fish-goals">{daily.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
+      </section>
+      <ExpedCard e={exped} who={who} couple={couple} cheered={cheered} onCheer={onCheer} />
+      <section className="aqua-card">
+        <header><strong>낚시 목표</strong><small>{fs.goals.length}/{goalTotal()} 달성</small></header>
+        <ul className="fish-goals">{next.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
+      </section>
+      <BossList fs={fs} today={today} />
     </>
   );
 }

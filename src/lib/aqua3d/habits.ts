@@ -51,6 +51,8 @@ export type FishHabit = {
    *  hover(오징어 · 대왕오징어): 지느러미로 떠 있다가(팔 쪽이 앞) 외투막을 앞세워 뒤로 쏘아 나간다.
    *  물 뿜기는 쉬었다 옮겨 가기(rest · hop)의 한 번을 '빠르게 출발해 미끄러지는' 길로 바꾸고, 몸을 180° 돌려 외투막이 앞으로(course.rev), 세기는 course.jet */
   ceph?: "crawl" | "hover";
+  /** 쉬는 동안 몸을 세워 떠 있다(산갈치 — 머리를 위로 하고 꼿꼿이 서서 떠 있는 모습이 알려져 있다, 2026-11-13). rest 와 같이 쓴다 — 쉬는 동안 바닥에서 몸 반 길이 위로 떠올라 선다(course.stand) */
+  stand?: boolean;
   /** 굴에 산다(곰치) — 바위 · 장식 속에 몸 뒤쪽을 넣고 머리만 내민다. 거의 안 나오고, 가끔 반쯤 튀어나왔다 곧바로 돌아간다(denCourse) */
   den?: boolean;
 };
@@ -119,7 +121,7 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   megamouth: floor(0.13, 0.12, 0.8, 1.4, { bob: 0.08, pace: 0.45, lane: 0.95 }),
   gulper_eel: { ...DEEP, lane: 0.75 },
   anglerfish: floor(0.3, 0.05, 0.5, 1.2, { rest: 0.75, hop: 0.8, pace: 0.5, lane: 0.5 }),
-  oarfish: floor(0.14, 0.05, 0.75, 1.2, { bob: 0.1, pace: 0.5, lane: 0.9 }),
+  oarfish: floor(0.14, 0.05, 0.75, 1.2, { bob: 0.1, pace: 0.5, lane: 0.9, rest: 0.45, hop: 0.9, stand: true }),
   coelacanth: { ...DEEP, lane: 0.85 },
   giant_squid: floor(0.25, 0.06, 0.6, 1.2, { bob: 0.1, rest: 0.5, hop: 0.9, pace: 0.5, lane: 0.7, ceph: "hover" }),
   kraken: floor(0.28, 0.04, 0.5, 1, { bob: 0.08, rest: 0.6, hop: 0.7, pace: 0.4, lane: 0.6, ceph: "crawl" }),
@@ -272,6 +274,8 @@ export type Course = {
   /** 두족류(habit.ceph) — 물 뿜기 세기(0~1, 뿜는 순간 1 에서 미끄러지며 0) · 외투막이 앞인 정도(0~1, 몸이 돌아선 몫). 없으면 0 */
   jet?: number;
   rev?: number;
+  /** 0~1 — 몸을 세운 정도(habit.stand). 엔진이 머리를 위로 돌린다(1 이면 약 80°) */
+  stand?: number;
 };
 
 const TAU = Math.PI * 2;
@@ -1049,12 +1053,20 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
     }
     // 몸은 돌리지 않는다 — 길이 거꾸로 가서(pathU) 머리(고리 접선)의 반대로 나아간다. rev 는 '외투막이 앞인 자세'의 몫으로 팔(glb)이 쓴다
   }
+  // 산갈치 — 쉬는 동안(앞 4분의 1 에 걸쳐) 몸을 세우고 떠올랐다가, 끝 4분의 1 에 다시 눕는다. 세운 몸 아래 끝이 모래에 안 닿게 몸 반 길이 위로
+  let stand = 0;
+  if (habit.stand && rest > 0) {
+    const f = frac(cycle);
+    if (f < rest) stand = ease(f / (rest * 0.25)) * ease((rest - f) / (rest * 0.25));
+    y += stand * (length * 0.55 + 0.05);
+    amp = amp * (1 - 0.7 * stand); effort *= 1 - 0.6 * stand;
+  }
   const out = opts?.out ?? ({} as Course);
   out.x = x; out.y = y; out.z = z;
   out.dx = hx || 1e-3; out.dy = hy; out.dz = hz;
   out.effort = effort; out.turn = turn; out.amp = amp; out.jet = jet; out.rev = rev;
   out.pulse = habit.jet ? J.pulse : 0; out.ground = ground; out.puff = puff; out.hover = rest > 0 ? 1 - moving : Math.max(hoverW, turtleRest);
-  out.feed = feedW;
+  out.feed = feedW; out.stand = stand;
   return out;
 }
 

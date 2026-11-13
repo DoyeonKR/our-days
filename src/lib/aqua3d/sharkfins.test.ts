@@ -115,3 +115,15 @@ test("귀상어는 머리를 좌우로 휘젓는다 — 백상아리보다 머�
   const hh = await head("hammerhead"), gw = await head("great_white");
   assert.ok(hh > gw + 0.15, `귀상어 ${hh.toFixed(3)} · 백상아리 ${gw.toFixed(3)}`);
 });
+
+test("산갈치는 쉬는 동안 몸을 세워 떠 있다 — 세운 동안엔 바닥에서 몸 반 길이 위로, 헤엄칠 땐 눕는다", async () => {
+  const { fishCourse } = await import("./world.ts");
+  let up = 0, n = 0, lowWhenUp = 9, swimHigh = 0;
+  for (let t = 0; t < 600; t += 0.25) {
+    const c = fishCourse(3, t, 2, "oarfish"); n++;
+    if ((c.stand ?? 0) > 0.95) { up++; lowWhenUp = Math.min(lowWhenUp, c.y); }
+    if ((c.stand ?? 0) < 0.02) swimHigh = Math.max(swimHigh, c.y);
+  }
+  assert.ok(up / n > 0.1 && up / n < 0.5, `세워 떠 있는 시간 ${(up / n).toFixed(2)}`);
+  assert.ok(lowWhenUp - 1 > -5.3, `세운 몸 아래 끝(가운데 − 몸 반 길이)이 바닥(WORLD.floor −5.3) 위 ${(lowWhenUp - 1).toFixed(2)}`);
+});

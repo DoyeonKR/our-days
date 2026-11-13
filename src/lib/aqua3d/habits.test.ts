@@ -22,7 +22,9 @@ test("바닥 생활 — 광어 · 메기 · 가오리 · 수염상어 · 심해�
     assert.ok(hugsFloor(key), key);
     for (const length of [0.6, 1.5, 3]) {
       const ys = track(key, length).map((p) => p.y);
-      assert.ok(Math.max(...ys) < WORLD.floor + length * 0.45 + 0.4, `${key} 길이 ${length} 가 바닥에서 떠오른다: ${Math.max(...ys)}`);
+      // 산갈치는 쉬는 동안 몸을 세워 몸 반 길이 위로 떠오른다(habit.stand — 세운 몸 아래 끝은 그대로 바닥 가까이)
+      const stand = key === "oarfish" ? length * 0.55 + 0.05 : 0;
+      assert.ok(Math.max(...ys) < WORLD.floor + length * 0.45 + 0.4 + stand, `${key} 길이 ${length} 가 바닥에서 떠오른다: ${Math.max(...ys)}`);
       assert.ok(Math.min(...ys) >= WORLD.floor - 0.11, `${key} 가 바닥을 뚫는다`);
     }
   }
