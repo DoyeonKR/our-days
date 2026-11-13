@@ -12,6 +12,7 @@ export const PREDATORS: ReadonlySet<string> = new Set([
   "octopus", "squid", "giant_squid", "kraken", "anglerfish", "gulper_eel",
   "bluefin", "yellowtail", "hairtail", "coelacanth",
   "sleeper", "skygazer", "rainbow_trout", "largemouth_bass", "char", "arapaima", "oscar", "redtail_catfish", "piranha", "electric_eel", "moray", "lionfish", "grouper", "marlin", "spanish_mackerel", "cod", "scorpionfish", "goosefish", "swordfish", "barracuda", "dolphinfish", "viperfish", "frilled_shark",
+  "spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "otter",
 ]);
 /** 먹이 크기 — 사냥꾼 몸 길이의 이 비율 이하 */
 export const PREY_RATIO = 0.45;

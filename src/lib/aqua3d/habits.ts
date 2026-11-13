@@ -203,6 +203,16 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   electric_eel: swim(-3.6, -2, 0.05, 0.7, 1.3, { breathe: 95, breathOnly: true, pace: 0.7, tilt: 0.3 }),
   frilled_shark: floor(0.14, 0.05, 0.8, 1.3, { bob: 0.1, pace: 0.6, lane: 0.85 }),
   arapaima: swim(-1.6, 1.8, 0.08, 0.85, 1.5, { breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.15 }),
+  // 해양 포유류(2026-11-13) — 허파로 숨 쉬어 늘 수면에 올라간다(breathe — 거북과 같은 숨쉬기 길).
+  // 점박이물범: 바닥 가까이 천천히 미끄러지다 숨 쉬러 오르고, 바닥에 내려앉아 쉰다(물범은 물속에서 잔다 — 모래 위 쉬기 그대로)
+  spotted_seal: swim(-3.2, 0.4, 0.16, 0.9, 1.8, { breathe: 70, pace: 0.7, tilt: 0.35 }),
+  // 물개 · 바다사자 · 강치: 앞지느러미로 날듯이 빠르게, 홱 방향을 튼다. 모래 위에선 안 쉰다
+  fur_seal: swim(-1.6, 2.4, 0.32, 1, 2, { breathe: 55, breathOnly: true, dart: 0.25, pace: 0.9, tilt: 0.45 }),
+  steller_sea_lion: swim(-1.8, 2, 0.24, 1, 2, { breathe: 75, breathOnly: true, dart: 0.12, pace: 0.6, tilt: 0.35 }),
+  japanese_sea_lion: swim(-1.6, 2.2, 0.26, 1, 2, { breathe: 70, breathOnly: true, dart: 0.15, pace: 0.65, tilt: 0.4 }),
+  // 해달: 수면 가까이 떠서 쉬다가 가끔 잠수한다. 수달: 바닥 바위 사이를 빠르게 누비고 자주 숨 쉬러 오른다
+  sea_otter: swim(2.2, 4.4, 0.08, 0.7, 1.4, { breathe: 40, breathOnly: true, rest: 0.5, hop: 0.8, pace: 0.6, tilt: 0.2 }),
+  otter: swim(-3.4, -0.4, 0.3, 0.9, 1.8, { breathe: 45, breathOnly: true, dart: 0.3, pace: 1.1, tilt: 0.45 }),
   sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
   marlin: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
   swordfish: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),

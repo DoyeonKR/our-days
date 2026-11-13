@@ -1,7 +1,7 @@
 # 우리 수조 그림 목록 · 프롬프트
 
 > 이 파일은 `scripts/aqua-art-prompts.mjs` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **430장**: 치어 · 어린 물고기 232 · 최종 물고기 152 · 악세사리 37 · 수조 배경 9.
+> 모두 **448장**: 치어 · 어린 물고기 244 · 최종 물고기 158 · 악세사리 37 · 수조 배경 9.
 
 ## 넣는 법
 
@@ -41,7 +41,7 @@ Photorealistic aquarium decoration product photography, physically realistic cer
 Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280). Empty underwater interior filling the frame edge to edge: bright water upper area, physically believable caustics and soft light shafts, sandy floor in bottom 18%. NO animals, NO movable decorations in the middle; center open for compositing swimming animals and decorations. No text, UI, border, or front-glass reflections covering the center. Natural materials and realistic water, not cartoon or painted illustration; fantasy architecture only as distant realistic scenery.
 ```
 
-## 치어 · 어린 물고기 (232장)
+## 치어 · 어린 물고기 (244장)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -103,6 +103,18 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `juv_giant_squid` | 대왕오징어 어린 물고기 | Young juvenile, not fully grown: Real giant squid (Architeuthis dux), long deep-red mantle, enormous eye, eight thick arms and two very long tentacles with clubbed ends, side view with head to the right, transparent background. Shorter mantle and arms and less developed adult surface detail, natural immature proportions, distinct from the adult.  |
 | `fry_kraken` | 크라켄 치어 | Very young free-living Original legendary sea monster inspired by old sailors' tales: colossal dark teal cephalopod, barnacle-crusted mantle, glowing pale eyes, many thick arms with suckers, ancient and weathered. Original design, not based on any existing film or game. Side view with head to the right, transparent background. Much shorter less developed mantle, head relatively larger and complete species-appropriate arm count; short arms and delicate juvenile suckers. Natural young proportions, no cartoon eyes, do not just shrink the adult. Original fictional hatchling, no existing franchise design. |
 | `juv_kraken` | 크라켄 어린 물고기 | Young juvenile, not fully grown: Original legendary sea monster inspired by old sailors' tales: colossal dark teal cephalopod, barnacle-crusted mantle, glowing pale eyes, many thick arms with suckers, ancient and weathered. Original design, not based on any existing film or game. Side view with head to the right, transparent background. Shorter mantle and arms and less developed adult surface detail, natural immature proportions, distinct from the adult.  |
+| `fry_spotted_seal` | 점박이물범 치어 | Newborn pup of the real spotted seal (Phoca largha) as found around Baengnyeongdo, Korea: fluffy white lanugo coat, round chubby body, large dark eyes in natural proportion, short stubby fore flippers, swimming pose underwater. |
+| `juv_spotted_seal` | 점박이물범 어린 물고기 | Juvenile spotted seal (Phoca largha) after the white coat moult: silver-grey body with small dark irregular spots, slimmer than the adult, short muzzle, fore flippers small, hind flippers spread back. |
+| `fry_fur_seal` | 물개 치어 | Newborn pup of the real northern fur seal (Callorhinus ursinus): dense jet-black woolly coat, big round head, tiny external ear flaps, short body, swimming pose underwater. |
+| `juv_fur_seal` | 물개 어린 물고기 | Juvenile northern fur seal (Callorhinus ursinus): dark brown-grey dense fur, slim body, small pointed external ears, long fore flippers, short pointed muzzle. |
+| `fry_steller_sea_lion` | 큰바다사자 치어 | Newborn pup of the real Steller sea lion (Eumetopias jubatus): dark chocolate-brown woolly coat, large head, small external ears, swimming pose underwater. |
+| `juv_steller_sea_lion` | 큰바다사자 어린 물고기 | Juvenile Steller sea lion (Eumetopias jubatus): tawny brown body, slimmer than the adult, small external ears, long fore flippers. |
+| `fry_japanese_sea_lion` | 독도 강치 치어 | Newborn pup of the extinct Japanese sea lion (Zalophus japonicus, called 'gangchi' at Dokdo, Korea), reconstructed from museum specimens: dark brown soft coat, round head, small external ears, swimming pose underwater. |
+| `juv_japanese_sea_lion` | 독도 강치 어린 물고기 | Juvenile Japanese sea lion (Zalophus japonicus), museum-accurate reconstruction: sleek dark brown-grey body, slim, small external ears, long fore flippers. |
+| `fry_sea_otter` | 해달 치어 | Newborn pup of the real sea otter (Enhydra lutris): very fluffy light golden-brown natal coat, round buoyant body, tiny paws, small round head, swimming pose underwater (belly down). |
+| `juv_sea_otter` | 해달 어린 물고기 | Juvenile sea otter (Enhydra lutris): dense dark brown fur with paler grey-cream head, slim body, short flattened tail, webbed hind feet like flippers, small forepaws. |
+| `fry_otter` | 수달 치어 | Young cub of the real Eurasian otter (Lutra lutra, Korean natural monument 330): soft grey-brown fluffy fur, short rounded body, small round head, short tail, swimming pose underwater. |
+| `juv_otter` | 수달 어린 물고기 | Juvenile Eurasian otter (Lutra lutra): sleek brown fur with paler cream throat, long slender body, long thick tapering tail, short legs with webbed feet. |
 | `fry_bitterling` | 각시붕어 치어 | Very young free-living Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult. |
 | `juv_bitterling` | 각시붕어 어린 물고기 | Young juvenile, not fully grown: Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult. |
 | `fry_shiri` | 쉬리 치어 | Very young free-living Real Korean splendid shiner (Coreoleuciscus splendidus), slim body with yellow and black horizontal stripes and a bluish back, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult. |
@@ -278,7 +290,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `fry_astral` | 별무리어 치어 | Biologically plausible newborn cosmic star fish spirit, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, translucent deep-indigo body filled with tiny stars, soft glow, little comet tail. A real newborn animal, not a baby cartoon. |
 | `juv_astral` | 별무리어 어린 물고기 | Juvenile cosmic star fish spirit: young teenage fish, body starting to take adult shape, fins half grown, indigo-violet translucent body with a small swirl of galaxy inside, wispy glowing fins. Clearly not yet fully grown, less ornate than the adult. |
 
-## 최종 물고기 (152장)
+## 최종 물고기 (158장)
 
 | key | 이름 | 등급 | 설명 |
 |---|---|---|---|
@@ -365,6 +377,12 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `frilled_shark` | 주름상어 | 전설 | Fully grown adult. Real frilled shark (Chlamydoselachus anguineus), long eel-like dark brown body, frilly gill slits, wide mouth with rows of three-pointed teeth, side view facing right, transparent background. |
 | `blobfish` | 블롭피시 | 희귀 | Fully grown adult. Real blobfish (Psychrolutes marcidus) as it looks alive in the deep sea, pale pink gelatinous fish with a broad head, small fins and a tapering tail — not the collapsed out-of-water look, side view facing right, transparent background. |
 | `lanternfish` | 샛비늘치 | 흔함 | Fully grown adult. Real lanternfish (Diaphus sp.), small slim dark silvery fish with rows of glowing blue light organs (photophores) along the belly and sides, large eyes, side view facing right, transparent background. |
+| `spotted_seal` | 점박이물범 | 영웅 | Fully grown adult spotted seal (Phoca largha): spindle-shaped silver-grey body densely covered with small dark oval spots, rounded head without visible ear flaps (earless true seal), short fore flippers with claws, hind flippers pointing backward and spread like a tail fin. |
+| `fur_seal` | 물개 | 영웅 | Fully grown adult northern fur seal (Callorhinus ursinus): dense dark brown fur with lighter chest, short pointed snout, small visible external ear flaps (eared seal), very long hairless fore flippers held back like wings, hind flippers long and spread behind. |
+| `steller_sea_lion` | 큰바다사자 | 전설 | Fully grown adult male Steller sea lion (Eumetopias jubatus): massive light tawny-blond body, thick neck with a short mane, broad blunt muzzle, small external ear flaps, very long dark fore flippers held back, hind flippers spread behind. |
+| `japanese_sea_lion` | 독도 강치 | 신화 | Fully grown adult male Japanese sea lion (Zalophus japonicus), museum-accurate scientific reconstruction of the extinct Dokdo 'gangchi': dark grey-brown sleek body, raised sagittal crest giving a high forehead bump, small external ear flaps, long fore flippers held back, hind flippers spread behind. Dignified, natural, not mystical. |
+| `sea_otter` | 해달 | 전설 | Fully grown adult sea otter (Enhydra lutris): very dense dark brown fur, pale grizzled cream-grey head and neck, small rounded ears, blunt muzzle, short flattened tail, large webbed flipper-like hind feet spread behind, small forepaws tucked against the chest. |
+| `otter` | 수달 | 희귀 | Fully grown adult Eurasian otter (Lutra lutra): long streamlined body with sleek dark brown fur, pale cream throat and chest, flat broad head, small rounded ears, long thick muscular tail tapering to a point, short legs with webbed feet spread, swimming pose underwater. |
 | `nurse_shark` | 수염상어 | 희귀 | Fully grown adult. Real nurse shark (Ginglymostoma cirratum), tawny-brown flattened body, two small nasal barbels, rounded dorsal and pectoral fins, long asymmetric upper tail lobe. |
 | `leopard_shark` | 표범상어 | 희귀 | Fully grown adult. Real leopard shark (Triakis semifasciata), slim silver-grey body with dark saddle bars and irregular dark spots, two distinct dorsal fins and heterocercal tail. |
 | `blue_shark` | 청새리상어 | 영웅 | Fully grown adult. Real blue shark (Prionace glauca), long slender indigo-blue back, bright white belly, extremely long narrow pointed pectoral fins, pointed snout and asymmetric shark tail. NOT shortfin mako. |

@@ -1537,6 +1537,78 @@
     "lanternfish": {
       "sourceHash": "cf6b9147cd208658193369d3f649793b32265b6b6c9fe4156403aa1864bf5a54",
       "sheet": "design/aqua3d-review/expansion4-models-27.webp"
+    },
+    "fry_spotted_seal": {
+      "sourceHash": "034406ac4ac3b70ecfb57963c15e1e1c1baf6129415bd7387e69003d7896f9b9",
+      "sheet": "design/aqua3d-review/mammals-models-1.webp"
+    },
+    "juv_spotted_seal": {
+      "sourceHash": "0e0f07d800170267f6a9ee86d23d81244f04781bbc1d38c72e41a23928e5a42e",
+      "sheet": "design/aqua3d-review/mammals-models-1.webp"
+    },
+    "spotted_seal": {
+      "sourceHash": "01737bb9cc1dc536e4d65033f50a0720d104de762918928cfa52e4f8ddc67a9d",
+      "sheet": "design/aqua3d-review/mammals-models-1.webp"
+    },
+    "fry_fur_seal": {
+      "sourceHash": "d3c4a518540f1a54819e11e3e876ada6d8a94e6a0aae20d443ea73d6f1148ee3",
+      "sheet": "design/aqua3d-review/mammals-models-1.webp"
+    },
+    "juv_fur_seal": {
+      "sourceHash": "94d969f0a0514b57102a5c7faf903ac095c4479451bf5fbaf05fb5779c7d38c8",
+      "sheet": "design/aqua3d-review/mammals-models-1.webp"
+    },
+    "fur_seal": {
+      "sourceHash": "af738988edbf9455274738494d51a9bffc6a065b35bac471b23e14f3cf221a43",
+      "sheet": "design/aqua3d-review/mammals-models-1.webp"
+    },
+    "fry_steller_sea_lion": {
+      "sourceHash": "a400dcd59d21309b110fadff13dceacb058ced63d5d29711d3748e1415c0f999",
+      "sheet": "design/aqua3d-review/mammals-models-2.webp"
+    },
+    "juv_steller_sea_lion": {
+      "sourceHash": "9fbdcd70b60e7cbc320fcbfb96300608aeb969b98e347824e79f92c0bfa48327",
+      "sheet": "design/aqua3d-review/mammals-models-2.webp"
+    },
+    "steller_sea_lion": {
+      "sourceHash": "47ae0114d38fc066f447ae13e2fce9fc030ddce062db1b17506da1783ee8c4db",
+      "sheet": "design/aqua3d-review/mammals-models-2.webp"
+    },
+    "fry_japanese_sea_lion": {
+      "sourceHash": "969e13df5e130cf5788ae3dacb988e03b5a8118981d4e1b46fb51f829ff40f82",
+      "sheet": "design/aqua3d-review/mammals-models-2.webp"
+    },
+    "juv_japanese_sea_lion": {
+      "sourceHash": "935153d7be828522737f8d97f52799306ff091199ee18e6eb1bac8e7c0c72768",
+      "sheet": "design/aqua3d-review/mammals-models-2.webp"
+    },
+    "japanese_sea_lion": {
+      "sourceHash": "ea35320730f9f06b763e8959249925322615e6c7a5caea1bc85806a8b2dabfea",
+      "sheet": "design/aqua3d-review/mammals-models-2.webp"
+    },
+    "fry_sea_otter": {
+      "sourceHash": "74c635d544d96df8fcbacc2b56bb63f917e46c9479e4520cf20cc5433f1b489b",
+      "sheet": "design/aqua3d-review/mammals-models-3.webp"
+    },
+    "juv_sea_otter": {
+      "sourceHash": "4b6eaf769d847239f04036855397654abe623f7633324481a5ef5ec2fbe33e29",
+      "sheet": "design/aqua3d-review/mammals-models-3.webp"
+    },
+    "sea_otter": {
+      "sourceHash": "5f2329fc5ef00cfec2063a761ac3ef5fbb0b4bf48b6af1b256e05f51dbaff72d",
+      "sheet": "design/aqua3d-review/mammals-models-3.webp"
+    },
+    "fry_otter": {
+      "sourceHash": "be4cc17b751dd31873ca024b0412623e63a37c8ad4365030e3b8949c5b14279b",
+      "sheet": "design/aqua3d-review/mammals-models-3.webp"
+    },
+    "juv_otter": {
+      "sourceHash": "91bc95accd956c677a9f03af80d1998edca5d9f4e750c938818262a3b750a11a",
+      "sheet": "design/aqua3d-review/mammals-models-3.webp"
+    },
+    "otter": {
+      "sourceHash": "4983d27081ee274c7ef6fc2f7d40804d344e6732c4af239eed6e8ebccb8d011d",
+      "sheet": "design/aqua3d-review/mammals-models-3.webp"
     }
   }
 }

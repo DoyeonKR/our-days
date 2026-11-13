@@ -70,6 +70,9 @@ const families: Record<string, Partial<Anatomy>> = {
   bluefin: { cx: .66, rx: .33, ry: .19, depth: .34, tail: .30, frequency: 7.3, flex: .055 },
   whale_shark: { cx: .65, rx: .34, ry: .19, depth: .33, tail: .29, frequency: 2.4, flex: .055 },
   // 홍어(2026-11-13) — GLB 는 민물가오리와 같은 납작한 몸 · 같은 뼈(fin_L/R 가 날개)인데 물고기로 잡혀 모래 위에서 뱀처럼 좌우로 꿈틀댔다. 가오리처럼 날개를 친다
+  // 해양 포유류(2026-11-13) — 큰 짐승이라 박자가 느리다
+  spotted_seal: { frequency: 2.2, flex: .1 }, fur_seal: { frequency: 1.8, flex: .1 }, steller_sea_lion: { frequency: 1.5, flex: .1 },
+  japanese_sea_lion: { frequency: 1.6, flex: .1 }, sea_otter: { frequency: 2.4, flex: .12 }, otter: { frequency: 3, flex: .14 },
   skate: { kind: "ray", cx: .66, cy: .52, rx: .30, ry: .30, depth: .12, frequency: 2.0, flex: .12 },
   ray: { kind: "ray", cx: .69, cy: .57, rx: .30, ry: .31, depth: .20, frequency: 2.3, flex: .12 },
   manta: { kind: "ray", cx: .69, cy: .49, rx: .27, ry: .18, depth: .22, frequency: 2.1, flex: .12 },
@@ -135,6 +138,16 @@ const pectOf = (family: string): BendProfile["pect"] => (FOLDERS.test(family) ? 
 /** 2026-11-13 — 파랑비늘돔 · 블루탱 · 흰동가리도 가슴지느러미로 날듯이 젓는다(놀래기형) */
 const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish|parrotfish|blue_tang|clown)$/;
 /** 몸은 곧게 두고 긴 지느러미를 물결쳐 나간다 — 전기뱀장어(배 쪽 뒷지느러미) · 산갈치 · 갈치(등지느러미) */
+/** 해양 포유류(2026-11-13) — 헤엄치는 법이 셋이다(실제 생태 그대로).
+ *  물범(PHOCID): 뒷지느러미를 좌우로 휘저어 나간다 — 몸 뒤쪽이 크게 옆으로 물결, 앞지느러미는 몸에 붙인다(굳은 날개 · 젓지 않는다).
+ *  물개 · 바다사자(OTARIID): 긴 앞지느러미를 날개처럼 크게 위아래로 저어 '날아간다' — 몸은 거의 곧고 뒷지느러미는 끌려온다.
+ *  수달 · 해달(MUSTELID): 몸과 꼬리를 위아래로 물결친다(물고기와 달리 위아래) — verticalWave */
+export const PHOCID = /^(spotted_seal)$/;
+export const OTARIID = /^(fur_seal|steller_sea_lion|japanese_sea_lion)$/;
+export const MUSTELID = /^(sea_otter|otter)$/;
+export const MAMMAL = /^(spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter)$/;
+/** 몸 물결이 위아래(Z 축)인 몸 — 수달 · 해달. 누운 광어와 같은 축으로 물결치지만 몸을 눕히지는 않는다 */
+export const verticalWave = (family: string) => MUSTELID.test(family);
 export const RIBBON_FIN = /^(electric_eel|oarfish|hairtail)$/;
 const PROFILES = new Map<string, BendProfile>();
 const CARP_AMP = [0.038, 0.056, 0.074, 0.092, 0.11, 0.128];
@@ -152,6 +165,9 @@ export function bendProfile(family: string, key = family): BendProfile {
     const expansion = /^(moray|electric_eel|loach|frilled_shark)$/.test(family);
     p = { kind: a.kind, amp: expansion ? [0.035, 0.065, 0.09, 0.115, 0.135, 0.15] : [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: expansion ? 0.95 : 1, fin: family === "moray" ? 0 : a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3, stride: 0.36 };
   }
+  else if (PHOCID.test(family)) p = { kind: a.kind, amp: [0.01, 0.016, 0.03, 0.06, 0.11, 0.17], lag: 0.6, fin: 0.04, finRate: 1, wing: 0, curl: 0.9, stride: 0.75, pect: "stiff" };
+  else if (OTARIID.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.018, 0.028, 0.04], lag: 0.5, fin: 0.55, finRate: 1, wing: 0, curl: 0.8, stride: 0.9 };
+  else if (MUSTELID.test(family)) p = { kind: a.kind, amp: [0.02, 0.035, 0.055, 0.08, 0.11, 0.15], lag: 0.8, fin: 0.12, finRate: 1.3, wing: 0, curl: 1.1, stride: 0.55 };
   else if (SHARK_CRUISE.test(family)) p = { kind: a.kind, amp: [0.01, 0.016, 0.026, 0.048, 0.09, 0.15], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0.8, stride: 0.7 };
   else if (SHARK_BOTTOM.test(family)) p = { kind: a.kind, amp: [0.02, 0.034, 0.052, 0.078, 0.108, 0.14], lag: 0.78, fin: a.flex, finRate: 1, wing: 0, curl: 1, stride: 0.5 };
   // 실러캔스 — 몸은 거의 굳힌 채 떠다니며 가슴 · 배지느러미를 좌우 엇갈려 크게 젓는다(꼬리는 급할 때만)

@@ -97,7 +97,7 @@ test("피라루쿠 · 전기뱀장어 — 생태원에서 쓰는 가장 높은 �
 
 test("때 손님 — 4차 손님은 곁 칸(side)이라 원래 손님의 몫이 그대로다 · 합쳐도 15% 를 넘지 않는다", () => {
   const fourth = TIMED_FISH.filter((t) => t.side);
-  assert.equal(fourth.length, 18, "4차 때 손님 열여덟");
+  assert.equal(fourth.length, 21, "4차 때 손님 열여덟 + 해양 포유류 셋(해달 · 독도 강치 · 큰바다사자)");
   for (const t of fourth) assert.ok(TIMED_ONLY.has(t.species), `${t.species} 는 pool 밖 손님`);
   assert.ok(TIMED_CHANCE + TIMED_SIDE_CHANCE <= 0.15 + 1e-9);
   const rate = (key: string, when: FishMoment, hitOf: (c: ReturnType<typeof rollCatch>) => boolean) => {
