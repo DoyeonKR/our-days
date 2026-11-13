@@ -13,20 +13,24 @@ const AUTO_RECOVER = 3;
 
 /** feedSignal: 먹이를 줄 때마다 바뀌는 값(횟수 · 시각). 바뀌면 수조의 feed 를 부른다(feedX = 수조 가로 위치, 없으면 가운데) */
 const MEAL_SEEN_KEY = "ourdays:aqua:mealSeen";
+const storedMealSeen = () => { try { return Number(localStorage.getItem(MEAL_SEEN_KEY)) || 0; } catch { return 0; } };
 
-export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX, replaySignal, onReplay }: { view: TankView;
+export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX, replaySignal, onReplay, replaying, replayNote }: { view: TankView;
   onFish: (id: number) => void; onDecor: (id: number) => void; onPlace: (x: number, y: number) => void;
   feedSignal?: number; feedX?: number;
   /** 다시 보기 — 누를 때마다 k 가 바뀐다. n = 잡아먹기 소식 번호. onReplay 가 결과(busy · reduced …)를 듣는다 */
   replaySignal?: { n: number; k: number } | null; onReplay?: (result: string) => void;
+  /** 다시 보기가 도는 중 — '그만 보기' 버튼을 보인다 · 다시 보기 결과 안내(수조 위에 잠깐) */
+  replaying?: boolean; replayNote?: string | null;
 }) {
   // 10단계(터널) · 11단계(돔)는 안에서 보는 것이 기본 — '밖에서 보기'로 바꿀 수 있다(꾸미는 동안은 밖). 기준값은 tunnel.ts 한곳
   const [outside, setOutside] = useState(false);
   const canTunnel = given.aquarium.tank >= TUNNEL_TIER && !given.editing;
   const inside = given.aquarium.tank >= DOME_TIER ? "돔 안으로" : "터널 안으로";
-  // 이 기기에서 이미 본 사냥 장면(lib/predation · scene.ts) — 다시 열어도 같은 장면을 또 그리지 않게
-  const [mealSeen] = useState(() => { try { return Number(localStorage.getItem(MEAL_SEEN_KEY)) || 0; } catch { return 0; } });
-  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside, mealSeen }), [given, canTunnel, outside, mealSeen]);
+  // 이 기기에서 이미 본 사냥 장면(lib/predation · scene.ts) — 다시 열어도 같은 장면을 또 그리지 않게.
+  //   수조를 지을 때마다 그때 값을 읽는다(2026-11-13): 예전엔 처음 붙을 때 한 번만 읽어, 연결이 끊겨 새로 지으면 방금 본 사냥을 또 그렸다. 저장이 막힌 기기는 ref 가 기억한다
+  const mealSeenRef = useRef(0);
+  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside }), [given, canTunnel, outside]);
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef({ view, onFish, onDecor, onPlace });
   const controller = useRef<TankHandle | null>(null);
@@ -59,13 +63,17 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
     fedSeen.current = feedSignal;
     controller.current?.feed(feedX);
   }, [feedSignal, feedX]);
-  const replaySeen = useRef(replaySignal?.k);
+  // 다시 보기 요청은 수조(컨트롤러)가 준비될 때까지 들고 있다가 튼다 — 카드는 다른 탭에도 떠서 누르면 수조가 막 붙는 중이었고, 예전엔 그 요청을
+  //   '못 불러왔다'로 버리거나(컨트롤러 없음) 다시 붙을 때 처음 값으로 삼켰다. 결과는 onReplay 로(화면이 요청을 지운다), 수조를 못 열었으면 "error"
+  const replaySeen = useRef<number | null>(null);
   useEffect(() => {
     if (!replaySignal || replaySignal.k === replaySeen.current) return;
+    if (error) { replaySeen.current = replaySignal.k; onReplay?.("error"); return; }
+    const tank = controller.current;
+    if (!ready || !tank) return;
     replaySeen.current = replaySignal.k;
-    const res = controller.current?.replay(replaySignal.n) ?? "skipped";
-    onReplay?.(res);
-  }, [replaySignal, onReplay]);
+    onReplay?.(tank.replay(replaySignal.n));
+  }, [replaySignal, onReplay, ready, error]);
   useEffect(() => {
     let cancelled = false, lostAt = 0, timer = 0;
     const mount = host.current;
@@ -84,13 +92,13 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
     void import("@/lib/aqua3d/scene").then(({ createTank }) => {
       if (cancelled) return;
       try {
-        controller.current = createTank(mount, latest.current.view, {
+        controller.current = createTank(mount, { ...latest.current.view, mealSeen: Math.max(storedMealSeen(), mealSeenRef.current) }, {
           fish: id => latest.current.onFish(id), decor: id => latest.current.onDecor(id),
           place: (x,y) => latest.current.onPlace(x,y), error: msg => { if (!cancelled) setError(msg); },
           ready: () => { if (!cancelled) setReady(true); },
           lost: () => { lostAt = Date.now(); recover(); },
           restored: () => { lostAt = 0; window.clearTimeout(timer); },
-          meal: (n) => { try { localStorage.setItem(MEAL_SEEN_KEY, String(n)); } catch { /* 이번만 */ } },
+          meal: (n) => { mealSeenRef.current = Math.max(mealSeenRef.current, n); try { localStorage.setItem(MEAL_SEEN_KEY, String(n)); } catch { /* ref 가 기억한다 */ } },
         });
       } catch {
         setError("이 기기에서 3D 수조를 열지 못했어요. WebGL 2 지원과 하드웨어 가속 설정을 확인해 주세요.");
@@ -101,6 +109,8 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full ? "is-full" : ""}`}>
     <div ref={host} className="aqua-webgl" />
     <CloseButton onClose={toggleFull} label={full ? "닫기" : "전체 보기"} className="aqua-full-btn" />
+    {replaying && ready && !error && <CloseButton onClose={() => { if (!controller.current?.stopReplay()) onReplay?.("stopped"); }} label="그만 보기" ariaLabel="다시 보기 그만 보기" className="aqua-replay-stop" />}
+    {replayNote && <p className="aqua-replay-note" role="status">{replayNote}</p>}
     {canTunnel && ready && !error && <CloseButton onClose={() => setOutside((o) => !o)} label={outside ? inside : "밖에서 보기"} className="aqua-tunnel-btn" />}
     {!ready && !error && <p className="aqua-empty" role="status">입체 수조를 준비하고 있어요…</p>}
     {error && <div className="aqua-3d-error" role="alert"><p>{error}</p><button type="button" className="tap aqua-btn" onClick={() => { recovered.current = 0; setError(null); setReady(false); setAttempt(n=>n+1); }}>다시 시도</button></div>}
@@ -110,6 +120,6 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
       <span>원본과의 유사도 검수를 통과한 모델만 표시해요.<br/>보유 물고기는 그대로이며 아래 목록에서 확인할 수 있어요.</span>
     </div>}
     {view.editing && !error && <p className="aqua-hint">{view.preview ? "미리보기 · 아래에서 회전·크기를 조절하고 확정하세요" : view.placing ? "바닥을 눌러 장식을 미리 놓아 보세요" : "장식을 눌러 선택하세요"}</p>}
-    {!view.editing && ready && !error && <span className="aqua-3d-guide" aria-hidden>{view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "끌어서 한 바퀴 둘러보기 · 물고기를 누르면 그쪽을 봐요" : "끌어서 둘러보기 · 물고기를 누르면 올려다봐요") : "좌우로 드래그해 둘러보기"}</span>}
+    {!view.editing && ready && !error && !replaying && <span className="aqua-3d-guide" aria-hidden>{view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "끌어서 한 바퀴 둘러보기 · 물고기를 누르면 그쪽을 봐요" : "끌어서 둘러보기 · 물고기를 누르면 올려다봐요") : "좌우로 드래그해 둘러보기"}</span>}
   </div>;
 }
