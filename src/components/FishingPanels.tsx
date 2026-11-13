@@ -209,59 +209,98 @@ function RequestCard({ list, done, couple }: { list: readonly FishRequest[]; don
   );
 }
 
-export function FishStats({ fs, eff, busy, today, who, exped, couple, cheered, requests, onCheer, onSpend, onClaim }: {
-  fs: FishingState; eff: Record<FishStat, number>; busy: boolean; today: string; who: string; exped: Expedition; couple: boolean; cheered: boolean;
-  requests: { list: readonly FishRequest[]; done: readonly boolean[] }; onCheer: () => void; onSpend: (k: FishStat) => void; onClaim: (id: string) => void;
+/** 탭 안의 작은 칸 버튼(2026-11-13) [사용자: "낚시 메뉴 배치가 너무 지저분해 깔끔하게 배치해줘"] — 한 탭에 갈래가 여럿이면 한 번에 한 갈래만 보인다.
+ *  dot 은 그 칸에 받을 것이 있을 때(목표 · 능력치 점수) 작은 점 */
+export function SubTabs<K extends string>({ items, cur, onPick, label }: { items: readonly (readonly [K, string, boolean?])[]; cur: K; onPick: (k: K) => void; label: string }) {
+  return (
+    <div className="fish-subtabs" role="group" aria-label={label}>
+      {items.map(([k, name, dot]) => (
+        <button key={k} type="button" aria-pressed={cur === k} className={`tap ${cur === k ? "is-on" : ""}`} onClick={() => onPick(k)}>
+          {name}{dot ? <i className="fish-subtab-dot" aria-label="받을 것 있음" /> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** 목표 탭 — 오늘(의뢰 · 오늘의 목표 · 원정) · 낚시 목표(길게 가는 목표) · 주인 */
+export function FishStats({ fs, busy, today, who, exped, couple, cheered, requests, onCheer, onClaim }: {
+  fs: FishingState; busy: boolean; today: string; who: string; exped: Expedition; couple: boolean; cheered: boolean;
+  requests: { list: readonly FishRequest[]; done: readonly boolean[] }; onCheer: () => void; onClaim: (id: string) => void;
 }) {
-  const next = nextGoals(fs);
+  const [view, setView] = useState<"today" | "goals" | "boss">("today");
+  const daily = dailyGoals(fs, today), next = nextGoals(fs);
+  const ready = (list: readonly FishGoal[]) => list.some((g) => g.done && !g.claimed);
   return (
     <>
-      <RequestCard list={requests.list} done={requests.done} couple={couple} />
-      <ExpedCard e={exped} who={who} couple={couple} cheered={cheered} onCheer={onCheer} />
-      <BossList fs={fs} today={today} />
-      <section className="aqua-card">
-        <header><strong>오늘의 목표</strong><small>날마다 새로 시작해요</small></header>
-        <ul className="fish-goals">{dailyGoals(fs, today).map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
-      </section>
-      <section className="aqua-card">
-        <header><strong>낚시 목표</strong><small>{fs.goals.length}/{goalTotal()} 달성</small></header>
-        <ul className="fish-goals">{next.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
-      </section>
-      <SizeList fs={fs} who={who} couple={couple} />
-      <section className="aqua-card">
-        <header><strong>능력치</strong><small>남은 점수 {fs.points} · 레벨마다 2점</small></header>
-        <ul className="fish-stats">
-          {STAT_KEYS.map((k) => (
-            <li key={k}>
-              <span className="min-w-0 flex-1">
-                <strong>{STAT_INFO[k].name} {fs.stats[k]}{eff[k] !== fs.stats[k] ? ` (장비 포함 ${eff[k]})` : ""}</strong>
-                <small>{STAT_INFO[k].desc}</small>
-              </span>
-              <ActionButton disabled={busy || fs.points <= 0 || fs.stats[k] >= STAT_CAP} aria-label={`${STAT_INFO[k].name} 올리기`} onClick={() => onSpend(k)}>+1</ActionButton>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section className="aqua-card">
-        <header><strong>쓰레기 수집함</strong><small>{JUNKS.filter((j) => (fs.junk[j.key] ?? 0) > 0).length}/{JUNKS.length}종 · 물가를 {Object.values(fs.junk).reduce((n, v) => n + v, 0)}번 치웠어요</small></header>
-        <ul className="fish-junkbox">
-          {JUNKS.map((j) => {
-            const n = fs.junk[j.key] ?? 0;
-            return (
-              <li key={j.key} className={n > 0 ? "" : "is-unseen"}>
-                <span><JunkIcon k={j.key} /></span>
-                <strong>{n > 0 ? j.name : "???"}</strong>
-                <small>{n > 0 ? `${n}개` : j.spot ? SPOTS.find((x) => x.key === j.spot)?.name : "어디서나"}</small>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <SubTabs label="목표 갈래" cur={view} onPick={setView} items={[["today", "오늘", ready(daily)], ["goals", `낚시 목표 ${fs.goals.length}/${goalTotal()}`, ready(next)], ["boss", "주인"]]} />
+      {view === "today" && (
+        <>
+          <RequestCard list={requests.list} done={requests.done} couple={couple} />
+          <section className="aqua-card">
+            <header><strong>오늘의 목표</strong><small>날마다 새로 시작해요</small></header>
+            <ul className="fish-goals">{daily.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
+          </section>
+          <ExpedCard e={exped} who={who} couple={couple} cheered={cheered} onCheer={onCheer} />
+        </>
+      )}
+      {view === "goals" && (
+        <section className="aqua-card">
+          <header><strong>낚시 목표</strong><small>{fs.goals.length}/{goalTotal()} 달성</small></header>
+          <ul className="fish-goals">{next.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
+        </section>
+      )}
+      {view === "boss" && <BossList fs={fs} today={today} />}
     </>
   );
 }
 
-/** 바깥을 눌러 닫기 — 누르기가 바깥에서 시작했을 때만. 시트 안에서 글자를 끌어 선택하다 바깥에서 놓아도 닫히지 않게 */
+/** 능력치(장비 탭) — 레벨마다 2점 */
+export function FishAbility({ fs, eff, busy, onSpend }: { fs: FishingState; eff: Record<FishStat, number>; busy: boolean; onSpend: (k: FishStat) => void }) {
+  return (
+    <section className="aqua-card">
+      <header><strong>능력치</strong><small>남은 점수 {fs.points} · 레벨마다 2점</small></header>
+      <ul className="fish-stats">
+        {STAT_KEYS.map((k) => (
+          <li key={k}>
+            <span className="min-w-0 flex-1">
+              <strong>{STAT_INFO[k].name} {fs.stats[k]}{eff[k] !== fs.stats[k] ? ` (장비 포함 ${eff[k]})` : ""}</strong>
+              <small>{STAT_INFO[k].desc}</small>
+            </span>
+            <ActionButton disabled={busy || fs.points <= 0 || fs.stats[k] >= STAT_CAP} aria-label={`${STAT_INFO[k].name} 올리기`} onClick={() => onSpend(k)}>+1</ActionButton>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** 크기 기록(수집 탭 '기록' 칸) */
+export function FishSizes({ fs, who, couple }: { fs: FishingState; who: string; couple: boolean }) {
+  return <SizeList fs={fs} who={who} couple={couple} />;
+}
+
+/** 쓰레기 수집함(수집 탭) */
+export function FishJunk({ fs }: { fs: FishingState }) {
+  return (
+    <section className="aqua-card">
+      <header><strong>쓰레기 수집함</strong><small>{JUNKS.filter((j) => (fs.junk[j.key] ?? 0) > 0).length}/{JUNKS.length}종 · 물가를 {Object.values(fs.junk).reduce((n, v) => n + v, 0)}번 치웠어요</small></header>
+      <ul className="fish-junkbox">
+        {JUNKS.map((j) => {
+          const n = fs.junk[j.key] ?? 0;
+          return (
+            <li key={j.key} className={n > 0 ? "" : "is-unseen"}>
+              <span><JunkIcon k={j.key} /></span>
+              <strong>{n > 0 ? j.name : "???"}</strong>
+              <small>{n > 0 ? `${n}개` : j.spot ? SPOTS.find((x) => x.key === j.spot)?.name : "어디서나"}</small>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 export function useBackdropClose(onClose: () => void) {
   const downAt = useRef<EventTarget | null>(null);
   return {

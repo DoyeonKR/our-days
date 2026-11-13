@@ -1625,3 +1625,10 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .fish-requests li.is-done { opacity: .6; }
 .fish-request-pic { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--accent, #38bdf8) 14%, transparent); }
 .fish-request-ok { font-weight: 800; color: #16a34a; }
+
+/* 낚시 탭 안의 작은 칸 버튼(2026-11-13) — 한 탭에 갈래가 여럿이면 한 번에 한 갈래만 */
+.fish-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.fish-subtabs > button { position: relative; min-height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.05); color: rgba(235,244,250,.78); font-family: var(--font-body); font-size: 15px; line-height: 24px; font-weight: 600; white-space: nowrap; }
+.fish-subtabs > button.is-on { background: rgba(56,189,248,.18); border-color: rgba(56,189,248,.7); color: #e8f7ff; }
+.fish-subtab-dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: #fb7185; }
+.fish-collect > .fish-subtabs { margin-bottom: -2px; }

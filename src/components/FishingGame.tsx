@@ -5,7 +5,7 @@
  * 저장은 던질 때(미끼) · 끌어올린 뒤 · 장비를 바꿀 때만(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 힘겨루기 중엔 쓰지 않는다. */
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
-import { BossSheet, FishGear, FishListSheet, FishStats, GearPic, MoonSheet, TimedSheet, useBackdropClose } from "@/components/FishingPanels";
+import { BossSheet, FishAbility, FishGear, FishListSheet, FishStats, SubTabs, GearPic, MoonSheet, TimedSheet, useBackdropClose } from "@/components/FishingPanels";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { confirmDialog } from "@/lib/confirm";
 import { logDebug } from "@/lib/debug";
@@ -204,6 +204,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [row, setRow] = useState<IslandRow | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>("fish");
+  const [gearView, setGearView] = useState<"shop" | "stat" | "plus">("shop");
   const [tankOpen, setTankOpen] = useState(false);
   const [spotPick, setSpotPick] = useState<string | null>(() => readPrefs().spot ?? null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -2226,9 +2227,16 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         </>
       )}
 
-      {tab === "gear" && <FishGear fs={fs} coins={st.coins} busy={busy} today={today} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { void act((s) => buyBait(s, key, kstDate(clock()))); }} />}
-      {tab === "gear" && <FishGearPlus {...tabProps} />}
-      {tab === "stat" && <FishStats fs={fs} eff={eff} busy={busy} today={today} who={who} exped={exped} couple={!!coupleId} cheered={cheered} requests={todayRequests(st, today)} onCheer={() => void cheer()} onSpend={(k) => void act((s) => spendPoint(s, k))} onClaim={(id) => { void act((s) => claimFishGoal(s, id, kstDate(clock()))); }} />}
+      {tab === "gear" && (
+        <>
+          {/* 장비 탭도 한 번에 한 갈래(2026-11-13) — 사기 · 능력치 · 꾸미기 · 미끼 만들기 */}
+          <SubTabs label="장비 갈래" cur={gearView} onPick={setGearView} items={[["shop", "장비 · 미끼"], ["stat", "능력치", fs.points > 0], ["plus", "꾸미기 · 만들기"]]} />
+          {gearView === "shop" && <FishGear fs={fs} coins={st.coins} busy={busy} today={today} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { void act((s) => buyBait(s, key, kstDate(clock()))); }} />}
+          {gearView === "stat" && <FishAbility fs={fs} eff={eff} busy={busy} onSpend={(k) => void act((s) => spendPoint(s, k))} />}
+          {gearView === "plus" && <FishGearPlus {...tabProps} />}
+        </>
+      )}
+      {tab === "stat" && <FishStats fs={fs} busy={busy} today={today} who={who} exped={exped} couple={!!coupleId} cheered={cheered} requests={todayRequests(st, today)} onCheer={() => void cheer()} onClaim={(id) => { void act((s) => claimFishGoal(s, id, kstDate(clock()))); }} />}
 
       {tab === "more" && <FishCollect {...tabProps} />}
       {tab === "rank" && <FishRank myName={myName} onContest={() => { setTab("more"); setMsg(null); }} />}
