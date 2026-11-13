@@ -25,7 +25,7 @@ test("카메라를 똑바로 보던 몸도 옆으로 선다 · 길이 1 · 위�
 });
 
 test("판 같은 종은 많이 · 해파리 · 불가사리 · 바닥에 눕는 종은 안 한다", () => {
-  assert.ok(sideOnOf("betta") > sideOnOf("koi"));
+  assert.ok(sideOnOf("octopus") > sideOnOf("koi"));
   assert.equal(sideOnOf("jellyfish"), 0);
   assert.equal(sideOnOf("starfish"), 0);
   assert.equal(sideOnOf("flounder"), 0);

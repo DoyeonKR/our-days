@@ -7,8 +7,7 @@ import { readFileSync } from "node:fs";
 import * as T from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
-import { BREATH_S, breathOf, cephGlsl } from "./cephalopod.ts";
-import { cephV2Pose, cephV2Rig, fishMotion } from "./glb.ts";
+import { BREATH_S, breathOf, cephArmData, cephArmDisplace, cephGlsl, type ArmPose } from "./cephalopod.ts";
 import { habitOf } from "./habits.ts";
 import { fishCourse } from "./world.ts";
 
@@ -51,78 +50,80 @@ const open = (key: string) => {
   const b = readFileSync(`public/aqua/models/fish/${key}.glb`);
   return new Promise<T.Group>((res, rej) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(() => webp as never).parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, "", (g) => res(g.scene), rej));
 };
+
+type Arm = NonNullable<ReturnType<typeof cephArmData>>;
+async function armsOf(key: string) {
+  const sc = await open(key); let m: T.SkinnedMesh | null = null; sc.traverse((o) => { if (!m && o instanceof T.SkinnedMesh) m = o; });
+  const mesh = m as unknown as T.SkinnedMesh, pos = mesh.geometry.attributes.position, uv = mesh.geometry.attributes.uv, n = pos.count;
+  const P = new Float32Array(n * 3), U = new Float32Array(n * 2);
+  for (let k = 0; k < n; k++) { P[k * 3] = pos.getX(k); P[k * 3 + 1] = pos.getY(k); P[k * 3 + 2] = pos.getZ(k); U[k * 2] = uv.getX(k); U[k * 2 + 1] = uv.getY(k); }
+  return { P, U, n, d: cephArmData(key, P, U, n, mesh.geometry.index ? (mesh.geometry.index.array as ArrayLike<number>) : null) as Arm };
+}
+type Arms = Awaited<ReturnType<typeof armsOf>>;
+const pose = (t: number, o: Partial<ArmPose> = {}): ArmPose => ({ t, walk: 0, stream: 0, flare: 0, gain: 1, ...o });
+const move = (A: Arms, k: number, p: ArmPose, out: number[]) => cephArmDisplace(A.P[k * 3], A.P[k * 3 + 1], A.P[k * 3 + 2], A.d.attr, k, A.d.hub, A.d.sdir, A.d.crown, p, out);
+const ang = (A: Arms, x: number, y: number) => Math.atan2(y - A.d.hub[1], x - A.d.hub[0]);
 const wrap = (d: number) => Math.atan2(Math.sin(d), Math.cos(d));
 
-// 입체 두족류(v2, 2026-11-13) — 팔마다 뼈 여섯 마디. 팔 끝 뼈(arm_a_5)의 모델 좌표 자리로 잰다
-type Pose = Parameters<typeof cephV2Pose>[2];
-const P0: Pose = { walk: 0, stream: 0, flare: 0, breath: 0, squeeze: 0, seed: 0.7 };
-async function rigOf(key: string) {
-  const sc = await open(key); let m: T.SkinnedMesh | null = null; sc.traverse((o) => { if (!m && o instanceof T.SkinnedMesh) m = o; });
-  const r = cephV2Rig(sc, m); assert.ok(r, `${key} 는 입체 두족류(v2)`);
-  const tips = r!.arms.map((a) => a.joints[a.joints.length - 1].bone), roots = r!.arms.map((a) => a.joints[1].bone);
-  const at = (b: T.Object3D) => { sc.updateMatrixWorld(true); return sc.worldToLocal(b.getWorldPosition(new T.Vector3())); };
-  const rest = tips.map(at);
-  return { sc, r: r!, tips, roots, at, rest };
-}
-const corr = (a: number[], b: number[]) => {
-  const ma = a.reduce((s, x) => s + x, 0) / a.length, mb = b.reduce((s, x) => s + x, 0) / b.length;
-  let ab = 0, aa = 0, bb = 0; for (let i = 0; i < a.length; i++) { ab += (a[i] - ma) * (b[i] - mb); aa += (a[i] - ma) ** 2; bb += (b[i] - mb) ** 2; }
-  return ab / Math.sqrt(aa * bb || 1);
-};
-
-test("입체 두족류 열두 모습 — 모두 v2 사슬(팔 8 · 10개)이고 fishMotion 이 옛 그림 판 셰이더를 쓰지 않는다", async () => {
-  for (const fam of ["octopus", "kraken", "squid", "giant_squid"]) for (const key of [`fry_${fam}`, `juv_${fam}`, fam]) {
-    const { r, sc } = await rigOf(key);
-    assert.equal(r.arms.length, /squid/.test(fam) ? 10 : 8, key);
-    const anim = fishMotion(sc, fam, key); anim(1, 1, { amp: 1 });
-    let patched = false; sc.traverse((o) => { if (o instanceof T.SkinnedMesh) patched ||= (o.material as T.Material).userData?.aquaArm !== undefined; });
-    assert.ok(!patched, `${key} 옛 셰이더 없음`);
-  }
-});
-
-test("팔은 저마다 따로 움직이고 · 끝이 뿌리보다 크게 움직인다 · 외투막 뼈는 제자리", async () => {
-  for (const key of ["octopus", "kraken", "squid"]) {
-    const { r, tips, roots, at, rest } = await rigOf(key);
-    const tr: number[][] = tips.map(() => []);
-    let tipMove = 0, rootMove = 0;
-    const rootRest = roots.map(at), mantle0 = r.mantle ? at(r.mantle.bone) : null;
-    for (let k = 0; k < 160; k++) {
-      cephV2Pose(r, k * 0.08, P0);
-      tips.forEach((b, a) => { const p = at(b); tr[a].push(p.y + p.z * 0.5 + p.x * 0.3); tipMove = Math.max(tipMove, p.distanceTo(rest[a])); });
-      roots.forEach((b, a) => { rootMove = Math.max(rootMove, at(b).distanceTo(rootRest[a])); });
-      if (mantle0) assert.ok(at(r.mantle!.bone).distanceTo(mantle0) < 1e-6, `${key} 외투막 뼈가 움직였다`);
-    }
+test("팔은 저마다 따로 움직인다 — 팔 끝끼리 움직임의 상관이 낮다(하나의 꼬리처럼 같이 휘지 않는다)", async () => {
+  for (const key of ["octopus", "kraken", "juv_octopus"]) {
+    const A = await armsOf(key), o = [0, 0, 0];
+    // 팔 하나 = 위상 하나(cephArmData 가 이어진 정점을 한 팔로 묶는다) — 팔마다 가장 먼 정점을 끝으로
+    const byArm = new Map<number, number>();
+    for (let k = 0; k < A.n; k++) { if (A.d.attr[k * 4] < 0.9 || A.d.attr[k * 4 + 1] < 0.5) continue; const id = Math.round(A.d.attr[k * 4 + 2] * 20); const b = byArm.get(id); if (b === undefined || A.d.attr[k * 4 + 1] > A.d.attr[b * 4 + 1]) byArm.set(id, k); }
+    const tips = [...byArm.values()];
+    assert.ok(tips.length >= 4, `${key} 팔 끝 ${tips.length}개`);
+    const series = tips.map((k) => { move(A, k, pose(0, { walk: 1 }), o); const a0 = ang(A, o[0], o[1]); return Array.from({ length: 200 }, (_, j) => { move(A, k, pose(j * 0.05, { walk: 1 }), o); return wrap(ang(A, o[0], o[1]) - a0); }); });
+    const corr = (a: number[], b: number[]) => {
+      const ma = a.reduce((x, y) => x + y) / a.length, mb = b.reduce((x, y) => x + y) / b.length; let ab = 0, aa = 0, bb = 0;
+      for (let j = 0; j < a.length; j++) { ab += (a[j] - ma) * (b[j] - mb); aa += (a[j] - ma) ** 2; bb += (b[j] - mb) ** 2; }
+      return ab / Math.sqrt(aa * bb);
+    };
     let sum = 0, cnt = 0;
-    for (let a = 0; a < tr.length; a++) for (let b = a + 1; b < tr.length; b++) { sum += corr(tr[a], tr[b]); cnt++; }
-    assert.ok(sum / cnt < 0.55, `${key} 팔끼리 평균 상관 ${(sum / cnt).toFixed(2)}`);
-    assert.ok(tipMove > rootMove * 3, `${key} 끝 ${tipMove.toFixed(3)} · 뿌리 ${rootMove.toFixed(3)}`);
-    assert.ok(tipMove > 0.05, `${key} 팔 끝이 보이게 움직인다 ${tipMove.toFixed(3)}`);
+    for (let x = 0; x < series.length; x++) for (let y = x + 1; y < series.length; y++) { sum += Math.abs(corr(series[x], series[y])); cnt++; }
+    assert.ok(sum / cnt < 0.55, `${key} 팔끼리 평균 |상관| ${(sum / cnt).toFixed(2)}`);
   }
 });
 
-test("문어는 기어갈 때 팔이 번갈아 들린다 · 물 뿜기엔 팔이 앞(+X)으로 모여 물결이 준다 · 멈출 땐 우산처럼 편다", async () => {
-  const { r, tips, at, rest } = await rigOf("octopus");
-  // 기기: 짝 · 홀 팔의 끝 높이가 반대로
-  const ev: number[] = [], od: number[] = [];
-  for (let k = 0; k < 120; k++) { cephV2Pose(r, k * 0.05, { ...P0, walk: 1 }); ev.push(at(tips[0]).y + at(tips[2]).y); od.push(at(tips[1]).y + at(tips[3]).y); }
-  assert.ok(corr(ev, od) < -0.3, `짝 · 홀 팔이 번갈아 ${corr(ev, od).toFixed(2)}`);
-  // 물 뿜기: 팔 끝 평균 x 가 앞으로, 흔들림은 3분의 1 아래
-  const spread = (o: Pose) => {
-    let mx = 0, wob = 0; cephV2Pose(r, -0.05, o); const prev = tips.map(at);
-    for (let k = 0; k < 80; k++) { cephV2Pose(r, k * 0.05, o); tips.forEach((b, a) => { const p = at(b); mx += p.x / (80 * tips.length); wob += p.distanceTo(prev[a]); prev[a].copy(p); }); }
-    return { mx, wob };
-  };
-  const calm = spread(P0), jet = spread({ ...P0, stream: 1 });
-  const restX = rest.reduce((s, p) => s + p.x, 0) / rest.length;
-  assert.ok(jet.mx > restX + 0.15, `뿜으면 팔이 앞으로 모인다 ${restX.toFixed(2)} → ${jet.mx.toFixed(2)}`);
-  assert.ok(jet.wob < calm.wob * 0.34, `뿜는 동안 물결 ${jet.wob.toFixed(3)} < 평소 ${calm.wob.toFixed(3)} × 1/3`);
-  cephV2Pose(r, 0, { ...P0, flare: 1 });
-  const lift = tips.reduce((s, b, a) => s + at(b).y - rest[a].y, 0) / tips.length;
-  assert.ok(lift > 0.05, `멈출 땐 팔이 들린다 ${lift.toFixed(3)}`);
-  // 어느 마디도 1.2 rad 넘게 돌지 않는다
-  for (const o of [P0, { ...P0, walk: 1 }, { ...P0, stream: 1 }, { ...P0, flare: 1 }]) for (let k = 0; k < 40; k++) {
-    cephV2Pose(r, k * 0.13, o);
-    for (const arm of r.arms) for (const j of arm.joints) assert.ok(2 * Math.acos(Math.min(1, Math.abs(j.bone.quaternion.w))) < 1.2);
+test("굽힘은 팔 뿌리에서 끝으로 지나가고, 끝이 뿌리 쪽보다 훨씬 크게 움직인다 · 외투막 · 머리는 그대로", async () => {
+  const A = await armsOf("octopus"), o = [0, 0, 0];
+  let mid = -1, tip = -1;
+  // 같은 팔(같은 위상) — 가운데쯤(rr 0.45 ~ 0.55)과 그 팔의 가장 먼 끝
+  for (let k = 0; k < A.n; k++) if (A.d.attr[k * 4] > 0.95 && Math.abs(A.d.attr[k * 4 + 1] - 0.5) < 0.05) { mid = k; break; }
+  const ph0 = A.d.attr[mid * 4 + 2];
+  for (let k = 0; k < A.n; k++) if (A.d.attr[k * 4] > 0.95 && Math.abs(A.d.attr[k * 4 + 2] - ph0) < 1e-4 && (tip < 0 || A.d.attr[k * 4 + 1] > A.d.attr[tip * 4 + 1])) tip = k;
+  assert.ok(mid >= 0 && tip >= 0 && A.d.attr[tip * 4 + 1] > 0.6, "같은 팔의 가운데 · 끝");
+  const swing = (k: number) => { const a: number[] = []; move(A, k, pose(0, { walk: 1 }), o); const a0 = ang(A, o[0], o[1]); for (let j = 0; j < 240; j++) { move(A, k, pose(j * 0.05, { walk: 1 }), o); a.push(wrap(ang(A, o[0], o[1]) - a0)); } return a; };
+  const sm = swing(mid), st = swing(tip), amp = (a: number[]) => Math.max(...a) - Math.min(...a);
+  assert.ok(amp(st) > amp(sm) * 2, `끝 ${amp(st).toFixed(3)} > 가운데 ${amp(sm).toFixed(3)} × 2`);
+  // 프레임 사이 변화로 본다(끝의 느린 말기를 걸러 낸다)
+  const dm = sm.slice(1).map((v, j) => v - sm[j]), dt2 = st.slice(1).map((v, j) => v - st[j]);
+  let best = -Infinity, bestLag = 0;
+  for (let lag = 0; lag < 30; lag++) { let c = 0; for (let j = 0; j + lag < dm.length; j++) c += dm[j] * dt2[j + lag]; if (c > best) { best = c; bestLag = lag; } }
+  assert.ok(bestLag > 0, `끝이 가운데보다 늦게 따라온다(${(bestLag * 0.05).toFixed(2)}초)`);
+  let still = 0;
+  for (let k = 0; k < A.n; k++) if (A.d.attr[k * 4] === 0) { move(A, k, pose(3.3, { walk: 1, stream: 1, flare: 1 }), o); still = Math.max(still, Math.hypot(o[0] - A.P[k * 3], o[1] - A.P[k * 3 + 1], o[2] - A.P[k * 3 + 2])); }
+  assert.equal(still, 0, "외투막 · 머리 정점은 안 움직인다");
+});
+
+test("물 뿜기 — 팔을 외투막 반대쪽으로 모으고 물결을 거의 끈다 · 미끄러짐 끝엔 편다 · 어느 팔도 외투막을 뚫고 돌지 않는다", async () => {
+  for (const key of ["octopus", "squid", "giant_squid"]) {
+    const A = await armsOf(key), o = [0, 0, 0];
+    const tips = Array.from({ length: A.n }, (_, k) => k).filter((k) => A.d.attr[k * 4] > 0.9 && A.d.attr[k * 4 + 1] > 0.55);
+    // 퍼진 폭 = 팔 끝들이 '늘어뜨리는 축'에서 옆으로 떨어진 거리(보이는 다발의 굵기). 외투막 쪽 팔은 돌리지 않고 몸 뒤로 끌어당기므로 각이 아니라 거리로 잰다
+    const ex = Math.cos(A.d.sdir), ey = Math.sin(A.d.sdir);
+    const spread = (p: ArmPose) => { let s2 = 0; for (const k of tips) { move(A, k, p, o); const dx = o[0] - A.d.hub[0], dy = o[1] - A.d.hub[1]; s2 += (dx * ey - dy * ex) ** 2; } return Math.sqrt(s2 / tips.length); };
+    // 펴기는 각으로(팔이 늘어뜨리는 축에서 우산처럼 벌어진다)
+    const fan = (p: ArmPose) => { let s2 = 0; for (const k of tips) { move(A, k, p, o); s2 += wrap(ang(A, o[0], o[1]) - A.d.sdir) ** 2; } return Math.sqrt(s2 / tips.length); };
+    const rest = spread(pose(0)), jet = spread(pose(0, { stream: 1 })), flare = fan(pose(0, { flare: 1 })), fan0 = fan(pose(0));
+    assert.ok(jet < rest * 0.8, `${key} 모으면 퍼진 폭 ${rest.toFixed(2)} → ${jet.toFixed(2)}`);
+    assert.ok(flare > fan0 * 1.05, `${key} 펴면 ${fan0.toFixed(2)} → ${flare.toFixed(2)}`);
+    let worst = 0;
+    for (const k of tips) { move(A, k, pose(0, { stream: 1 }), o); worst = Math.max(worst, Math.abs(wrap(ang(A, o[0], o[1]) - A.d.attr[k * 4 + 3]))); }
+    assert.ok(worst < 1.2, `${key} 가장 많이 돈 팔 ${worst.toFixed(2)} rad`);
+    const wob = (p: Partial<ArmPose>) => { let m = 0; for (const k of tips.slice(0, 30)) { const a: number[] = []; move(A, k, pose(0, p), o); const a0 = ang(A, o[0], o[1]); for (let j = 0; j < 80; j++) { move(A, k, pose(j * 0.05, p), o); a.push(wrap(ang(A, o[0], o[1]) - a0)); } m = Math.max(m, Math.max(...a) - Math.min(...a)); } return m; };
+    const wj = wob({ stream: 1 }), ww = wob({ walk: 1 });
+    assert.ok(wj < ww / 3, `${key} 뿜을 때 물결 ${wj.toFixed(3)} · 기어갈 때 ${ww.toFixed(3)}`);
   }
 });
 

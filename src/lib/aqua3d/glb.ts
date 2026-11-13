@@ -401,60 +401,6 @@ function attachLure(inner: T.Group, mesh: T.SkinnedMesh): T.Sprite | null {
 }
 
 type Rig = { bone: T.Object3D; base: T.Quaternion; pos: T.Vector3; scale: T.Vector3 };
-
-/* ── 입체 두족류 팔 사슬(v2) ─────────────────────────────────────────────
- * 쉬는 자세의 뼈 회전은 전부 단위라(제작 규칙) 뼈 좌표축 = 모델 축이다. 팔마다 쉬는 방향 d(뿌리 → 끝, 모델 좌표)와
- * 옆 축 L = d × 위(+면 팔이 들린다)를 구해 두고, 마디마다 위(Y) 축 돌기(좌우 휩쓸기)와 L 축 돌기(들기 · 말기)를 준다 — 사슬이라 끝으로 갈수록 쌓인다.
- * 앞(+X)이 기어가는 쪽 · 외투막은 −X — 물을 뿜으면 외투막 쪽으로 나가므로 팔은 +X 쪽으로 모여 끌려간다 */
-export type CephV2 = { octo: boolean; mantle: Rig | null; arms: { joints: Rig[]; L: T.Vector3; yawToFront: number; ph: number; rate: number }[] };
-export function cephV2Rig(inner: T.Object3D, body: T.SkinnedMesh | null): CephV2 | null {
-  if (!body || body.userData?.aquaGeometry !== "ceph-volume-v2") return null;
-  const arms: CephV2["arms"] = [];
-  for (let a = 0; a < 12; a++) {
-    const joints: Rig[] = [];
-    for (let j = 0; j < 6; j++) { const b = inner.getObjectByName(`arm_${a}_${j}`); if (!b) break; joints.push({ bone: b, base: b.quaternion.clone(), pos: b.position.clone(), scale: b.scale.clone() }); }
-    if (joints.length < 2) break;
-    // 쉬는 방향 — 마디 자리를 부모 따라 더해 모델 좌표로(쉬는 회전이 단위라 위치만 더하면 된다)
-    const d = new T.Vector3();
-    for (let j = 1; j < joints.length; j++) d.add(joints[j].pos);
-    d.y = 0; if (d.lengthSq() < 1e-8) d.set(1, 0, 0); d.normalize();
-    const L = new T.Vector3().crossVectors(d, new T.Vector3(0, 1, 0)).normalize();
-    // +X 로 모으려면 Y 축으로 이만큼 돈다(Y 축 θ 회전은 +X 를 (cosθ, 0, −sinθ) 로 보낸다)
-    const yawToFront = -Math.atan2(-d.z, d.x);
-    const h = Math.sin(a * 91.7 + 3.1) * 43758.5453;
-    arms.push({ joints, L, yawToFront, ph: a * 2.399 + (h - Math.floor(h)) * 2, rate: 1 + 0.35 * Math.sin(a * 1.3 + 1.1) });
-  }
-  if (!arms.length) return null;
-  const m = inner.getObjectByName("mantle");
-  return { octo: arms.length <= 8, mantle: m ? { bone: m, base: m.quaternion.clone(), pos: m.position.clone(), scale: m.scale.clone() } : null, arms };
-}
-const qa = new T.Quaternion(), qb = new T.Quaternion(), UP = new T.Vector3(0, 1, 0);
-/** 한 프레임 — walk(기기 0~1) · stream(물 뿜기 동안 팔 모으기) · flare(멈출 때 우산처럼 펴기) · breath(숨 −1~1) · squeeze(뿜는 순간 0~1) */
-export function cephV2Pose(r: CephV2, wt: number, o: { walk: number; stream: number; flare: number; breath: number; squeeze: number; seed: number }) {
-  const calm = 1 - 0.85 * o.stream;
-  r.arms.forEach((arm, a) => {
-    const n = arm.joints.length, w = wt * arm.rate, ph = arm.ph + o.seed;
-    // 기기: 팔이 번갈아(짝 · 홀) 들려 앞으로 뻗었다가 내려 바닥을 짚는다 — 짚은 동안은 낮게 붙는다
-    const step = Math.sin(w * 2.6 + (a % 2) * Math.PI + a * 0.4), lift = o.walk * Math.max(0, step), plant = o.walk * Math.max(0, -step);
-    // 물 뿜기: 뿌리 셋에 나눠 +X 로 돌린다(최대 0.75 rad — 외투막 쪽 팔은 옆으로만 붙는다)
-    const bundle = Math.max(-0.75, Math.min(0.75, arm.yawToFront)) * o.stream;
-    for (let j = 0; j < n; j++) {
-      const k = j / (n - 1), pa = arm.joints[j];
-      let yaw = calm * (0.09 + 0.05 * k) * Math.sin(w * 1.1 - j * 0.8 + ph) + o.walk * 0.12 * Math.sin(w * 2.6 + (a % 2) * Math.PI - j * 0.5) * (j < 3 ? 1 : 0.4);
-      let pitch = calm * (0.05 + 0.06 * k) * Math.sin(w * 0.9 - j * 0.7 + ph + 1);
-      // 끝 말기 — 끝으로 갈수록(세제곱) 위 · 안으로 천천히 말렸다 편다
-      pitch += calm * 0.32 * k * k * k * (0.55 + 0.45 * Math.sin(w * 0.55 + ph * 1.7));
-      if (j === 0) pitch += lift * 0.38 - plant * 0.06 + o.flare * 0.5;
-      else if (j < 3) pitch += -lift * 0.14 + o.flare * 0.08;
-      else pitch += -o.flare * 0.12;
-      if (j < 3) yaw += bundle / 3;
-      // 뿜는 동안 팔이 곧게 펴진다(말기 · 물결을 거의 끈다 — calm) · 다발이 조금 위로(외투막 축에 맞춰)
-      pa.bone.quaternion.copy(pa.base).multiply(qa.setFromAxisAngle(UP, yaw)).multiply(qb.setFromAxisAngle(arm.L, pitch - (j === 0 ? 0.12 * o.stream : 0)));
-    }
-  });
-  const m = r.mantle;
-  if (m) m.bone.scale.set(m.scale.x * (1 + 0.05 * o.breath + 0.1 * o.squeeze), m.scale.y * (1 - 0.08 * o.breath - 0.18 * o.squeeze), m.scale.z * (1 - 0.08 * o.breath - 0.18 * o.squeeze));
-}
 /** 물고기 헤엄 — 코드 모델과 같은 박자 · 크기. 뼈의 처음 자세 위에 더한다.
  *  갈아 끼운 순간 한 번 불린다 — 그때 이 물고기의 몸 준비(막 흔들림 · 초롱 · 몸 빛 끄기)도 한다.
  *  pose 는 전부 선택이다 — 엔진이 지금처럼 course 만 넘겨도 된다(hover 는 course 에 이미 있다).
@@ -493,9 +439,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   }
   // 두족류 팔 — 팔마다 따로 움직이는 정점 변형(뼈 사슬은 몸통 전체의 방향 · 외투막만)
   let armData: Float32Array | null = null, armAt = -1;
-  // 입체 두족류(v2, 2026-11-13) — 팔마다 뼈 여섯 마디(arm_<팔>_<마디>)가 있다. 옛 그림 판 셰이더는 끈다(정점 자리가 그림 uv 가 아니다)
-  const v2 = ceph ? cephV2Rig(inner, body) : null;
-  if (ceph && body && sk && !v2) {
+  if (ceph && body && sk) {
     const info = ensureArmAttribute(body, key);
     if (info) { armAt = finSlot(sk); if (armAt >= 0) { for (const m of materialsOf(body)) patchArmMaterial(m, sk.bones.length, info); armData = sk.boneMatrices as Float32Array; } }
   }
@@ -567,14 +511,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       const g = finGain(clock, sp);
       for (let s = 0; s < 2; s++) { const sign = s && wave.pect !== "alt" ? 1 : -1; angles[6 + s * 2] = sign * Math.sin(clock.fin) * wave.fin * g; angles[7 + s * 2] = sign * Math.sin(clock.fin - 0.7) * wave.fin * 1.3 * g; }
     }
-    if (v2) {
-      const rev = Math.max(0, Math.min(1, pose?.rev ?? 0)), jet = Math.max(0, Math.min(1, pose?.jet ?? 0));
-      const stream = rev * (0.35 + 0.65 * Math.min(1, jet * 3)), flare = rev * (1 - Math.min(1, jet * 4));
-      const walk = v2.octo ? (1 - rev) * (0.15 + 0.85 * Math.max(0, Math.min(1, ((sp.amp ?? 1) - 0.2) / 0.8))) : 0;
-      const wt = WATER_LIGHT.aquaTime.value || time;
-      const jj = jet > 0.02 ? Math.max(0, Math.sin(wt * 9)) ** 2 * (0.4 + 0.6 * jet) : 0, j = breathOf(wt, breathPh) * (1 - Math.min(1, jet * 4));
-      cephV2Pose(v2, wt, { walk, stream, flare, breath: j, squeeze: jj, seed: breathPh });
-    } else if (ceph) {
+    if (ceph) {
       // 두족류의 몸짓(2026-11-13) — 물고기처럼 팔을 꼬리 삼아 흔들던 것을 셋으로 갈랐다
       //  · 물 뿜기(rev · jet): 외투막을 앞세워 나가는 동안 팔을 한데 모아 곧게 뒤로 늘어뜨린다(물결을 거의 끈다), 외투막은 세게 오므렸다 편다
       //  · 미끄러진 끝(rev 인데 jet 이 작다): 팔을 위 · 바깥으로 펴 낙하산처럼 내려앉는다

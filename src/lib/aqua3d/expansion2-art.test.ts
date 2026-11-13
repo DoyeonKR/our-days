@@ -25,8 +25,7 @@ test("27 new forms have original art, matching profiles, self-contained rigged G
       assert.equal(j.animations?.length??0,0);assert.deepEqual([...(j.extensionsUsed??[])].sort(),["EXT_meshopt_compression","EXT_texture_webp","KHR_mesh_quantization"],key);
       assert.ok(j.images[0].bufferView!==undefined&&!j.images[0].uri);
       assert.ok(m.triangles<=m.limits.triangles&&m.bytes<=m.limits.bytes,key);
-      // 입체 두족류(v2, 2026-11-13)는 팔 여덟 · 열 개를 따로 지어 치어도 6000 까지
-      if(key.startsWith("fry_")&&m.geometry!=="ceph-volume-v2")assert.ok(m.triangles<=3000&&b.length<=300000,key);
+      if(key.startsWith("fry_"))assert.ok(m.triangles<=3000&&b.length<=300000,key);
       assert.equal(m.validation.errors,0,key);
       const kind=anatomy(family,key).kind;
       if(kind==="star")assert.ok(j.skins[0].joints.map((i:number)=>j.nodes[i].name).includes("arm_0_2"),key);
