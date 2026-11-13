@@ -1,7 +1,7 @@
 /** 수조 한 프레임의 물고기 자리(2026-11-11) — scene.ts 의 draw 가 부르던 길 → 늘리기 → 겹침 밀기 → 모래에 앉히기를 한 함수로 뺐다.
  *  화면과 테스트(motion.test · aquamotion.test)가 같은 식을 쓰게 하려고(예전엔 테스트가 화면 식을 흉내 내다 깊이 · 높이 변환이 어긋난 채 통과했다).
  *  three 를 쓰지 않는다. 결과는 buffers 에 쓴다(할당 없음). 같은 입력 = 같은 자리(겹침 밀기 보정값만 프레임마다 이어진다). */
-import { denCourse, habitKey, habitOf, hyp2, hyp3, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
+import { denAssign, denCourse, habitKey, habitOf, hyp2, hyp3, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
 import { anatomy, bendProfile } from "./anatomy.ts";
 import { starCourse } from "./invertebrates.ts";
 import { WORLD, floorPose, schoolCourse, separate, type SeparateOptions } from "./world.ts";
@@ -18,7 +18,9 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   /** 둥근 판(불가사리) — 겹침 밀기가 선분이 아니라 원으로 본다 */
   disc: boolean;
   /** 경기장 고리(habits.lap — 고래상어) — 몸이 보는 쪽으로 유리를 지킨다(아래 3) */
-  lap: boolean };
+  lap: boolean;
+  /** 굴에 산다(habits.den — 곰치) */
+  den: boolean };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
@@ -30,6 +32,7 @@ const swimStateOf = (m: StepFish): SwimState => {
     idlePace: h.idle ? (h.pace ?? 1) * h.idle * 1.2 : 0,
     disc: m.family === "starfish",
     lap: !!h.lap,
+    den: !!h.den,
   };
 };
 export type StepWorld = {
@@ -65,6 +68,17 @@ function beatEffort(st: SwimState, length: number, habitEffort: number, ground: 
 }
 
 const STEP_FISH: StepFish[] = [];
+// 곰치 굴 나누기(2026-11-13) — 곰치 목록(id · 길이)이나 장애물 목록이 바뀔 때만 다시 정한다(habits.denAssign)
+const DEN_FISH: { id: number; length: number }[] = [];
+let DEN_KEY = "", DEN_OBS: readonly Obstacle[] | undefined, DEN_MAP: ReturnType<typeof denAssign> = new Map();
+function denPlan(swimmers: Iterable<[number, StepFish]>, obstacles: readonly Obstacle[]) {
+  DEN_FISH.length = 0;
+  for (const [id, m] of swimmers) if ((m.swim ??= swimStateOf(m)).den) DEN_FISH.push({ id, length: m.length });
+  if (DEN_FISH.length < 2) { DEN_KEY = ""; return null; } // 혼자면 예전 그대로(hash 로 고른 바위)
+  const key = DEN_FISH.map((f) => `${f.id}:${f.length}`).join(",");
+  if (key !== DEN_KEY || obstacles !== DEN_OBS) { DEN_KEY = key; DEN_OBS = obstacles; DEN_MAP = denAssign(DEN_FISH, obstacles); }
+  return DEN_MAP;
+}
 // 겹침 밀기에 넘기는 둥근 판 표시 — 프레임마다 새로 안 만든다(늘어날 때만)
 let DISC = new Float32Array(64);
 const discAt = (n: number) => { if (DISC.length <= n) { const d = new Float32Array(DISC.length * 2); d.set(DISC); DISC = d; } return DISC; };
@@ -79,12 +93,13 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
   const span = hall?.kind === "tunnel" ? tunnelSpan(deep) : null;
   let n = 0;
   const fishes = STEP_FISH;
+  const dens = denPlan(swimmers, w.obstacles);
   // 1) 이번 프레임 길 — 모두의 자리를 먼저 채운다
   for (const [id, m] of swimmers) {
     const sc = schools.get(id), c = m.course, prevTurn = c.turn;
     // 길 — 장식 · 바위 · 터널 · 돔을 피하고(obstacles · hall) 먹이에 모인다(feed). 무리는 대장 몸으로 길을 계산해야 같은 길을 따라간다
     if (m.family === 'starfish') { const s = starCourse(id, elapsed, m.length, wide, { obstacles: w.obstacles, deep, tall, hall }); c.x = s.x; c.y = s.y; c.z = s.z; c.dx = s.dx; c.dy = s.dy; c.dz = s.dz; c.effort = s.effort; c.turn = 0; c.amp = 1; c.pulse = 0; c.ground = 1; c.puff = -1; c.hover = 0; c.feed = 0; }
-    else if (habitOf(habitKey(m.family, m.key)).den) denCourse(id, elapsed, m.length, wide, WORLD.floor, { obstacles: w.obstacles, deep }, c);
+    else if ((m.swim ??= swimStateOf(m)).den) { const d = dens?.get(id); denCourse(id, elapsed, m.length, wide, WORLD.floor, { obstacles: w.obstacles, deep, ...(d ? { rock: d.rock, share: d.share } : {}) }, c); }
     else { opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts); }
     // 위로 늘리기 — 바닥에 붙은 만큼(ground)은 모래 높이만 따르고 몸 높이(hug)는 안 늘린다(2026-11-11 — 6단계에서 바닥 물고기가 몸 높이의 1.5배 떠 있었다). 헤엄치는 물고기는 그대로 tallY
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }

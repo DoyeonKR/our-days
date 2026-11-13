@@ -23,7 +23,7 @@ import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty
 import { claimGoal, fishDay } from "./fishinggoals.ts";
 import { awakeBlock, bossRecOf, isAwakeKey, masterySaleBonus, noteMastery, withAwakeRec } from "./fishmastery.ts";
 import { tideEffect } from "./fishtide.ts";
-import { BOSS_TAKEN, TIMED_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
+import { BOSS_TAKEN, TIMED_CHANCE, TIMED_SIDE_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
 export type FishStat = "catch" | "power" | "line" | "luck";
 export const STAT_INFO: Record<FishStat, { name: string; desc: string }> = {
@@ -50,25 +50,28 @@ export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra
 export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[]; art?: string; common?: number; push?: number };
 /** 그림 파일 key — 새 낚시터는 자기 그림이 올 때까지 art 로 비슷한 그림을 빌린다 */
 export const spotArtKey = (s: Pick<FishSpot, "key" | "art">) => s.art ?? `spot_${s.key}`;
-/** 낚시터는 전부 실제 한국 지역이다. key 는 저장값 · 그림 파일 이름이라 옛 그대로 둔다. */
+/** 낚시터는 전부 실제 한국 지역이다. key 는 저장값 · 그림 파일 이름이라 옛 그대로 둔다.
+ *  ⚠ pool 순서가 무게다 — rollCatch 는 흔한 계열에 (1 + lift × pool 안 자리)를 곱한다. 새 흔한 계열은 **원래 흔한 계열 바로 뒤(귀한 계열 앞)에 작은 무게로** 넣는다.
+ *  2026-11-13 4차 54계열을 귀한 계열 뒤(끝)에 붙였더니 가장 큰 덤을 받아 대표 물고기를 밀어냈다(우포늪 붕어 37% → 13%, 생태원 테트라 · 베타 · 구피 26% → 8%).
+ *  원래 흔한 계열은 4차 전 자리 그대로고 새 계열 몫은 합쳐 10~15%(행운 5) — fishingbatch4.test 가 4차 전 몫의 80% 를 잠근다. 귀한 계열의 자리는 확률과 무관하다(1% 띠는 계열마다 따로 쌓인다). */
 export const SPOTS: readonly FishSpot[] = [
   { key: "brook", name: "서울 청계천", water: "river", minLevel: 1, push: 0, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
-  { key: "dumulmeori", name: "양평 두물머리", water: "river", minLevel: 2, push: 0.5, pool: [["pale_chub", 40], ["crucian", 34], ["bullhead", 24], ["common_carp", 10], ["bitterling", 14], ["gudgeon", 12], ["grass_carp", 10]] },
-  { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, push: 1, pool: [["crucian", 40], ["pale_chub", 26], ["bullhead", 22], ["catfish", 40], ["common_carp", 20], ["koi", 15], ["snakehead", 12], ["bitterling", 14], ["loach", 14], ["ricefish", 12], ["bluegill", 14]] },
-  { key: "soyang", name: "춘천 소양호", water: "lake", minLevel: 4, push: 1.25, pool: [["smelt", 42], ["crucian", 30], ["pale_chub", 24], ["common_carp", 15], ["mandarin_fish", 10], ["bluegill", 12], ["skygazer", 10], ["largemouth_bass", 10], ["char", 8]] },
-  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, push: 1, pool: [["sweetfish", 42], ["pale_chub", 28], ["bullhead", 22], ["salmon", 15], ["mandarin_fish", 10], ["eel", 8], ["dark_chub", 14], ["shiri", 10], ["sleeper", 10], ["gudgeon", 10]], art: "spot_seomjin" },
-  { key: "bonghwa", name: "봉화 계곡", water: "valley", minLevel: 6, push: 1.75, pool: [["chinese_minnow", 42], ["pale_chub", 30], ["bullhead", 20], ["masu_salmon", 15], ["perch_kkeokji", 20], ["lenok", 6], ["dark_chub", 14], ["shiri", 10], ["rainbow_trout", 10]] },
-  { key: "jungle", name: "서천 국립생태원", water: "hall", minLevel: 7, push: 1.75, common: 1, pool: [["angel", 36], ["tetra", 30], ["betta", 24], ["guppy", 20], ["discus", 30], ["ray", 20], ["arowana", 10], ["molly", 14], ["platy", 14], ["zebra_danio", 14], ["corydoras", 12], ["gourami", 10], ["pleco", 10], ["oscar", 10], ["piranha", 10], ["redtail_catfish", 8]] },
+  { key: "dumulmeori", name: "양평 두물머리", water: "river", minLevel: 2, push: 0.5, pool: [["pale_chub", 40], ["crucian", 34], ["bullhead", 24], ["bitterling", 4.5], ["gudgeon", 4], ["common_carp", 10], ["grass_carp", 10]] },
+  { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, push: 1, pool: [["crucian", 40], ["pale_chub", 26], ["bullhead", 22], ["bitterling", 2.5], ["loach", 2], ["ricefish", 2], ["bluegill", 1.5], ["catfish", 40], ["common_carp", 20], ["koi", 15], ["snakehead", 12]] },
+  { key: "soyang", name: "춘천 소양호", water: "lake", minLevel: 4, push: 1.25, pool: [["smelt", 42], ["crucian", 30], ["pale_chub", 24], ["bluegill", 7], ["common_carp", 15], ["mandarin_fish", 10], ["skygazer", 10], ["largemouth_bass", 10], ["char", 8]] },
+  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, push: 1, pool: [["sweetfish", 42], ["pale_chub", 28], ["bullhead", 22], ["dark_chub", 3], ["gudgeon", 2.5], ["sleeper", 2.5], ["salmon", 15], ["mandarin_fish", 10], ["eel", 8], ["shiri", 10]], art: "spot_seomjin" },
+  { key: "bonghwa", name: "봉화 계곡", water: "valley", minLevel: 6, push: 1.75, pool: [["chinese_minnow", 42], ["pale_chub", 30], ["bullhead", 20], ["dark_chub", 6.5], ["masu_salmon", 15], ["perch_kkeokji", 20], ["lenok", 6], ["shiri", 10], ["rainbow_trout", 10]] },
+  { key: "jungle", name: "서천 국립생태원", water: "hall", minLevel: 7, push: 1.75, common: 1, pool: [["angel", 36], ["tetra", 30], ["betta", 24], ["guppy", 20], ["molly", 1.5], ["platy", 1], ["zebra_danio", 1], ["corydoras", 1], ["gourami", 1], ["pleco", 0.8], ["discus", 30], ["ray", 20], ["arowana", 10], ["oscar", 10], ["piranha", 10], ["redtail_catfish", 8]] },
   { key: "hwacheon", name: "화천 화천천", water: "river", minLevel: 8, push: 2.25, pool: [["smelt", 40], ["chinese_minnow", 30], ["pale_chub", 24], ["masu_salmon", 60], ["lenok", 4], ["rainbow_trout", 12], ["char", 8]] },
-  { key: "harbor", name: "통영 항구", water: "sea", minLevel: 9, push: 1.75, common: 1, pool: [["mackerel", 40], ["rockfish_bollak", 30], ["flounder", 40], ["rockfish", 30], ["black_seabream", 20], ["sea_bream", 20], ["starfish", 15], ["sea_bass", 18], ["squid", 10], ["croaker", 10], ["yellowtail", 8], ["octopus", 6], ["striped_jack", 5], ["puffer", 3], ["anchovy", 10], ["filefish", 10], ["scorpionfish", 8], ["spanish_mackerel", 10]] },
-  { key: "sanriver", name: "단양 남한강", water: "river", minLevel: 10, push: 2.75, pool: [["bullhead", 36], ["pale_chub", 30], ["crucian", 26], ["common_carp", 35], ["mandarin_fish", 30], ["snakehead", 12], ["perch_kkeokji", 8], ["eel", 6], ["sleeper", 10], ["skygazer", 10], ["sturgeon", 6]] },
+  { key: "harbor", name: "통영 항구", water: "sea", minLevel: 9, push: 1.75, common: 1, pool: [["mackerel", 40], ["rockfish_bollak", 30], ["flounder", 40], ["rockfish", 30], ["black_seabream", 20], ["sea_bream", 20], ["starfish", 15], ["anchovy", 1.5], ["scorpionfish", 1.5], ["filefish", 4], ["spanish_mackerel", 3.5], ["sea_bass", 18], ["squid", 10], ["croaker", 10], ["yellowtail", 8], ["octopus", 6], ["striped_jack", 5], ["puffer", 3]] },
+  { key: "sanriver", name: "단양 남한강", water: "river", minLevel: 10, push: 2.75, pool: [["bullhead", 36], ["pale_chub", 30], ["crucian", 26], ["sleeper", 7], ["common_carp", 35], ["mandarin_fish", 30], ["snakehead", 12], ["perch_kkeokji", 8], ["eel", 6], ["skygazer", 10], ["sturgeon", 6]] },
   { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, push: 1.75, pool: [["clown", 40], ["black_seabream", 30], ["starfish", 24], ["hairtail", 15], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["barred_knifejaw", 10], ["octopus", 8], ["manta", 15], ["parrotfish", 10], ["moray", 8], ["seahorse", 8]] },
-  { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, push: 3, pool: [["sailfin_sandfish", 40], ["rockfish", 30], ["flounder", 24], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15], ["cod", 14], ["spanish_mackerel", 12], ["skate", 10]] },
-  { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, push: 1.25, pool: [["rising", 40], ["striped_jack", 32], ["oarfish", 26], ["megamouth", 15], ["whale_shark", 20], ["marlin", 14], ["swordfish", 12]] },
+  { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, push: 3, pool: [["sailfin_sandfish", 40], ["rockfish", 30], ["flounder", 24], ["cod", 4], ["spanish_mackerel", 3.5], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15], ["skate", 10]] },
+  { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, push: 1.25, pool: [["rising", 40], ["striped_jack", 32], ["oarfish", 26], ["marlin", 4.5], ["swordfish", 4], ["megamouth", 15], ["whale_shark", 20]] },
   { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, push: 1.5, pool: [["rising", 38], ["anglerfish", 32], ["hammerhead", 26], ["astral", 70]] },
   // 심해는 맨 끝 낚시터인데 기본 계열이 영웅(떡밥)이라 한 번당 용궁사(전설 · 발광 미끼)보다 덜 벌었다(33 대 50).
   // 2026-11-11 떡밥 값을 내려 시작 미끼로 57. 물고기 구성은 그대로 — 미끼 1% 규칙(사용자 결정)을 지킨다.
-  { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3], ["viperfish", 12], ["frilled_shark", 8]] },
+  { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["viperfish", 7], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3], ["frilled_shark", 8]] },
 ];
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
 /** 지금 낚시터 — 고른 곳, 없으면 미끼가 있는 곳 중 가장 깊은 곳. 배경과 연출이 이 한 함수를 본다(둘이 갈리면 수평선이 어긋난다). */
@@ -137,8 +140,10 @@ export function prefMethod(p: MethodPrefs): MethodKey {
 export const prefMethodWrite = (m: MethodKey): { method?: MethodKey; lamp: boolean } => (methodOf(m).night ? { lamp: true } : { method: m, lamp: false });
 
 /** 집어등에 모이는 밤 물고기 — 한국 밤바다 집어등 낚시의 대상(오징어 · 갈치 · 고등어 · 볼락 · 전갱이)과 불빛을 단 초롱아귀.
- *  새 계열은 만들지 않는다(그림 · 3D · 서버 목록이 같이 필요하다) — 한치는 FAMILIES 에 없어 빠졌다. */
-export const NIGHT_FAMILIES: ReadonlySet<string> = new Set(["squid", "hairtail", "mackerel", "rockfish_bollak", "striped_jack", "giant_squid", "anglerfish"]);
+ *  새 계열은 만들지 않는다(그림 · 3D · 서버 목록이 같이 필요하다) — 한치는 FAMILIES 에 없어 빠졌다.
+ *  2026-11-13 4차 — 멸치(불빛으로 모으는 멸치잡이 불배)와 삼치(불빛에 모인 멸치 · 전어 떼를 쫓아 온다)를 더했다. 같은 미끼 단계 안에서만 기운다(lightRepick) —
+ *  찌로는 울릉도 · 통영에서 5% 안팎인 삼치가 집어등이면 같은 단계의 25% 남짓으로 오른다(대표 물고기 몫이 아니라 집어등의 맛이다). */
+export const NIGHT_FAMILIES: ReadonlySet<string> = new Set(["squid", "hairtail", "mackerel", "rockfish_bollak", "striped_jack", "giant_squid", "anglerfish", "anchovy", "spanish_mackerel"]);
 /** 같은 미끼 단계 안에서 밤 물고기가 받는 무게 배율 */
 export const LIGHT_NIGHT_WEIGHT = 6;
 const LIGHT_SEED = 0x3c6ef372;
@@ -359,8 +364,12 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
     const capNow = opts.bait === undefined ? GRADES.length - 1 : BAITS[Math.min(BAITS.length - 1, opts.bait)].maxGrade;
     const guests = timedAt(spot.key, opts.when).filter((t) => gradeNo(speciesOf(t.species)?.grade ?? "태초") <= capNow);
     const t = rng((seed ^ TIMED_SEED) >>> 0);
-    if (guests.length && t() < TIMED_CHANCE) {
-      const pick = guests[Math.floor(t() * guests.length) % guests.length];
+    // 원래 손님은 [0, TIMED_CHANCE) 띠, 4차 곁 칸 손님(side)은 바로 뒤 TIMED_SIDE_CHANCE 띠 — 같은 주사위라 원래 손님의 몫 · 결과가 4차 이전 그대로다
+    const main = guests.filter((g) => !g.side), side = guests.filter((g) => g.side);
+    const g0 = t();
+    const from = main.length && g0 < TIMED_CHANCE ? main : side.length && g0 >= TIMED_CHANCE && g0 < TIMED_CHANCE + TIMED_SIDE_CHANCE ? side : null;
+    if (from) {
+      const pick = from[Math.floor(t() * from.length) % from.length];
       const fam = FAMILIES.find((f) => f.finals.some((x) => x.key === pick.species));
       if (fam) {
         // 은어 · 메기 · 해파리처럼 이때만 오는 물고기는 다른 물고기처럼 대개 어리게 잡혀 수조에서 큰다. 나머지는 이때만 만나는 다 큰 모습이다.
