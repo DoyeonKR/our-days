@@ -230,9 +230,48 @@ test("다시 보기 — 잡아먹힌 물고기를 사냥꾼 시점으로(2026-11
 test("사냥꾼 시점 카메라(2026-11-12 다섯 방식 확인) — 몸 굵기만큼 옆에서 · 수면 아래 · 너무 올려다보지 않게 · 돌아가기 시작하면 부드럽게 빠진다", () => {
   const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
   assert.match(scene, /povBox\.setFromObject\(mealPredS\.root\)/, "몸 굵기를 잰다(메기 · 문어는 몸속으로 들어갔다)");
-  assert.match(scene, /Math\.min\(P\.y\+up,tallY\(4\.3,tall\)\)/, "수면 아래");
+  assert.match(scene, /return replayShot\(\{p:P,fwd:povFwd,side:\{x:povSide\.x\*c-povSide\.z\*s,y:0,z:povSide\.x\*s\+povSide\.z\*c\},len:L,r:povR,prey:mealGhost&&!swallowed\?mealGhost\.root\.position:null,fov:camera\.fov,aspect:camera\.aspect,halfW:5\*wide-\.35,top:tallY\(4\.3,tall\)/, "넓게 보는 카메라 · 수면 아래 · 옆벽 안");
+  assert.match(scene, /for\(const d of \[0,-\.5,\.5,-1,1\]\)\{const t=shotAt\(d\),sc=blockedBy\(/, "가리는 물고기 · 장식을 비키는 각");
+  assert.match(scene, /if\(cur>bs\+\.6\)povTurn=best;/, "곁을 지나는 물고기 하나에 넘어가지 않는다");
+  assert.match(scene, /scene\.fog\.far\+=\(povDist\+9\+4\*deep-scene\.fog\.far\)\*povK/, "안개도 물러난 거리만큼");
   assert.match(scene, /povTarget\.y=Math\.min\(povTarget\.y,povEye\.y\+hd\*\.58\)/, "30° 까지만 올려다본다");
   assert.match(scene, /&&povBack<\.05\?1:0/, "돌아가기 시작하면 빠진다");
   assert.match(scene, /camera\.position\.lerp\(povCam,povK\)/, "들어가고 나올 때 부드럽게");
   assert.match(scene, /if\(hl>\.35\)/, "곧게 위아래를 볼 땐 옆 방향을 그대로");
+});
+
+test("다시 보기 카메라(2026-11-13) — 사냥꾼 몸과 먹이가 세로 화면에 다 들어오게 물러나고 · 옆벽 · 뒤 바위 · 수면 안에 머문다", async () => {
+  const { replayShot } = await import("./hunt.ts");
+  const norm = (v: { x: number; y: number; z: number }) => { const l = Math.hypot(v.x, v.y, v.z) || 1; return { x: v.x / l, y: v.y / l, z: v.z / l }; };
+  const sub = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
+  const dot = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => a.x * b.x + a.y * b.y + a.z * b.z;
+  const cross = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
+  const fov = 44, aspect = 0.62; // 폰 세로 화면
+  const hf = Math.tan((fov * Math.PI) / 360) * aspect, vf = Math.tan((fov * Math.PI) / 360);
+  let n = 0;
+  for (const len of [0.8, 2, 4.5]) for (const yaw of [0, 1.2, 2.6, 4]) for (const sepK of [0.2, 0.8, 1.6]) {
+    const fwd = { x: Math.cos(yaw), y: 0, z: Math.sin(yaw) };
+    let side = { x: -fwd.z, y: 0, z: fwd.x };
+    if (side.z < 0) side = { x: -side.x, y: 0, z: -side.z }; // 앞쪽(카메라 쪽)
+    const p = { x: 0.5, y: -1, z: 0 };
+    const prey = { x: p.x + fwd.x * len * (0.6 + sepK), y: p.y + 0.3, z: p.z + fwd.z * len * (0.6 + sepK) };
+    const s = replayShot({ p, fwd, side, len, r: len * 0.12, prey, fov, aspect, halfW: 9, top: 2, floor: -4.7, back: -2.5 });
+    const look = norm(sub(s.target, s.eye)), right = norm(cross(look, { x: 0, y: 1, z: 0 })), up = cross(right, look);
+    const tail = { x: p.x - fwd.x * len * 0.5, y: p.y, z: p.z - fwd.z * len * 0.5 }, head = { x: p.x + fwd.x * len * 0.5, y: p.y, z: p.z + fwd.z * len * 0.5 };
+    for (const q of [tail, head, prey]) {
+      const d = sub(q, s.eye), z = dot(d, look);
+      assert.ok(z > 0, "카메라 앞");
+      assert.ok(Math.abs(dot(d, right) / z) <= hf * 1.02 && Math.abs(dot(d, up) / z) <= vf * 1.02, `len ${len} yaw ${yaw} sep ${sepK}: 화면 밖 h ${(dot(d, right) / z / hf).toFixed(2)} v ${(dot(d, up) / z / vf).toFixed(2)} eye ${JSON.stringify(s.eye)} dist ${s.dist.toFixed(2)}`);
+    }
+    const old = len * 0.12 + len * 0.12 + len * 0.18; // 예전 옆 거리(몸 굵기 + 몸길이 30%)
+    assert.ok(s.dist > old * 2.5, `예전보다 한참 멀리 (${s.dist.toFixed(2)} · 예전 ${old.toFixed(2)})`);
+    n++;
+  }
+  assert.equal(n, 36);
+  // 벽 · 바위 · 수면
+  const w = replayShot({ p: { x: 4.6, y: 1.8, z: -2 }, fwd: { x: 1, y: 0, z: 0 }, side: { x: 0, y: 0, z: -1 }, len: 4, r: 0.6, prey: { x: 8, y: 2, z: -2 }, fov, aspect, halfW: 4.65, top: 2, floor: -4.7, back: -2.5 });
+  assert.ok(w.eye.x <= 4.65 && w.eye.y <= 2 && w.eye.z >= -2.5, JSON.stringify(w.eye));
+  // 통째로 삼킨 뒤 — 입 앞을 본다
+  const g = replayShot({ p: { x: 0, y: 0, z: 0 }, fwd: { x: 1, y: 0, z: 0 }, side: { x: 0, y: 0, z: 1 }, len: 2, r: 0.3, prey: null, fov, aspect, halfW: 9, top: 9, floor: -9, back: -9 });
+  assert.ok(Math.abs(g.target.x - 0.6) < 1e-9 && g.dist >= 3.2, "삼킨 뒤엔 꼬리 ~ 입 앞의 가운데");
 });

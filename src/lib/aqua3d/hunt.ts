@@ -275,3 +275,34 @@ export function clearShot(tx: number, ty: number, tz: number, dist: number, lift
 }
 /** 사냥 장면이 끝났다(수조가 window 에 쏜다) — 잡아먹기 소식 카드가 장면 뒤에 뜨게 */
 export const MEAL_END_EVENT = "ourdays:aqua-meal-end";
+
+/** 다시 보기 카메라(2026-11-13) [사용자: "사냥 리플레이 화면을 조금 더 넓은 화면에서 볼 수 있게 해줘 너무 줌인 되어있어서 잘 안보여"].
+ *  예전엔 사냥꾼 머리 옆 눈 자리(몸 굵기 + 몸길이 30% 옆)라 주둥이와 먹이만 화면을 채웠다. 이제 사냥꾼 몸 · 둘 사이 · 먹이가 다 들어오는
+ *  거리(세로 화면의 좁은 가로 시야로 잰다)만큼 사냥꾼 뒤 · 옆 · 조금 위로 물러나 둘을 함께 본다(어깨 너머).
+ *  p · fwd · side — 사냥꾼 몸 가운데 · 앞 방향 · 카메라를 둘 옆(둘 다 단위 벡터), len · r — 몸길이 · 몸 굵기 반지름, prey — 먹이(삼켰으면 null),
+ *  fov — 세로 시야(도), aspect — 가로 ÷ 세로, halfW — 옆벽까지(벽 너머면 벽만 보인다), top · floor — 카메라가 머물 높이, back — 뒤 바위 앞.
+ *  앞유리 밖은 괜찮다(평소 카메라 자리). 순수 함수 — 장면(scene.ts)과 테스트가 같은 식을 쓴다 */
+export type ReplayShotIn = { p: Xyz; fwd: Xyz; side: Xyz; len: number; r: number; prey: Xyz | null; fov: number; aspect: number; halfW: number; top: number; floor: number; back: number };
+type Xyz = { x: number; y: number; z: number };
+export function replayShot(o: ReplayShotIn): { eye: Xyz; target: Xyz; dist: number } {
+  const { p, fwd, side, len } = o;
+  // 화면에 담을 두 끝 — 사냥꾼 꼬리와 먹이(삼켰으면 입 앞). 보는 곳은 그 가운데, 거리는 그 사이가 좁은 가로 시야에 다 들어오게
+  const tail = { x: p.x - fwd.x * len * 0.5, y: p.y - fwd.y * len * 0.5, z: p.z - fwd.z * len * 0.5 };
+  const far = o.prey ?? { x: p.x + fwd.x * len * 1.1, y: p.y + fwd.y * len * 1.1, z: p.z + fwd.z * len * 1.1 };
+  const target = { x: (tail.x + far.x) / 2, y: (tail.y + far.y) / 2, z: (tail.z + far.z) / 2 };
+  const span = Math.max(Math.hypot(far.x - tail.x, far.y - tail.y, far.z - tail.z), o.r * 4.5, 2.6);
+  const hf = Math.tan((o.fov * Math.PI) / 360) * Math.min(1, o.aspect);
+  // 1.35 — 뒤에서 비스듬히 보면 가까운 꼬리가 크게 보여 화면 끝에 닿는다(가장자리 여유)
+  const dist = Math.max(3.2, Math.min(34, (span * 0.5 / hf) * 1.35));
+  const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+  // 둘의 가운데를 기준으로 사냥꾼 뒤(0.35) · 옆(0.85) · 위(0.28)에 — 어깨 너머로 사냥꾼이 앞쪽, 먹이가 멀리
+  const want = { x: target.x - fwd.x * dist * 0.35 + side.x * dist * 0.85, z: target.z - fwd.z * dist * 0.35 + side.z * dist * 0.85 };
+  const eye = { x: cl(want.x, -o.halfW, o.halfW), y: cl(target.y + dist * 0.28, o.floor, o.top), z: Math.max(o.back, want.z) };
+  // 옆벽 · 뒤 바위에 막혀 다가온 만큼은 앞(앞유리 쪽 — 막힘이 없다)으로 돌아 나가 거리를 지킨다. 그대로 두면 벽에 붙어 다시 확대됐다
+  const lost = Math.hypot(want.x - eye.x, want.z - eye.z);
+  if (lost > 1e-6) {
+    const hx = eye.x - target.x, need = Math.hypot(want.x - target.x, want.z - target.z);
+    eye.z = Math.max(eye.z, target.z + Math.sqrt(Math.max(0, need * need - hx * hx)));
+  }
+  return { eye, target, dist };
+}
