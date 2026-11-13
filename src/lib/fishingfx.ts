@@ -2656,6 +2656,14 @@ export class FishFx {
     c.arc(0, 0, 1, 0, 6.29);
     c.fill();
     c.restore();
+    // 원판 테 — 어두운 물 위에서도 쇠붙이 가장자리가 보이게
+    c.save();
+    c.strokeStyle = "rgba(255,255,255,.35)";
+    c.lineWidth = Math.max(0.6, 0.9 * u);
+    c.beginPath();
+    c.arc(x, y, R * 0.55, 0, 6.29);
+    c.stroke();
+    c.restore();
     if (Math.abs(this.reelVel) > 9 && !this.reduced) {
       // 손잡이가 지나온 자리 — 흐린 호 한 줄(1.2 rad), 끝으로 갈수록 옅게 세 토막
       const dir = this.reelVel > 0 ? -1 : 1;
@@ -2679,6 +2687,13 @@ export class FishFx {
     c.beginPath();
     c.moveTo(x, y);
     c.lineTo(kx, ky);
+    c.stroke();
+    // 팔의 밝은 날 — 진한 팔이 어두운 물에 묻히지 않게(두 톤)
+    c.strokeStyle = "rgba(255,255,255,.5)";
+    c.lineWidth = Math.max(0.6, 0.9 * u);
+    c.beginPath();
+    c.moveTo(x - Math.sin(a) * 0.6 * u, y + Math.cos(a) * 0.6 * u);
+    c.lineTo(kx - Math.sin(a) * 0.6 * u, ky + Math.cos(a) * 0.6 * u);
     c.stroke();
     c.fillStyle = "#f4efe4";
     c.strokeStyle = "rgba(15,23,42,.55)";
