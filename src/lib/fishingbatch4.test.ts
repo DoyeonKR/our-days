@@ -116,9 +116,18 @@ test("때 손님 — 4차 손님은 곁 칸(side)이라 원래 손님의 몫이 
   const lion = rate("reef", rainNight, (c) => c.family === "lionfish");
   assert.ok(Math.abs(jelly - TIMED_CHANCE / 2) < 0.015, `해파리 ${jelly}`);
   assert.ok(Math.abs(lion - TIMED_SIDE_CHANCE) < 0.015, `쏠배감펭 ${lion}`);
-  // 원래 손님만 있는 때는 4차 전과 seed 마다 같다 — 별무리 바다 밤(달빛 해파리)
-  const t = timedAt("starsea", { time: "night", wx: null });
-  assert.ok(t.every((x) => !x.side));
+  // 곁 칸 손님이 있어도 원래 손님 칸은 seed 마다 같다 — 맑은 새벽(만새기 · 꽁치 있음)에 고래상어가 온 판은 맑은 낮(고래상어뿐)에도 고래상어다.
+  // 거꾸로는 아니다: 낮엔 보통 뽑기로 다 큰 고래상어가 오는 판(맑은 날이라 허용)이 새벽엔 곁 칸 손님에게 돌아갈 수 있다
+  assert.ok(timedAt("ocean", { time: "day", wx: "clear" }).every((x) => !x.side));
+  let onlyDay = 0;
+  for (let i = 0; i < 6000; i++) {
+    const seed = i * 41 + 7, bait = BAITS.length - 1;
+    const dawn = rollCatch(spot("ocean"), 5, 0.4, seed, { bait, when: clearDawn });
+    const day = rollCatch(spot("ocean"), 5, 0.4, seed, { bait, when: { time: "day", wx: "clear" } });
+    if (dawn.species === "whale_shark") assert.equal(day.species, "whale_shark", `seed ${seed}`);
+    else if (day.species === "whale_shark") { onlyDay++; assert.ok(["dolphinfish", "saury"].includes(dawn.family), `seed ${seed} → ${dawn.family}`); }
+  }
+  assert.ok(onlyDay < 6000 * 0.01, `곁 칸에 돌아간 판 ${onlyDay}`);
 });
 
 test("집어등 — 멸치 · 삼치도 밤 물고기(같은 미끼 단계 안에서만 기운다)", () => {

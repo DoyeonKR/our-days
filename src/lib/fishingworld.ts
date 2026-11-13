@@ -70,7 +70,7 @@ export function fishWxOf(icon: string | null | undefined): FishWx {
 }
 
 /** side — 곁 칸 손님(2026-11-13 4차 열여덟). 원래 손님의 10% 칸(TIMED_CHANCE)과 따로 TIMED_SIDE_CHANCE 칸을 저희끼리 나눈다 — 같은 칸을 나눠 쓰면
- *  원래 손님(고래상어 · 해파리 …)이 새 손님 수만큼 묽어졌다(울릉도 맑은 새벽 고래상어 10% → 3.3%, 문섬 비 오는 밤 해파리 5% → 3.3%). */
+ *  원래 손님(고래상어 · 해파리 …)이 새 손님 수만큼 묽어졌다(울릉도 맑은 새벽 고래상어 10% → 셋이 나눠 3.3%, 문섬 비 오는 밤 해파리 5% → 3.3%). */
 export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full"; side?: true };
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 /** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
