@@ -3,7 +3,7 @@
 /* 낚시 창의 장비 · 능력치 칸 — 판 진행(FishingGame)과 상관없이 사고 올리고 받는 곳. 저장은 부모의 act 가 한다. */
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { ActionButton } from "@/components/AppButtons";
-import { BaitIcon, JunkIcon, MoonIcon } from "@/components/FishingIcons";
+import { BaitIcon, CrownIcon, JunkIcon, MoonIcon } from "@/components/FishingIcons";
 import { kstWhen, moonPhase, nextFullMoon, tideEffect, tideOf } from "@/lib/fishtide";
 import { kstDayOf } from "@/lib/kst";
 import { josa } from "@/lib/josa";
@@ -287,7 +287,7 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
             <li key={b.key} className={`${b.key === boss.key ? "is-now" : ""} ${got ? "is-got" : ""}`}>
               <span className="fish-boss-pic">{locked ? <LockMark /> : <FishArt artKey={b.species} />}</span>
               <span className="min-w-0 flex-1">
-                <strong>{locked ? "???" : b.name}{got ? " 👑" : ""}</strong>
+                <strong>{locked ? "???" : b.name}{got && <> <CrownIcon /></>}</strong>
                 <small>{where} · {locked ? `낚시 Lv.${b.level}부터` : got ? `${r!.caught}번 잡음` : r ? `체력 ${pctOf(h)}` : "아직 겨루지 않음"}</small>
               </span>
             </li>

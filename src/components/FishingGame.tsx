@@ -14,7 +14,8 @@ import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import AquariumGame from "@/components/AquariumGame";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
-import { BaitIcon, JunkIcon, MethodIcon, MoonIcon } from "@/components/FishingIcons";
+import { BaitIcon, CrownIcon, JunkIcon, MethodIcon, MoonIcon, RestIcon } from "@/components/FishingIcons";
+import DeepDial, { type DeepDialHandle } from "@/components/DeepDial";
 import FishFever from "@/components/FishFever";
 import FishCoopHelp from "@/components/FishCoopHelp";
 import { coopBonus, coopChance, coopRoundId, wantHelp } from "@/lib/fishcoop";
@@ -50,7 +51,7 @@ import { useWeatherPlace } from "@/lib/weatherplace";
 import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
 import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
-  DEEP_METERS, LIFT_EDGE, LIFT_SAFE, LIFT_SLIP_S, PLUNGE_S, SCOOP_SHOTS, SCOOP_TIME_S, liftQuality, liftTune, startLift, stepLift, type Lift, type LiftTune, deepBand, deepQuality, deepTune, lureLanded, lureQuality, lureRing, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayQuality, swayTune, tapLure,
+  LIFT_EDGE, LIFT_SAFE, LIFT_SLIP_S, PLUNGE_S, SCOOP_SHOTS, SCOOP_TIME_S, liftQuality, liftTune, startLift, stepLift, type Lift, type LiftTune, deepBand, deepQuality, deepTune, lureLanded, lureQuality, lureRing, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayQuality, swayTune, tapLure,
   type Deep, type DeepTune, type Lure, type LureTune, type Scoop, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
@@ -241,7 +242,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [night, setNight] = useState(false);
   const [deepTuneS, setDeepTuneS] = useState<DeepTune | null>(null);
   const [spin, setSpin] = useState(0);
-  const [dial, setDial] = useState(0);
+  /** 심해 다이얼 — 처음 한 바퀴를 돌기 전까지 손잡이가 도는 길을 보여 준다(한 판에 한 번 꺼진다) */
+  const [dialGuide, setDialGuide] = useState(true);
   const [rodX, setRodX] = useState(0);
   const [tapNote, setTapNote] = useState<{ id: number; text: string; tone: TapGrade } | null>(null);
   const [holding, setHolding] = useState(false);
@@ -358,6 +360,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const spinAcc = useRef(0);
   const spinNow = useRef(0);
   const dialRef = useRef(0);
+  /** 다이얼 SVG — 도는 각도는 여기로 바로 쓴다(손가락이 움직일 때마다 화면 전체를 다시 그리지 않는다) */
+  const dialApi = useRef<DeepDialHandle>(null);
+  /** 이번 판에 돌린 각도 합(안내 고리를 끄는 데만) */
+  const dialTurned = useRef(0);
   const lastAng = useRef<number | null>(null);
   const keySpin = useRef(false);
   const plunging = useRef(false);
@@ -1384,6 +1390,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         spinNow.current = 0;
         spinAcc.current = 0;
         lastAng.current = null;
+        dialTurned.current = 0;
+        setDialGuide(true);
         holdRef.current = true; // 챔질한 손가락 그대로 돌리기 시작할 수 있다
         setPhase("fight");
         return;
@@ -1576,13 +1584,19 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const dx = x - w * 0.5, dy = y - h * DIAL_Y;
       if (Math.hypot(dx, dy) < 14) return;
       const ang = Math.atan2(dy, dx);
-      if (lastAng.current !== null) {
+      if (lastAng.current === null) {
+        // 누른 뒤 첫 움직임 — 손잡이가 손가락 밑으로 온다(손잡이는 회전 0 에서 맨 위, atan2 로는 -π/2). 돌린 양으로는 안 센다
+        dialRef.current = ang + Math.PI / 2;
+        dialApi.current?.turn(dialRef.current, 1);
+      } else {
         let d = ang - lastAng.current;
         if (d > Math.PI) d -= Math.PI * 2;
         if (d < -Math.PI) d += Math.PI * 2;
         spinAcc.current += Math.abs(d);
         dialRef.current += d;
-        setDial(dialRef.current);
+        dialApi.current?.turn(dialRef.current, d < 0 ? -1 : 1);
+        dialTurned.current += Math.abs(d);
+        if (dialGuide && dialTurned.current >= Math.PI * 2) setDialGuide(false);
       }
       lastAng.current = ang;
     }
@@ -1697,6 +1711,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const hotTension = phase === "fight" && tension > 0.82;
   const distNow = method === "lure" ? swayS?.dist ?? 1 : method === "deep" ? deepS?.depth ?? 1 : fight?.dist ?? 1;
   const band = deepS && deepTuneS ? deepBand(deepS, deepTuneS) : null;
+  /** 고른 줄 색 — 심해 다이얼의 감긴 줄 띠 */
+  const lineColor = method === "deep" && row ? wornLooks(row.state, who).line.color : "#ffffff";
   const diving = (deepS?.diveLeft ?? 0) > 0;
   const swayOk = swayS ? -rodX * swayS.fishX > 0.1 : false;
   const fightHint = method === "lure"
@@ -1815,7 +1831,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 </div>
                 {boss && fs.level >= boss.level && (
                   <button type="button" className={`tap fish-chip ${activeBoss ? "is-on" : ""}`} aria-label={`낚시터의 주인 ${boss.name} ${bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `체력 ${Math.round(bossHp(bossRec, today) * 100)}%`}`} onClick={() => { setAwakeView(false); setWorldSheet("boss"); }}>
-                    <span aria-hidden>👑</span>{bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? <span aria-hidden>💤</span> : <b>{Math.round(bossHp(bossRec, today) * 100)}%</b>}
+                    <CrownIcon />{bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? <RestIcon /> : <b>{Math.round(bossHp(bossRec, today) * 100)}%</b>}
                   </button>
                 )}
                 {awakeBoss && fs.level >= awakeBoss.level && (
@@ -1832,7 +1848,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               const left = phase === "fight" ? bossLeft(fightHp, fb.chunk * (duoNow ? BOSS_DUO : 1), distNow) : start;
               return (
                 <div className="fish-boss-bar" data-rage={bossRage} role="meter" aria-label={`주인 ${fb.name} 체력`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(left * 100)}>
-                  <p><span aria-hidden>👑</span><b>{fb.name}</b>{bossRage > 0 && <em>{BOSS_PHASE_NAME[bossRage]}</em>}{(phase === "fight" ? duoNow : bossDuo(bossRec, who, today)) && <em className="is-duo">협공 ×{BOSS_DUO}</em>}<small>{Math.round(left * 100)}%</small></p>
+                  <p><CrownIcon /><b>{fb.name}</b>{bossRage > 0 && <em>{BOSS_PHASE_NAME[bossRage]}</em>}{(phase === "fight" ? duoNow : bossDuo(bossRec, who, today)) && <em className="is-duo">협공 ×{BOSS_DUO}</em>}<small>{Math.round(left * 100)}%</small></p>
                   <i aria-hidden>
                     <s style={{ left: `${left * 100}%`, width: `${Math.max(0, start - left) * 100}%` }} />
                     <b style={{ width: `${left * 100}%` }} />
@@ -1854,7 +1870,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               <div key={`boss-win-${bossWin.id}`} className="fish-boss-win" aria-live="polite">
                 <i className="fish-boss-win-rays" aria-hidden />
                 <small>낚시터의 주인</small>
-                <b><span aria-hidden>👑</span> {bossWin.name} 토벌!</b>
+                <b><CrownIcon /> {bossWin.name} 토벌!</b>
                 {bossWin.you > 0 ? (
                   <>
                     <span className="fish-boss-win-share" aria-hidden><i className="is-me" style={{ width: `${bossWin.me * 100}%` }} /><i className="is-you" style={{ width: `${bossWin.you * 100}%` }} /></span>
@@ -1893,10 +1909,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
             {phase === "fight" && (
               <>
-                <div className="fish-dist" aria-hidden>
+                {/* 심해는 수심을 캔버스 수심계가 보여 준다 — 위 막대까지 두 번 보이지 않게 */}
+                {method !== "deep" && <div className="fish-dist" aria-hidden>
                   <b style={{ width: `${Math.max(0, Math.min(1, 1 - distNow)) * 100}%` }} />
-                  <em>{method === "deep" ? `수심 ${Math.max(1, Math.round(distNow * DEEP_METERS))}m` : `${Math.max(1, Math.round(distNow * 40))}m`}</em>
-                </div>
+                  <em>{`${Math.max(1, Math.round(distNow * 40))}m`}</em>
+                </div>}
                 <div className={`fish-tension ${hotTension ? "is-hot" : ""} ${floatFight ? "" : "is-plain"}`} aria-hidden>
                   <em>장력</em>
                   <span>
@@ -1959,19 +1976,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               </div>
             )}
             {phase === "fight" && method === "deep" && band && (
-              <div className={`fish-dial ${diving ? "is-dive" : ""}`} aria-hidden>
-                <svg viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="54" className="fish-dial-track" pathLength={100} strokeDasharray="75 100" transform="rotate(135 60 60)" />
-                  <circle cx="60" cy="60" r="54" className="fish-dial-band" pathLength={100} strokeDasharray={`${((band.hi - band.lo) / 3) * 75} 100`} strokeDashoffset={-(band.lo / 3) * 75} transform="rotate(135 60 60)" />
-                  <line x1="60" y1="60" x2="60" y2="10" className="fish-dial-needle" transform={`rotate(${-135 + (Math.min(3, spin) / 3) * 270} 60 60)`} />
-                  <g transform={`rotate(${(dial * 180) / Math.PI} 60 60)`}>
-                    <circle cx="60" cy="60" r="36" className="fish-dial-spool" />
-                    <circle cx="60" cy="60" r="8" className="fish-dial-hub" />
-                    <line x1="60" y1="60" x2="60" y2="30" className="fish-dial-arm" />
-                    <circle cx="60" cy="28" r="9" className="fish-dial-knob" />
-                  </g>
-                </svg>
-              </div>
+              <DeepDial handle={dialApi} spin={spin} lo={band.lo} hi={band.hi} warn={!diving && (deepS?.warnLeft ?? 0) > 0} dive={diving} guide={dialGuide} line={lineColor} />
             )}
             {tapNote && <p key={tapNote.id} className={`fish-tapnote is-${tapNote.tone}`} aria-live="polite">{tapNote.text}</p>}
             {hint && !coopHelping && <p className={`fish-hint ${loudHint ? "is-loud" : ""} ${leaping ? "is-jump" : ""}`}>{hint}</p>}

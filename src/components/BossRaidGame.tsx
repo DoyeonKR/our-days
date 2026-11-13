@@ -12,6 +12,7 @@ import { CloseButton } from "@/components/AppButtons";
 import { useBackClose } from "@/lib/useBackClose";
 import { RAID_DIRS, RAID_DIR_NAME, raidLeft, raidScore, startRaid, stepRaid, swipeRaid, tapRaid, touchDown, touchMove, touchUp, type Raid, type RaidDir, type RaidGesture, type RaidTouch, type RaidTune } from "@/lib/bossraid";
 import { DRAW_MS, frameGate } from "@/lib/advframe";
+import { CrownIcon } from "@/components/FishingIcons";
 
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
 const READY_MS = 1600;
@@ -185,7 +186,7 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
       <i className={`boss-raid-water ${r.phase > 0 ? `is-rage${r.phase}` : ""}`} aria-hidden />
       {rageFx > 0 && !reduced && <i key={`rage${rageFx}`} className="boss-raid-ragefx" aria-hidden />}
       <div className="boss-raid-top">
-        <b><span aria-hidden>👑</span> {setup.name}</b>
+        <b><CrownIcon /> {setup.name}</b>
         <span onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}><CloseButton onClose={close} label={r.end ? "닫기" : "그만하기"} /></span>
       </div>
       <div className="boss-raid-hp" role="meter" aria-label="주인 체력" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(left * 100)}>

@@ -51,7 +51,8 @@ const METHOD_ART: Record<MethodKey, ReactNode> = {
   float: <><path d="M4 32h40" stroke="#7dd3fc" strokeWidth="3" strokeLinecap="round" /><path {...stroke} fill="#ef4444" d="M24 14c5 0 8 4 8 9s-3 9-8 9-8-4-8-9 3-9 8-9z" /><path fill="#fff" d="M16 22h16v4H16z" /><path {...stroke} fill="none" d="M24 14V6" /></>,
   lure: <><path {...stroke} fill="#22d3ee" d="M42 22c-6-8-16-10-26-4l-9-6 2 12-2 12 9-6c10 6 20 4 26-4 1-1 1-3 0-4z" /><circle cx="34" cy="21" r="2.4" fill={L} /><path {...stroke} fill="none" d="M24 31v7a4 4 0 0 1-7 2" /></>,
   scoop: <><ellipse {...stroke} cx="20" cy="19" rx="15" ry="12" fill="#f8fafc" fillOpacity=".5" /><path fill="none" stroke={L} strokeWidth="1.5" d="M10 11l20 16M16 8l18 15M6 17l18 14M30 11L10 27M24 8L6 23M34 17L16 31" /><path {...stroke} fill="none" strokeWidth="4" d="M31 28l13 14" /></>,
-  deep: <><circle {...stroke} cx="24" cy="24" r="17" fill="#38bdf8" /><circle {...stroke} cx="24" cy="24" r="6" fill="#0c4a6e" /><path {...stroke} fill="none" strokeWidth="4" d="M24 24l13-12" /><circle {...stroke} cx="38" cy="10" r="4" fill="#fde047" /></>,
+  // 심해 — 다이얼(DeepDial)과 같은 릴: 금속 스풀 · 감긴 줄 · 구멍 · 별 손잡이 · 굵어지는 팔 · 노란 손잡이 공(2026-11-13)
+  deep: <><circle {...stroke} cx="24" cy="26" r="17" fill="#94a3b8" /><path fill="#e2e8f0" d="M11 21a14 14 0 0 1 17-9.5 15 15 0 0 0-14.6 13z" /><circle cx="24" cy="26" r="10" fill="none" stroke="#7dd3fc" strokeWidth="4" /><circle cx="18.5" cy="26" r="2" fill="#0f172a" fillOpacity=".55" /><circle cx="29.5" cy="26" r="2" fill="#0f172a" fillOpacity=".55" /><path fill="#cbd5e1" stroke={L} strokeWidth="1.5" strokeLinejoin="round" d="M24 21.5l1.5 2.4 2.8.1-1.3 2.5 1.3 2.5-2.8.1L24 31.5l-1.5-2.4-2.8-.1 1.3-2.5-1.3-2.5 2.8-.1z" /><path fill="#64748b" stroke={L} strokeWidth="1.5" strokeLinejoin="round" d="M23 25.5l2 1.4 12-12.4-3-2.6z" /><circle {...stroke} cx="37" cy="11" r="5" fill="#facc15" /><circle cx="35.4" cy="9.4" r="1.4" fill="#fff" /></>,
   // 집어등 — 밤물 위에 매단 등불과 번지는 빛(이모지 없이 직접 그린다)
   light: <><ellipse cx="24" cy="38" rx="19" ry="6" fill="#fde68a" fillOpacity=".45" /><path d="M5 38h38" stroke="#1e3a8a" strokeWidth="3" strokeLinecap="round" /><path {...stroke} fill="none" d="M24 4v6" /><path {...stroke} fill="#3f2a12" d="M17 10h14v4H17z" /><path {...stroke} fill="#fff1b8" d="M18 14h12l2 14H16z" /><path {...stroke} fill="#3f2a12" d="M15 28h18v4H15z" /><path fill="#f59e0b" d="M24 17c2 3 3 5 0 8-3-3-2-5 0-8z" /></>,
 };
@@ -67,6 +68,43 @@ function Pic({ k, art, label }: { k: string; art: ReactNode; label?: string }) {
 export const BaitIcon = ({ k }: { k: string }) => <Pic k={k} art={BAIT_ART[k]} />;
 export const JunkIcon = ({ k, label }: { k: string; label?: string }) => <Pic k={k} art={JUNK_ART[k]} label={label} />;
 export const MethodIcon = ({ k }: { k: MethodKey }) => <svg viewBox="0 0 48 48" className="fish-icon-svg" aria-hidden>{METHOD_ART[k]}</svg>;
+
+/** 왕관(2026-11-13) — 낚시터의 주인 표시. 이모지 👑 는 기기마다 모양 · 크기가 달라 UI 크롬에서 뺐다(README §10.8). 크기는 글자를 따른다(1em) */
+export function CrownIcon({ size = "1em" }: { size?: number | string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className="fish-crown-icon" aria-hidden>
+      <path d="M3 8.5l4.6 4 4.4-7 4.4 7 4.6-4-1.8 10H4.8z" fill="#facc15" stroke="#713f12" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M5.2 18.5h13.6v2.2H5.2z" fill="#eab308" stroke="#713f12" strokeWidth="1.4" strokeLinejoin="round" />
+      <circle cx="12" cy="13.6" r="1.6" fill="#ef4444" />
+      <circle cx="7.6" cy="15" r="1.1" fill="#38bdf8" />
+      <circle cx="16.4" cy="15" r="1.1" fill="#38bdf8" />
+      <circle cx="3" cy="8.5" r="1.4" fill="#fef9c3" stroke="#713f12" strokeWidth="1" />
+      <circle cx="12" cy="5.5" r="1.4" fill="#fef9c3" stroke="#713f12" strokeWidth="1" />
+      <circle cx="21" cy="8.5" r="1.4" fill="#fef9c3" stroke="#713f12" strokeWidth="1" />
+    </svg>
+  );
+}
+
+/** 쉬는 중(Z z) — 주인이 잠든 동안. 이모지 💤 대신 */
+export function RestIcon({ size = "1em" }: { size?: number | string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className="fish-crown-icon" aria-hidden>
+      <path d="M4 7h7l-7 9h7" fill="none" stroke="#bfdbfe" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 4h5l-5 6h5" fill="none" stroke="#bfdbfe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** 물고기 실루엣(2026-11-13) — 루어 힘겨루기 막대에서 물고기 자리. 예전엔 루어 아이콘이라 내 루어로 읽혔다. 머리가 오른쪽 */
+export const FishMark = () => (
+  <svg viewBox="0 0 32 20" className="fish-icon-svg" aria-hidden>
+    <path d="M30.5 10C27 4.6 20.6 3 14.6 5.6L3 1.8 6.8 10 3 18.2l11.6-3.8C20.6 17 27 15.4 30.5 10z" fill="#0f172a" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" />
+    <circle cx="25.2" cy="8.6" r="1.4" fill="#fff" />
+  </svg>
+);
+
+/** 뜰채 아이콘 그대로 — 남은 기회 · 들어올리기 표시 */
+export const NetMark = () => <MethodIcon k="scoop" />;
 
 /** 달 모양(2026-11-12 물때 · 달) — frac 은 이번 삭망월의 몇 분의 몇(fishtide.moonPhase). 경로는 moonLitPath(순수 · 테스트가 잠근다).
  *  기울 땐 같은 경로를 좌우로 뒤집는다(북반구에서 보는 모양 — 차오를 땐 오른쪽이 밝다).
