@@ -39,6 +39,7 @@ function SwimArt({ artKey, size }: { artKey: string; size?: number }) {
 
 /** 물고기 그림을 미리 받아 해독까지 끝낸다 — 잠깐 나오는 화면에서 빈 칸으로 지나가지 않게 */
 export function preloadFishArt(keys: readonly string[]): Promise<void> {
+  if (typeof Image === "undefined") return Promise.resolve();
   const jobs = keys.filter((k) => FISH_IMAGE_KEYS.has(k)).map((k) => {
     const img = new Image();
     img.src = asset(`/aqua/fish/sm/${k}.webp`);
@@ -52,7 +53,7 @@ export function FishArt({ artKey, size, animate = false, sync = false }: { artKe
   const style = size ? undefined : { width: "100%", height: "100%", objectFit: "contain" as const };
   if (FISH_IMAGE_KEYS.has(artKey)) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={asset(`/aqua/fish/sm/${artKey}.webp`)} alt="" width={size} height={size} style={style} draggable={false} decoding={sync ? "sync" : "async"} className="aqua-img" />;
+    return <img src={asset(`/aqua/fish/sm/${artKey}.webp`)} alt="" width={size} height={size} style={style} draggable={false} decoding={sync ? "sync" : "async"} loading={sync ? undefined : "lazy"} className="aqua-img" />;
   }
   const h = hue(artKey);
   return (
@@ -70,7 +71,7 @@ export function DecorArt({ artKey, size }: { artKey: string; size?: number }) {
   const style = size ? undefined : { width: "100%", height: "100%", objectFit: "contain" as const };
   if (DECOR_IMAGE_KEYS.has(artKey)) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={asset(`/aqua/decor/sm/${artKey}.webp`)} alt="" width={size} height={size} style={style} draggable={false} decoding="async" className="aqua-img" />;
+    return <img src={asset(`/aqua/decor/sm/${artKey}.webp`)} alt="" width={size} height={size} style={style} draggable={false} decoding="async" loading="lazy" className="aqua-img" />;
   }
   return <span className="aqua-decor-temp" style={size ? { width: size, height: size } : undefined} aria-hidden>{(decorOf(artKey)?.name ?? "?").slice(0, 3)}</span>;
 }
