@@ -63,7 +63,7 @@ const STRIPES = Array.from({ length: 6 }, (_, i) => {
 }).join("");
 const HOLES = [45, 135, 225, 315].map((d) => polar(d, 15));
 
-export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle }: {
+export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle, reelDir = 0, release = false }: {
   /** 지금 빠르기(초당 바퀴) */
   spin: number;
   /** 좋은 빠르기 칸(초당 바퀴) */
@@ -78,6 +78,10 @@ export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle
   /** 고른 줄 색(감긴 줄 띠) */
   line: string;
   handle: Ref<DeepDialHandle>;
+  /** 감는 쪽(처음 한 바퀴를 돈 쪽 — 1 시계 · -1 반시계 · 0 아직 모름) — 다이얼 안쪽에 옅은 화살표로 늘 보인다(반대로 돌리면 줄을 푼다) */
+  reelDir?: number;
+  /** 반대로 돌려 줄을 푸는 중(드랙) */
+  release?: boolean;
 }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const rot = useRef<SVGGElement>(null);
@@ -94,7 +98,9 @@ export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle
   }), []);
 
   const inBand = spin >= lo && spin <= hi && spin > 0;
-  const state = dive ? "is-dive" : warn ? "is-warn" : "";
+  const state = `${dive ? "is-dive" : warn ? "is-warn" : ""}${release ? " is-release" : ""}`;
+  // 손가락 위쪽에 짧은 글 — 폰에선 화면 아래 안내보다 다이얼 둘레를 본다(2026-11-14 [사용자: "키보드에 맞추지말고 모바일에 맞춰"])
+  const tag = release ? "줄 푸는 중" : dive ? "멈추거나 반대로 풀기" : warn ? "곧 파고들어요" : "";
   const speedState = inBand ? "is-in" : spin > hi ? "is-fast" : "is-slow";
   const span = (Math.max(0, Math.min(DIAL_MAX_RPS, hi) - Math.max(0, lo)) / DIAL_MAX_RPS) * 75;
   const off = -(Math.max(0, lo) / DIAL_MAX_RPS) * 75;
@@ -130,6 +136,12 @@ export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle
         {/* 지금 빠르기 상태 — 손가락이 덮지 않는 다이얼 위쪽에 한 번 더 */}
         <path d={`M${f1(polar(-130, 65).x)} ${f1(polar(-130, 65).y)}A65 65 0 0 1 ${f1(polar(-50, 65).x)} ${f1(polar(-50, 65).y)}`} className={`fish-dial-state ${speedState}`} />
 
+        {/* 감는 쪽 — 처음 한 바퀴를 돈 뒤 다이얼 안쪽에 옅게 남는다(반대로 돌리면 드랙) */}
+        {!guide && reelDir !== 0 && (
+          <g className="fish-dial-dir" transform={reelDir < 0 ? `scale(-1 1) translate(${-2 * C} 0)` : undefined}>
+            <path d={GUIDE_ARROWS} />
+          </g>
+        )}
         {guide && (
           <g className="fish-dial-guide">
             <circle cx={C} cy={C} r="44" />
@@ -173,6 +185,7 @@ export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle
           )}
         </g>
       </svg>
+      {tag && <span className="fish-dial-tag">{tag}</span>}
     </div>
   );
 }

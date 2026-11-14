@@ -996,6 +996,12 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-dial-state.is-in { stroke: #4ade80; }
 .fish-dial-state.is-fast { stroke: #fb7185; }
 .fish-dial-state.is-slow { stroke: #fbbf24; }
+.fish-dial-dir path { fill: none; stroke: rgba(255,255,255,.28); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fish-dial.is-release .fish-dial-track { stroke: rgba(56,189,248,.75); }
+.fish-dial.is-release .fish-dial-dir path { stroke: #7dd3fc; }
+.fish-dial-tag { position: absolute; left: 50%; top: -14%; transform: translateX(-50%); padding: 0 10px; border-radius: 999px; background: rgba(2,16,28,.78); color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 900; white-space: nowrap; }
+.fish-dial.is-dive .fish-dial-tag { background: #e11d48; }
+.fish-dial.is-release .fish-dial-tag { background: #0284c7; }
 .fish-dial-guide circle { fill: none; stroke: rgba(255,255,255,.35); stroke-width: 1.5; stroke-dasharray: 4 4; }
 .fish-dial-guide path { fill: none; stroke: rgba(255,255,255,.85); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .fish-dial-wound { fill: none; stroke-width: 8; opacity: .9; }

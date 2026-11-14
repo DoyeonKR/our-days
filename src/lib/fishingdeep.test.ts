@@ -79,11 +79,15 @@ test("가장 깊은 기록 — 더 깊어야 바뀐다", () => {
   assert.ok(!b.record && deepestOf(b.state)?.m === 300);
 });
 
-test("화면 — 멈춘 깊이로 힘겨루기 · 반대로 돌리면 드랙 · 키보드는 누르고 있으면 빨라진다 · 멈추면 곧바로 · 수심계 하나 · 천천히 올리면 덤", () => {
+test("화면 — 멈춘 깊이로 힘겨루기 · 반대로 돌리면 드랙 · 다이얼이 감는 쪽 · 푸는 중을 보인다 · 멈추면 곧바로 · 수심계 하나 · 천천히 올리면 덤", () => {
   const g = readFileSync("src/components/FishingGame.tsx", "utf8");
   assert.match(g, /deepTune\(fightLevel\(fish\), eff, reelOf\(st\), meters,/);
   assert.match(g, /Math\.sign\(d\) === -reelDir\.current\) backAcc\.current \+= Math\.abs\(d\)/);
-  assert.match(g, /Math\.min\(2\.2, 0\.7 \+ keyHeld\.current \* 0\.45\)/);
+  // 폰이 먼저(2026-11-14 [사용자: "키보드에 맞추지말고 모바일에 맞춰"]) — 다이얼이 감는 쪽 · 푸는 중 · 파고들 때 할 일을 손가락 위에 보인다
+  assert.match(g, /reelDir=\{reelDirS\} release=\{releasing\}/);
+  const dial = readFileSync("src/components/DeepDial.tsx", "utf8");
+  assert.match(dial, /release \? "줄 푸는 중" : dive \? "멈추거나 반대로 풀기"/);
+  assert.match(dial, /className="fish-dial-dir"/);
   assert.match(g, /raw < spinNow\.current \? 18 : 7/);
   assert.match(g, /stepDeep\(cur, dt, rps, tune, back\)/);
   assert.match(g, /sinking: phase === "sink"/);

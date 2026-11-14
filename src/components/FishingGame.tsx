@@ -304,6 +304,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [depthPick, setDepthPick] = useState<{ zone: FishDepth; meters: number; school: boolean } | null>(null);
   /** 이번 판에 세운 가장 깊은 기록(m · 0 이면 없음) — 결과 카드에 한 줄 */
   const [deepRecord, setDeepRecord] = useState(0);
+  /** 심해 — 반대로 돌려 줄을 푸는 중인가 · 감는 쪽(다이얼에 그린다) */
+  const [releasing, setReleasing] = useState(false);
+  const [reelDirS, setReelDirS] = useState(0);
   const biteMs = useRef(800);
   const holdRef = useRef(false);
   const fightRef = useRef<Fight | null>(null);
@@ -373,8 +376,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const reelDirAcc = useRef(0);
   const backAcc = useRef(0);
   const backNow = useRef(0);
+  const releasingRef = useRef(0);
+  const reelDirShown = useRef(0);
   const deepMeters = useRef(0);
-  const keyHeld = useRef(0);
   const dialRef = useRef(0);
   /** 다이얼 SVG — 도는 각도는 여기로 바로 쓴다(손가락이 움직일 때마다 화면 전체를 다시 그리지 않는다) */
   const dialApi = useRef<DeepDialHandle>(null);
@@ -883,9 +887,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       if (how === "deep") {
         const cur = deepRef.current, tune = deepTuneRef.current;
         if (!cur || !tune) return;
-        // 키보드 — 누르고 있으면 점점 빨라진다(0.7 → 2.2 바퀴). 초록 칸을 지키려면 떼었다 눌러야 한다(예전엔 1.35 고정이라 누르고만 있으면 됐다)
-        if (keySpin.current) keyHeld.current += dt; else keyHeld.current = 0;
-        const raw = keySpin.current ? Math.min(2.2, 0.7 + keyHeld.current * 0.45) : spinAcc.current / (Math.PI * 2) / Math.max(0.001, dt);
+        const raw = keySpin.current ? 1.35 : spinAcc.current / (Math.PI * 2) / Math.max(0.001, dt);
         const rawBack = backAcc.current / (Math.PI * 2) / Math.max(0.001, dt);
         spinAcc.current = 0;
         backAcc.current = 0;
@@ -894,6 +896,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         backNow.current += (rawBack - backNow.current) * Math.min(1, dt * (rawBack < backNow.current ? 18 : 7));
         const rps = spinNow.current < 0.03 ? 0 : spinNow.current;
         const back = backNow.current < 0.03 ? 0 : backNow.current;
+        const rel = back > 0.18;
+        if (+rel !== releasingRef.current) { releasingRef.current = +rel; setReleasing(rel); if (rel) buzz(10); }
+        if (reelDir.current !== reelDirShown.current) { reelDirShown.current = reelDir.current; setReelDirS(reelDir.current); }
         const next = stepDeep(cur, dt, rps, tune, back);
         deepRef.current = next;
         setDeepS(next);
@@ -1410,6 +1415,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         backAcc.current = 0;
         reelDir.current = 0;
         reelDirAcc.current = 0;
+        releasingRef.current = 0;
+        setReleasing(false);
+        setReelDirS(0);
+        reelDirShown.current = 0;
         setDeepRecord(0);
         lastAng.current = null;
         dialTurned.current = 0;
@@ -1793,7 +1802,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const fightHint = method === "lure"
     ? (swayS && swayS.warnLeft > 0 ? (swayS.nextSide < 0 ? "곧 왼쪽으로 튀어요!" : "곧 오른쪽으로 튀어요!") : swayOk ? "좋아요! 그대로 버티세요" : "물고기 반대쪽으로 끌어요")
     : method === "deep"
-      ? (deepS && deepGrabbing(deepS) ? "대왕오징어! 멈추거나 반대로 돌려 줄을 푸세요" : diving ? "파고들어요! 멈추거나 반대로 돌려 줄을 푸세요" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : backNow.current > 0.18 ? "줄을 풀고 있어요 — 장력이 내려가요" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
+      ? (deepS && deepGrabbing(deepS) ? "대왕오징어! 멈추거나 반대로 돌려 줄을 푸세요" : diving ? "파고들어요! 멈추거나 반대로 돌려 줄을 푸세요" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : releasing ? "줄을 풀고 있어요 — 장력이 내려가요" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
       : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 지금 감으면 빨라요" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
   const lightBandNow = lightS && lightTuneRef.current ? lightBand(lightS, lightTuneRef.current) : null;
   const lightHint = !lightS || !lightBandNow ? ""
@@ -2064,7 +2073,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               </div>
             )}
             {phase === "fight" && method === "deep" && band && (
-              <DeepDial handle={dialApi} spin={spin} lo={band.lo} hi={band.hi} warn={!diving && (deepS?.warnLeft ?? 0) > 0} dive={diving} guide={dialGuide} line={lineColor} />
+              <DeepDial handle={dialApi} spin={spin} lo={band.lo} hi={band.hi} warn={!diving && (deepS?.warnLeft ?? 0) > 0} dive={diving} guide={dialGuide} line={lineColor} reelDir={reelDirS} release={releasing} />
             )}
             {tapNote && <p key={tapNote.id} className={`fish-tapnote is-${tapNote.tone}`} aria-live="polite">{tapNote.text}</p>}
             {hint && !coopHelping && <p className={`fish-hint ${loudHint ? "is-loud" : ""} ${leaping ? "is-jump" : ""}`}>{hint}</p>}
