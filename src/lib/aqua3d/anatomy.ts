@@ -73,6 +73,7 @@ const families: Record<string, Partial<Anatomy>> = {
   // 해양 포유류(2026-11-13) — 큰 짐승이라 박자가 느리다
   spotted_seal: { frequency: 2.2, flex: .1 }, fur_seal: { frequency: 1.8, flex: .1 }, steller_sea_lion: { frequency: 1.5, flex: .1 },
   japanese_sea_lion: { frequency: 1.6, flex: .1 }, sea_otter: { frequency: 2.4, flex: .12 }, otter: { frequency: 3, flex: .14 },
+  orca: { frequency: 1.2, flex: .08 },
   skate: { kind: "ray", cx: .66, cy: .52, rx: .30, ry: .30, depth: .12, frequency: 2.0, flex: .12 },
   ray: { kind: "ray", cx: .69, cy: .57, rx: .30, ry: .31, depth: .20, frequency: 2.3, flex: .12 },
   manta: { kind: "ray", cx: .69, cy: .49, rx: .27, ry: .18, depth: .22, frequency: 2.1, flex: .12 },
@@ -147,9 +148,11 @@ const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahor
 export const PHOCID = /^(spotted_seal)$/;
 export const OTARIID = /^(fur_seal|steller_sea_lion|japanese_sea_lion)$/;
 export const MUSTELID = /^(sea_otter|otter)$/;
-export const MAMMAL = /^(spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter)$/;
+/** 고래(2026-11-14 범고래) — 꼬리자루와 꼬리지느러미를 위아래로 쳐서 나간다. 앞지느러미는 굳은 키라 젓지 않는다 */
+export const CETACEAN = /^(orca)$/;
+export const MAMMAL = /^(spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca)$/;
 /** 몸 물결이 위아래(Z 축)인 몸 — 수달 · 해달. 누운 광어와 같은 축으로 물결치지만 몸을 눕히지는 않는다 */
-export const verticalWave = (family: string) => MUSTELID.test(family);
+export const verticalWave = (family: string) => MUSTELID.test(family) || CETACEAN.test(family);
 export const RIBBON_FIN = /^(electric_eel|oarfish|hairtail)$/;
 const PROFILES = new Map<string, BendProfile>();
 const CARP_AMP = [0.038, 0.056, 0.074, 0.092, 0.11, 0.128];
@@ -169,6 +172,7 @@ export function bendProfile(family: string, key = family): BendProfile {
   }
   else if (PHOCID.test(family)) p = { kind: a.kind, amp: [0.01, 0.016, 0.03, 0.06, 0.11, 0.17], lag: 0.6, fin: 0.04, finRate: 1, wing: 0, curl: 0.9, stride: 0.75, pect: "stiff" };
   else if (OTARIID.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.018, 0.028, 0.04], lag: 0.5, fin: 0.55, finRate: 1, wing: 0, curl: 0.8, stride: 0.9 };
+  else if (CETACEAN.test(family)) p = { kind: a.kind, amp: [0.004, 0.006, 0.012, 0.03, 0.07, 0.13], lag: 0.55, fin: 0.03, finRate: 1, wing: 0, curl: 0.7, stride: 0.85, pect: "stiff" };
   else if (MUSTELID.test(family)) p = { kind: a.kind, amp: [0.02, 0.035, 0.055, 0.08, 0.11, 0.15], lag: 0.8, fin: 0.12, finRate: 1.3, wing: 0, curl: 1.1, stride: 0.55 };
   else if (SHARK_CRUISE.test(family)) p = { kind: a.kind, amp: [0.01, 0.016, 0.026, 0.048, 0.09, 0.15], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0.8, stride: 0.7 };
   else if (SHARK_BOTTOM.test(family)) p = { kind: a.kind, amp: [0.02, 0.034, 0.052, 0.078, 0.108, 0.14], lag: 0.78, fin: a.flex, finRate: 1, wing: 0, curl: 1, stride: 0.5 };

@@ -1,0 +1,10 @@
+{
+  "key": "orca",
+  "scientificName": "Orcinus orca",
+  "stage": "adult",
+  "tool": "built-in image_gen",
+  "prompt": "Use case: photorealistic-natural. Asset type: aquarium game animal cutout, 1024x1024. Create ONE realistic living adult killer whale, Orcinus orca, in natural-history photography style. Exact side view, head facing RIGHT, tail LEFT, belly DOWN, neutral straight horizontal swimming posture. Anatomically accurate powerful streamlined black body, rounded blunt head with closed mouth, tiny real dark eye separate from the white oval eye patch, white lower jaw and belly with natural sweeping flank marking, subtle grey saddle patch behind a tall natural dorsal fin. Both broad paddle-shaped pectoral flippers visible, gently splayed so the far flipper is not hidden, complete horizontal tail flukes with subtle perspective so their shape is visible. No character styling, no oversized eyes or smiles, no teeth, no cartoon, no illustration. Soft diffuse upper-left illumination, smooth natural skin microtexture, matte subdued wet sheen: NO white specular streaks on black back, NO hard rim lights, NO decorative sparkle. Whole animal centered with AT LEAST 10% empty padding on ALL sides including dorsal fin and tail. True transparent background with genuine alpha, completely clean outside silhouette. No water, bubbles, spray, scenery, floor, cast shadow, halo, text, border, or watermark. Do not copy any named captive animal, game, or character.",
+  "source": "C:\\Users\\kdy78\\.codex\\generated_images\\01a05cf2-b96c-7473-aa5f-1c0e02c6499c\\exec-96d3fa75-f480-4b15-94b0-63808ed242ee.png",
+  "activation": "not enabled",
+  "visualApproval": "pending"
+}

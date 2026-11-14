@@ -13,7 +13,7 @@ export type StartleKind = "dart" | "inflate" | "ink" | "burrow" | "pulse" | "rol
 /** 한 번 놀라는 데 걸리는 시간(초) — 끝나면 원래 길 그대로 */
 export const STARTLE_S = 3.6;
 
-const MAMMALS = new Set(["spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "sea_otter", "otter"]);
+const MAMMALS = new Set(["spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "sea_otter", "otter", "orca"]);
 const CEPH = new Set(["octopus", "squid", "giant_squid", "kraken", "cuttlefish"]);
 const FLAT = new Set(["flounder", "ray", "skate", "manta", "stingray", "eagle_ray"]);
 const INFLATE = new Set(["puffer"]);

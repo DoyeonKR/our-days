@@ -1645,6 +1645,18 @@
     "dokdo_shrimp": {
       "sourceHash": "8880138431a7aae040f2989553d54a342ffb0e59d11d9ae42cd3691492c777a2",
       "sheet": "design/aqua3d-review/shrimp-models-3.webp"
+    },
+    "fry_orca": {
+      "sourceHash": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "sheet": "design/aqua3d-review/orca-color/comparison.webp"
+    },
+    "juv_orca": {
+      "sourceHash": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "sheet": "design/aqua3d-review/orca-color/comparison.webp"
+    },
+    "orca": {
+      "sourceHash": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "sheet": "design/aqua3d-review/orca-color/comparison.webp"
     }
   }
 }

@@ -1,0 +1,15 @@
+{
+  "sourceSHA256": "6ee492cfde1f0dacaf93fa548077cd78d129dd5656756b849014e2a73447c3cf",
+  "sha256": "3da734f55ecbaf2b43f4c8223f223e99fbd58921c636930e3856cfc8e761b2bc",
+  "renderer": "Actual supplied GLB / Three.js WebGL PBR",
+  "views": [
+    "side",
+    "reverse",
+    "oblique",
+    "front",
+    "rear",
+    "top",
+    "bottom",
+    "high"
+  ]
+}

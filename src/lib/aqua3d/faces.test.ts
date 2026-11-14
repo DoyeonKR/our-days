@@ -13,7 +13,7 @@ test('얼굴 프로필은 기존·신규 GLB 381형태 모두의 기준 그림�
  const shrimps=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='shrimp');
  assert.equal(shrimps.length,9);for(const [key] of shrimps)assert.equal(FACE_PROFILES[key],undefined,'새우에 물고기 얼굴 · 턱을 붙이지 않는다');
  const mammals=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='mammal');
- assert.equal(mammals.length,18);for(const [key,meta] of mammals){assert.equal((meta as {activation:string}).activation,'not enabled',key);assert.equal((meta as {visualApproval:string}).visualApproval,'pending',key);assert.equal(FACE_PROFILES[key],undefined,'포유류에 물고기 얼굴을 붙이지 않는다');}
+ assert.equal(mammals.length,21);for(const [key,meta] of mammals){assert.equal((meta as {activation:string}).activation,'not enabled',key);assert.equal((meta as {visualApproval:string}).visualApproval,'pending',key);assert.equal(FACE_PROFILES[key],undefined,'포유류에 물고기 얼굴을 붙이지 않는다');}
  assert.equal(fish.length,381);assert.equal(Object.keys(FACE_PROFILES).length,381);
  for(const [key] of fish){const p=FACE_PROFILES[key];assert.ok(p,key);assert.equal(p.sourceHash,createHash('sha256').update(readFileSync(`public/aqua/fish/${key}.webp`)).digest('hex'),key);}
  assert.equal(FACE_PROFILES.moray.teeth,'fang');assert.equal(FACE_PROFILES.piranha.teeth,'triangular');assert.equal(FACE_PROFILES.parrotfish.teeth,'beak');assert.equal(FACE_PROFILES.common_carp.teeth,'none');

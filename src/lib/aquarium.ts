@@ -163,6 +163,8 @@ const BASE_FAMILIES: readonly AquaFamily[] = [
   { key: "megamouth", name: "넓은주둥이상어", price: 58000, hours: 330, minTank: 5, size: 44, youngName: "새끼", finals: [s("megamouth", "넓은주둥이상어", "신화")] },
   { key: "giant_squid", name: "대왕오징어", price: 59000, hours: 333, minTank: 5, size: 42, youngName: "새끼", finals: [s("giant_squid", "대왕오징어", "신화")] },
   { key: "japanese_sea_lion", name: "독도 강치", price: 59500, hours: 334.5, minTank: 5, size: 38, youngName: "새끼", finals: [s("japanese_sea_lion", "독도 강치", "신화")] },
+  // 범고래(2026-11-14) — 사용자가 만든 메시(Tripo)를 게임용으로 바꿨다(design/aqua3d-review/orca-build.mjs). 새끼 · 어린 그림은 아직 다 큰 그림을 쓴다(ART-GUIDE F)
+  { key: "orca", name: "범고래", price: 59800, hours: 335.5, minTank: 5, size: 46, youngName: "새끼", finals: [s("orca", "범고래", "신화")] },
   { key: "rising", name: "등용어", price: 60000, hours: 336, minTank: 5, size: 34, finals: [s("pearl_carp", "여의주 잉어", "전설"), s("imugi_fish", "이무기어", "신화"), s("azure_dragonfish", "청룡어", "신화"), s("golden_dragonfish", "황룡어", "태초")] },
   { key: "astral", name: "별무리어", price: 120000, hours: 504, minTank: 6, size: 34, finals: [s("moon_jelly", "달빛 해파리", "신화"), s("aurora_ray", "오로라 가오리", "신화"), s("galaxy_fish", "은하수어", "태초"), s("genesis_fish", "태초의 물고기", "태초")] },
   { key: "kraken", name: "크라켄", price: 150000, hours: 600, minTank: 6, size: 48, youngName: "새끼", finals: [s("kraken", "크라켄", "태초")] },
@@ -179,7 +181,7 @@ export const ALL_SPECIES: readonly AquaSpecies[] = FAMILIES.flatMap((f) => [...f
 export const FISH_BASE_CM: Readonly<Record<string, number>> = {
   ...Object.fromEntries(ACTIVE_SHRIMP.map((f) => [f.key, f.cm])),
   // 해양 포유류(2026-11-13) — 다 큰 몸길이
-  spotted_seal: 160, fur_seal: 150, steller_sea_lion: 280, japanese_sea_lion: 230, sea_otter: 130, otter: 110,
+  spotted_seal: 160, fur_seal: 150, steller_sea_lion: 280, japanese_sea_lion: 230, sea_otter: 130, otter: 110, orca: 650,
   guppy: 5, tetra: 4, goldfish: 22, betta: 7, angel: 15, clown: 9, discus: 18, koi: 65, ray: 45, arowana: 85,
   bluefin: 220, sea_turtle: 95, whale_shark: 950, manta: 420, rising: 280, astral: 160, sweetfish: 22, catfish: 55, jellyfish: 30,
   nurse_shark: 180, leopard_shark: 130, blue_shark: 280, hammerhead: 350, great_white: 480, megamouth: 520,

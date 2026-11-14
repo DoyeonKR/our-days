@@ -43540,6 +43540,158 @@
         "maximumDisplacement": 0.17763971017168792
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "orca": {
+      "kind": "fish",
+      "family": "orca",
+      "form": "adult",
+      "file": "public/aqua/models/fish/orca.glb",
+      "triangles": 2900,
+      "bytes": 33884,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "meshSource": "Tripo (user-supplied) → orca-color/paint.mjs → orca-build.mjs",
+      "meshSourceSHA256": "3da734f55ecbaf2b43f4c8223f223e99fbd58921c636930e3856cfc8e761b2bc",
+      "simplifyError": 0.0014208635548129678,
+      "approval": "user_approved_2026-11-14",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      }
+    },
+    "fry_orca": {
+      "kind": "fish",
+      "family": "orca",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_orca.glb",
+      "triangles": 2900,
+      "bytes": 33884,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "meshSource": "Tripo (user-supplied) → orca-color/paint.mjs → orca-build.mjs",
+      "meshSourceSHA256": "3da734f55ecbaf2b43f4c8223f223e99fbd58921c636930e3856cfc8e761b2bc",
+      "simplifyError": 0.0014208635548129678,
+      "approval": "user_approved_2026-11-14",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "note": "다 큰 개체 모델 · 그림을 그대로 쓴다(새끼 · 어린 그림 대기 — ART-GUIDE F)"
+    },
+    "juv_orca": {
+      "kind": "fish",
+      "family": "orca",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_orca.glb",
+      "triangles": 2900,
+      "bytes": 33884,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "meshSource": "Tripo (user-supplied) → orca-color/paint.mjs → orca-build.mjs",
+      "meshSourceSHA256": "3da734f55ecbaf2b43f4c8223f223e99fbd58921c636930e3856cfc8e761b2bc",
+      "simplifyError": 0.0014208635548129678,
+      "approval": "user_approved_2026-11-14",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "note": "다 큰 개체 모델 · 그림을 그대로 쓴다(새끼 · 어린 그림 대기 — ART-GUIDE F)"
     }
   },
   "structuralValidation": "passed",

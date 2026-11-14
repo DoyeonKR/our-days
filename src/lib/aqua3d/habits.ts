@@ -224,6 +224,7 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   japanese_sea_lion: swim(-1.6, 2.2, 0.26, 1, 2, { haul: true, breathe: 70, breathOnly: true, dart: 0.15, pace: 0.65, tilt: 0.4 }),
   // 해달: 수면 가까이 떠서 쉬다가 가끔 잠수한다. 수달: 바닥 바위 사이를 빠르게 누비고 자주 숨 쉬러 오른다
   sea_otter: swim(2.2, 4.4, 0.08, 0.7, 1.4, { haul: true, breathe: 40, breathOnly: true, rest: 0.5, hop: 0.8, pace: 0.6, tilt: 0.2 }),
+  orca: swim(-1, 2.6, 0.26, 1, 2, { breathe: 60, breathOnly: true, pace: 0.55, tilt: 0.3 }),
   otter: swim(-3.4, -0.4, 0.3, 0.9, 1.8, { haul: true, breathe: 45, breathOnly: true, dart: 0.3, pace: 1.1, tilt: 0.45 }),
   sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
   marlin: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),

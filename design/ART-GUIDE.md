@@ -80,6 +80,12 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **게임 쪽 뼈대는 이미 들어가 있다** — `src/lib/shrimp.ts`(계열 값 · 몸길이 · 낚시터 자리 · 바닥을 기다 뒤로 튀는 습성)가 `SHRIMP_ON = false` 로 꺼져 있다. 그림 세션은 그림 · 모델만 만들고, 켜는 순서는 그 파일 머리 주석대로 Claude 세션이 한다.
 **검수**: `design/aqua3d-review/shrimp-*.webp`(그림 9장 · 위 · 비스듬히 · 옆) · `shrimp-validation.json` · `models.json` 기록 · `visualApproval: "pending"`. 켜는 건 Claude 세션(계열 표 · 낚시터 · 습성 · 서버 `fish_family_ok` migration).
 
+### F. 범고래 새끼 · 어린 개체 — 그림 2장 + 3D 모델 2개 (2026-11-14)
+
+다 큰 범고래(`orca`)는 켜졌다(사용자 메시 → `design/aqua3d-review/orca-build.mjs`). `fry_orca` · `juv_orca` 는 지금 다 큰 그림 · 모델을 그대로 쓴다.
+그림은 A 의 규칙(머리 오른쪽 · 옆모습 · 빛 반사 금지 · 512px 투명 + sm 192px)으로 `public/aqua/fish/fry_orca.webp` · `juv_orca.webp` 를 덮어쓴다. 설명은 `design/AQUARIUM-ART.md` 의 `fry_orca` · `juv_orca` 줄(새끼는 흰 무늬가 연한 주황빛 · 몸이 짧고 머리 · 지느러미가 크다).
+모델은 `orca-build.mjs` 와 같은 계약(뼈 10개 · 삼각형 3,000 · 300KB). 새로 짓기 어렵다면 다 큰 모델을 비율만 바꿔(몸 짧게 · 머리 크게) 다시 구워도 된다.
+
 ### C. 두족류 3D 모델 다시 짓기 — 12개(문어 · 크라켄 · 살오징어 · 대왕오징어 × 새끼 · 어린 · 다 큰)
 
 **왜** — 지금 두족류 GLB 는 옆에서 본 그림 한 장을 두께 있게 세운 판이고 뼈가 몸길이 사슬 여섯뿐이다. 게임이 정점 셰이더로 팔을 하나씩 굽히고(2026-11-13, `src/lib/aqua3d/cephalopod.ts`) 물 뿜기 · 숨 · 기기를 흉내 내지만, 위 · 앞에서 보면 납작한 판이라 진짜 문어처럼(팔 여덟이 사방으로 퍼지고 바닥을 짚는다) 보일 수 없다. 이게 두족류 움직임의 남은 상한이다.
