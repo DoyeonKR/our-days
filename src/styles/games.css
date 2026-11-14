@@ -1652,3 +1652,23 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .fish-depth-school { position: absolute; left: 4px; right: 4px; border-radius: 8px; background: rgba(253,230,138,.35); border: 1px solid rgba(253,230,138,.8); }
 .fish-depth-now { position: absolute; right: calc(100% + 6px); transform: translateY(-50%); color: #fde68a; font-family: var(--font-micro); font-size: 12px; line-height: 18px; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
 .fish-depth i { position: absolute; left: 4px; right: 4px; height: 3px; margin-top: -1px; border-radius: 2px; background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.9); }
+
+/* 크기 기록 전광판(2026-11-14) — 나 N : M 상대. 앞선 쪽 숫자가 크게 빛나고, 숫자가 바뀌면 튀어 오른다 */
+.fish-score { margin: 4px 0 10px; padding: 12px 12px 10px; border-radius: 18px; background: linear-gradient(135deg, rgba(255,166,203,.16), rgba(10,20,36,.6) 45%, rgba(10,20,36,.6) 55%, rgba(147,205,255,.16)); border: 1px solid rgba(255,255,255,.12); text-align: center; overflow: hidden; position: relative; }
+.fish-score.is-me { border-color: rgba(255,166,203,.55); box-shadow: 0 0 24px rgba(255,166,203,.25) inset; }
+.fish-score.is-partner { border-color: rgba(147,205,255,.55); box-shadow: 0 0 24px rgba(147,205,255,.25) inset; }
+.fish-score-board { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.fish-score-side { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+.fish-score-side small { font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; opacity: .85; }
+.fish-score-side b { display: block; font-size: 52px; line-height: 56px; font-weight: 900; font-variant-numeric: tabular-nums; animation: fish-score-pop .55s cubic-bezier(.2, 1.6, .4, 1) both; }
+.fish-score-side.is-me { color: #ffa6cb; }
+.fish-score-side.is-partner { color: #93cdff; }
+.fish-score.is-me .fish-score-side.is-me b { font-size: 64px; line-height: 64px; text-shadow: 0 0 18px rgba(255,166,203,.85), 0 0 2px #fff; }
+.fish-score.is-partner .fish-score-side.is-partner b { font-size: 64px; line-height: 64px; text-shadow: 0 0 18px rgba(147,205,255,.85), 0 0 2px #fff; }
+.fish-score.is-me .fish-score-side.is-partner, .fish-score.is-partner .fish-score-side.is-me { opacity: .6; }
+.fish-score-vs { font-size: 36px; line-height: 40px; font-weight: 900; color: rgba(255,255,255,.55); }
+.fish-score-bar { height: 8px; margin: 8px 4px 6px; border-radius: 999px; background: #93cdff; overflow: hidden; }
+.fish-score-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ff7fb3, #ffa6cb); border-right: 2px solid #fff; transition: width .8s cubic-bezier(.2, 1, .3, 1); }
+.fish-score p { margin: 0; color: #e8f4ff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
+@keyframes fish-score-pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .fish-score-side b { animation: none; } .fish-score-bar i { transition: none; } }

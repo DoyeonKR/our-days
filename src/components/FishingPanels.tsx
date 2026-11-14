@@ -159,6 +159,35 @@ function BossList({ fs, today }: { fs: FishingState; today: string }) {
   );
 }
 
+/** 크기 기록 전광판(2026-11-14) [사용자: "수집 크기기록에 상대방과 나 몇대 몇인지 임펙트 있게 표시해주기"] —
+ *  물고기마다 더 큰 쪽이 1점(같으면 무승부). 표 위에 '나 N : M 상대'를 크게, 앞선 쪽이 빛나고 막대가 그만큼 밀어낸다 */
+export function sizeScore(rows: [string, Record<string, number>][], who: string) {
+  let me = 0, partner = 0, tie = 0;
+  for (const [, row] of rows) {
+    const mine = row[who] ?? 0, other = Math.max(0, ...Object.entries(row).filter(([u]) => u !== who).map(([, v]) => v));
+    if (!mine && !other) continue;
+    if (mine > other) me++; else if (other > mine) partner++; else tie++;
+  }
+  return { me, partner, tie };
+}
+function SizeScore({ rows, who }: { rows: [string, Record<string, number>][]; who: string }) {
+  const { me, partner, tie } = sizeScore(rows, who), total = me + partner;
+  const lead = me === partner ? "tie" : me > partner ? "me" : "partner";
+  const share = total ? me / total : 0.5;
+  const line = lead === "tie" ? "팽팽해요! 한 마리만 더 크게 잡으면 앞서요" : lead === "me" ? `${me - partner}종 차이로 내가 앞서요!` : `${partner - me}종 차이로 상대가 앞서요 — 역전할 차례!`;
+  return (
+    <div className={`fish-score is-${lead}`} role="status" aria-label={`크기 기록 나 ${me} 대 상대 ${partner}${tie ? `, 무승부 ${tie}` : ""}`}>
+      <div className="fish-score-board" aria-hidden>
+        <span className="fish-score-side is-me"><small>나</small><b key={`m${me}`}>{me}</b></span>
+        <span className="fish-score-vs">:</span>
+        <span className="fish-score-side is-partner"><small>상대</small><b key={`p${partner}`}>{partner}</b></span>
+      </div>
+      <div className="fish-score-bar" aria-hidden><i style={{ width: `${Math.round(share * 100)}%` }} /></div>
+      <p aria-hidden>{line}{tie ? ` · 무승부 ${tie}` : ""}</p>
+    </div>
+  );
+}
+
 /** 크기 기록 — 칸을 고정한 표. 나는 분홍 · 상대는 파랑, 그 물고기에서 더 큰 쪽만 칠한다 */
 function SizeList({ fs, who, couple }: { fs: FishingState; who: string; couple: boolean }) {
   const rows = Object.entries(fs.sizes).filter(([k]) => artName(k));
@@ -166,6 +195,7 @@ function SizeList({ fs, who, couple }: { fs: FishingState; who: string; couple: 
   return (
     <section className="aqua-card">
       <header><strong>크기 기록</strong><small>내 기록을 넘기면 하트 · 경험치 1.5배</small></header>
+      {couple && <SizeScore rows={rows} who={who} />}
       {couple && (
         <div className="fish-size-row fish-size-head" aria-hidden>
           <span />
