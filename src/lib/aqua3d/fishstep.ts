@@ -101,7 +101,7 @@ let MASS = new Float32Array(64);
 const massAt = (n: number) => { if (MASS.length <= n) MASS = new Float32Array(Math.max(n + 1, MASS.length * 2)); return MASS; };
 let CPREV = new Float32Array(192);
 const contactPrev = (n: number) => { if (CPREV.length < n) CPREV = new Float32Array(Math.max(n, CPREV.length * 2)); return CPREV; };
-const CONTACT = { heading: new Float32Array(0) as ArrayLike<number>, mass: MASS as ArrayLike<number>, pinned: undefined as ArrayLike<number> | undefined, disc: undefined as ArrayLike<number> | undefined, scale: 1, deep: 1, top: 4.7 };
+const CONTACT = { heading: new Float32Array(0) as ArrayLike<number>, mass: MASS as ArrayLike<number>, pinned: undefined as ArrayLike<number> | undefined, disc: undefined as ArrayLike<number> | undefined, scale: 1, deep: 1, top: 4.7, rocks: undefined as readonly Obstacle[] | undefined, tall: 1 };
 const discAt = (n: number) => { if (DISC.length <= n) { const d = new Float32Array(DISC.length * 2); d.set(DISC); DISC = d; } return DISC; };
 // 길 옵션 — 프레임마다 · 물고기마다 새 객체를 안 만든다(2026-11-12)
 const OPTS = { obstacles: undefined as readonly Obstacle[] | undefined, feed: null as Feed | null, deep: 1, tall: 1, hall: null as Hall | null, leaderLength: 0 as number | undefined, out: undefined as Course | undefined };
@@ -126,7 +126,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts);
       // 해양 포유류 — 헤엄 길을 바위 쉼터와 섞는다(90% 는 바위 위)
       const sw = m.swim!;
-      if (sw.haul) { const a = hauls.get(id); sw.rest = haulBlend(id, elapsed, m.length, wide, WORLD.floor, { rock: a?.rock ?? null, share: a?.share ?? 0, deep }, c); }
+      if (sw.haul) { const a = hauls.get(id); sw.rest = haulBlend(id, elapsed, m.length, wide, WORLD.floor, { rock: a?.rock ?? null, share: a?.share ?? 0, deep, tall }, c); }
     }
     // 위로 늘리기 — 바닥에 붙은 만큼(ground)은 모래 높이만 따르고 몸 높이(hug)는 안 늘린다(2026-11-11 — 6단계에서 바닥 물고기가 몸 높이의 1.5배 떠 있었다). 헤엄치는 물고기는 그대로 tallY
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }
@@ -209,10 +209,10 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     m.phase += dt * c.effort;
   }
   // 5) 몸끼리 닿지 않게 — 마지막 자리에서 겹친 만큼 밀어낸다(물리 엔진의 접촉처럼, 2026-11-14)
-  if (n > 1) {
+  if (n > 0) {
     const M = massAt(n);
     for (let k = 0; k < n; k++) { const st = fishes[k].swim!; M[k] = st.den ? 0 : st.haul && st.rest > 0.5 ? 0.15 : 1 - 0.6 * Math.min(1, b.pinned[k]); }
-    CONTACT.heading = b.heading; CONTACT.mass = M; CONTACT.pinned = b.pinned; CONTACT.disc = DISC; CONTACT.scale = wide; CONTACT.deep = deep; CONTACT.top = tallY(4.7, tall);
+    CONTACT.heading = b.heading; CONTACT.mass = M; CONTACT.pinned = b.pinned; CONTACT.disc = DISC; CONTACT.scale = wide; CONTACT.deep = deep; CONTACT.top = tallY(4.7, tall); CONTACT.rocks = w.obstacles; CONTACT.tall = tall;
     // __noContacts — 테스트가 밀어내기 없는 기준을 재는 스위치(contacts.test)
     if (!(globalThis as { __noContacts?: boolean }).__noContacts) {
       // 밀어낸 만큼을 겹침 밀기 보정값(offsets)에도 남긴다 — 다음 프레임이 원래 길에서 다시 시작하면 매 프레임 파고들었다 튕겨 나와 한 칸에 몸길이 반씩 튀었다

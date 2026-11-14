@@ -383,7 +383,22 @@ export type ContactOptions = {
   /** 1 이면 둥근 판(불가사리) */ disc?: ArrayLike<number>;
   /** 건너뛸 물고기(1) */ skip?: ArrayLike<number>;
   scale?: number; deep?: number; top?: number; iters?: number;
+  /** 바위(장애물 중 kind "rock" — 물고기 길 좌표: z · h 는 깊이 · 높이를 늘리기 전) · 늘린 높이. 주면 몸이 바위 안에 못 들어간다(2026-11-14) */
+  rocks?: readonly Obstacle[]; tall?: number;
 };
+/** 바위 하나를 둥근 언덕(가운데 높이 h, 반지름 r)으로 보고, 몸 위 점(px, py, pz)이 그 안이면 빠져나갈 가장 짧은 길 — 위로 올리기 또는 옆으로 밀기.
+ *  out 에 [dx, dy, dz] 를 쓰고 깊이(0 이면 바깥)를 돌려준다 */
+export function rockEscape(px: number, py: number, pz: number, rad: number, rock: { x: number; z: number; r: number; h: number }, out: number[]): number {
+  const dx = px - rock.x, dz = pz - rock.z, d = Math.sqrt(dx * dx + dz * dz), R = rock.r + rad * 0.6;
+  if (d >= R) return 0;
+  const k = Math.min(1, d / Math.max(1e-6, rock.r)), surf = WORLD.floor + rock.h * Math.sqrt(Math.max(0, 1 - k * k));
+  const up = surf + rad - py;
+  if (up <= 1e-3) return 0;
+  const side = R - d;
+  if (side < up && d > 1e-4) { out[0] = (dx / d) * side; out[1] = 0; out[2] = (dz / d) * side; return side; }
+  out[0] = 0; out[1] = up; out[2] = 0; return up;
+}
+const ROCK_OUT = [0, 0, 0], ROCK_W = { x: 0, z: 0, r: 0, h: 0 };
 export function resolveContacts(pos: Float32Array, lengths: ArrayLike<number>, n: number, o: ContactOptions): number {
   const H = o.heading, S = o.scale ?? 1, D = o.deep ?? 1, top = o.top ?? 4.7, iters = o.iters ?? 4;
   let moved = 0;
@@ -415,6 +430,34 @@ export function resolveContacts(pos: Float32Array, lengths: ArrayLike<number>, n
         pos[i * 3] += gx * push * ki; pos[i * 3 + 1] += gy * push * ki; pos[i * 3 + 2] += gz * push * ki;
         pos[j * 3] -= gx * push * kj; pos[j * 3 + 1] -= gy * push * kj; pos[j * 3 + 2] -= gz * push * kj;
         any = true; moved++;
+      }
+    }
+    // 바위 — 머리 · 가운데 · 꼬리가 바위 언덕 안이면 위로 올리거나 옆으로 민다(굴 속 곰치 · 건너뛸 물고기는 그대로)
+    if (o.rocks && o.rocks.length) {
+      const T = o.tall ?? 1;
+      for (let k = 0; k < n; k++) {
+        if ((o.skip && o.skip[k]) || (o.mass && o.mass[k] <= 0)) continue;
+        const L = lengths[k], ha = o.disc && o.disc[k] ? 0 : L * CAP_HALF, rad = L * (o.disc && o.disc[k] ? DISC_R * 0.3 : CAP_R);
+        let ux = H[k * 3], uy = H[k * 3 + 1], uz = H[k * 3 + 2];
+        const ul = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1; ux /= ul; uy /= ul; uz /= ul;
+        for (const rk of o.rocks) {
+          if (rk.kind !== "rock") continue;
+          ROCK_W.x = rk.x; ROCK_W.z = rk.z * D; ROCK_W.r = rk.r; ROCK_W.h = rk.h * T;
+          // 몸 전체로 한 번에 — 세 점 중 가장 깊이 들어간 만큼 위로 올리거나(몸 가운데가 바위 위쪽에 있으면), 몸 가운데에서 바깥쪽으로 민다
+          let up = 0, side = 0;
+          for (const t of [-1, 0, 1]) {
+            const px = pos[k * 3] + ux * ha * t, py = pos[k * 3 + 1] + uy * ha * t, pz = pos[k * 3 + 2] + uz * ha * t;
+            if (rockEscape(px, py, pz, rad, ROCK_W, ROCK_OUT) <= 0) continue;
+            const dx = px - ROCK_W.x, dz = pz - ROCK_W.z, kk = Math.min(1, Math.sqrt(dx * dx + dz * dz) / ROCK_W.r);
+            up = Math.max(up, WORLD.floor + ROCK_W.h * Math.sqrt(Math.max(0, 1 - kk * kk)) + rad - py);
+            side = Math.max(side, ROCK_W.r + rad * 0.6 - Math.sqrt(dx * dx + dz * dz));
+          }
+          if (up <= 0) continue;
+          const cx = pos[k * 3] - ROCK_W.x, cz = pos[k * 3 + 2] - ROCK_W.z, cd = Math.sqrt(cx * cx + cz * cz);
+          if (cd < ROCK_W.r * 0.75 || up <= side || cd < 1e-4) pos[k * 3 + 1] += up;
+          else { const need = ROCK_W.r + rad * 0.6 + ha * 0.0 - cd; const m = Math.max(side, need); pos[k * 3] += (cx / cd) * m; pos[k * 3 + 2] += (cz / cd) * m; }
+          any = true; moved++;
+        }
       }
     }
     for (let k = 0; k < n; k++) {

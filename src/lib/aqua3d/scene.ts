@@ -733,7 +733,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         if(pose.roll)motion.rolls[j]=(motion.rolls[j]??0)+pose.roll;
         startleNow.set(m,pose);}}j++;}
       // 놀라 튀어 나간 몸도 다른 물고기와 닿지 않게(사냥 장면의 둘은 빼고)
-      resolveContacts(motion.positions,motion.lengths,motion.count,{heading:motion.heading,pinned:motion.pinned,skip:motion.busy,scale:wide,deep,top:tallY(4.7,tall),iters:2});}
+      resolveContacts(motion.positions,motion.lengths,motion.count,{heading:motion.heading,pinned:motion.pinned,skip:motion.busy,scale:wide,deep,top:tallY(4.7,tall),iters:2,rocks:motion.obstacles,tall});}
     // 먹이 알갱이 — 새 먹이면 물고기가 모이는 자리에 뿌리고, 먹이 쪽으로 온 물고기 입에 닿은 알은 먹힌다(food.ts). 움직임 줄이기면 한 장면
     if(motion.feed&&motion.feed!==foodFeed){foodFeed=motion.feed;food.drop(motion.feed.t,motion.feed.x,{top:tallY(4.75,tall),deep,floorAt:foodFloor});}
     food.step(elapsed,dt,motion,reduced.matches);

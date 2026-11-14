@@ -1330,7 +1330,7 @@ export function haulRest(id: number, seconds: number): number {
   return 0;
 }
 /** 헤엄 길(out — 이미 계산한 schoolCourse)을 쉼터와 섞는다. 돌려주는 값 = 쉬는 정도(0~1) */
-export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number }, out: Course): number {
+export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number }, out: Course): number {
   let R = haulRest(id, seconds);
   // 먹이를 주면 쉬다가도 먹으러 간다
   R *= 1 - clamp01((out.feed ?? 0) * 1.5);
@@ -1343,12 +1343,13 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
   if (o) {
     // 바위 꼭대기 — 나눠 쓰면 양옆으로 비켜 눕는다. 둥근 바위라 가운데에서 멀수록 조금 낮다
     const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * Math.min(o.r * 0.55, length * 0.6);
-    const k = Math.min(0.9, Math.abs(off) / Math.max(0.05, o.r));
+    // 바위 앞 어깨(앞유리 쪽)에 눕는다 — 꼭대기 한가운데면 큰 바위 뒤로 숨어 안 보였다(2026-11-14). 높이는 둥근 언덕의 그 자리 높이 + 몸 두께(물리 밀어내기와 같은 언덕)
+    const front = o.r * 0.35, d = Math.min(0.95, Math.hypot(off, front) / Math.max(0.05, o.r));
     const lim = 5 * scale - length * 0.42;
-    rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z; ry = floorY + o.h * (1 - 0.45 * k * k) + length * 0.1;
+    rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z + front / (opts.deep || 1); ry = floorY + o.h * Math.sqrt(1 - d * d) + (length * 0.12) / (opts.tall || 1); // 몸 두께는 월드 길이 — 길 좌표의 높이는 엔진이 tall 배로 늘리므로 미리 나눈다(안 나누면 6단계에서 바위 위로 붕 떴다)
   } else {
     // 바위가 없으면 뒤 유리 앞 모래 위
-    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + length * 0.1; ground = 1;
+    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + (length * 0.1) / (opts.tall || 1); ground = 1;
     fz = Math.abs(fz);
   }
   const fl = hyp2(fx, fz); fx /= fl; fz /= fl;

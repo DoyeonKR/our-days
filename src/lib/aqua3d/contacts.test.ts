@@ -67,3 +67,21 @@ test("밀어내기 — 겹친 두 몸을 정확히 떼고, 무거운 몸은 덜 
   resolveContacts(p3, L, 2, { heading: head, skip: new Uint8Array([1, 1]) });
   assert.deepEqual([...p3], [...new Float32Array([0, 0, 0, 0, 0.05, 0])]);
 });
+
+test("바위 안에 몸이 못 들어간다 — 머리 · 가운데 · 꼬리가 바위 언덕 안이면 위로 올리거나 옆으로 민다(2026-11-14 물범이 돌 안에 들어간 것 같았다)", async () => {
+  const { WORLD, rockEscape } = await import("./world.ts");
+  const rock = { x: 0, z: 0, r: 1.5, h: 2, kind: "rock" as const };
+  // 바위 꼭대기에 반쯤 묻힌 물고기 — 위로 올라온다
+  const pos = new Float32Array([0, WORLD.floor + 1.6, 0]);
+  resolveContacts(pos, [2.8], 1, { heading: [1, 0, 0], rocks: [rock], tall: 1 });
+  const out = [0, 0, 0];
+  for (const t of [-1, 0, 1]) assert.equal(rockEscape(pos[0] + t * 2.8 * 0.4, pos[1], pos[2], 2.8 * 0.13, rock, out), 0, `점 ${t} 가 바위 밖`);
+  // 바위 옆구리에 낮게 붙은 물고기 — 옆으로 밀린다(높이 그대로)
+  const p2 = new Float32Array([1.4, WORLD.floor + 0.3, 0]);
+  resolveContacts(p2, [0.8], 1, { heading: [0, 0, 1], rocks: [rock], tall: 1 });
+  assert.ok(p2[0] > 1.4 && Math.abs(p2[1] - (WORLD.floor + 0.3)) < 1e-4, "옆으로");
+  // 굴 속 곰치(mass 0)는 그대로
+  const p3 = new Float32Array([0, WORLD.floor + 0.5, 0]);
+  resolveContacts(p3, [1.5], 1, { heading: [1, 0, 0], rocks: [rock], tall: 1, mass: [0] });
+  assert.equal(p3[1], Math.fround(WORLD.floor + 0.5));
+});
