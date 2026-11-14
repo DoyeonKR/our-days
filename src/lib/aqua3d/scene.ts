@@ -146,6 +146,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
   // 두 손가락 · 휠 당기기 배율 — 0.45 배까지 다가가고 1.5 배까지 물러난다
   const ZOOM_MIN=.45,ZOOM_MAX=1.5;let userZoom=1;
+  const XRAY_LAYER=3,XRAY_SKIP=/^(moray|octopus|squid|giant_squid|kraken|jellyfish)$/;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, wideBase=1, tierX=1, tall=1, pan=0, panReach=0, panPerPx=.02, lastTouch=-99, schools=new Map<number,{leader:number;slot:number}>();
   /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
   let foodTimer=0,motes:Motes|null=null;
@@ -889,7 +890,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 초점 — 따라가면 그 물고기(배경이 흐려진다). 따라가지 않을 땐 흐림을 끈다(세기가 작으면 섞이는 양은 몇 % 인데 픽셀마다 12쌍을 읽었다)
     // 초점은 자른 자리(focusLook)가 아니라 물고기 몸까지 — 자른 자리와 물고기가 어긋나면 고른 물고기가 흐렸다. 고르기를 풀어 물러나는 동안은 마지막 자리
     const focusDist=focusK>.05?camera.position.distanceTo(mealK>.5?focusLook:sel?sel.root.position:focusLook):inTunnel?10:camera.position.distanceTo(lookAt);
-    postNow.render(scene,camera,elapsed,{distance:focusDist,strength:focusK>.02?focusK*(inTunnel?.45:.8):0});
+    // 가려진 물고기 윤곽(2026-11-14) [사용자: "물범이 아예 보이지 않아 수초에 가려서 · 이런 문제들은 해결해야해"] — 물고기 몸(뼈 있는 GLB)만 XRAY 레이어에 두면
+    //   후처리가 그 깊이를 따로 그려, 수초 · 바위 · 장식 뒤에 있으면 그 자리에 옅은 윤곽을 비춘다. 굴에 숨은 곰치(일부러 숨는다) · 두족류(팔이 셰이더로 움직여 윤곽이 어긋난다)는 뺀다
+    for(const m of swimmers.values()){const on=m.root.visible&&!XRAY_SKIP.test(m.family)&&!/jelly/.test(m.key);m.root.traverse(o=>{if((o as T.Mesh).isMesh){if(on)o.layers.enable(XRAY_LAYER);else o.layers.disable(XRAY_LAYER);}});}
+    postNow.render(scene,camera,elapsed,{distance:focusDist,strength:focusK>.02?focusK*(inTunnel?.45:.8):0},inTunnel||inDome?undefined:XRAY_LAYER);
     if(!announced){announced=true;events.ready?.();}
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);

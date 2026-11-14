@@ -47,7 +47,8 @@ export function underwaterEnvironment(renderer: T.WebGLRenderer, top = 0x9fe3ef,
 export type Focus = { distance: number; strength: number };
 /** 느린 폰 계단(framepace.POST_LEVELS) — 0 전부 · 1 색 갈라짐 끔 · 2 빛 번짐도 끔 · 3 장면 그림을 0.75배로 */
 export type Post = {
-  render: (scene: T.Scene, camera: T.PerspectiveCamera, time: number, focus?: Focus) => void;
+  /** xray — 이 레이어의 물체(물고기)가 수초 · 바위 · 장식 뒤에 가려지면 마지막 그리기가 그 자리에 옅은 윤곽을 비춘다(2026-11-14) */
+  render: (scene: T.Scene, camera: T.PerspectiveCamera, time: number, focus?: Focus, xray?: number) => void;
   /** 그리기 전에 장면 · 후처리 셰이더를 실제로 그릴 그림에 맞춰 짓는다 */
   compile: (scene: T.Scene, camera: T.Camera) => Promise<unknown>;
   setLevel: (level: number) => void;
@@ -94,7 +95,14 @@ void main(){vec4 m=texture2D(tHalf,vUv);float r0=m.a;vec3 acc=m.rgb;float wsum=1
  *  화면 가장자리 물때는 2026-11-12 화면 확인 뒤 뺐다 — 유리가 아니라 화면에 붙은 필터처럼 보였다.
  *  FXAA — 멀티샘플 대신 가장자리만 그 방향으로 두 점 더 읽어 섞는다(⚠ 멀티샘플 그림의 깊이 그림이 줄 단위로 깨져 피사계 심도가 물고기를 흰 가로줄로 부쉈다, 2026-11-11).
  *  디더링 — 짙은 물빛 그라데이션의 띠를 없앤다. 예전 sin 해시는 시간이 커지면(수십 분) 정밀도가 무너져 무늬가 났다 → 화면 좌표만 쓰는 interleaved gradient noise, 시간은 64 초로 돌린다. */
+// Hidden fish outline (2026-11-14): tXray holds the fish-only depth (RGBA packed, white = none). Where a fish sits more than XRAY_GAP behind
+// the visible surface (a plant, rock or decoration covers it), mix in a soft light tint and a brighter rim, so a resting seal behind the weeds is still seen.
+export const XRAY_GAP = 0.9;
 export const FINAL_FRAG = `varying vec2 vUv;${COMMON}uniform sampler2D tBlur;uniform sampler2D tGlow;uniform float time;uniform float split;uniform float bloom;uniform float murk;uniform vec3 murkColor;
+uniform sampler2D tXray;uniform float xray;
+#include <packing>
+float fishZ(vec2 p){float d=unpackRGBAToDepth(texture2D(tXray,p));return d>.9999?1e4:(near*far)/(far-(far-near)*d);}
+float hidden(vec2 p){float f=fishZ(p);return f>9e3?0.:step(viewZ(p)+${XRAY_GAP.toFixed(2)},f);}
 float luma(vec3 c){return dot(min(c,vec3(1.)),vec3(.299,.587,.114));}
 vec3 fxaa(vec2 p){
   vec3 m=fix(p);float lm=luma(m);
@@ -116,6 +124,8 @@ void main(){
   vec3 c=fxaa(uv);
   if(split>.5){vec2 ca=d*r2*.014;float k=smoothstep(.04,.2,r2);c.r=mix(c.r,fix(uv+ca).r,k);c.b=mix(c.b,fix(uv-ca).b,k);}
   if(aperture>.001){float r0=coc(uv);c=mix(c,texture2D(tBlur,uv).rgb,.75*smoothstep(.1,.7,r0));}
+  if(xray>.5){float h=hidden(vUv);if(h>0.){vec2 o=px*2.;float e=4.-hidden(vUv+vec2(o.x,0.))-hidden(vUv-vec2(o.x,0.))-hidden(vUv+vec2(0.,o.y))-hidden(vUv-vec2(0.,o.y));
+    c=c*.82+vec3(.05,.09,.12)*(.35+.65*clamp(e,0.,1.))+vec3(.02,.03,.035);}}
   if(bloom>.5)c+=texture2D(tGlow,uv).rgb*(1.-.65*murk);
   c*=mix(.84,1.1,smoothstep(.0,1.,uv.y));
   c*=1.-smoothstep(.12,.55,r2)*.42;
@@ -147,6 +157,10 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
   // 반 · 4분의 1 그림 — 깊이 없이(빛 번짐 · 흐림은 깊이를 안 쓴다), 둘레는 늘여 읽는다
   const small = () => { const t = new T.WebGLRenderTarget(1, 1, { type, depthBuffer: false, samples: 0 }); t.texture.colorSpace = colorSpace; return t; };
   const half = small(), blurT = small(), glowT = small();
+  // 가려진 물고기 윤곽 — 물고기만의 깊이(장면 그림과 같은 크기 — 반 크기면 윤곽이 계단졌다, 8비트 RGBA 에 깊이를 나눠 담는다)
+  const xrayT = new T.WebGLRenderTarget(1, 1, { type: T.UnsignedByteType, depthBuffer: true, samples: 0 });
+  const xrayMat = new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking });
+  const white = new T.Color(1, 1, 1), keepClear = new T.Color();
   const shared = { texel: { value: new T.Vector2(1, 1) }, px: { value: new T.Vector2(1, 1) }, near: { value: 0.1 }, far: { value: 100 }, focus: { value: 20 }, aperture: { value: 0 },
     tColor: { value: target.texture }, tDepth: { value: target.depthTexture }, tHalf: { value: half.texture } };
   const pass = (fragmentShader: string, extra: Record<string, T.IUniform> = {}) =>
@@ -154,7 +168,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
   const down = pass(DOWN_FRAG), glow = pass(GLOW_FRAG), blur = pass(BLUR_FRAG);
   const mat = new T.ShaderMaterial({
     depthTest: false, depthWrite: false,
-    uniforms: { ...shared, tBlur: { value: blurT.texture }, tGlow: { value: glowT.texture }, time: { value: 0 }, split: { value: 1 }, bloom: { value: 1 }, murk: { value: 0 }, murkColor: { value: new T.Color(0x2a3a24) } },
+    uniforms: { ...shared, tBlur: { value: blurT.texture }, tGlow: { value: glowT.texture }, tXray: { value: xrayT.texture }, xray: { value: 0 }, time: { value: 0 }, split: { value: 1 }, bloom: { value: 1 }, murk: { value: 0 }, murkColor: { value: new T.Color(0x2a3a24) } },
     vertexShader: QUAD_VERT, fragmentShader: FINAL_FRAG,
   });
   const quad = new T.Mesh<T.BufferGeometry, T.Material>(new T.PlaneGeometry(2, 2), mat);
@@ -167,7 +181,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
   const fit = (t: T.WebGLRenderTarget, w: number, h: number) => { if (t.width !== w || t.height !== h) t.setSize(w, h); };
   const draw = (m: T.Material, to: T.WebGLRenderTarget | null) => { quad.material = m; renderer.setRenderTarget(to); renderer.render(postScene, postCam); };
   return {
-    render(scene, camera, time, focus) {
+    render(scene, camera, time, focus, xray) {
       renderer.getDrawingBufferSize(size);
       const k = sceneScale(), w = Math.max(1, Math.round(size.x * k)), h = Math.max(1, Math.round(size.y * k));
       fit(target, w, h);
@@ -187,6 +201,17 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
       mat.uniforms.bloom.value = bloom ? 1 : 0;
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
+      // 가려진 물고기 — 물고기 레이어만 깊이로 한 번 더(배경 · 안개 없이). 느린 기기 계단 3 에선 건너뛴다
+      mat.uniforms.xray.value = 0;
+      if (xray !== undefined && level < 3) {
+        fit(xrayT, w, h);
+        const bg = scene.background, ov = scene.overrideMaterial, mask = camera.layers.mask, alpha = renderer.getClearAlpha();
+        renderer.getClearColor(keepClear);
+        scene.background = null; scene.overrideMaterial = xrayMat; camera.layers.set(xray);
+        renderer.setRenderTarget(xrayT); renderer.setClearColor(white, 1); renderer.clear(); renderer.render(scene, camera);
+        scene.background = bg; scene.overrideMaterial = ov; camera.layers.mask = mask; renderer.setClearColor(keepClear, alpha);
+        mat.uniforms.xray.value = 1;
+      }
       // 빛 번짐도 흐림도 없으면(계단 2 이상 · 따라가지 않을 때) 줄이기부터 건너뛴다
       if (bloom || dof) draw(down, half);
       if (bloom) draw(glow, glowT);
@@ -217,7 +242,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
     dispose() {
       target.depthTexture?.dispose();
       target.dispose();
-      half.dispose(); blurT.dispose(); glowT.dispose();
+      half.dispose(); blurT.dispose(); glowT.dispose(); xrayT.dispose(); xrayMat.dispose();
       quad.geometry.dispose();
       for (const m of [mat, down, glow, blur]) m.dispose();
     },

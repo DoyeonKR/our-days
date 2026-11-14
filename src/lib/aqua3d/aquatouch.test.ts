@@ -83,3 +83,22 @@ test("화면 — 누르면 놀란다(먹물 · 모래) · 놀란 만큼 자리 �
   const step = readFileSync("src/lib/aqua3d/fishstep.ts", "utf8");
   assert.match(step, /haulBlend\(id, elapsed, m\.length, wide, WORLD\.floor/);
 });
+
+test("쉼터 바위는 보이는 곳부터 — 양옆 끝 · 뒤 · 앞을 가린 바위보다 가운데 · 앞 바위(2026-11-14 물범이 수초에 가려 안 보였다)", async () => {
+  const { haulCandidates } = await import("./habits.ts");
+  const side = { x: 9.8, z: -1.8, r: 1.8, h: 0.9, kind: "rock" as const };
+  const center = { x: 1.5, z: -1.2, r: 1.4, h: 1.0, kind: "rock" as const };
+  assert.equal(haulCandidates(2.8, [side, center], 2.5)[0], center, "가운데 바위가 먼저");
+  const front = { x: -2, z: 0.5, r: 1.4, h: 1.0, kind: "rock" as const }, plant = { x: -2, z: 1.5, r: 0.8, h: 1.5, kind: "decor" as const };
+  assert.notEqual(haulCandidates(2.8, [front, plant, center], 2.5)[0], front, "앞을 큰 장식이 가린 바위는 뒤로");
+});
+
+test("가려진 물고기 윤곽 — 물고기 레이어만 깊이로 한 번 더 그리고, 마지막 그리기가 더 앞에 무언가 있을 때만 옅게 비춘다", async () => {
+  const { readFileSync } = await import("node:fs");
+  const post = readFileSync(new URL("./post.ts", import.meta.url), "utf8"), scene = readFileSync(new URL("./scene.ts", import.meta.url), "utf8");
+  assert.match(post, /scene\.overrideMaterial = xrayMat; camera\.layers\.set\(xray\);/);
+  assert.match(post, /camera\.layers\.mask = mask/, "레이어를 되돌린다");
+  assert.match(scene, /XRAY_SKIP=\/\^\(moray\|octopus/, "굴에 숨은 곰치 · 셰이더로 팔이 움직이는 두족류는 뺀다");
+  const { FINAL_FRAG } = await import("./post.ts");
+  assert.ok(/^[\x00-\x7F]*$/.test(FINAL_FRAG), "셰이더 원문은 ASCII 만");
+});

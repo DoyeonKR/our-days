@@ -698,7 +698,7 @@ function EatenCard({ g, onNext, onReplay }: { g: AquaNews; onNext: () => void; o
         <p className="aqua-grown-kicker">잡아먹혔어요…</p>
         <span className="aqua-eaten-pics"><span className="aqua-grown-pic"><FishArt artKey={fishArtKey(pred)} /></span><i aria-hidden>▶</i><span className="aqua-grown-pic is-gone"><FishArt artKey={fishArtKey(prey)} /></span></span>
         <strong>{josa(fishName(pred), "이/가")} {josa(fishName(prey), "을/를")} 잡아먹었어요</strong>
-        <small className="aqua-note">상성이 안 맞는 물고기는 배가 고프면 사냥해요. 포만을 60 위로 두면 안전해요</small>
+        <small className="aqua-note">상성이 안 맞는 물고기는 배가 고프면 사냥해요. 포만을 {HUNGRY_BELOW} 위로 두면 안전해요</small>
         <ActionButton main wide data-dialog-initial onClick={onNext}>확인</ActionButton>
         {onReplay && <ActionButton wide onClick={onReplay}>▶ 사냥꾼 시점으로 다시 보기</ActionButton>}
       </div>

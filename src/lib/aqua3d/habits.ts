@@ -1296,9 +1296,13 @@ export function haulCandidates(length: number, obstacles: readonly Obstacle[] | 
   const fits = (o: Obstacle) => Math.abs(o.x) <= 5 * scale - length * 0.42;
   const base = (obstacles ?? []).filter((o) => o.kind !== "hall" && o.h > 0.12 && o.r > length * 0.2);
   const inside = base.filter(fits), all = inside.length ? inside : base;
-  // 바위를 먼저(장식 위보다 바위 위가 자연스럽다), 그중 넓고 낮은 바위부터(뾰족한 기둥 위에 위태롭게 앉지 않게 — 2026-11-14 화면), 같으면 x · z 순
+  // 바위를 먼저(장식 위보다 바위 위가 자연스럽다), 그중 보기 좋은 바위부터 — 넓고 낮고(뾰족한 기둥 위에 위태롭게 앉지 않게) · 가운데 · 앞쪽 · 앞을 가리는 장식이 없는 바위.
+  //   2026-11-14 [사용자: "물범이 아예 보이지 않아 수초에 가려서"] — 넓고 낮은 것만 봤더니 큰 수조에서 양옆 끝 뒤쪽(수초가 가장 빽빽하고 카메라가 잘라 내는 곳) 바위만 골랐다
   const flat = (o: Obstacle) => o.r - 0.6 * o.h;
-  return all.slice().sort((a, b) => (a.kind === "rock" ? 0 : 1) - (b.kind === "rock" ? 0 : 1) || flat(b) - flat(a) || a.x - b.x || a.z - b.z);
+  const half = 5 * scale, decor = (obstacles ?? []).filter((d) => d.kind === "decor" && d.h > 0.15);
+  const covered = (o: Obstacle) => decor.filter((d) => d.z > o.z && Math.abs(d.x - o.x) < o.r + d.r * 0.8).length;
+  const score = (o: Obstacle) => flat(o) * 0.5 - 2.2 * Math.abs(o.x) / half + 0.35 * o.z - 0.8 * covered(o);
+  return all.slice().sort((a, b) => (a.kind === "rock" ? 0 : 1) - (b.kind === "rock" ? 0 : 1) || score(b) - score(a) || a.x - b.x || a.z - b.z);
 }
 /** 쉼터 나누기 — denAssign 과 같은 방식(id 순, 아직 아무도 안 쓴 바위부터) */
 export function haulAssign(fish: readonly { id: number; length: number }[], obstacles: readonly Obstacle[] | undefined, scale = 1): Map<number, { rock: Obstacle | null; share: number }> {
