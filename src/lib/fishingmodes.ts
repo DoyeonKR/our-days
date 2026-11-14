@@ -4,7 +4,7 @@
  *  · 뜰채 — 그물을 끌고 다니며 달아나는 물고기를 물가 · 구석으로 몰아 붙잡는다(stepHerd, 2026-11-14 — 타이밍이 아니라 길).
  *  · 심해 — 손가락으로 릴을 돌린다(stepDeep). 초록 속도를 지키고, 물고기가 파고들면 멈춘다.
  * 전부 순수 함수다 — 입력(탭 시각 · 끌기 위치 · 회전 속도)만 받는다. fishingmodes.test 의 자동 플레이가 난이도를 잠근다. */
-import { rng, rollCatch, softStat, type FishCatch, type FishSpot, type FishStat } from "./fishing.ts";
+import { REELS, rng, rollCatch, softStat, type FishCatch, type FishSpot, type FishStat } from "./fishing.ts";
 import type { FishMoment } from "./fishingworld.ts";
 
 type Eff = Pick<Record<FishStat, number>, "power" | "line">;
@@ -231,65 +231,93 @@ export function stepLift(l: Lift, dt: number, hold: boolean, counter: number, tu
 export const liftQuality = (l: Pick<Lift, "good" | "t">) => (l.t <= 0 ? 0 : Math.min(1, l.good / l.t));
 
 /* ── 심해: 릴 돌리기 ──────────────────────────────────── */
-
-export type DeepTune = { lo: number; hi: number; reel: number; sink: number; strain: number; ease: number; diveEvery: number; diveLen: number; dive: number; warn: number; wander: number };
+/* 2026-11-14 심해 개편 [사용자: "심해 낚시 관련해서 개선할거 … 너가 제안한 작업들 모두 진행"]
+ *  · 수심 연동 — 미끼를 멈춘 깊이(m)에서 힘겨루기를 시작한다. 깊을수록 오래 감아야 한다(deepLen) · 수심계도 그 m 로(예전엔 늘 120m)
+ *  · 드랙 — 릴을 반대로 돌리면 줄을 풀어 장력을 빨리 내린다(대신 깊이를 내준다). 파고들 때 '멈추기' 말고 '풀기'도 고를 수 있다
+ *  · 심해 릴(장비) — 감는 빠르기 · 초록 칸 폭(reel 단계)
+ *  · 대왕오징어 습격 — 500m 넘게 깊은 판에서 드물게(grab) 절반쯤 끌어올렸을 때 긴 예고 뒤 크게 파고든다. 버텨 내면 대물(화면이 cm 를 키운다) */
+export type DeepTune = { lo: number; hi: number; reel: number; sink: number; strain: number; ease: number; diveEvery: number; diveLen: number; dive: number; warn: number; wander: number; grab?: boolean };
 export type DeepStatus = "on" | "landed" | "snapped" | "slack" | "escaped";
-export type Deep = { depth: number; tension: number; t: number; idle: number; diveLeft: number; warnLeft: number; nextDive: number; good: number; rngState: number; status: DeepStatus };
+/** grab — 0 습격 없음 · 1 기다림 · 2 예고 중 · 3 파고드는 중 · 4 버텨 냈다 */
+export type Deep = { depth: number; tension: number; t: number; idle: number; diveLeft: number; warnLeft: number; nextDive: number; good: number; rngState: number; status: DeepStatus; grab?: number };
+/** 예전 고정 수심계 — 수심을 모를 때(옛 판) */
 export const DEEP_METERS = 120;
+/** 깊이(m)에 따른 감는 길이 배수 — 예전 기준 120m 가 1배, 10m 0.75배 ~ 1500m 1.44배(대수로 늘어 깊은 판도 견딜 만하다) */
+export const deepLen = (meters: number) => clamp(1 + 0.4 * Math.log10(Math.max(1, meters) / DEEP_METERS), 0.75, 1.5);
+/** 습격이 일어날 수 있는 깊이 · 확률 */
+export const GRAB_METERS = 500, GRAB_CHANCE = 0.12;
+/** 천천히(초록 칸에서) 끌어올리면 — 솜씨가 이만큼 넘으면 담기 확률 덤 */
+export const DEEP_GENTLE = 0.75, DEEP_GENTLE_BONUS = 0.06;
 
-export function deepTune(d: number, eff: Eff): DeepTune {
+export function deepTune(d: number, eff: Eff, reel = 0, meters = DEEP_METERS, grab = false): DeepTune {
   eff = soft(eff);
-  const width = Math.max(0.45, 0.85 - d * 0.04 + eff.line * 0.004);
+  const rl = clamp(Math.floor(reel), 0, REELS.length - 1), len = deepLen(meters);
+  const width = Math.max(0.45, 0.85 - d * 0.04 + eff.line * 0.004) + rl * 0.04;
   const lo = 0.85 + d * 0.035;
   return {
     lo,
     hi: lo + width,
-    reel: (0.12 * (1 + eff.power * 0.035)) / (1 + d * 0.1),
-    sink: 0.05 * (1 + d * 0.04),
+    reel: ((0.12 * (1 + eff.power * 0.035)) / (1 + d * 0.1)) * (1 + rl * 0.12) / len,
+    sink: 0.05 * (1 + d * 0.04) / len,
     strain: (0.95 * (1 + d * 0.09)) / (1 + eff.line * 0.03),
     ease: 0.5,
     diveEvery: Math.max(3.6, 6.5 - d * 0.2),
     diveLen: 0.8 + d * 0.05,
-    dive: 0.05 * (1 + d * 0.08),
+    dive: (0.05 * (1 + d * 0.08)) / len,
     warn: Math.max(0.35, 0.65 - d * 0.03),
     wander: Math.min(0.28, 0.1 + d * 0.05),
+    ...(grab ? { grab: true } : {}),
   };
 }
 export function startDeep(seed: number, tune: DeepTune): Deep {
   const r = rng(seed);
-  return { depth: 1, tension: 0.25, t: 0, idle: 0, diveLeft: 0, warnLeft: 0, nextDive: tune.diveEvery * (0.7 + r() * 0.5), good: 0, rngState: (seed * 41 + 3) >>> 0, status: "on" };
+  return { depth: 1, tension: 0.25, t: 0, idle: 0, diveLeft: 0, warnLeft: 0, nextDive: tune.diveEvery * (0.7 + r() * 0.5), good: 0, rngState: (seed * 41 + 3) >>> 0, status: "on", grab: tune.grab ? 1 : 0 };
 }
 /** 지금 초록 속도(초당 바퀴) — 천천히 오르내려서 손을 계속 맞춰야 한다 */
 export function deepBand(de: Pick<Deep, "t">, tune: DeepTune) {
   const m = Math.sin(de.t * 0.55) * tune.wander;
   return { lo: Math.max(0.55, tune.lo + m), hi: Math.max(0.55, tune.lo + m) + (tune.hi - tune.lo) };
 }
-/** rps = 초당 바퀴 수(방향 무관) */
-export function stepDeep(de: Deep, dt: number, rps: number, tune: DeepTune): Deep {
+/** 습격 중인가(예고 · 파고들기) */
+export const deepGrabbing = (de: Pick<Deep, "grab">) => de.grab === 2 || de.grab === 3;
+/** rps = 감는 쪽 초당 바퀴, back = 반대로 돌리는(줄 푸는) 초당 바퀴 */
+export function stepDeep(de: Deep, dt: number, rps: number, tune: DeepTune, back = 0): Deep {
   if (de.status !== "on") return de;
   const n = { ...de, t: de.t + dt };
   const band = deepBand(n, tune);
   const spinning = rps > 0.18;
+  const releasing = back > 0.18;
+  // 대왕오징어 습격 — 절반쯤 끌어올렸을 때(다른 파고들기 · 예고가 없을 때) 긴 예고 뒤 크게 파고든다
+  if (n.grab === 1 && n.depth < 0.55 && n.diveLeft <= 0 && n.warnLeft <= 0) { n.grab = 2; n.warnLeft = tune.warn * 1.8; }
+  const big = n.grab === 3;
   if (n.diveLeft > 0) {
-    // 파고드는 중 — 돌리면 줄이 끊어진다. 멈추고 버틴다.
+    // 파고드는 중 — 돌리면 줄이 끊어진다. 멈추고 버티거나, 반대로 돌려 줄을 풀어 장력을 내린다(깊이를 더 내준다)
     n.diveLeft = Math.max(0, n.diveLeft - dt);
-    n.depth += tune.dive * dt;
-    n.tension += spinning ? tune.strain * (1.5 + rps * 0.5) * dt : -tune.ease * dt;
+    n.depth += tune.dive * (big ? 1.6 : 1) * dt * (releasing ? 1.4 : 1);
+    n.tension += spinning ? tune.strain * (big ? 1.5 : 1) * (1.5 + rps * 0.5) * dt : -(releasing ? tune.ease * (2.2 + back) : tune.ease * (big ? 0.6 : 1)) * dt;
     n.idle = 0;
+    if (n.diveLeft <= 0 && n.grab === 3) n.grab = 4;
   } else if (n.warnLeft > 0) {
     n.warnLeft = Math.max(0, n.warnLeft - dt);
     if (n.warnLeft <= 0) {
       const r = rng(n.rngState);
       n.rngState = (n.rngState * 31 + 23) >>> 0;
-      n.diveLeft = tune.diveLen * (0.8 + r() * 0.4);
+      const grabNow = n.grab === 2;
+      n.diveLeft = tune.diveLen * (0.8 + r() * 0.4) * (grabNow ? 2.6 : 1);
       n.nextDive = tune.diveEvery * (0.75 + r() * 0.5);
+      if (grabNow) n.grab = 3;
     }
   } else {
     n.nextDive -= dt;
     if (n.nextDive <= 0) n.warnLeft = tune.warn;
   }
   if (n.diveLeft <= 0) {
-    if (rps > band.hi) {
+    if (releasing) {
+      // 줄을 푼다 — 장력이 빨리 내려가고 물고기는 조금 내려간다
+      n.tension -= tune.ease * (1.6 + back * 0.6) * dt;
+      n.depth += tune.sink * (1 + back) * dt;
+      n.idle = 0;
+    } else if (rps > band.hi) {
       n.tension += tune.strain * (0.28 + (rps - band.hi) * 0.6) * dt;
       n.depth -= tune.reel * 1.15 * dt;
     } else if (rps >= band.lo) {
@@ -300,16 +328,18 @@ export function stepDeep(de: Deep, dt: number, rps: number, tune: DeepTune): Dee
       n.tension -= tune.ease * dt;
       n.depth += tune.sink * (1 - rps / band.lo) * dt;
     }
-    n.idle = spinning ? 0 : n.idle + dt;
+    if (!releasing) n.idle = spinning ? 0 : n.idle + dt;
   }
   n.tension = clamp(n.tension, 0, 1.2);
   if (n.tension >= 1) n.status = "snapped";
   else if (n.depth <= 0) n.status = "landed";
   else if (n.idle >= 3.2) n.status = "slack";
-  else if (n.depth >= 1.25 || n.t >= 90) n.status = "escaped";
+  else if (n.depth >= 1.25 || n.t >= 120) n.status = "escaped";
   return n;
 }
 export const deepQuality = (de: Pick<Deep, "good" | "t">) => (de.t <= 0 ? 0 : Math.min(1, de.good / de.t));
+/** 습격을 버텨 낸 판 — 대물(cm 1.25배) */
+export const deepSurvivedGrab = (de: Pick<Deep, "grab" | "status">) => de.status === "landed" && de.grab === 4;
 
 /* ── 뜰채: 몰아서 건지기 (2026-11-14) ──────────────────────
  * [사용자: "모든 낚시게임이 다 타이밍 류 낚시게임인데 뜰채 낚시 방법을 개편하고 변경하자"]

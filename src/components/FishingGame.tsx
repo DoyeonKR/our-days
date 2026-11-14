@@ -52,14 +52,14 @@ import { useWeatherPlace } from "@/lib/weatherplace";
 import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
 import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
-  HERD_TIME_S, herdBest, herdTune, startHerd, stepHerd, type Herd, type HerdTune, deepBand, deepQuality, deepTune, lureLanded, lureQuality, lureRing, lureTune, startDeep, startLure, startSway, stepDeep, stepLure, stepSway, swayQuality, swayTune, tapLure,
+  HERD_TIME_S, herdBest, herdTune, startHerd, stepHerd, type Herd, type HerdTune, DEEP_GENTLE, DEEP_GENTLE_BONUS, GRAB_CHANCE, GRAB_METERS, deepGrabbing, deepSurvivedGrab, deepBand, deepQuality, deepTune, lureLanded, lureQuality, lureRing, lureTune, startDeep, startLure, startSway, stepDeep, stepLure, stepSway, swayQuality, swayTune, tapLure,
   type Deep, type DeepTune, type Lure, type LureTune, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
   baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMaxMeters, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
-  rankLine, revealMs, rollCatch, buySinker, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, stepFight, storeBlock, traceMove, traceRelease, traceTick, tryStore, waitPlan, xpNeed, xpValue,
+  rankLine, revealMs, rollCatch, buySinker, buyReel, reelOf, deepestOf, noteDeepest, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, stepFight, storeBlock, traceMove, traceRelease, traceTick, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
@@ -302,6 +302,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const sinkRef = useRef<{ t0: number; reach: number; band: number; redo: (meters: number, school: boolean) => void; done: boolean } | null>(null);
   const [sinkNow, setSinkNow] = useState({ f: 0, band: 0.5 });
   const [depthPick, setDepthPick] = useState<{ zone: FishDepth; meters: number; school: boolean } | null>(null);
+  /** 이번 판에 세운 가장 깊은 기록(m · 0 이면 없음) — 결과 카드에 한 줄 */
+  const [deepRecord, setDeepRecord] = useState(0);
   const biteMs = useRef(800);
   const holdRef = useRef(false);
   const fightRef = useRef<Fight | null>(null);
@@ -366,6 +368,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const rodXRef = useRef(0);
   const spinAcc = useRef(0);
   const spinNow = useRef(0);
+  /** 심해 드랙(2026-11-14) — 감는 쪽(처음 한 바퀴를 돈 쪽, ±1 · 0 이면 아직 모름) · 반대로 돌린 양 · 고른 빠르기 · 이번 판 수심(m) · 키보드로 누르고 있은 시간 */
+  const reelDir = useRef(0);
+  const reelDirAcc = useRef(0);
+  const backAcc = useRef(0);
+  const backNow = useRef(0);
+  const deepMeters = useRef(0);
+  const keyHeld = useRef(0);
   const dialRef = useRef(0);
   /** 다이얼 SVG — 도는 각도는 여기로 바로 쓴다(손가락이 움직일 때마다 화면 전체를 다시 그리지 않는다) */
   const dialApi = useRef<DeepDialHandle>(null);
@@ -468,7 +477,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     return () => fx.resume();
   }, [fx, tankOpen, dialogOpen, phase, raid]);
   useEffect(() => {
-    fx?.set({ phase: phase === "sink" ? "wait" : phase, charge, holding, method }); // 가라앉는 동안도 찌는 물 위(연출은 기다림과 같다)
+    fx?.set({ phase: phase === "sink" ? "wait" : phase, charge, holding, method, sinking: phase === "sink" }); // 가라앉는 동안도 찌는 물 위(연출은 기다림과 같다)
   }, [fx, phase, charge, holding, method]);
   // 가라앉는 미끼의 눈금 — 가라앉는 동안만 초당 30번
   useEffect(() => {
@@ -874,15 +883,24 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       if (how === "deep") {
         const cur = deepRef.current, tune = deepTuneRef.current;
         if (!cur || !tune) return;
-        const raw = keySpin.current ? 1.35 : spinAcc.current / (Math.PI * 2) / Math.max(0.001, dt);
+        // 키보드 — 누르고 있으면 점점 빨라진다(0.7 → 2.2 바퀴). 초록 칸을 지키려면 떼었다 눌러야 한다(예전엔 1.35 고정이라 누르고만 있으면 됐다)
+        if (keySpin.current) keyHeld.current += dt; else keyHeld.current = 0;
+        const raw = keySpin.current ? Math.min(2.2, 0.7 + keyHeld.current * 0.45) : spinAcc.current / (Math.PI * 2) / Math.max(0.001, dt);
+        const rawBack = backAcc.current / (Math.PI * 2) / Math.max(0.001, dt);
         spinAcc.current = 0;
-        spinNow.current += (raw - spinNow.current) * Math.min(1, dt * 7);
+        backAcc.current = 0;
+        // 손을 멈추면 곧바로 멈춘 것으로 — 내려갈 땐 빨리 따라간다(파고들기 예고에 멈췄는데 0.3초 늦게 멈춤으로 쳐서 장력을 먹었다)
+        spinNow.current += (raw - spinNow.current) * Math.min(1, dt * (raw < spinNow.current ? 18 : 7));
+        backNow.current += (rawBack - backNow.current) * Math.min(1, dt * (rawBack < backNow.current ? 18 : 7));
         const rps = spinNow.current < 0.03 ? 0 : spinNow.current;
-        const next = stepDeep(cur, dt, rps, tune);
+        const back = backNow.current < 0.03 ? 0 : backNow.current;
+        const next = stepDeep(cur, dt, rps, tune, back);
         deepRef.current = next;
         setDeepS(next);
         setSpin(rps);
-        fxn?.set({ tension: next.tension, dist: next.depth, spin: rps });
+        fxn?.set({ tension: next.tension, dist: next.depth, spin: rps - back, deepM: deepMeters.current, grab: deepGrabbing(next) });
+        if (cur.grab !== 2 && next.grab === 2) { showStamp("대왕오징어가 덮쳐요!", "miss"); buzz([60, 40, 60, 40, 120]); }
+        if (cur.grab === 3 && next.grab === 4) showStamp("버텨 냈다!", "gold");
         if (cur.warnLeft <= 0 && next.warnLeft > 0) {
           fxn?.warn("dive");
           buzz(15);
@@ -895,7 +913,18 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         }
         if (next.status === "on" && feverNow(next.depth, deepQuality(next))) return;
         if (next.status === "on") coopAskRef.current(next.depth);
-        if (next.status === "landed") landRound(deepQuality(next));
+        if (next.status === "landed") {
+          // 습격을 버텨 냈으면 대물(cm 1.25배) · 가장 깊은 기록
+          const c = fishRef.current;
+          if (c && !c.junk && deepSurvivedGrab(next) && c.cm) { const big = { ...c, cm: Math.round(c.cm * 1.25 * 10) / 10 }; fishRef.current = big; setFish(big); }
+          const fin = fishRef.current, row0 = rowRef.current, m = Math.round(deepMeters.current);
+          if (fin && !fin.junk && !fin.special && row0 && m > (deepestOf(row0.state)?.m ?? 0)) {
+            const rec = { m, family: fin.family, key: catchArt(fin), at: clock() };
+            setDeepRecord(m);
+            void act((s) => ({ ok: true as const, state: noteDeepest(s, rec).state }), true);
+          }
+          landRound(deepQuality(next));
+        }
         else if (next.status === "snapped") loseRound("spinSnap");
         else if (next.status === "slack") loseRound("idle");
         else if (next.status === "escaped") loseRound("escaped");
@@ -942,7 +971,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       else if (next.status !== "on") loseRound(next.status);
     }, 33);
     return () => clearInterval(iv);
-  }, [phase, loseRound, landRound, feverNow, showStamp]);
+  }, [phase, loseRound, landRound, feverNow, showStamp, act]);
 
   /** 닫기 — 판이 돌아가는 중이면 먼저 묻는다. 끌어올린 물고기를 말없이 버리지 않는다. 바로 닫히면 true. */
   const requestClose = useCallback((): boolean => {
@@ -1080,7 +1109,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   // 담기 · 팔기를 누르면 협동 상태를 접으므로, 저장이 실패해 다시 누를 때도 보너스가 남게 이 판 동안은 coopHelped 로 붙잡는다
   const coopHelpedNow = coopBonus(coop.coop, coopRound) || coopHelped;
   const coopWaiting = !!coopRound && (coop.coop.k === "askSent" || (coop.coop.k === "helping" && coop.coop.role === "angler"));
-  const soloChance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method, craftEffects(roundCraft, { spot, method }).capture)) : 0;
+  // 심해를 천천히(초록 칸에서) 끌어올리면 담기 덤(DEEP_GENTLE_BONUS — 미끼 2개 값)
+  const gentle = !!fish && method === "deep" && !fish.boss && quality >= DEEP_GENTLE;
+  const soloChance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method, craftEffects(roundCraft, { spot, method }).capture + (gentle ? DEEP_GENTLE_BONUS : 0))) : 0;
   // coopChance 는 1(피버 · 주인)을 낮추지 않는다
   const chance = fish ? coopChance(soloChance, coopHelpedNow) : 0;
   /** 상대를 돕는 중(받기 창 · 들어올리기 · 결과) — 그동안 내 낚시터 누르기는 던지기가 아니다 */
@@ -1363,7 +1394,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         return;
       }
       if (method === "deep") {
-        const tune = deepTune(fightLevel(fish), eff);
+        // 미끼를 멈춘 깊이에서 끌어올린다(없으면 봉돌 한계) · 500m 넘으면 드물게 대왕오징어 습격
+        const meters = Math.max(1, depthPick?.meters ?? sinkReach(sinkerOf(st), method, spot));
+        deepMeters.current = meters;
+        const tune = deepTune(fightLevel(fish), eff, reelOf(st), meters, !fish.junk && !fish.boss && meters >= GRAB_METERS && dice() < GRAB_CHANCE);
         deepTuneRef.current = tune;
         setDeepTuneS(tune);
         planFever();
@@ -1372,6 +1406,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         setDeepS(d);
         spinNow.current = 0;
         spinAcc.current = 0;
+        backNow.current = 0;
+        backAcc.current = 0;
+        reelDir.current = 0;
+        reelDirAcc.current = 0;
+        setDeepRecord(0);
         lastAng.current = null;
         dialTurned.current = 0;
         setDialGuide(true);
@@ -1523,18 +1562,20 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         band: bandAt,
         redo: (meters, school) => {
           const d = zoneAt(meters, spot);
-          const again = rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size + (school ? 0.04 : 0), depth: d, school });
-          if (again.family !== c.family || again.stage !== c.stage || again.cm !== c.cm) {
+          const again = rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size + (school ? 0.04 : 0), depth: d, school, depthM: meters });
+          if (again.family !== c.family || again.stage !== c.stage || again.cm !== c.cm || again.junk !== c.junk) {
             gradeRef.current = GRADES.indexOf(again.grade);
             fishRef.current = again;
             setFish(again);
             const sk = fishArtKey(again); fx?.shape(sk, FISH_IMAGE_KEYS.has(sk) ? asset(`/aqua/fish/sm/${sk}.webp`) : null);
           }
           setDepthPick({ zone: d, meters, school });
+          fx?.set({ deepM: meters }); // 심해 수심계가 기다리는 동안에도 이 판의 수심을 보인다
           if (school) showStamp("어군 적중!", "gold");
           go(0);
         },
       };
+      fx?.set({ deepM: 0 });
       setSinkNow({ f: 0, band: bandAt });
       setPhase("sink");
       later(() => stopSink(), flyMs + SINK_MS);
@@ -1618,7 +1659,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         let d = ang - lastAng.current;
         if (d > Math.PI) d -= Math.PI * 2;
         if (d < -Math.PI) d += Math.PI * 2;
-        spinAcc.current += Math.abs(d);
+        // 처음 한 바퀴를 돈 쪽이 감는 쪽 — 그 반대로 돌리면 줄을 푼다(드랙)
+        if (reelDir.current === 0) { reelDirAcc.current += d; if (Math.abs(reelDirAcc.current) >= Math.PI * 2) reelDir.current = reelDirAcc.current > 0 ? 1 : -1; }
+        if (reelDir.current !== 0 && Math.sign(d) === -reelDir.current) backAcc.current += Math.abs(d);
+        else spinAcc.current += Math.abs(d);
         dialRef.current += d;
         dialApi.current?.turn(dialRef.current, d < 0 ? -1 : 1);
         dialTurned.current += Math.abs(d);
@@ -1749,7 +1793,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const fightHint = method === "lure"
     ? (swayS && swayS.warnLeft > 0 ? (swayS.nextSide < 0 ? "곧 왼쪽으로 튀어요!" : "곧 오른쪽으로 튀어요!") : swayOk ? "좋아요! 그대로 버티세요" : "물고기 반대쪽으로 끌어요")
     : method === "deep"
-      ? (diving ? "파고들어요! 멈추세요!" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
+      ? (deepS && deepGrabbing(deepS) ? "대왕오징어! 멈추거나 반대로 돌려 줄을 푸세요" : diving ? "파고들어요! 멈추거나 반대로 돌려 줄을 푸세요" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : backNow.current > 0.18 ? "줄을 풀고 있어요 — 장력이 내려가요" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
       : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 지금 감으면 빨라요" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
   const lightBandNow = lightS && lightTuneRef.current ? lightBand(lightS, lightTuneRef.current) : null;
   const lightHint = !lightS || !lightBandNow ? ""
@@ -2062,7 +2106,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   ) : phase === "landed" ? (
                     <>
                       <p className="aqua-note">
-                        {method === "scoop" ? `${perfectHook ? "단숨에 몰아 건졌어요! " : ""}몰이 솜씨 ${pct(quality)}` : method === "light" ? `${perfectHook ? "정확한 챔질! " : ""}불빛 · 챔질 · 줄 다루기 ${pct(quality)}` : `${perfectHook ? "정확한 챔질! " : ""}줄 다루기 ${pct(quality)}`} · 경험치 +{xpValue(fish.difficulty)}
+                        {method === "scoop" ? `${perfectHook ? "단숨에 몰아 건졌어요! " : ""}몰이 솜씨 ${pct(quality)}` : method === "deep" ? `${deepRecord ? `가장 깊은 기록 ${deepRecord}m! ` : ""}${Math.round(deepMeters.current)}m에서 끌어올림 · 솜씨 ${pct(quality)}${gentle ? " · 천천히 올려 담기 +6%" : ""}` : method === "light" ? `${perfectHook ? "정확한 챔질! " : ""}불빛 · 챔질 · 줄 다루기 ${pct(quality)}` : `${perfectHook ? "정확한 챔질! " : ""}줄 다루기 ${pct(quality)}`} · 경험치 +{xpValue(fish.difficulty)}
                       </p>
                       {coopHelpedNow && <b className="fish-coop-badge">함께 끌어올렸어요 · 담기 확률 +15%p</b>}
                       {coopWaiting && <p className="fish-coop-wait" aria-live="polite">상대가 뜰채를 드는 중이에요 · 건지면 확률이 올라가요</p>}
@@ -2239,7 +2283,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         <>
           {/* 한눈에(2026-11-13) — 능력치(남은 점수가 있으면 맨 위) · 장비 · 미끼 · 꾸미기 · 만들기를 칸 버튼 없이 펼친다 */}
           {fs.points > 0 && <FishAbility fs={fs} eff={eff} busy={busy} onSpend={(k) => void act((s) => spendPoint(s, k))} />}
-          <FishGear fs={fs} coins={st.coins} busy={busy} today={today} sinker={sinkerOf(st)} onBuySinker={() => void act(buySinker)} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { void act((s) => buyBait(s, key, kstDate(clock()))); }} />
+          <FishGear fs={fs} coins={st.coins} busy={busy} today={today} sinker={sinkerOf(st)} onBuySinker={() => void act(buySinker)} reel={reelOf(st)} onBuyReel={() => void act(buyReel)} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { void act((s) => buyBait(s, key, kstDate(clock()))); }} />
           {fs.points <= 0 && <FishAbility fs={fs} eff={eff} busy={busy} onSpend={(k) => void act((s) => spendPoint(s, k))} />}
           <FishGearPlus {...tabProps} />
         </>

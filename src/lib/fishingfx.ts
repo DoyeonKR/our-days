@@ -13,7 +13,8 @@ type FxMethod = "float" | "lure" | "scoop" | "deep" | "light";
 type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; bait?: string; spot: string; method: FxMethod;
   /** 루어: 다음 박자까지(1→0) · 칠 때인가 · 관심(0~1) · 남은 줄(0~1) */ beat: number; beatHot: boolean; interest: number; line: number;
   /** 루어 힘겨루기: 낚싯대 · 물고기 좌우(-1~1) */ rodX: number; fishX: number;
-  /** 심해: 초당 바퀴 */ spin: number;
+  /** 심해: 초당 바퀴(음수면 줄을 푸는 중) */ spin: number;
+  /** 심해(2026-11-14): 이번 판 수심(m — 0 이면 예전 120m 수심계) · 대왕오징어 습격 중 · 미끼가 가라앉는 중(화면의 수심 눈금이 따로 있어 캔버스 수심계를 숨긴다) */ deepM?: number; grab?: boolean; sinking?: boolean;
   /** 던지기 전 돌린 각도 — 찌가 낚싯대 끝에서 이만큼 돈다 */ castAng: number };
 type FxShoalFish = { id: number; x: number; y: number; h: number; z: number; reach: boolean; size: number; grade: number; junk: boolean };
 
@@ -2957,6 +2958,41 @@ export class FishFx {
       return g;
     });
     c.fillRect(0, top, this.W, this.H - top);
+    // 수압 층(2026-11-14) — 물고기가 있는 실제 깊이(이번 판 수심 × 남은 거리)로 햇빛층(~200m) → 박광층(~1000m) → 심해층. 깊을수록 물빛이 검푸르게 가라앉고,
+    // 박광층부터 발광 생물이 깜빡인다(시각만의 함수 · 난수 없음)
+    const meters = (v.deepM ?? 0) > 0 ? (v.deepM ?? 0) * depth : 0;
+    const zone = meters >= 1000 ? 2 : meters >= 200 ? 1 : 0;
+    if (zone > 0) {
+      c.fillStyle = zone === 2 ? "rgba(2,0,10,.42)" : "rgba(4,6,30,.24)";
+      c.fillRect(0, top, this.W, this.H - top);
+      c.save();
+      const glow = zone === 2 ? 14 : 7;
+      for (let i = 0; i < glow; i++) {
+        const gx = ((i * 0.7548776) % 1) * this.W + Math.sin(this.t * 0.4 + i * 1.3) * 10 * this.u;
+        const gy = top + (0.15 + ((i * 0.5698403) % 1) * 0.8) * (this.H - top) + Math.cos(this.t * 0.3 + i) * 8 * this.u;
+        const blink = 0.5 + 0.5 * Math.sin(this.t * (1.3 + (i % 4) * 0.4) + i * 2.1);
+        if (blink < 0.35) continue;
+        c.globalAlpha = (blink - 0.35) * (zone === 2 ? 0.9 : 0.6);
+        c.fillStyle = i % 3 === 0 ? "#67e8f9" : i % 3 === 1 ? "#a5f3fc" : "#c4b5fd";
+        c.beginPath(); c.arc(gx, gy, (1.2 + (i % 3) * 0.7) * this.u, 0, 6.29); c.fill();
+        c.globalAlpha *= 0.25;
+        c.beginPath(); c.arc(gx, gy, (5 + (i % 3) * 2) * this.u, 0, 6.29); c.fill();
+      }
+      c.restore();
+    }
+    // 대왕오징어 습격 — 화면 아래에서 붉은 기운과 큰 그림자가 올라온다
+    if (v.grab) {
+      c.save();
+      const pulse = 0.5 + 0.5 * Math.sin(this.t * 7);
+      c.fillStyle = `rgba(120,10,30,${(0.12 + pulse * 0.12).toFixed(3)})`;
+      c.fillRect(0, top, this.W, this.H - top);
+      c.globalAlpha = 0.55;
+      c.fillStyle = "rgba(0,0,0,.85)";
+      const cx = this.W * 0.5, cy = this.H * 0.92;
+      c.beginPath(); c.ellipse(cx, cy, this.W * 0.42, this.H * 0.14, 0, 0, 6.29); c.fill();
+      for (let k = 0; k < 6; k++) { const a = Math.PI * (1.1 + k * 0.16) + Math.sin(this.t * 3 + k) * 0.08; c.beginPath(); c.moveTo(cx, cy); c.quadraticCurveTo(cx + Math.cos(a) * this.W * 0.3, cy + Math.sin(a) * this.H * 0.18, cx + Math.cos(a) * this.W * 0.55, cy + Math.sin(a) * this.H * 0.35); c.lineWidth = (10 - k) * this.u; c.strokeStyle = "rgba(0,0,0,.7)"; c.stroke(); }
+      c.restore();
+    }
     c.save();
     c.strokeStyle = "rgba(190,230,255,.6)";
     c.lineWidth = Math.max(0.7, 1 * this.u);
@@ -2982,8 +3018,10 @@ export class FishFx {
     c.restore();
     // 수심계 — 끌어올릴수록 바늘이 올라온다. 기다릴 땐 바닥(2026-11-13 — 깊은 곳에서 끌어올린다는 느낌이 없었다)
     // 2026-11-13 — 위 막대의 '수심 Xm' 를 숨기고 여기 하나로 보여 준다: 굵은 막대 + 어두운 테, 물고기 모양 표시, 맨 위 0m
+    // 미끼가 가라앉는 동안은 화면의 수심 눈금(.fish-depth)이 따로 있어 숨긴다(두 개가 겹쳤다 — 2026-11-14)
+    if (v.sinking) return;
     const u = this.u, x = this.W - 22 * u, y0 = top + 30 * u, y1 = this.H * 0.8;
-    const m = Math.round(clamp(depth, 0, 1.2) * 120);
+    const m = Math.round(clamp(depth, 0, 1.2) * ((v.deepM ?? 0) > 0 ? (v.deepM ?? 0) : 120));
     const py = lerp(y0, y1, clamp(depth / 1.2, 0, 1));
     c.save();
     c.lineCap = "round";

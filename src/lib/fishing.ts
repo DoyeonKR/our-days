@@ -149,7 +149,7 @@ export const NIGHT_FAMILIES: ReadonlySet<string> = new Set(["squid", "hairtail",
 export const LIGHT_NIGHT_WEIGHT = 6;
 const LIGHT_SEED = 0x3c6ef372;
 
-export type FishJunk = { key: string; name: string; line: string; coins: number; spot?: string };
+export type FishJunk = { key: string; name: string; line: string; coins: number; spot?: string; /** 이 깊이(m)보다 얕은 곳에선 안 걸린다(심해 탐사선 부품 — 2026-11-14) */ minDepth?: number };
 /** 꽝 — 흔한 쓰레기 + 낚시터마다 거기서만 나오는 것. 하트는 분리수거 값만큼 조금. line 은 건져 올렸을 때의 한 줄. */
 export const JUNKS: readonly FishJunk[] = [
   { key: "junk_can", name: "찌그러진 깡통", line: "한 모금 남아 있어요. 마시지는 마세요", coins: 2 },
@@ -174,7 +174,7 @@ export const JUNKS: readonly FishJunk[] = [
   { key: "junk_pole", name: "등산 스틱", line: "계곡 바위에 걸려 있던 걸까요", coins: 3, spot: "bonghwa" },
   { key: "junk_stool", name: "얼음낚시 의자", line: "주인은 추워서 먼저 들어갔나 봐요", coins: 4, spot: "hwacheon" },
   { key: "junk_helmet", name: "패러글라이딩 헬멧", line: "하늘에서 떨어졌나 봐요. 주인은 무사해요", coins: 6, spot: "sanriver" },
-  { key: "junk_probe", name: "심해 탐사선 부품", line: "깊이 2천 미터의 물건치고는 멀쩡해요", coins: 20, spot: "abyss" },
+  { key: "junk_probe", name: "심해 탐사선 부품", line: "깊이 2천 미터의 물건치고는 멀쩡해요", coins: 20, spot: "abyss", minDepth: 1000 },
 ];
 export const junkOf = (key: string | undefined) => JUNKS.find((x) => x.key === key);
 const JUNK_SEED = 0x2f6e2b1;
@@ -342,7 +342,7 @@ export const junksAt = (spotKey: string) => JUNKS.filter((x) => !x.spot || x.spo
 
 /** avoid — 방금 같은 계열이 연달아 나왔으면 그 계열을 흔한 물고기 뽑기에서 한 번 뺀다(50번에 같은 물고기만 이어지지 않게) */
 /** size — 대물 뽑기 문턱에 더하는 값(만든 '빛 미끼' — fishcraft.ts). 길이 뽑기는 별도 주사위라 계열 · 등급 · 단계 뽑기는 그대로다. 없으면 0 */
-export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number; /** 수심(0 표층 · 1 중층 · 2 바닥) — 그 수심에 사는 계열 쪽으로 같은 미끼 단계 안에서만 다시 고른다 */ depth?: FishDepth; /** 어군에 맞혔다 — 맞춘 수심 쪽으로 더 세게 */ school?: boolean };
+export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number; /** 수심(0 표층 · 1 중층 · 2 바닥) — 그 수심에 사는 계열 쪽으로 같은 미끼 단계 안에서만 다시 고른다 */ depth?: FishDepth; /** 어군에 맞혔다 — 맞춘 수심 쪽으로 더 세게 */ school?: boolean; /** 미끼가 멈춘 깊이(m) — 그보다 깊은 곳에만 있는 쓰레기(minDepth)는 안 걸린다 */ depthM?: number };
 /** 수심 맞추기(2026-11-13) [사용자: "거리말고 수심도 조절할 수 있는 기믹"] — 찌가 내려앉으면 미끼가 표층 → 중층 → 바닥으로 가라앉고, 눌러서 멈춘 수심에 사는 물고기가 더 잘 문다.
  *  사는 수심은 수조의 습성(aqua3d/habits — 바닥에 붙는 종 · 높이)과 같은 갈래다(fishingdepth.test 가 견준다). 목록에 없는 계열은 중층 */
 export type FishDepth = 0 | 1 | 2;
@@ -459,7 +459,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   if (opts.junk) {
     const j = rng((seed ^ JUNK_SEED) >>> 0);
     if (j() < junkChance(luck, how.key)) {
-      const at = junksAt(spot.key);
+      const at = junksAt(spot.key).filter((x) => !x.minDepth || (opts.depthM ?? 0) >= x.minDepth);
       // 물고기 흉내 — 그림자 크기 · 난이도는 물고기 그대로라 끌어올리기 전엔 모른다. 낚시터 전용 쓰레기는 무게 4
       return { ...real, cm: undefined, junk: pickWeighted(at.map((x) => [x.key, x.spot ? 4 : 1] as const), j()) };
     }
@@ -529,6 +529,7 @@ export function castBlock(f: Pick<FishingState, "baits" | "wormDay" | "level">, 
   if (f.level < how.minLevel) return `${josa(how.name, "은/는")} 낚시 Lv.${how.minLevel}부터 할 수 있어요`;
   if (how.night && spot.water !== "sea") return `${LIGHT_BLOCK} · 바다 낚시터를 골라 주세요`;
   if (how.night && !night) return `${LIGHT_BLOCK} · 저녁 7시부터 새벽 5시까지`;
+  if (method === "deep" && spotDepth(spot) < DEEP_MIN_WATER) return `${josa(spot.name, "은/는")} 물이 ${spotDepth(spot)}m 라 심해 낚시를 못 해요 · ${DEEP_MIN_WATER}m 넘게 깊은 낚시터를 골라 주세요`;
   if (!poolFor(spot, bait.maxGrade).length) return `${josa(spot.name, "은/는")} ${spotMinBait(spot).name}부터 물어요`;
   const have = baitStock(f, baitKey, today);
   if (have < how.baitCost) return have > 0 ? `${josa(how.name, "은/는")} 미끼가 ${how.baitCost}개 필요해요` : `${josa(bait.name, "이/가")} 다 떨어졌어요`;
@@ -1195,6 +1196,35 @@ export function spendPoint(st: IslandState, stat: FishStat): GearResult {
 
 /** 지금 봉돌 단계 — 섬 최상위 fishPlus(옛 앱이 흘린다) */
 export const sinkerOf = (st: Pick<IslandState, "fishPlus">) => { const v = Number((st.fishPlus as Record<string, unknown> | undefined)?.sinker ?? 0); return Number.isFinite(v) ? Math.max(0, Math.min(SINKERS.length - 1, Math.floor(v))) : 0; };
+/** 심해 릴(2026-11-14) — 장비 탭에서 하트로(저장은 섬 최상위 fishPlus.reel — 옛 앱이 흘린다). 심해 낚시의 감는 빠르기 +12% · 초록 칸 +0.04 씩(fishingmodes.deepTune) */
+export const REELS = [
+  { key: "reel_0", name: "기본 릴", price: 0 },
+  { key: "reel_1", name: "스피닝 릴", price: 1500 },
+  { key: "reel_2", name: "베이트 릴", price: 5000 },
+  { key: "reel_3", name: "전동 릴", price: 14000 },
+  { key: "reel_4", name: "심해 전동 릴", price: 36000 },
+] as const;
+export const reelOf = (st: Pick<IslandState, "fishPlus">) => { const v = Number((st.fishPlus as Record<string, unknown> | undefined)?.reel ?? 0); return Number.isFinite(v) ? Math.max(0, Math.min(REELS.length - 1, Math.floor(v))) : 0; };
+export function buyReel(st: IslandState): GearResult {
+  const cur = reelOf(st), next = REELS[cur + 1];
+  if (!next) return { ok: false, reason: "가장 좋은 릴이에요" };
+  if (st.coins < next.price) return { ok: false, reason: "하트가 모자라요" };
+  return { ok: true, state: { ...st, coins: st.coins - next.price, fishPlus: { ...(st.fishPlus ?? {}), reel: cur + 1 } } };
+}
+/** 심해 낚시는 물이 이만큼(m) 깊은 낚시터에서만 — 1.5m 개울에서 120m 수심계로 '심해'를 낚던 것(2026-11-14) */
+export const DEEP_MIN_WATER = 10;
+/** 가장 깊이에서 낚은 기록(fishPlus.deepest) — 심해 방식으로 끌어올린 판만 */
+export type DeepRecord = { m: number; family: string; key: string; at: number };
+export const deepestOf = (st: Pick<IslandState, "fishPlus">): DeepRecord | null => {
+  const d = (st.fishPlus as Record<string, unknown> | undefined)?.deepest as DeepRecord | undefined;
+  return d && Number.isFinite(d.m) && typeof d.family === "string" ? d : null;
+};
+/** 기록을 넘으면 새로 남긴다(같거나 얕으면 그대로) */
+export function noteDeepest(st: IslandState, rec: DeepRecord): { state: IslandState; record: boolean } {
+  const cur = deepestOf(st);
+  if (cur && cur.m >= rec.m) return { state: st, record: false };
+  return { state: { ...st, fishPlus: { ...(st.fishPlus ?? {}), deepest: rec } }, record: true };
+}
 export function buySinker(st: IslandState): GearResult {
   const cur = sinkerOf(st), next = SINKERS[cur + 1];
   if (!next) return { ok: false, reason: "가장 무거운 봉돌이에요" };

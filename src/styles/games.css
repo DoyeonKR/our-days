@@ -1025,6 +1025,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 @keyframes fish-dial-warn { from { stroke: #334155; } to { stroke: #fbbf24; } }
 @media (prefers-reduced-motion: reduce) { .fish-sway-safe, .fish-shots i, .fish-lift-arrow { transition: none; } .fish-dial.is-warn .fish-dial-rim { animation: none; stroke: #fbbf24; } .fish-dial-ghost.is-on { display: none; } .fish-dial-track, .fish-dial-state, .fish-dial-arm, .fish-dial-arm-hi { transition: none; } }
 .fish-crown-icon { display: inline-block; flex-shrink: 0; vertical-align: -0.14em; }
+.fish-deepest { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.fish-deepest b { font-weight: 900; }
 .fish-junkbox { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .fish-junkbox li { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px; background: rgba(255,255,255,.06); text-align: center; }
 .fish-junkbox span { display: block; width: 44px; height: 44px; }

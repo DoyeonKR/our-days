@@ -281,8 +281,9 @@ test("미끼 쓰기 — 던지면 줄고, 없으면 못 던지고, 지렁이는 
   assert.match(castBlock(fishingOf(st), SPOTS.find((x) => x.key === "reef")!, "float", BAITS[0].key, DAY) ?? "", /부터 물어요/);
   assert.match(castBlock(fishingOf(st), SPOTS.find((x) => x.key === "brook")!, "deep", BAITS[0].key, DAY) ?? "", /Lv/);
   const lv = { ...fishingOf(st), level: 9, baits: { [BAITS[1].key]: 1 }, wormDay: DAY };
-  assert.match(castBlock(lv, SPOTS.find((x) => x.key === "brook")!, "deep", BAITS[1].key, DAY) ?? "", /2개/);
-  const deep = spendBait({ ...st, fishing: { ...lv, baits: { [BAITS[1].key]: 5 } } }, SPOTS.find((x) => x.key === "brook")!, "deep", BAITS[1].key, DAY);
+  assert.match(castBlock(lv, SPOTS.find((x) => x.key === "brook")!, "deep", BAITS[1].key, DAY) ?? "", /심해 낚시를 못 해요/, "얕은 개울에선 심해 낚시를 못 한다(2026-11-14)");
+  assert.match(castBlock(lv, SPOTS.find((x) => x.key === "harbor")!, "deep", BAITS[1].key, DAY) ?? "", /2개/);
+  const deep = spendBait({ ...st, fishing: { ...lv, baits: { [BAITS[1].key]: 5 } } }, SPOTS.find((x) => x.key === "harbor")!, "deep", BAITS[1].key, DAY);
   assert.ok(deep.ok && fishingOf(deep.state).baits[BAITS[1].key] === 3);
 });
 
