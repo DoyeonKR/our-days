@@ -1,0 +1,122 @@
+{
+  "renderer": "three.js WebGL PBR / actual GLBLoader rest pose",
+  "models": {
+    "fry_cherry_shrimp": {
+      "sha256": "3cccc6c679c004f80bad9d8dd01513ca0478e4b7a56eb1acb202c65b335a4531",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    },
+    "juv_cherry_shrimp": {
+      "sha256": "9dfd15d344f023a9dc1b1bbdeb7e25bc294dd9b63e8c324c811eaff7cf43f369",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    },
+    "cherry_shrimp": {
+      "sha256": "f31c6c20c8963e2555f3a46dc323f2da253e8c0731c90135fbf49cc278fc3cfe",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    },
+    "fry_fleshy_prawn": {
+      "sha256": "4d85b0c68e851ed06d716e9d8d3dbeb4c9109d17980d54772fb76062a863c6d6",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    },
+    "juv_fleshy_prawn": {
+      "sha256": "0ebe32cf775c85fac39cc4040705bb4deb5bf9ad8d60e76896ea3b112329c502",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    },
+    "fleshy_prawn": {
+      "sha256": "7a096177883989c56a0176ecf7dfed519e61be21675a3ff6f890b3ecc8ad0a9c",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    },
+    "fry_dokdo_shrimp": {
+      "sha256": "9939d15bafe1b2379c946a03d08777b6cfdd763b27a992ee85e0ed1a101f0943",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    },
+    "juv_dokdo_shrimp": {
+      "sha256": "b6ac725a1a9d5fe58b75e382191611000abf5c276cc15371c9915a4f16866e0f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    },
+    "dokdo_shrimp": {
+      "sha256": "e750a601b081e05b6da2fd150d637e8cea747b2a685ddc7ad6e081d7692fd7f8",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ],
+      "deformationViews": [
+        "curl-side",
+        "curl-oblique"
+      ]
+    }
+  }
+}

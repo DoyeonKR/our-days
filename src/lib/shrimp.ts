@@ -12,8 +12,8 @@
  */
 import type { FishHabit } from "./aqua3d/habits.ts";
 
-/** 켜는 스위치 — 그림 · 모델이 들어오고 승인된 뒤에만 true */
-export const SHRIMP_ON = false;
+/** 켜는 스위치 — 2026-11-14 그림 9 · 모델 9 승인 뒤 켰다(README §14.4.6) */
+export const SHRIMP_ON = true;
 
 export type StagedFamily = {
   key: string; name: string; grade: "흔함" | "보통" | "고급" | "희귀" | "영웅";

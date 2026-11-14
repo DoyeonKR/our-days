@@ -9,7 +9,9 @@ import {FACE_PROFILES,createFishFace,disposeFishFace,faceJaw,faceMouth,respirato
 
 test('얼굴 프로필은 기존·신규 GLB 381형태 모두의 기준 그림과 일치한다',()=>{
  const models=JSON.parse(readFileSync('design/aqua3d-review/models.json','utf8')).models;
- const fish=Object.entries(models).filter(([,m])=>{const meta=m as {kind:string;anatomyKind?:string};return meta.kind==='fish'&&meta.anatomyKind!=='mammal';});
+ const fish=Object.entries(models).filter(([,m])=>{const meta=m as {kind:string;anatomyKind?:string};return meta.kind==='fish'&&meta.anatomyKind!=='mammal'&&meta.anatomyKind!=='shrimp';});
+ const shrimps=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='shrimp');
+ assert.equal(shrimps.length,9);for(const [key] of shrimps)assert.equal(FACE_PROFILES[key],undefined,'새우에 물고기 얼굴 · 턱을 붙이지 않는다');
  const mammals=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='mammal');
  assert.equal(mammals.length,18);for(const [key,meta] of mammals){assert.equal((meta as {activation:string}).activation,'not enabled',key);assert.equal((meta as {visualApproval:string}).visualApproval,'pending',key);assert.equal(FACE_PROFILES[key],undefined,'포유류에 물고기 얼굴을 붙이지 않는다');}
  assert.equal(fish.length,381);assert.equal(Object.keys(FACE_PROFILES).length,381);

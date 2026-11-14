@@ -50,7 +50,7 @@ test("낚시로 잡히는 모든 형태에 2D 그림이 있다 — 결과 카드
       assert.ok(existsSync(join(root, "public/aqua/fish", `${key}.webp`)), key);
     }
   }
-  assert.equal(n, 402);
+  assert.equal(n, 411);
   for (const k of TANK_IMAGE_KEYS) assert.ok(existsSync(join(root, "public/aqua/tank", `${k}.webp`)), `게임 카드 배경 ${k}`);
   assert.ok(code(join(root, "src/components/FishingGame.tsx")).includes("<FishArt"));
 });

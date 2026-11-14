@@ -8,7 +8,8 @@ import {MODEL_COLOR,modelColorTree,modelTextureQuality,COLOR_REVISION} from './r
 import {waterLitTree} from './runtime-waterlight.mjs';
 import {fishShading,calmSpecular} from './runtime-post.mjs';
 import {createFishFace,disposeFishFace,FACE_PROFILES,FACE_REVISION} from './runtime-faces.mjs';
-const report=await(await fetch('./models.json')).json(),expansion=await(await fetch('./expansion-prompts.json')).json(),expansion2=await(await fetch('./expansion2-prompts.json')).json(),native=await(await fetch('./native-prompts.json')).json(),set=new URLSearchParams(location.search).get('set'),expansion4=set==='expansion4'?await(await fetch('./expansion4-prompts.json')).json():null,mammals=set==='mammals'?await(await fetch('./mammals-prompts.json')).json():null,familySet=set==='mammals'?mammals.species.map(s=>s.key):set==='timed'?['catfish','sweetfish','jellyfish']:set==='expansion'?expansion.species.map(([f])=>f):set==='expansion2'?expansion2.species.map(s=>s.key):set==='native'?native.species.map(s=>s.key):set==='expansion4'?expansion4.species.map(s=>s.key):null,keys=Object.keys(report.models).filter(k=>!familySet||familySet.includes(report.models[k].family)),select=document.querySelector('#model'),status=document.querySelector('#status'),host=document.querySelector('#viewer');
+const set=new URLSearchParams(location.search).get('set');
+const report=await(await fetch(set==='seaweed'?'./seaweed-models.json':'./models.json')).json(),expansion=await(await fetch('./expansion-prompts.json')).json(),expansion2=await(await fetch('./expansion2-prompts.json')).json(),native=await(await fetch('./native-prompts.json')).json(),expansion4=set==='expansion4'?await(await fetch('./expansion4-prompts.json')).json():null,mammals=set==='mammals'?await(await fetch('./mammals-prompts.json')).json():null,familySet=set==='shrimp'?['cherry_shrimp','fleshy_prawn','dokdo_shrimp']:set==='mammals'?mammals.species.map(s=>s.key):set==='timed'?['catfish','sweetfish','jellyfish']:set==='expansion'?expansion.species.map(([f])=>f):set==='expansion2'?expansion2.species.map(s=>s.key):set==='native'?native.species.map(s=>s.key):set==='expansion4'?expansion4.species.map(s=>s.key):null,keys=Object.keys(report.models).filter(k=>!familySet||familySet.includes(report.models[k].family)),select=document.querySelector('#model'),status=document.querySelector('#status'),host=document.querySelector('#viewer');
 const isRay=k=>report.models[k].referenceDorsal||report.models[k].kind==='fish'&&(['ray','manta'].includes(report.models[k].family)||k==='aurora_ray'||report.models[k].anatomyKind==='star'||(report.models[k].family==='flounder'&&k!=='fry_flounder'));
 document.querySelector('h1').textContent=`우리 수조 GLB · 전체 ${keys.length}종`;
 document.title=`수조 GLB ${keys.length}종 검수`;
@@ -36,6 +37,7 @@ const previewAngles=new Float32Array(10);
 function resetPose(){model?.traverse(o=>{if(o.isBone)o.rotation.set(0,0,0);});model?.updateMatrixWorld(true);}
 document.querySelector('#motion').onclick=()=>{motion=!motion;document.querySelector('#motion').setAttribute('aria-pressed',String(motion));if(!motion){resetPose();draw(currentView);}};
 function poseAt(phase,finPhase=phase){
+ if(set==='shrimp'){const curl=Math.pow(Math.max(0,Math.sin(phase)),6);model.traverse(o=>{if(!o.isBone)return;const spine=/^spine_(\d)$/.exec(o.name);if(spine){const i=+spine[1];o.rotation.set(0,0,i?curl*(.075+i*.045):0);}else o.rotation.set(Math.sin(finPhase*2+(o.name.includes('L')?0:Math.PI))*.22,0,0);});model.updateMatrixWorld(true);return;}
  const meta=report.models[key],p=bendProfile(meta.family,key);swimAngles(p,phase,{amp:1},previewAngles);
  if(p.kind!=='ray')for(let s=0;s<2;s++){const sign=s?1:-1;previewAngles[6+s*2]=sign*Math.sin(finPhase)*p.fin;previewAngles[7+s*2]=sign*Math.sin(finPhase-.7)*p.fin*1.3;}
  model.traverse(o=>{if(!o.isBone)return;
@@ -48,6 +50,8 @@ function poseAt(phase,finPhase=phase){
 }
 function animateFrame(ms){requestAnimationFrame(animateFrame);const dt=previousMs?Math.min(.1,(ms-previousMs)*.001):0;previousMs=ms;if(!model||document.hidden)return;
  if(faceBreath){faceRig?.animate(ms*.001);renderer.render(scene,camera);}if(!motion)return;
+ if(set==='shrimp'){poseAt(ms*.002,ms*.003);renderer.render(scene,camera);return;}
+ if(set==='seaweed'){model.traverse(o=>{if(o.name.startsWith('moving_')){o.rotation.z=Math.sin(ms*.0013+o.id*.7)*.06;o.rotation.x=Math.sin(ms*.0011+o.id*.3)*.035;}});renderer.render(scene,camera);return;}
  const meta=report.models[key],a=anatomy(meta.family,key),p=bendProfile(meta.family,key);
  stepSwim(previewClock,a,p,ms*.001,dt,{amp:1,effort:1});poseAt(previewClock.beat,previewClock.fin);renderer.render(scene,camera);
 }
@@ -113,13 +117,21 @@ document.querySelector('#faceExport').onclick=async()=>{
 document.querySelector('#export').onclick=async()=>{const button=document.querySelector('#export'),progress=document.querySelector('#progress'),previous=select.value;button.disabled=true;select.disabled=true;try{const files={},proof={renderer:'three.js WebGL PBR / actual GLBLoader rest pose',models:{}};
  motion=false;document.querySelector('#motion').setAttribute('aria-pressed','false');document.querySelector('#motion').disabled=true;resetPose();
  for(let i=0;i<keys.length;i++){const k=keys[i],hash=await load(k),list=['front','side','oblique',...(isRay(k)?['top']:[])];select.value=k;
-  if((set==='expansion4'||set==='mammals')&&!list.includes('top'))list.push('top');
+  if((set==='expansion4'||set==='mammals'||set==='shrimp'||set==='seaweed')&&!list.includes('top'))list.push('top');
   for(const view of list){draw(view);const blob=await new Promise(resolve=>renderer.domElement.toBlob(resolve,'image/png'));files[`${k}-${view}.png`]=new Uint8Array(await blob.arrayBuffer());}
-  proof.models[k]={sha256:hash,views:list};progress.textContent=`실제 GLB 렌더 ${i+1}/${keys.length} · ${k}`;await new Promise(resolve=>requestAnimationFrame(resolve));
+  proof.models[k]={sha256:hash,views:list};
+  if(set==='shrimp'){poseAt(Math.PI/2,Math.PI/3);for(const view of ['side','oblique']){draw(view);const blob=await new Promise(resolve=>renderer.domElement.toBlob(resolve,'image/png'));files[`${k}-curl-${view}.png`]=new Uint8Array(await blob.arrayBuffer());}proof.models[k].deformationViews=['curl-side','curl-oblique'];resetPose();}
+  progress.textContent=`실제 GLB 렌더 ${i+1}/${keys.length} · ${k}`;await new Promise(resolve=>requestAnimationFrame(resolve));
  }
- files['native-render.json']=strToU8(JSON.stringify(proof,null,2));const blob=new Blob([zipSync(files,{level:0})],{type:'application/zip'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='aqua-all-native-renders.zip';link.click();URL.revokeObjectURL(link.href);progress.textContent=`완료 · 실제 GLB 렌더 ${Object.keys(files).length-1}장과 해시 증명 저장`;await load(previous);select.value=previous;
+ files['native-render.json']=strToU8(JSON.stringify(proof,null,2));const blob=new Blob([zipSync(files,{level:0})],{type:'application/zip'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=set==='shrimp'||set==='seaweed'?`aqua-${set}-native-renders.zip`:'aqua-all-native-renders.zip';link.click();URL.revokeObjectURL(link.href);progress.textContent=`완료 · 실제 GLB 렌더 ${Object.keys(files).length-1}장과 해시 증명 저장`;await load(previous);select.value=previous;
  }catch(e){progress.textContent='렌더 오류: '+e.message;}finally{button.disabled=false;select.disabled=false;document.querySelector('#motion').disabled=false;}};
-if(set==='mammals'){
+if(set==='shrimp'||set==='seaweed'){
+ document.querySelector('.warning').textContent=set==='shrimp'?'새우 3계열 × 새끼·어린 개체·성체 9형태 준비 자산. 입체 마디·꼬리부채·기둥형 다리를 위에서 확인해 주세요. 검수 모션은 배 쪽 꼬리 굽힘·헤엄다리 운동이며 게임 미연결 / 외형 승인 대기입니다.':'파래·미역·다시마의 별도 decor-new GLB 검수입니다. 기존 장식 GLB는 교체하지 않았고, 그림만 같은 이름으로 갱신했습니다. 외형 승인·게임 연결 대기.';
+ document.querySelector('#export').textContent=`${keys.length}종 전체 4각도 렌더 ZIP 저장`;
+ for(const id of ['faceDetail','faceZoom','faceOpen','faceBreath','faceExport','gameEffects'])document.querySelector('#'+id).disabled=true;
+ for(let page=1;page<=(set==='shrimp'?3:1);page++)for(const type of ['models','top']){const img=document.createElement('img');img.src=`./${set}-${type}-${page}.webp`;img.alt=`${set} ${type} 대조표 ${page}`;img.loading='lazy';document.querySelector('#comparisons').append(img);}
+}
+else if(set==='mammals'){
  document.querySelector('.warning').textContent='해양·민물 포유류 6계열 18형태 준비 자산입니다. 원화와 최신 GLB 해시를 대조한 실제 WebGL/PBR 정면·측면·사선·윗면 72장을 저장했습니다. 외형 승인 대기 / 게임 출현 미연결. 물고기 얼굴 보정·수영은 포유류 검수에 적용하지 마세요.';
  document.querySelector('#export').textContent='18종 전체 4각도 렌더 ZIP 저장';
  document.querySelector('#motion').disabled=true;document.querySelector('#faceDetail').disabled=true;

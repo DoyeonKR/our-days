@@ -1,0 +1,50 @@
+[
+  {
+    "key": "sea_lettuce",
+    "triangles": 4804,
+    "bytes": 97596,
+    "bones": [],
+    "textureSize": [
+      512,
+      512
+    ],
+    "errors": 0,
+    "decodedErrors": 0,
+    "warnings": 0,
+    "decodedTextureValidation": "same expanded geometry, embedded WebP pixels decoded losslessly to PNG for core texture-source validation",
+    "sha256": "d4e7c68c08c822cb5f7fd4675027139b55a49e8cdef742059fa41aa677ce9c91",
+    "visualApproval": "pending"
+  },
+  {
+    "key": "sea_mustard",
+    "triangles": 3556,
+    "bytes": 72292,
+    "bones": [],
+    "textureSize": [
+      512,
+      512
+    ],
+    "errors": 0,
+    "decodedErrors": 0,
+    "warnings": 0,
+    "decodedTextureValidation": "same expanded geometry, embedded WebP pixels decoded losslessly to PNG for core texture-source validation",
+    "sha256": "0f786a37cb5e35fe5ad61cc2b29938f204061277d192a5264bef5cd4fd003783",
+    "visualApproval": "pending"
+  },
+  {
+    "key": "dasima",
+    "triangles": 2884,
+    "bytes": 58744,
+    "bones": [],
+    "textureSize": [
+      512,
+      512
+    ],
+    "errors": 0,
+    "decodedErrors": 0,
+    "warnings": 0,
+    "decodedTextureValidation": "same expanded geometry, embedded WebP pixels decoded losslessly to PNG for core texture-source validation",
+    "sha256": "dfde76422e29b141d11f75a3139ace439e5f928a05616d33e7a33a7857edc583",
+    "visualApproval": "pending"
+  }
+]

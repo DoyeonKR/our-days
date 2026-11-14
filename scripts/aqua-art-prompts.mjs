@@ -6,6 +6,7 @@ import expansion2 from "../design/aqua3d-review/expansion2-prompts.json" with { 
 import native from "../design/aqua3d-review/native-prompts.json" with { type: "json" };
 import expansion4 from "../design/aqua3d-review/expansion4-prompts.json" with { type: "json" };
 import mammals from "../design/aqua3d-review/mammals-prompts.json" with { type: "json" };
+import shrimp from "../design/aqua3d-review/shrimp-prompts.json" with { type: "json" };
 
 export const FISH_STYLE = "Photorealistic natural-history aquarium animal photography, scientifically credible anatomy, natural small eyes, real scales and skin microtexture, restrained wet specular highlights and soft upper-left daylight. NOT a character, NOT cartoon, NOT chibi, NOT an illustration, no oversized eyes, no human expressions. Single living animal in a neutral swimming pose, exact side view, HEAD POINTING RIGHT, tail LEFT. Whole body, tail and all fins fully visible, 10% empty padding on every side. True transparent background (PNG alpha), isolated cutout. No water, no bubbles unless stated, no scenery, no ground, no cast shadow, no text, border or watermark. 1024x1024. For mythical species only, use convincing live-action creature VFX anatomy, never cartoon styling.";
 export const DECOR_STYLE = "Photorealistic aquarium decoration product photography, physically realistic ceramic, stone, metal or plant textures, soft upper-left light, clean readable silhouette. Single object in slight front three-quarter view, base at the bottom, 10% empty padding all around. True transparent background (PNG alpha). No surrounding water, sand, fish or scenery, no cast shadow, text, border or watermark. 1024x1024. Fantasy decorations should still look like real crafted objects, never cartoon illustrations.";
@@ -13,6 +14,9 @@ export const TANK_STYLE = "Photorealistic underwater aquarium interior photograp
 
 const fry = (kind, look) => `Biologically plausible newborn ${kind}, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, ${look}. A real newborn animal, not a baby cartoon.`;
 const juv = (kind, look) => `Juvenile ${kind}: young teenage fish, body starting to take adult shape, fins half grown, ${look}. Clearly not yet fully grown, less ornate than the adult.`;
+// 새우 프롬프트는 공통 화풍까지 한 문장이라 — 표엔 화풍 뒤의 설명만 싣는다(2026-11-14)
+const shrimpSubject = (key) => { const p = shrimp.items.find(i => i.key === key).prompt; return p.startsWith(FISH_STYLE) ? p.slice(FISH_STYLE.length).trim() : p; };
+const SHRIMP_GRADE = { cherry_shrimp: "흔함", fleshy_prawn: "고급", dokdo_shrimp: "희귀" };
 
 // [계열 key, 한국어, 치어 설명, 어린 물고기 설명]
 export const YOUNG = [
@@ -25,6 +29,7 @@ export const YOUNG = [
   ...mammals.species.map(({key, name}) => [key, name,
     mammals.items.find(i => i.key === `fry_${key}`).subject,
     mammals.items.find(i => i.key === `juv_${key}`).subject]),
+  ...shrimp.species.map(({key, name}) => [key, name, shrimpSubject(`fry_${key}`), shrimpSubject(`juv_${key}`)]),
   ...expansion4.species.map(({key, name}) => [key, name,
     expansion4.items.find(i => i.key === `fry_${key}`).subject,
     expansion4.items.find(i => i.key === `juv_${key}`).subject]),
@@ -58,6 +63,7 @@ export const FINALS = [
   ...expansion2.species.map(({key, name, grade, subject}) => [key, name, grade, subject]),
   ...expansion4.species.map(({key, name, grade}) => [key, name, grade, expansion4.items.find(i => i.key === key).subject]),
   ...mammals.species.map(({key, name, grade}) => [key, name, grade, mammals.items.find(i => i.key === key).subject]),
+  ...shrimp.species.map(({key, name}) => [key, name, SHRIMP_GRADE[key], shrimpSubject(key)]),
   ...expansion.species.map(([key, name, grade]) => [key, name, grade, expansion.items.find(i => i.key === key).subject]),
   ["catfish", "메기", "고급", "Real adult Korean Amur catfish (Silurus asotus), long flat dark-olive scaleless body, broad flattened head, one long maxillary barbel pair and one short mandibular barbel pair, small natural eyes, tiny dorsal fin and long anal fin. Exact side view, head RIGHT, neutral straight swimming pose."],
   ["sweetfish", "은어", "보통", "Real adult ayu sweetfish (Plecoglossus altivelis), slim silver body with a soft yellow patch behind the gill, olive back, small adipose fin, forked tail, small natural eyes. Exact side view, head RIGHT."],

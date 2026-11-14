@@ -1,0 +1,50 @@
+{
+  "visualApproval": "pending",
+  "activation": "not enabled",
+  "keys": [
+    "fry_cherry_shrimp",
+    "juv_cherry_shrimp",
+    "cherry_shrimp",
+    "fry_fleshy_prawn",
+    "juv_fleshy_prawn",
+    "fleshy_prawn",
+    "fry_dokdo_shrimp",
+    "juv_dokdo_shrimp",
+    "dokdo_shrimp"
+  ],
+  "notes": [
+    "Original solid segmented bodies, six abdominal segments, fan tail, cylindrical walking legs, four backwards-curved antenna filaments.",
+    "Ten standard bones, no animation clips. Swimmeret groups use fin_L/R and their tip joints.",
+    "Nearly transparent juvenile illustration colours are represented by pale opaque PBR shells, not material alpha blending.",
+    "No src/, supabase/, package.json edits; no commits. Game activation is a separate session."
+  ],
+  "needsVisualReview": {
+    "fry_cherry_shrimp,juv_cherry_shrimp,fry_fleshy_prawn,juv_fleshy_prawn,fry_dokdo_shrimp,juv_dokdo_shrimp": "Young shell translucency is approximated with pale opaque PBR colours, not transparent material.",
+    "dokdo_shrimp": "Fine rostral serration shape and tail-fan detail remain simplified compared with the illustration."
+  },
+  "integrationTests": {
+    "assetValidation": "12 requested/new optional GLBs passed compressed and decoded Khronos validation; image size/alpha/padding and rig checks passed.",
+    "targetedRepositoryTests": "2 failed on pre-existing fixed asset-count assumptions; no source tests modified.",
+    "failures": [
+      { "file": "src/lib/aqua3d/assets-compress.test.ts", "line": 46, "expected": 399, "actual": 408 },
+      { "file": "src/lib/aqua3d/faces.test.ts", "line": 15, "expected": 381, "actual": 390 }
+    ],
+    "handoff": "Update asset-count coverage and exclude the prepared anatomyKind=shrimp assets from fish-only facial profiles (do not attach fish jaws to shrimp). Game activation/catalogue/profile changes belong to Claude's integration session."
+  },
+  "referenceSources": [
+    "https://www.mbris.kr/pub/marine/tsearch/tsearchDetail.do?spcTxnId=270000012634",
+    "https://www.nibr.go.kr/aiibook/catImage/260/Invertebrate%20fauna%20of%20korea%2021_14E.pdf"
+  ],
+  "nativeReview": {
+    "models": 9,
+    "views": [
+      "front",
+      "side",
+      "oblique",
+      "top"
+    ],
+    "frames": 54,
+    "sha256Verified": true,
+    "visualApproval": "pending"
+  }
+}

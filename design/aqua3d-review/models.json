@@ -42820,6 +42820,726 @@
         "maximumDisplacement": 0.23369118261458424
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_cherry_shrimp": {
+      "kind": "fish",
+      "family": "cherry_shrimp",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_cherry_shrimp.glb",
+      "triangles": 2508,
+      "bytes": 41476,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "d44a99dcc3658322e16898cb19d7a745aaeff341af027de30d902b80383ca249",
+      "sha256": "3cccc6c679c004f80bad9d8dd01513ca0478e4b7a56eb1acb202c65b335a4531",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19357442843785042
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_cherry_shrimp": {
+      "kind": "fish",
+      "family": "cherry_shrimp",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_cherry_shrimp.glb",
+      "triangles": 2508,
+      "bytes": 48556,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "59bd7ea4ebfa07a324c3ed8ac7219d3131fbcb90544d8f6e06ce1f8c4ae981bc",
+      "sha256": "9dfd15d344f023a9dc1b1bbdeb7e25bc294dd9b63e8c324c811eaff7cf43f369",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19528863406994199
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "cherry_shrimp": {
+      "kind": "fish",
+      "family": "cherry_shrimp",
+      "form": "adult",
+      "file": "public/aqua/models/fish/cherry_shrimp.glb",
+      "triangles": 2508,
+      "bytes": 52988,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "20869b16e6a53d5c835b648ccdaefaa3ffeef88c686151bca9503099339d4a9e",
+      "sha256": "f31c6c20c8963e2555f3a46dc323f2da253e8c0731c90135fbf49cc278fc3cfe",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_fleshy_prawn": {
+      "kind": "fish",
+      "family": "fleshy_prawn",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_fleshy_prawn.glb",
+      "triangles": 2544,
+      "bytes": 40056,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "2635f09fe509f82e79ce1c8f711fe89dfed399d8744582f0ae2899516333191f",
+      "sha256": "4d85b0c68e851ed06d716e9d8d3dbeb4c9109d17980d54772fb76062a863c6d6",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "fleshy_prawn",
+        "name": "대하",
+        "scientificName": "Fenneropenaeus chinensis",
+        "cm": 25,
+        "widthRatio": 0.18,
+        "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.1860724191648985
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_fleshy_prawn": {
+      "kind": "fish",
+      "family": "fleshy_prawn",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_fleshy_prawn.glb",
+      "triangles": 2544,
+      "bytes": 40852,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "1582f8ce14c93f304cac4072cbb68a20e5d4d64a0d494ec87a5e6d058f2c3cba",
+      "sha256": "0ebe32cf775c85fac39cc4040705bb4deb5bf9ad8d60e76896ea3b112329c502",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "fleshy_prawn",
+        "name": "대하",
+        "scientificName": "Fenneropenaeus chinensis",
+        "cm": 25,
+        "widthRatio": 0.18,
+        "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.18613637189186358
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fleshy_prawn": {
+      "kind": "fish",
+      "family": "fleshy_prawn",
+      "form": "adult",
+      "file": "public/aqua/models/fish/fleshy_prawn.glb",
+      "triangles": 2544,
+      "bytes": 42540,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "f0fe917ab2856bbb257b00d20f788782688061c9fdd2f7a049e7bd2123d93c41",
+      "sha256": "7a096177883989c56a0176ecf7dfed519e61be21675a3ff6f890b3ecc8ad0a9c",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "fleshy_prawn",
+        "name": "대하",
+        "scientificName": "Fenneropenaeus chinensis",
+        "cm": 25,
+        "widthRatio": 0.18,
+        "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.1861788865082032
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_dokdo_shrimp": {
+      "kind": "fish",
+      "family": "dokdo_shrimp",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_dokdo_shrimp.glb",
+      "triangles": 2652,
+      "bytes": 40376,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "4e1355c988ef47d10a11f48f2cb55a0af325c8296afacd4882840add3d397bca",
+      "sha256": "9939d15bafe1b2379c946a03d08777b6cfdd763b27a992ee85e0ed1a101f0943",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "dokdo_shrimp",
+        "name": "독도새우",
+        "scientificName": "Pandalus hypsinotus",
+        "cm": 22,
+        "widthRatio": 0.2,
+        "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.17962486141368605
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_dokdo_shrimp": {
+      "kind": "fish",
+      "family": "dokdo_shrimp",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_dokdo_shrimp.glb",
+      "triangles": 2652,
+      "bytes": 43468,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "ed5baadc56cc3d49d1f7fee0126d005ca6d8cd15823c4aa33c5f6fc5693efc6c",
+      "sha256": "b6ac725a1a9d5fe58b75e382191611000abf5c276cc15371c9915a4f16866e0f",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "dokdo_shrimp",
+        "name": "독도새우",
+        "scientificName": "Pandalus hypsinotus",
+        "cm": 22,
+        "widthRatio": 0.2,
+        "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.17846452904839435
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "dokdo_shrimp": {
+      "kind": "fish",
+      "family": "dokdo_shrimp",
+      "form": "adult",
+      "file": "public/aqua/models/fish/dokdo_shrimp.glb",
+      "triangles": 2652,
+      "bytes": 43392,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "8880138431a7aae040f2989553d54a342ffb0e59d11d9ae42cd3691492c777a2",
+      "sha256": "e750a601b081e05b6da2fd150d637e8cea747b2a685ddc7ad6e081d7692fd7f8",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "dokdo_shrimp",
+        "name": "독도새우",
+        "scientificName": "Pandalus hypsinotus",
+        "cm": 22,
+        "widthRatio": 0.2,
+        "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.17763971017168792
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
     }
   },
   "structuralValidation": "passed",

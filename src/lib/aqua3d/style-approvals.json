@@ -1609,6 +1609,42 @@
     "otter": {
       "sourceHash": "4983d27081ee274c7ef6fc2f7d40804d344e6732c4af239eed6e8ebccb8d011d",
       "sheet": "design/aqua3d-review/mammals-models-3.webp"
+    },
+    "fry_cherry_shrimp": {
+      "sourceHash": "d44a99dcc3658322e16898cb19d7a745aaeff341af027de30d902b80383ca249",
+      "sheet": "design/aqua3d-review/shrimp-models-1.webp"
+    },
+    "juv_cherry_shrimp": {
+      "sourceHash": "59bd7ea4ebfa07a324c3ed8ac7219d3131fbcb90544d8f6e06ce1f8c4ae981bc",
+      "sheet": "design/aqua3d-review/shrimp-models-1.webp"
+    },
+    "cherry_shrimp": {
+      "sourceHash": "20869b16e6a53d5c835b648ccdaefaa3ffeef88c686151bca9503099339d4a9e",
+      "sheet": "design/aqua3d-review/shrimp-models-1.webp"
+    },
+    "fry_fleshy_prawn": {
+      "sourceHash": "2635f09fe509f82e79ce1c8f711fe89dfed399d8744582f0ae2899516333191f",
+      "sheet": "design/aqua3d-review/shrimp-models-2.webp"
+    },
+    "juv_fleshy_prawn": {
+      "sourceHash": "1582f8ce14c93f304cac4072cbb68a20e5d4d64a0d494ec87a5e6d058f2c3cba",
+      "sheet": "design/aqua3d-review/shrimp-models-2.webp"
+    },
+    "fleshy_prawn": {
+      "sourceHash": "f0fe917ab2856bbb257b00d20f788782688061c9fdd2f7a049e7bd2123d93c41",
+      "sheet": "design/aqua3d-review/shrimp-models-2.webp"
+    },
+    "fry_dokdo_shrimp": {
+      "sourceHash": "4e1355c988ef47d10a11f48f2cb55a0af325c8296afacd4882840add3d397bca",
+      "sheet": "design/aqua3d-review/shrimp-models-3.webp"
+    },
+    "juv_dokdo_shrimp": {
+      "sourceHash": "ed5baadc56cc3d49d1f7fee0126d005ca6d8cd15823c4aa33c5f6fc5693efc6c",
+      "sheet": "design/aqua3d-review/shrimp-models-3.webp"
+    },
+    "dokdo_shrimp": {
+      "sourceHash": "8880138431a7aae040f2989553d54a342ffb0e59d11d9ae42cd3691492c777a2",
+      "sheet": "design/aqua3d-review/shrimp-models-3.webp"
     }
   }
 }

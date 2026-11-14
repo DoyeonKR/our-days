@@ -1,0 +1,9 @@
+{
+  "key": "sea_mustard",
+  "scientificName": "Undaria pinnatifida",
+  "description": "Korean sea mustard (miyeok, Undaria pinnatifida): olive-brown fronds with frilly wavy edges, recognisable pinnately lobed blades and a central rib, rising from a small rock holdfast. Include a modest ruffled basal sporophyll, NOT long smooth kelp straps.",
+  "kind": "decor",
+  "prompt": "Photorealistic aquarium decoration product photography, physically realistic ceramic, stone, metal or plant textures, soft upper-left light, clean readable silhouette. Single object in slight front three-quarter view, base at the bottom, 10% empty padding all around. True transparent background (PNG alpha). No surrounding water, sand, fish or scenery, no cast shadow, text, border or watermark. 1024x1024. Fantasy decorations should still look like real crafted objects, never cartoon illustrations.\nSubject: Korean sea mustard (miyeok, Undaria pinnatifida): olive-brown fronds with frilly wavy edges, recognisable pinnately lobed blades and a central rib, rising from a small rock holdfast. Include a modest ruffled basal sporophyll, NOT long smooth kelp straps. Show the entire naturally arranged plant and attached small grey rock, base at bottom, realistic botanical macro texture. Actual alpha transparency, no checkerboard painted into the picture.",
+  "tool": "built-in image_gen",
+  "sha256": "47553295a0fcb8bf56d01250c50ed273832cec1c00ceb3f58c0549a8d14b3742"
+}

@@ -1,0 +1,31 @@
+{
+  "visualApproval": "pending",
+  "activation": "3D not enabled; same-name decor images updated",
+  "keys": [
+    "sea_lettuce",
+    "sea_mustard",
+    "dasima"
+  ],
+  "notes": [
+    "Original closed thin-volume fronds attached to bottom-centred rock. moving_frond nodes are separate for sway.",
+    "Ulva broad ruffles, Undaria lobed blade and basal sporophylls, Saccharina smooth strap blades.",
+    "Existing decor GLBs are unchanged. Optional replacements are isolated in decor-new."
+  ],
+  "needsVisualReview": {
+    "sea_lettuce": "Frond ruffles and the holdfast are simpler than the detailed photograph-like artwork.",
+    "sea_mustard": "Pinna tips and the basal sporophyll remain simplified in the low-poly replacement.",
+    "dasima": "Blade outline and central rib shading require user approval."
+  },
+  "nativeReview": {
+    "models": 3,
+    "views": [
+      "front",
+      "side",
+      "oblique",
+      "top"
+    ],
+    "frames": 12,
+    "sha256Verified": true,
+    "visualApproval": "pending"
+  }
+}

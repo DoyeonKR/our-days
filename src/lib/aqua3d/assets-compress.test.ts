@@ -38,12 +38,15 @@ const webpSize = (b: Buffer): [number, number] => {
   throw new Error(`모르는 WebP ${chunk}`);
 };
 
-test("수조 GLB 418개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
+test("수조 GLB 427개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
   await MeshoptDecoder.ready;
   const mammalKeys=JSON.parse(readFileSync('design/aqua3d-review/mammals-status.json','utf8')).keys as string[];
   assert.equal(new Set(mammalKeys).size,18);
   for(const key of mammalKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
-  assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length);
+  const shrimpKeys=JSON.parse(readFileSync('design/aqua3d-review/shrimp-status.json','utf8')).keys as string[];
+  assert.equal(new Set(shrimpKeys).size,9);
+  for(const key of shrimpKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
+  assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length+shrimpKeys.length);
   assert.equal(files.filter(f=>f.kind==='decor').length,37);
   for (const { key, path } of files) {
     const b = readFileSync(path), { json: j, bin } = parse(b);

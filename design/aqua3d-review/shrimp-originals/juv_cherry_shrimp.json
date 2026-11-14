@@ -1,0 +1,9 @@
+{
+  "key": "juv_cherry_shrimp",
+  "kind": "fish",
+  "family": "cherry_shrimp",
+  "stage": "juv",
+  "prompt": "Photorealistic natural-history aquarium animal photography, scientifically credible anatomy, natural small eyes, real scales and skin microtexture, restrained wet specular highlights and soft upper-left daylight. NOT a character, NOT cartoon, NOT chibi, NOT an illustration, no oversized eyes, no human expressions. Single living animal in a neutral swimming pose, exact side view, HEAD POINTING RIGHT, tail LEFT. Whole body, tail and all fins fully visible, 10% empty padding on every side. True transparent background (PNG alpha), isolated cutout. No water, no bubbles unless stated, no scenery, no ground, no cast shadow, no text, border or watermark. 1024x1024. For mythical species only, use convincing live-action creature VFX anatomy, never cartoon styling.\nSubject: Neocaridina davidi, red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws. Immature juvenile of this exact species, semi-transparent lightly pigmented shell with adult markings only beginning, relatively shorter abdomen and smaller rostrum than mature adult, NOT merely a shrunken adult. Clearly separate cephalothorax, six abdominal segments, broad telson and paired uropod tail fan, two pairs of antennae, walking legs and abdominal swimmerets. Antennae curve BACK from the head along the body and down toward the tail, contained inside the canvas, never straight forward needles. All appendages legible, belly downward. Override common wet highlights: NO white reflection stripes, glare, hard rim light, dark outline or blurred edge; even diffuse illumination. Actual transparent alpha, no painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "c0be68ccb2b9c33d4dc9dc4512a3c89e3241374762a6964a0498125c4f7cef7b"
+}

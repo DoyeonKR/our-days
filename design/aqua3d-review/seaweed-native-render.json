@@ -1,0 +1,32 @@
+{
+  "renderer": "three.js WebGL PBR / actual GLBLoader rest pose",
+  "models": {
+    "sea_lettuce": {
+      "sha256": "d4e7c68c08c822cb5f7fd4675027139b55a49e8cdef742059fa41aa677ce9c91",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "sea_mustard": {
+      "sha256": "0f786a37cb5e35fe5ad61cc2b29938f204061277d192a5264bef5cd4fd003783",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "dasima": {
+      "sha256": "dfde76422e29b141d11f75a3139ace439e5f928a05616d33e7a33a7857edc583",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    }
+  }
+}
