@@ -12,6 +12,13 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  corydoras:'84d0cc351109',fry_butterflyfish:'8ef27216e2dc',juv_butterflyfish:'1c6e2912ea50',butterflyfish:'6bad644a2249',
  fry_barracuda:'d72e86246bc9',juv_barracuda:'354c073a7b35',barracuda:'8207053b34a1',
  fry_frilled_shark:'5c580463f82b',juv_frilled_shark:'2dd008da6992',frilled_shark:'afbd12a5e186',
+ // 2026-11-15 포유류 V3(네 방향 그림 → 입체) — 18모습
+ fry_spotted_seal:'c828e1336d1f',juv_spotted_seal:'b53158ce7368',spotted_seal:'e39b32845c6d',
+ fry_fur_seal:'1a442b2b648b',juv_fur_seal:'4f7fe5a1fb59',fur_seal:'185ecd63178e',
+ fry_steller_sea_lion:'f8179fe04a91',juv_steller_sea_lion:'d54b107219b9',steller_sea_lion:'f87b60ca9f2d',
+ fry_japanese_sea_lion:'eef92c3f670a',juv_japanese_sea_lion:'a1454c82204e',japanese_sea_lion:'ad5e44b0016f',
+ fry_sea_otter:'983c226b8a33',juv_sea_otter:'62417a0bda85',sea_otter:'fde7ebd7da79',
+ fry_otter:'0b44aa44ef33',juv_otter:'37d609359971',otter:'e2681cba3552',
 });
 export function fishRevisionQuery(key:string):string {
  const revision=FISH_MODEL_REVISIONS[key];return revision?`?v=${revision}`:'';

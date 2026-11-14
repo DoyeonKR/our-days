@@ -41098,8 +41098,8 @@
       "family": "spotted_seal",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_spotted_seal.glb",
-      "triangles": 1824,
-      "bytes": 36928,
+      "triangles": 2800,
+      "bytes": 53448,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41121,7 +41121,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "034406ac4ac3b70ecfb57963c15e1e1c1baf6129415bd7387e69003d7896f9b9",
-      "sha256": "b804e2910e7d183bad718338dd54bfa4ac381bd9fe9cbe55ae0408a79c7312ff",
+      "sha256": "c828e1336d1fc5f7954dfabed5a5bfca46a76972eb1dbb995ee06b1594269252",
       "authoringProfile": {
         "key": "spotted_seal",
         "name": "점박이물범",
@@ -41133,13 +41133,13 @@
         "life": "바닥 가까이 · 천천히 미끄러지다 뒷지느러미를 좌우로 저어 나간다 · 가끔 숨 쉬러 수면",
         "hunt": "gulp"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41194,8 +41194,8 @@
       "family": "spotted_seal",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_spotted_seal.glb",
-      "triangles": 1824,
-      "bytes": 45472,
+      "triangles": 2924,
+      "bytes": 61764,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41217,7 +41217,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0e0f07d800170267f6a9ee86d23d81244f04781bbc1d38c72e41a23928e5a42e",
-      "sha256": "ec39598a4da178c211bdce42d2542458ee13ca1ed84d2727c4d04e3598e5b775",
+      "sha256": "b53158ce7368eb1e11ebbc0e9812bce5690c5e2eee4f550667239da58fd685c2",
       "authoringProfile": {
         "key": "spotted_seal",
         "name": "점박이물범",
@@ -41229,13 +41229,13 @@
         "life": "바닥 가까이 · 천천히 미끄러지다 뒷지느러미를 좌우로 저어 나간다 · 가끔 숨 쉬러 수면",
         "hunt": "gulp"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41290,8 +41290,8 @@
       "family": "spotted_seal",
       "form": "adult",
       "file": "public/aqua/models/fish/spotted_seal.glb",
-      "triangles": 1824,
-      "bytes": 63356,
+      "triangles": 2784,
+      "bytes": 61184,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41313,7 +41313,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "01737bb9cc1dc536e4d65033f50a0720d104de762918928cfa52e4f8ddc67a9d",
-      "sha256": "5b9d1280effbf79afb739527f9250a62db174205241e4d49951e843841854866",
+      "sha256": "e39b32845c6d026504e27a61a845ec926fea8db79106f48846a1fee5c0265e89",
       "authoringProfile": {
         "key": "spotted_seal",
         "name": "점박이물범",
@@ -41325,13 +41325,13 @@
         "life": "바닥 가까이 · 천천히 미끄러지다 뒷지느러미를 좌우로 저어 나간다 · 가끔 숨 쉬러 수면",
         "hunt": "gulp"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41386,8 +41386,8 @@
       "family": "fur_seal",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_fur_seal.glb",
-      "triangles": 1952,
-      "bytes": 44976,
+      "triangles": 2728,
+      "bytes": 54468,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41409,7 +41409,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d3c4a518540f1a54819e11e3e876ada6d8a94e6a0aae20d443ea73d6f1148ee3",
-      "sha256": "6e6762b958f3545e8af21d3cfab0980d8f2677e954418483f9d1e44bb3ac6702",
+      "sha256": "1a442b2b648b39508d46d8a50de65584648166f698dc2673be95185ae171112d",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -41421,13 +41421,13 @@
         "life": "중층 · 빠르고 날렵하게 앞지느러미로 날듯이 헤엄친다 · 몸을 비틀며 돈다",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41482,8 +41482,8 @@
       "family": "fur_seal",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_fur_seal.glb",
-      "triangles": 1952,
-      "bytes": 50964,
+      "triangles": 2756,
+      "bytes": 55384,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41505,7 +41505,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "94d969f0a0514b57102a5c7faf903ac095c4479451bf5fbaf05fb5779c7d38c8",
-      "sha256": "a3a03311a9811771a743d3384c6cf3dc34132024005c295ee903b36bc887d6cf",
+      "sha256": "4f7fe5a1fb596c0c1fc431a5d275e5372dd027986768b6e914c5df86110b8177",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -41517,13 +41517,13 @@
         "life": "중층 · 빠르고 날렵하게 앞지느러미로 날듯이 헤엄친다 · 몸을 비틀며 돈다",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41578,8 +41578,8 @@
       "family": "fur_seal",
       "form": "adult",
       "file": "public/aqua/models/fish/fur_seal.glb",
-      "triangles": 1952,
-      "bytes": 51028,
+      "triangles": 2764,
+      "bytes": 57676,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41601,7 +41601,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "af738988edbf9455274738494d51a9bffc6a065b35bac471b23e14f3cf221a43",
-      "sha256": "41173746d24e70433fe030548c9dc4a8eba82c8d2bb7b0432d96c2a779629130",
+      "sha256": "185ecd63178ecf5190cc548e90ec15a019cd26f8c66946abed838f96003f5117",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -41613,13 +41613,13 @@
         "life": "중층 · 빠르고 날렵하게 앞지느러미로 날듯이 헤엄친다 · 몸을 비틀며 돈다",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41674,8 +41674,8 @@
       "family": "steller_sea_lion",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_steller_sea_lion.glb",
-      "triangles": 1952,
-      "bytes": 45076,
+      "triangles": 2752,
+      "bytes": 56452,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41697,7 +41697,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "a400dcd59d21309b110fadff13dceacb058ced63d5d29711d3748e1415c0f999",
-      "sha256": "cce92c92529355dce908c2db6f1be060dfb55366715896bde8f114a75194b360",
+      "sha256": "f8179fe04a91eec932c6f38614a79f957f43b52e5b0af126da10a4c74dcf1ae2",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -41709,13 +41709,13 @@
         "life": "중층 · 크고 묵직하게 앞지느러미로 저어 나간다 · 무리 대장처럼 천천히 돈다",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41770,8 +41770,8 @@
       "family": "steller_sea_lion",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_steller_sea_lion.glb",
-      "triangles": 1952,
-      "bytes": 43488,
+      "triangles": 2764,
+      "bytes": 58192,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41793,7 +41793,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "9fbdcd70b60e7cbc320fcbfb96300608aeb969b98e347824e79f92c0bfa48327",
-      "sha256": "e570bde0f0d9139069c3eb13d07b7f9e81dc08713903b02c427496d76a542bb5",
+      "sha256": "d54b107219b96d8cf46a30a1704a8112531dd9a8ddb312f14d0d763da35f2ed4",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -41805,13 +41805,13 @@
         "life": "중층 · 크고 묵직하게 앞지느러미로 저어 나간다 · 무리 대장처럼 천천히 돈다",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41866,8 +41866,8 @@
       "family": "steller_sea_lion",
       "form": "adult",
       "file": "public/aqua/models/fish/steller_sea_lion.glb",
-      "triangles": 1952,
-      "bytes": 49012,
+      "triangles": 2736,
+      "bytes": 63776,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41889,7 +41889,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "47ae0114d38fc066f447ae13e2fce9fc030ddce062db1b17506da1783ee8c4db",
-      "sha256": "2bb602bc60f82ecf091bf124e5eb5d5cbcd8b19c532efa0e4aa86961510f512e",
+      "sha256": "f87b60ca9f2d104aa65b2db83f72c173c8d582eb75abe5af2f76c3f9fc608195",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -41901,13 +41901,13 @@
         "life": "중층 · 크고 묵직하게 앞지느러미로 저어 나간다 · 무리 대장처럼 천천히 돈다",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -41962,8 +41962,8 @@
       "family": "japanese_sea_lion",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_japanese_sea_lion.glb",
-      "triangles": 1952,
-      "bytes": 43952,
+      "triangles": 2740,
+      "bytes": 56480,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41985,7 +41985,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "969e13df5e130cf5788ae3dacb988e03b5a8118981d4e1b46fb51f829ff40f82",
-      "sha256": "91d5009bc4b5a4c53c8a5f856ecb64ec382e8cc2f909c7b5ef8e69638a7f90e3",
+      "sha256": "eef92c3f670a4f0ded55c04c71d94a6fbe8d0e52785b041e9e1cc593a3df3de2",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",
@@ -41997,13 +41997,13 @@
         "life": "중층 · 독도 바위 곁을 유유히 돈다 · 오래 전 동해를 누비던 강치",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -42058,8 +42058,8 @@
       "family": "japanese_sea_lion",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_japanese_sea_lion.glb",
-      "triangles": 1952,
-      "bytes": 45328,
+      "triangles": 2748,
+      "bytes": 55744,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42081,7 +42081,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "935153d7be828522737f8d97f52799306ff091199ee18e6eb1bac8e7c0c72768",
-      "sha256": "a60a32717b365ae7157bba46d33c5b3a5dc68c8f1d2005911bc31e53de81b30c",
+      "sha256": "a1454c82204ed589e4723b26de4ec6e4e9f6e86dbd991a0d050f705a25f9ef13",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",
@@ -42093,13 +42093,13 @@
         "life": "중층 · 독도 바위 곁을 유유히 돈다 · 오래 전 동해를 누비던 강치",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -42154,8 +42154,8 @@
       "family": "japanese_sea_lion",
       "form": "adult",
       "file": "public/aqua/models/fish/japanese_sea_lion.glb",
-      "triangles": 1952,
-      "bytes": 44900,
+      "triangles": 2752,
+      "bytes": 55136,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42177,7 +42177,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ea35320730f9f06b763e8959249925322615e6c7a5caea1bc85806a8b2dabfea",
-      "sha256": "07bb77906e71a9610f0cf50227e72d239a09b6b926a9a2a013b3410c5e43b48e",
+      "sha256": "ad5e44b0016fbf0e558e927baaae5d82786c34fe9e0963a94484647da5c88dd7",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",
@@ -42189,13 +42189,13 @@
         "life": "중층 · 독도 바위 곁을 유유히 돈다 · 오래 전 동해를 누비던 강치",
         "hunt": "charge"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -42250,8 +42250,8 @@
       "family": "sea_otter",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_sea_otter.glb",
-      "triangles": 1952,
-      "bytes": 58444,
+      "triangles": 2808,
+      "bytes": 61004,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42273,7 +42273,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "74c635d544d96df8fcbacc2b56bb63f917e46c9479e4520cf20cc5433f1b489b",
-      "sha256": "1797efb76481d4837fa491373322658325607bb82906381e679d781ca27cf8f0",
+      "sha256": "983c226b8a339dd9d9a6847473915ab0ae2aedde1714f5ab80db147f736b5763",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -42285,13 +42285,13 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -42346,8 +42346,8 @@
       "family": "sea_otter",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_sea_otter.glb",
-      "triangles": 1952,
-      "bytes": 54296,
+      "triangles": 2928,
+      "bytes": 60380,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42369,7 +42369,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4b6eaf769d847239f04036855397654abe623f7633324481a5ef5ec2fbe33e29",
-      "sha256": "e4f781a2b5e64eaa9d6311d4382bd6728fc0a6396425b3f6b69b175061d13726",
+      "sha256": "62417a0bda85f2b070ba255442c92cf6190bd943872ac751d39471caff0e9a4c",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -42381,13 +42381,13 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -42442,8 +42442,8 @@
       "family": "sea_otter",
       "form": "adult",
       "file": "public/aqua/models/fish/sea_otter.glb",
-      "triangles": 1952,
-      "bytes": 46984,
+      "triangles": 2930,
+      "bytes": 61656,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42465,7 +42465,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "5f2329fc5ef00cfec2063a761ac3ef5fbb0b4bf48b6af1b256e05f51dbaff72d",
-      "sha256": "d5b06c58c58611515fbdf7d0f2b998cb9108137c051d2062d6b4f27aabd76f49",
+      "sha256": "fde7ebd7da798fedc0859645ea7a48ad9ff3a6fb0f36a90ccedfca979d49a0ef",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -42477,13 +42477,13 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -42538,8 +42538,8 @@
       "family": "otter",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_otter.glb",
-      "triangles": 1952,
-      "bytes": 56240,
+      "triangles": 2772,
+      "bytes": 55800,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42561,7 +42561,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "be4cc17b751dd31873ca024b0412623e63a37c8ad4365030e3b8949c5b14279b",
-      "sha256": "c31ef749dc0134b6c80ea2ea9825efda2a5fdd1e07551551cf01cf5eec85320f",
+      "sha256": "0b44aa44ef3338af00ad50519c40011e08404acee1fc8f67369be1b38c1fb945",
       "authoringProfile": {
         "key": "otter",
         "name": "수달",
@@ -42573,13 +42573,13 @@
         "life": "바닥 가까이 · 강 바위 사이를 몸을 물결치며 빠르게 누빈다 · 가끔 숨 쉬러 수면",
         "hunt": "strike"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -42634,8 +42634,8 @@
       "family": "otter",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_otter.glb",
-      "triangles": 1952,
-      "bytes": 57416,
+      "triangles": 2904,
+      "bytes": 58308,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42657,7 +42657,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "91bc95accd956c677a9f03af80d1998edca5d9f4e750c938818262a3b750a11a",
-      "sha256": "f944102bf37532d1d99bf986b60d526dd65975bb6d41dc73692150f083585848",
+      "sha256": "37d609359971a06e22c5cbc27b3f48591240179bfd6b50c9724c30bf3a58728b",
       "authoringProfile": {
         "key": "otter",
         "name": "수달",
@@ -42669,13 +42669,13 @@
         "life": "바닥 가까이 · 강 바위 사이를 몸을 물결치며 빠르게 누빈다 · 가끔 숨 쉬러 수면",
         "hunt": "strike"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
@@ -42730,8 +42730,8 @@
       "family": "otter",
       "form": "adult",
       "file": "public/aqua/models/fish/otter.glb",
-      "triangles": 1952,
-      "bytes": 50260,
+      "triangles": 2808,
+      "bytes": 53220,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42753,7 +42753,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4983d27081ee274c7ef6fc2f7d40804d344e6732c4af239eed6e8ebccb8d011d",
-      "sha256": "1200d31eaa4691116f8fcb18c9ef548c228ab4cd432487a760fb5c88e1ecc602",
+      "sha256": "e2681cba355242809e9dac60198ed6936625641517315ee7ccc2a836d0b7fe34",
       "authoringProfile": {
         "key": "otter",
         "name": "수달",
@@ -42765,13 +42765,13 @@
         "life": "바닥 가까이 · 강 바위 사이를 몸을 물결치며 빠르게 누빈다 · 가끔 숨 쉬러 수면",
         "hunt": "strike"
       },
-      "geometryAuthoring": "mammal-volume-v1",
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "pending",
+      "visualApproval": "user_approved_2026-11-15",
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
