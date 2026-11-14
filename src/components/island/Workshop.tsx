@@ -22,6 +22,7 @@ import {
   cropOf,
   decorDef,
   dishCat,
+  barnSellPrice,
   dishPayout,
   effectStarMult,
   effectText,
@@ -232,10 +233,13 @@ export function PantryView({
   s,
   busy,
   onUse,
+  onSellBarn,
 }: {
   s: IslandState;
   busy: boolean;
   onUse: (key: ProductKey, use: "sell" | "treat" | "gift") => void;
+  /** 창고 재료 팔기(qty 개) */
+  onSellBarn?: (key: string, qty: number) => void;
 }) {
   const barn = Object.entries(s.farm.barn).filter(([, v]) => v.qty > 0);
   const pantry = Object.entries(s.farm.pantry ?? {}).filter(([, v]) => v.qty > 0);
@@ -285,18 +289,36 @@ export function PantryView({
       </section>
       <section className="island-panel p-3" aria-label="창고 재료">
         <p className="island-section-kicker">창고</p>
-        <p className="mb-2 text-sm font-bold text-white/85">창고 · 거둔 재료</p>
+        <p className="mb-1 text-sm font-bold text-white/85">창고 · 거둔 재료</p>
+        <p className="mb-2 text-xs text-white/50">남는 재료는 그냥 팔 수 있어요 — 요리해서 팔면 더 받아요</p>
         {barn.length === 0 ? (
           <p className="text-xs text-white/45">비었어요, 정원에서 수확해요</p>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {barn.map(([k, v]) => (
-              <span key={k} className="inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-2 py-1 text-xs font-bold ring-1 ring-white/10">
-                <ItemIcon k={k} size={18} />
-                {itemName(k)} {v.qty}
-                <span className="text-amber-300">{"★".repeat(Math.max(1, v.star))}</span>
-              </span>
-            ))}
+          <div className="space-y-1.5">
+            {barn.map(([k, v]) => {
+              const each = barnSellPrice(k, v.star);
+              return (
+                <div key={k} className="flex items-center gap-2 rounded-xl bg-white/[0.05] px-2 py-1.5 ring-1 ring-white/10">
+                  <ItemIcon k={k} size={22} />
+                  <p className="min-w-0 flex-1 truncate text-sm font-bold">
+                    {itemName(k)} <span className="text-xs text-amber-300">{"★".repeat(Math.max(1, v.star))}</span>
+                    <span className="ml-1 text-xs text-white/55">×{v.qty}</span>
+                  </p>
+                  {onSellBarn && (
+                    <>
+                      <button disabled={busy} onClick={() => onSellBarn(k, 1)} className="tap shrink-0 rounded-lg bg-amber-300/15 px-2 py-1 text-xs font-extrabold text-amber-200 ring-1 ring-amber-300/30 disabled:opacity-40">
+                        1개 +{won(each)}<Coin />
+                      </button>
+                      {v.qty > 1 && (
+                        <button disabled={busy} onClick={() => onSellBarn(k, v.qty)} className="tap shrink-0 rounded-lg bg-amber-300/25 px-2 py-1 text-xs font-extrabold text-amber-100 ring-1 ring-amber-300/40 disabled:opacity-40">
+                          모두 +{won(each * v.qty)}<Coin />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

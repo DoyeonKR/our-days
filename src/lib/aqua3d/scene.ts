@@ -111,8 +111,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const unbind: (() => void)[] = [];
   const mealSurfaces=new Map<T.Object3D,ReturnType<typeof mealSurface>>();
   const armGrips=new Map<T.Object3D,ReturnType<typeof makeMealGrip>>();
-  const on = (target: HTMLElement | Document | MediaQueryList, type: string, fn: (e: never) => void) => {
-    target.addEventListener(type, fn as EventListener); unbind.push(() => target.removeEventListener(type, fn as EventListener));
+  const on = (target: HTMLElement | Document | MediaQueryList, type: string, fn: (e: never) => void, opts?: AddEventListenerOptions) => {
+    target.addEventListener(type, fn as EventListener, opts); unbind.push(() => target.removeEventListener(type, fn as EventListener));
   };
   const scene = new T.Scene(), kit = new ModelKit(), glb = new GlbLibrary();
 
@@ -144,6 +144,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
   let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
+  // 두 손가락 · 휠 당기기 배율 — 0.45 배까지 다가가고 1.5 배까지 물러난다
+  const ZOOM_MIN=.45,ZOOM_MAX=1.5;let userZoom=1;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, wideBase=1, tierX=1, tall=1, pan=0, panReach=0, panPerPx=.02, lastTouch=-99, schools=new Map<number,{leader:number;slot:number}>();
   /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
   let foodTimer=0,motes:Motes|null=null;
@@ -606,7 +608,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 2026-11-14 — 단계마다 수조가 커져(가로 최대 2.9배 × 넓히기 1.5배) 다 담으면 세로 화면에서 물고기가 점이 된다. 카메라는 가로를 크기의 0.4제곱만큼만 담고(6단계 1.44배 — 물러난 만큼 넓어진 게 보인다)
     //   나머지는 옆으로 끌어 둘러본다(panReach). 가만히 두면 천천히 한쪽 끝에서 다른 끝까지 흘러간다. 높이는 다 담는다(세로 끌기는 페이지 스크롤이라)
     const half=Math.tan(camera.fov*Math.PI/360),fitW=5*wideBase*tierX**.4/(half*camera.aspect)+3,fitH=5.9*tall/half+3;
-    const camD=clamp(Math.max(fitW,fitH)/tankDisplay(habitatTier,wideBase),19,80);
+    // 자유롭게 보기(2026-11-14) — 두 손가락 · 휠로 당기고 민다(userZoom). 다가간 만큼 옆으로 더 끌 수 있다(panReach 가 camD 로 다시 잰다)
+    const camD=clamp(Math.max(fitW,fitH)/tankDisplay(habitatTier,wideBase),19,80)*userZoom;
     panReach=Math.max(0,5*wide+.3-camD*half*camera.aspect*.96);panPerPx=2*camD*half*camera.aspect/Math.max(1,canvas.clientWidth);
     if(dt>0&&!start&&!sel&&!reduced.matches&&panReach>0&&elapsed-lastTouch>8)pan+=(panReach*.9*Math.sin(elapsed*.03)-pan)*Math.min(1,dt*.35);
     pan=clamp(pan,-panReach,panReach);const camX=pan;
@@ -636,6 +639,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     else followPick=null;
     mealK=dt>0?mealK+((shotAng!==null?1:0)-mealK)*Math.min(1,dt*1.6):shotAng!==null?1:0;
     if(shotAng!==null){mealAng=dt>0?mealAng+(shotAng-mealAng)*Math.min(1,dt*2):shotAng;mealElev=dt>0?mealElev+(shotElev-mealElev)*Math.min(1,dt*2):shotElev;}
+    // 자유롭게 보기의 끝(2026-11-14) — 많이 돌리고 다가가면 카메라가 앞유리 안 · 옆벽 밖으로 나가 벽 뒷면만 보였다. 시선이 늘 앞유리로 들어오게 각을 묶는다
+    //   (앞유리 앞 2 칸에 서고, 옆벽 끝 모서리보다 바깥으로 돌지 않는다). 터널 · 돔은 따로 본다
+    if(!inTunnel&&!inDome){const lim=Math.min(1.1,Math.atan((5*wide)/(3*deep))*.92,Math.acos(clamp((3*deep+2)/Math.max(1,camD),-1,1)));angle=clamp(angle,-lim,lim);}
     const camA=angle+(mealAng-angle)*mealK;
     const near=Math.min(camD*.65,Math.max(3.6,focusLen*3.4)),dist=camD+(near-camD)*focusK;
     lookAt.set(camX,tallY(-.1,tall),0).lerp(focusLook,focusK);
@@ -946,10 +952,20 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     envMap=underwaterEnvironment(renderer);scene.environment=envMap;
     compiled=false;schedule();precompile();events.restored?.();});
   // start 는 draw(placeCamera)에서도 본다(끌고 있는 동안은 저절로 흘러가지 않는다) — 그래서 함수 위에서 미리 선언한 것을 쓴다
-  const down=(e:PointerEvent)=>{if(!e.isPrimary)return;lastTouch=elapsed;start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};canvas.setPointerCapture(e.pointerId);};
-  const move=(e:PointerEvent)=>{if(!start)return;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*panPerPx,-panReach,panReach);lastTouch=elapsed;pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
-  const cancel=()=>{start=null;};
-  const end=(e:PointerEvent)=>{if(!start)return;const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;if(moved>8)return;
+  // 자유롭게 보기(2026-11-14) [사용자: "수조에서 자유롭게 볼 수 있도록"] — 예전엔 좌우 ±0.4 rad · 위아래 조금만 돌았다. 이제 밖에서 볼 땐 좌우 ±1.1 rad(옆유리 쪽까지)
+  //   · 위아래 더 크게(전체 보기에선 세로로 끌어도 페이지가 안 움직인다 — CSS touch-action) · 두 손가락으로 벌리면 다가가고 모으면 물러난다 · 휠도 같다. 터널 · 돔은 예전 범위
+  const pts=new Map<number,{x:number;y:number}>();let pinch:{d:number;z:number}|null=null;
+  const pinchD=()=>{const v=[...pts.values()];return v.length<2?0:Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y);};
+  const down=(e:PointerEvent)=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===2&&!inTunnel){pinch={d:Math.max(1,pinchD()),z:userZoom};start=null;try{canvas.setPointerCapture(e.pointerId);}catch{}return;}
+    if(!e.isPrimary)return;lastTouch=elapsed;start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};try{canvas.setPointerCapture(e.pointerId);}catch{/* 이미 끝난 손가락 */}};
+  const move=(e:PointerEvent)=>{if(pts.has(e.pointerId))pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pinch&&pts.size>=2){userZoom=clamp(pinch.z*pinch.d/Math.max(1,pinchD()),ZOOM_MIN,ZOOM_MAX);lastTouch=elapsed;if(!active)draw(0);return;}
+    if(!start)return;const free=!inTunnel&&!inDome;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;angle=clamp(start.angle+(e.clientX-start.x)*(free?.004:.003),free?-1.1:-.4,free?1.1:.4);pan=clamp(start.pan-(e.clientX-start.x)*panPerPx,-panReach,panReach);lastTouch=elapsed;pitch=clamp(start.pitch+(e.clientY-start.y)*(free?.0016:.001),free?-.18:-.10,free?.34:.13);if(!active)draw(0);};
+  const drop=(e:PointerEvent)=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;};
+  const cancel=(e:PointerEvent)=>{drop(e);start=null;};
+  const wheel=(e:WheelEvent)=>{if(inTunnel||!(e.ctrlKey||canvas.closest(".is-full")))return; /* 평소 화면에선 휠이 페이지 스크롤이다 — 전체 보기 · 트랙패드 집기(ctrlKey)만 당기기 */e.preventDefault();userZoom=clamp(userZoom*Math.exp(e.deltaY*.0012),ZOOM_MIN,ZOOM_MAX);lastTouch=elapsed;if(!active)draw(0);};
+  const end=(e:PointerEvent)=>{drop(e);if(!start)return;const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;if(moved>8)return;
     const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
     if(state.editing&&state.placing){const floorHit=habitat?ray.intersectObject(habitat.floor)[0]:null;const point=floorHit?.point??ray.ray.intersectPlane(floorPlane,hitPoint);if(point){const p=worldToDecor(point.x,point.z/deep,wide);events.place(p.x,p.y);}return;}
     const owner=(o:T.Object3D|null)=>{while(o&&!o.userData.type)o=o.parent;return o;};
@@ -961,7 +977,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const[id,m]of swimmers){projected.copy(m.root.position).project(camera);if(projected.z>1)continue;const d=Math.hypot((projected.x+1)/2*r.width-px,(1-projected.y)/2*r.height-py);if(d<bestD){bestD=d;best=id;}}
     if(best>=0){startleFish(best);events.fish(best);}
   };
-  on(canvas,"pointerdown",down);on(canvas,"pointermove",move);on(canvas,"pointerup",end);on(canvas,"pointercancel",cancel);
+  on(canvas,"pointerdown",down);on(canvas,"pointermove",move);on(canvas,"pointerup",end);on(canvas,"pointercancel",cancel);on(canvas,"wheel",wheel,{passive:false});
   update(initial);
   // 크기는 바로 한 번 잰다 — ResizeObserver 는 화면이 그려질 때만 와서, 뒤에 숨은 탭에선 첫 크기를 못 받았다(그리기는 셰이더를 다 지은 뒤)
   resize();

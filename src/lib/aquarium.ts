@@ -283,6 +283,10 @@ export const DECOR: readonly AquaDecor[] = [
   d("water_lily", "수련", "plant", 800),
   d("coral", "산호", "plant", 1500),
   d("glow_kelp", "빛나는 해초", "plant", 5000),
+  // 해초류(2026-11-14) [사용자: "해초류는 꾸미기로 추가"] — 3D 는 코드로 지은 모델(decor.ts 의 SEAWEEDS), 가게 그림은 그림 세션 몫(design/ART-GUIDE.md)
+  d("sea_lettuce", "파래", "plant", 250),
+  d("sea_mustard", "미역", "plant", 450),
+  d("dasima", "다시마", "plant", 800),
   // 돌 · 나무
   d("pebbles", "조약돌", "rock", 100),
   d("driftwood", "유목", "rock", 350),

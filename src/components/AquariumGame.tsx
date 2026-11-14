@@ -572,7 +572,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
                   const sp = speciesOf(f.species);
                   return (
                     <li key={f.id}>
-                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => setSelFish(selFish === f.id ? null : f.id)}>
+                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => { const on = selFish !== f.id; setSelFish(on ? f.id : null); /* 2026-11-14 [사용자: "하단에 물고기 선택하면 수조에 포커싱 되도록"] — 목록은 수조 아래라 골라도 카메라가 다가가는 걸 못 봤다. 고르면 수조로 올라간다 */ if (on) stageRef.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }}>
                         <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} /></span>
                         <span className="min-w-0 flex-1 truncate font-bold">{fishName(f)} <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
                         {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>{duration(hoursLeft(a, f))} 남음</small>}

@@ -11,6 +11,8 @@
 | A. 해양 포유류(물범 · 물개 · 바다사자 · 강치 · 해달 · 수달) | 그림 18 · 3D 모델 18 | `design/aqua3d-review/mammals-prompts.json` | `public/aqua/fish` · `public/aqua/models/fish` |
 | B. 낚시 2D — 꽝 쓰레기 8 · 보물 · 유물 조각 18 · 만든 미끼 4 | 그림 30 | `design/FISHING-ART.md` 의 해당 표 | `node scripts/fishing-art.mjs sync <폴더>` |
 | C. 두족류 3D 모델 다시 짓기(진짜 입체 · 팔마다 뼈 사슬) | 3D 모델 12 | 아래 C | `public/aqua/models/fish-v2`(검수 뒤 Claude 가 옮긴다) |
+| D. 새우류 3계열(체리새우 · 대하 · 독도새우) | 그림 9 · 3D 모델 9 | 아래 D | `public/aqua/fish` · `public/aqua/models/fish` |
+| E. 해초 꾸미기 3종(파래 · 미역 · 다시마) — 지금은 임시 그림 | 그림 3(+ 선택: 3D 모델 3) | `design/AQUARIUM-ART.md` 의 `sea_lettuce` · `sea_mustard` · `dasima` 줄 | `public/aqua/decor`(+ `sm`) · 모델은 `public/aqua/models/decor` |
 
 B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_stool` `junk_helmet` `junk_probe` · `relic_pottery_vase` `relic_pottery_jar` `relic_pottery_bowl` `relic_pottery_dropper` `relic_wreck_plate` `relic_wreck_compass` `relic_wreck_bell` `relic_wreck_anchor` `relic_wreck_wheel` `relic_pirate_coin` `relic_pirate_glass` `relic_pirate_key` `relic_pirate_map` `relic_palace_scale` `relic_palace_pearl` `relic_palace_crown` `relic_palace_tile` `relic_palace_seal` · `craft_scent` `craft_glow` `craft_shine` `craft_sticky`.
 게임은 이미 이 key 를 찾는다 — 파일이 들어오면 벡터 임시 그림 대신 저절로 그림을 쓴다(그림 목록 `src/lib/fishingimages.ts` 는 sync 가 다시 쓴다).
@@ -62,6 +64,18 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 ### B. 낚시 2D 그림 30장
 
 `design/FISHING-ART.md` 의 '장비 공통' 프롬프트 + 표의 설명으로 그린다(손으로 칠한 게임 아이콘풍, 투명 배경, 10% 여백, 52px 에서도 읽히는 실루엣, 글자 없음). 대상은 위 '지금 그릴 것'의 B key 30개(꽝 쓰레기 8 · 유물 18 · 만든 미끼 4). 같은 세트끼리 색 톤을 맞춘다(옛 도자기 · 난파선 · 해적의 보물 · 용궁). 다 그리면 파일 이름을 key 로 저장하고 `node scripts/fishing-art.mjs sync <그림 폴더>` 를 돌린다(이 스크립트는 `src/lib/fishingimages.ts` 를 다시 쓰는데, 이 파일만은 고쳐도 된다). 검수용으로 30장을 한 장에 모은 `design/fishing-review/batch-2026-11-13.webp` 도 만들어 줘.
+
+### D. 새우류 3계열 — 그림 9장 + 3D 모델 9개 (2026-11-14 [사용자: "새우류 추가"])
+
+| key | 이름 | 등급(안) | 다 큰 몸길이 | 사는 곳 | 위에서 본 폭/길이 |
+|---|---|---|---|---|---|
+| `cherry_shrimp` | 체리새우(관상 · *Neocaridina davidi* 붉은 품종) | 흔함 | 3cm | 민물 · 수초 사이 | 0.22 |
+| `fleshy_prawn` | 대하(*Fenneropenaeus chinensis*, 서해) | 고급 | 25cm | 바다 · 모래 바닥 | 0.18 |
+| `dokdo_shrimp` | 독도새우(도화새우 *Pandalus hypsinotus*, 동해 심해) | 희귀 | 20cm | 깊은 바다 바닥 | 0.2 |
+
+**그림**: 위 A 의 규칙과 같다(머리 오른쪽 · 옆모습 · 배가 아래 · 빛 반사 금지 · 512px 투명 + sm 192px, key 는 `fry_<key>` · `juv_<key>` · `<key>`). 마디진 몸통(머리가슴 + 배 6마디) · 꼬리부채 · 긴 더듬이 두 쌍 · 걷는 다리 · 헤엄다리가 다 보이게. 더듬이는 머리 뒤로 몸길이만큼 휘어 내려 몸 가까이(머리 밖으로 곧게 뻗은 가는 선은 모델에서 바늘이 된다). 새끼는 그 종의 실제 어린 모습(투명에 가까운 작은 새우).
+**3D 모델**: A 와 같은 계약(+X 머리 · 뼈 10개 · 삼각형 3,000 · 300KB). `spine_0` 머리가슴 → `spine_5` 꼬리부채(배 마디가 이 사슬을 따라 굽는다 — 게임이 꼬리를 배 쪽으로 튕겨 뒤로 달아나는 동작을 만든다), `fin_L` · `fin_R` = 헤엄다리 묶음. 몸 단면은 위아래로 조금 높은 둥근 통, 걷는 다리는 두께 있는 가는 기둥 몇 개(판 하나로 그리지 않는다).
+**검수**: `design/aqua3d-review/shrimp-*.webp`(그림 9장 · 위 · 비스듬히 · 옆) · `shrimp-validation.json` · `models.json` 기록 · `visualApproval: "pending"`. 켜는 건 Claude 세션(계열 표 · 낚시터 · 습성 · 서버 `fish_family_ok` migration).
 
 ### C. 두족류 3D 모델 다시 짓기 — 12개(문어 · 크라켄 · 살오징어 · 대왕오징어 × 새끼 · 어린 · 다 큰)
 

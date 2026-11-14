@@ -1,7 +1,7 @@
 # 우리 수조 그림 목록 · 프롬프트
 
 > 이 파일은 `scripts/aqua-art-prompts.mjs` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **448장**: 치어 · 어린 물고기 244 · 최종 물고기 158 · 악세사리 37 · 수조 배경 9.
+> 모두 **451장**: 치어 · 어린 물고기 244 · 최종 물고기 158 · 악세사리 40 · 수조 배경 9.
 
 ## 넣는 법
 
@@ -453,7 +453,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `galaxy_fish` | 은하수어 | 태초 | Cosmic galaxy fish: elegant body like a window into deep space, spiral galaxy and stars inside, long fins fading into stardust trails, radiant. |
 | `genesis_fish` | 태초의 물고기 | 태초 | The primordial first fish: majestic ancient body of flowing rainbow light and gold, ornate sacred patterns, huge veil fins, halo of light, awe-inspiring. The single rarest creature in the game. |
 
-## 악세사리 (37장)
+## 악세사리 (40장)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -474,6 +474,9 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `water_lily` | 수련 | Aquatic water lily plant: long stem rising from a bulb, round pads and one pink lotus blossom on top. |
 | `coral` | 산호 | Colorful branching coral cluster in pink, orange and purple tones. |
 | `glow_kelp` | 빛나는 해초 | Fantasy bioluminescent kelp: tall wavy fronds glowing soft cyan and violet with tiny light motes. |
+| `sea_lettuce` | 파래 | Korean sea lettuce (green laver, Ulva): a dense bright-green tuft of thin, translucent ruffled fronds attached to a small grey rock. |
+| `sea_mustard` | 미역 | Korean sea mustard (miyeok, Undaria pinnatifida): olive-brown fronds with frilly wavy edges and a central rib, rising from a small rock holdfast. |
+| `dasima` | 다시마 | Korean kelp (dasima, Saccharina japonica): a few long, wide, smooth dark olive-brown blades with slightly wavy edges, rising from a rock holdfast. |
 | `pebbles` | 조약돌 | Small pile of smooth rounded river pebbles in warm grey and white. |
 | `driftwood` | 유목 | Gnarled aquarium driftwood branch with twisting arms, weathered brown. |
 | `stone_arch` | 돌 아치 | Natural stone arch big enough for fish to swim through, grey layered rock with moss. |

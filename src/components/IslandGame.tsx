@@ -138,6 +138,7 @@ import {
   TOOLS,
   runHeroSkill,
   careStatus,
+  sellBarn,
   gearDef,
   type CareKey,
   type GearSlot,
@@ -2022,7 +2023,7 @@ export default function IslandGame({
               />
             )}
             {craftView === "pantry" && (
-              <PantryView s={s} busy={busy} onUse={(key, use) => act((x) => pantryAction(x, key, use, gameNow()))} />
+              <PantryView s={s} busy={busy} onUse={(key, use) => act((x) => pantryAction(x, key, use, gameNow()))} onSellBarn={(key, qty) => act((x) => sellBarn(x, key, qty, gameNow()))} />
             )}
             {craftView === "orders" && (
               <OrderBoard s={s} now={now} busy={busy} onFulfill={(id) => act((x) => fulfillOrder(x, id, gameNow()))} />
