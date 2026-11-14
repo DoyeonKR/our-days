@@ -114,20 +114,33 @@ Deno.serve(async (req) => {
         return true;
       });
     };
+    // 전달 결과 기록(2026-11-14 [사용자: "일기 작성하면 알람이 안와"]) — 예전엔 애플 · 구글 푸시 서버의 거절(403 · 413 · 5xx)을
+    // 아무 데도 남기지 않아, 함수는 200 인데 알림이 안 오는 이유를 볼 길이 없었다. 실패한 구독마다 푸시 서버 주소(host) · 상태 · 본문 앞부분만 남긴다
+    // (endpoint · 키는 남기지 않는다).
+    const webFails: { host: string; status: number | null; body: string }[] = [];
     const deliver = async (subs: { endpoint: string; p256dh: string; auth: string }[], payload: string): Promise<number> => {
       let n = 0;
       await Promise.all(
         subs.map(async (s) => {
           try {
-            await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+            await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 86400, urgency: "high" });
             n++;
           } catch (err) {
             const code = (err as { statusCode?: number })?.statusCode;
+            let host = "";
+            try { host = new URL(s.endpoint).host; } catch { /* noop */ }
+            webFails.push({ host, status: code ?? null, body: String((err as { body?: unknown })?.body ?? (err as Error)?.message ?? "").slice(0, 160) });
             if (code === 404 || code === 410) await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
           }
         }),
       );
       return n;
+    };
+    // 보낸 사람 행으로 한 줄(설정 › 도움말 › 문제 해결 › 개발자용 기록에서도 보인다). 기록 실패는 발송을 막지 않는다.
+    const trace = async (detail: Record<string, unknown>) => {
+      try {
+        await sb.from("debug_logs").insert({ user_id: fromUser, tag: "push_out", detail: JSON.stringify(detail).slice(0, 4000) });
+      } catch { /* noop */ }
     };
 
     if (overtake_run) {
@@ -174,11 +187,11 @@ Deno.serve(async (req) => {
       const all = rows.map((m) => m.user_id);
       if (!all.includes(fromUser)) return json({ error: "not a member" }, 403);
       ids = all.filter((id) => id !== fromUser);
-      if (!ids.length) return json({ sent: 0, reason: "no partner" });
+      if (!ids.length) { await trace({ cat: category, reason: "no partner" }); return json({ sent: 0, reason: "no partner" }); }
       senderName = (rows.find((m) => m.user_id === fromUser)?.nickname ?? "").trim().slice(0, 20);
 
       ids = await allowed(ids, category, new Map(rows.map((m) => [m.user_id, m.timezone])));
-      if (!ids.length) return json({ sent: 0, reason: "muted" });
+      if (!ids.length) { await trace({ cat: category, reason: "muted" }); return json({ sent: 0, reason: "muted" }); }
     }
 
     const { data: subs } = await sb
@@ -213,9 +226,14 @@ Deno.serve(async (req) => {
 
     // 앱 기기(FCM)에도 — 웹 구독이 하나도 없어도 앱은 받을 수 있다
     const native = await sendFcm(sb, ids, notice);
-    if (!subs?.length && !native.sent) return json({ sent: 0, reason: test ? "no self subscription" : "no subscription" });
-    const sent = (await deliver(subs ?? [], JSON.stringify(notice))) + native.sent;
-    return json({ sent });
+    const fcm = { sent: native.sent, failed: native.failed, targets: native.targets, disabled: !!native.disabled };
+    if (!subs?.length && !native.sent) {
+      await trace({ cat: category, test: !!test, to: ids.length, reason: "no subscription", fcm });
+      return json({ sent: 0, reason: test ? "no self subscription" : "no subscription" });
+    }
+    const web = await deliver(subs ?? [], JSON.stringify(notice));
+    await trace({ cat: category, test: !!test, to: ids.length, web: { subs: subs?.length ?? 0, sent: web, fails: webFails }, fcm });
+    return json({ sent: web + native.sent, web: { subs: subs?.length ?? 0, sent: web, failed: webFails.length }, fcm });
   } catch (e) {
     console.error("send-poke-push failed", e); return json({ error: "internal error" }, 500); // 내부 오류 내용(스택 · 키 이름)은 응답에 싣지 않는다
   }
