@@ -55,6 +55,8 @@ export type FishHabit = {
   stand?: boolean;
   /** 굴에 산다(곰치) — 바위 · 장식 속에 몸 뒤쪽을 넣고 머리만 내민다. 거의 안 나오고, 가끔 반쯤 튀어나왔다 곧바로 돌아간다(denCourse) */
   den?: boolean;
+  /** 바위 위에서 쉰다(해양 포유류, 2026-11-14) — 시간의 90% 는 바위 · 장식 위에 올라가 쉬고 10% 만 헤엄친다(haulBlend) */
+  haul?: boolean;
 };
 
 const swim = (lo: number, hi: number, speed: number, reach: number, depth: number, more: Partial<FishHabit> = {}): FishHabit => ({ lo, hi, speed, reach, depth, ...more });
@@ -208,15 +210,16 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   frilled_shark: floor(0.14, 0.05, 0.8, 1.3, { bob: 0.1, pace: 0.6, lane: 0.85 }),
   arapaima: swim(-1.6, 1.8, 0.08, 0.85, 1.5, { breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.15 }),
   // 해양 포유류(2026-11-13) — 허파로 숨 쉬어 늘 수면에 올라간다(breathe — 거북과 같은 숨쉬기 길).
+  // 2026-11-14 [사용자: "포유류는 90프로는 바위 위에서 쉬고있는다 · 10프로는 수영한다"] — 여섯 다 haul: 시간의 90% 는 바위 위에서 쉰다(haulBlend). 아래 습성은 헤엄치는 10% 의 길이다
   // 점박이물범: 바닥 가까이 천천히 미끄러지다 숨 쉬러 오르고, 바닥에 내려앉아 쉰다(물범은 물속에서 잔다 — 모래 위 쉬기 그대로)
-  spotted_seal: swim(-3.2, 0.4, 0.16, 0.9, 1.8, { breathe: 70, pace: 0.7, tilt: 0.35 }),
+  spotted_seal: swim(-3.2, 0.4, 0.16, 0.9, 1.8, { haul: true, breathe: 70, pace: 0.7, tilt: 0.35 }),
   // 물개 · 바다사자 · 강치: 앞지느러미로 날듯이 빠르게, 홱 방향을 튼다. 모래 위에선 안 쉰다
-  fur_seal: swim(-1.6, 2.4, 0.32, 1, 2, { breathe: 55, breathOnly: true, dart: 0.25, pace: 0.9, tilt: 0.45 }),
-  steller_sea_lion: swim(-1.8, 2, 0.24, 1, 2, { breathe: 75, breathOnly: true, dart: 0.12, pace: 0.6, tilt: 0.35 }),
-  japanese_sea_lion: swim(-1.6, 2.2, 0.26, 1, 2, { breathe: 70, breathOnly: true, dart: 0.15, pace: 0.65, tilt: 0.4 }),
+  fur_seal: swim(-1.6, 2.4, 0.32, 1, 2, { haul: true, breathe: 55, breathOnly: true, dart: 0.25, pace: 0.9, tilt: 0.45 }),
+  steller_sea_lion: swim(-1.8, 2, 0.24, 1, 2, { haul: true, breathe: 75, breathOnly: true, dart: 0.12, pace: 0.6, tilt: 0.35 }),
+  japanese_sea_lion: swim(-1.6, 2.2, 0.26, 1, 2, { haul: true, breathe: 70, breathOnly: true, dart: 0.15, pace: 0.65, tilt: 0.4 }),
   // 해달: 수면 가까이 떠서 쉬다가 가끔 잠수한다. 수달: 바닥 바위 사이를 빠르게 누비고 자주 숨 쉬러 오른다
-  sea_otter: swim(2.2, 4.4, 0.08, 0.7, 1.4, { breathe: 40, breathOnly: true, rest: 0.5, hop: 0.8, pace: 0.6, tilt: 0.2 }),
-  otter: swim(-3.4, -0.4, 0.3, 0.9, 1.8, { breathe: 45, breathOnly: true, dart: 0.3, pace: 1.1, tilt: 0.45 }),
+  sea_otter: swim(2.2, 4.4, 0.08, 0.7, 1.4, { haul: true, breathe: 40, breathOnly: true, rest: 0.5, hop: 0.8, pace: 0.6, tilt: 0.2 }),
+  otter: swim(-3.4, -0.4, 0.3, 0.9, 1.8, { haul: true, breathe: 45, breathOnly: true, dart: 0.3, pace: 1.1, tilt: 0.45 }),
   sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
   marlin: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
   swordfish: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
@@ -1268,4 +1271,79 @@ export function denCourse(id: number, seconds: number, length: number, scale: nu
   out.effort = strike > 0 ? 2.4 : 0.35; out.turn = 0; out.amp = strike > 0 ? 1.2 : 0.35; out.pulse = 0;
   out.ground = 1; out.puff = -1; out.hover = strike > 0 ? 0 : 1; out.feed = 0;
   return out;
+}
+
+/* ── 해양 포유류의 바위 쉼터(2026-11-14) ─────────────────────────
+ * [사용자: "표유류는 90프로는 바위 위에서 쉬고있는다 · 10프로는 수영한다"]
+ * 물범 · 물개 · 바다사자 · 강치 · 해달 · 수달은 바위(없으면 높은 장식) 하나를 쉼터로 정해 시간의 90% 를 그 위에 올라가 쉬고, 10% 만 헤엄친다.
+ * 한 바퀴(140 ~ 190초)마다 한 번 바위에서 미끄러져 내려가 헤엄치고(약 3초에 걸쳐 내려가고 · 올라온다) 돌아온다. 먹이를 주면 쉬다가도 먹으러 간다.
+ * 쉼터는 곰치 굴처럼 id 순으로 나눈다(두 기기 같은 결과). 한 바위를 둘이 나눠 쓰면 바위 위에서 양옆으로 비켜 눕는다. 시각 · id · 장애물만으로 정해진다. */
+/** 쉬는 몫 — 한 바퀴의 이만큼은 바위 위 */
+export const HAUL_REST = 0.9;
+/** 바위에서 내려가고 · 올라오는 데 걸리는 몫(한 바퀴의) */
+const HAUL_RAMP = 0.02;
+export function haulCandidates(length: number, obstacles: readonly Obstacle[] | undefined, scale = 1): Obstacle[] {
+  // 몸이 유리 밖으로 삐져나가지 않는 바위만(포유류는 몸이 크고 바위는 구석에 몰려 있다 — 2026-11-14 화면)
+  const fits = (o: Obstacle) => Math.abs(o.x) <= 5 * scale - length * 0.42;
+  const base = (obstacles ?? []).filter((o) => o.kind !== "hall" && o.h > 0.12 && o.r > length * 0.2);
+  const inside = base.filter(fits), all = inside.length ? inside : base;
+  // 바위를 먼저(장식 위보다 바위 위가 자연스럽다), 그중 넓고 낮은 바위부터(뾰족한 기둥 위에 위태롭게 앉지 않게 — 2026-11-14 화면), 같으면 x · z 순
+  const flat = (o: Obstacle) => o.r - 0.6 * o.h;
+  return all.slice().sort((a, b) => (a.kind === "rock" ? 0 : 1) - (b.kind === "rock" ? 0 : 1) || flat(b) - flat(a) || a.x - b.x || a.z - b.z);
+}
+/** 쉼터 나누기 — denAssign 과 같은 방식(id 순, 아직 아무도 안 쓴 바위부터) */
+export function haulAssign(fish: readonly { id: number; length: number }[], obstacles: readonly Obstacle[] | undefined, scale = 1): Map<number, { rock: Obstacle | null; share: number }> {
+  const out = new Map<number, { rock: Obstacle | null; share: number }>();
+  const used = new Map<Obstacle, number>();
+  for (const f of [...fish].sort((a, b) => a.id - b.id)) {
+    const cand = haulCandidates(f.length, obstacles, scale);
+    if (!cand.length) { out.set(f.id, { rock: null, share: 0 }); continue; }
+    const rocks = cand.filter((o) => o.kind === "rock"), pool = rocks.length ? rocks : cand;
+    // 가장 넓고 낮은 빈 바위부터 — 다 찼으면 가장 덜 붐비는 바위를 나눠 쓴다
+    const rock = pool.find((o) => !used.has(o)) ?? pool.reduce((m, o) => ((used.get(o) ?? 0) < (used.get(m) ?? 0) ? o : m), pool[0]);
+    const share = used.get(rock) ?? 0;
+    used.set(rock, share + 1);
+    out.set(f.id, { rock, share });
+  }
+  return out;
+}
+/** 지금 바위 위에 있는 정도(0 헤엄 ~ 1 쉼) — 한 바퀴의 처음 10% 가 헤엄(양 끝 2% 는 내려가고 · 올라오는 중) */
+export function haulRest(id: number, seconds: number): number {
+  const h = denHash(id + 7), per = 140 + 50 * unit(h, 113), u = ((seconds + per * unit(h, 127)) % per) / per;
+  const swimSpan = 1 - HAUL_REST;
+  if (u >= swimSpan) return 1;
+  if (u < HAUL_RAMP) return 1 - ease(u / HAUL_RAMP);
+  if (u > swimSpan - HAUL_RAMP) return ease((u - (swimSpan - HAUL_RAMP)) / HAUL_RAMP);
+  return 0;
+}
+/** 헤엄 길(out — 이미 계산한 schoolCourse)을 쉼터와 섞는다. 돌려주는 값 = 쉬는 정도(0~1) */
+export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number }, out: Course): number {
+  let R = haulRest(id, seconds);
+  // 먹이를 주면 쉬다가도 먹으러 간다
+  R *= 1 - clamp01((out.feed ?? 0) * 1.5);
+  if (R <= 0) return 0;
+  const h = denHash(id + 7), o = opts.rock;
+  let rx: number, ry: number, rz: number, ground = 0;
+  // 몸이 보는 쪽 — 앞유리 쪽으로 비스듬히, 20초마다 천천히 고개를 돌린다(좌우 0.35 rad)
+  const a0 = (unit(h, 131) < 0.5 ? 0 : Math.PI) + (unit(h, 137) - 0.5) * 0.8 + Math.sin(seconds / 20 * TAU + unit(h, 139) * TAU) * 0.35;
+  let fx = Math.cos(a0), fz = Math.abs(Math.sin(a0)) * 0.5 + 0.15;
+  if (o) {
+    // 바위 꼭대기 — 나눠 쓰면 양옆으로 비켜 눕는다. 둥근 바위라 가운데에서 멀수록 조금 낮다
+    const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * Math.min(o.r * 0.55, length * 0.6);
+    const k = Math.min(0.9, Math.abs(off) / Math.max(0.05, o.r));
+    const lim = 5 * scale - length * 0.42;
+    rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z; ry = floorY + o.h * (1 - 0.45 * k * k) + length * 0.1;
+  } else {
+    // 바위가 없으면 뒤 유리 앞 모래 위
+    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + length * 0.1; ground = 1;
+    fz = Math.abs(fz);
+  }
+  const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
+  out.x += (rx - out.x) * R; out.y += (ry - out.y) * R; out.z += (rz - out.z) * R;
+  const dl = hyp3(out.dx, out.dy, out.dz) || 1;
+  out.dx = out.dx / dl * (1 - R) + fx * R; out.dy = out.dy / dl * (1 - R); out.dz = out.dz / dl * (1 - R) + fz * R;
+  // 쉬는 동안 — 숨쉬듯 아주 조금만 움직인다(해달은 여기서 배를 위로 — glb 의 otterRoll 이 amp 가 낮을 때 뒤집는다)
+  out.effort = out.effort * (1 - R) + 0.12 * R; out.amp = out.amp * (1 - R) + 0.12 * R; out.turn *= 1 - R;
+  out.hover = out.hover * (1 - R) + R; out.ground = out.ground * (1 - R) + ground * R; out.puff = -1;
+  return R;
 }

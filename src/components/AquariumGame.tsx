@@ -3,6 +3,7 @@
 /* 우리 수조 화면 — 규칙은 전부 lib/aquarium(순수). 여기는 그리기와 저장뿐이다.
  * 저장은 사람이 무언가 했을 때 + 정산에 저장할 변화(자람 · 알 · 그물 판매 · 오늘의 손님 · 시계 보정)가 있을 때만 한다(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더).
  * 매분 다시 그리는 건 저장하지 않는 미리보기다. */
+import { HUNGRY_BELOW } from "@/lib/predation";
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { SPOTS, formsSeen, releaseToSea, releaseXp } from "@/lib/fishing";
@@ -366,7 +367,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
             {dangers.length > 0 && (
               <p className={`aqua-danger ${a.hunger < 60 ? "is-hungry" : ""}`} role="note">
                 <b>상성 주의</b> {dangerLine(dangers)}
-                <small>{a.hunger < 60 ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : `약 ${Math.max(1, Math.round(((a.hunger - 60) * fx.hungerHours) / 100))}시간 뒤 포만이 60 밑으로 내려가면 잡아먹어요`}</small>
+                <small>{a.hunger < HUNGRY_BELOW ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : `약 ${Math.max(1, Math.round(((a.hunger - HUNGRY_BELOW) * fx.hungerHours) / 100))}시간 뒤 포만이 ${HUNGRY_BELOW} 밑으로 내려가면 잡아먹어요`}</small>
               </p>
             )}
             {eaten.length > 0 && (
