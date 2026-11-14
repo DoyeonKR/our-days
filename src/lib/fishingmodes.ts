@@ -1,7 +1,7 @@
 /* 낚시 방식 셋 — 루어 · 뜰채 · 심해 (2026-11-02) [사용자: "낚시 게임 방식도 더 여러방면으로 추가해줘"]
  * 찌낚시(fishing.ts 의 stepFight)와 손이 하는 일이 달라야 방식이 다른 것이다. 숫자만 바꾼 힘겨루기는 방식이 아니다.
  *  · 루어 — 박자에 맞춰 톡톡 쳐서 물고기를 꾀고(tapLure), 물면 좌우로 끌며 물고기 반대쪽에 낚싯대를 둔다(stepSway).
- *  · 뜰채 — 헤엄치는 그림자를 보고 앞서 겨눠 내리친다(scoopPos · plunge). 깊이 들어간 놈은 못 건진다. 한 판에 세 번.
+ *  · 뜰채 — 그물을 끌고 다니며 달아나는 물고기를 물가 · 구석으로 몰아 붙잡는다(stepHerd, 2026-11-14 — 타이밍이 아니라 길).
  *  · 심해 — 손가락으로 릴을 돌린다(stepDeep). 초록 속도를 지키고, 물고기가 파고들면 멈춘다.
  * 전부 순수 함수다 — 입력(탭 시각 · 끌기 위치 · 회전 속도)만 받는다. fishingmodes.test 의 자동 플레이가 난이도를 잠근다. */
 import { rng, rollCatch, softStat, type FishCatch, type FishSpot, type FishStat } from "./fishing.ts";
@@ -148,62 +148,10 @@ export function stepSway(s: Sway, dt: number, rod: number, tune: SwayTune): Sway
 }
 export const swayQuality = (s: Pick<Sway, "good" | "t">) => (s.t <= 0 ? 0 : Math.min(1, s.good / s.t));
 
-/* ── 뜰채 ────────────────────────────────────────────── */
+/* ── 뜰채 그물 ──────────────────────────────────────── */
 
-export const SCOOP_SHOTS = 3;
-export const SCOOP_TIME_S = 18;
-/** 내리친 뒤 물에 닿기까지 — 이만큼 앞서 노려야 한다 */
-export const PLUNGE_S = 0.34;
-/** 물고기는 이 수면 칸을 헤엄친다(화면 비율). 가로 x, 세로 y. */
-const SWIM = { x: [0.14, 0.86], y: [0.48, 0.84] } as const;
-
-export type ScoopFish = { id: number; haul: FishCatch; cx: number; cy: number; ax: number; ay: number; wx: number; wy: number; px: number; py: number; wz: number; pz: number; deepAt: number };
-export type Scoop = { clock: number; left: number; shots: number; fish: ScoopFish[]; startled: number; status: "on" | "caught" | "out"; caught: number; quality: number };
-
-/** 수면에 뜬 물고기 — 등급이 높을수록 빠르고 자주 깊이 들어간다. 다 큰 놈은 수면에 안 올라온다(METHODS.scoop.adult = 0). */
-export function startScoop(spot: FishSpot, luck: number, bait: number, seed: number, when?: FishMoment): Scoop {
-  const r = rng(seed);
-  const n = 4 + (luck >= 20 ? 1 : 0);
-  const fish = Array.from({ length: n }, (_, id): ScoopFish => {
-    const haul = rollCatch(spot, luck, 0.5, (seed + (id + 1) * 7919) >>> 0, { bait, method: "scoop", junk: true, when });
-    const d = haul.difficulty;
-    const speed = 1.02 + d * 0.13;
-    return {
-      id, haul,
-      cx: 0.3 + r() * 0.4, cy: 0.58 + r() * 0.15,
-      ax: 0.14 + r() * 0.16, ay: 0.06 + r() * 0.06,
-      wx: (0.7 + r() * 0.6) * speed, wy: (1 + r() * 0.8) * speed,
-      px: r() * 6.28, py: r() * 6.28,
-      wz: 0.45 + r() * 0.5 + d * 0.05, pz: r() * 6.28,
-      // 떠오름 창 — 늘 건질 수 있는 깊이에 있으면 첫 탭에 끝난다(2026-11-05 실측: 한 판 1.2초). 수면 가까이 떠오를 때만 건진다. 귀할수록 잠깐만 뜬다
-      deepAt: Math.min(SURFACE_MAX, SURFACE_AT + d * 0.035),
-    };
-  });
-  return { clock: 0, left: SCOOP_TIME_S, shots: SCOOP_SHOTS, fish, startled: 0, status: "on", caught: -1, quality: 0 };
-}
-
-/** 그 시각의 자리 — z 는 수면에 가까운 정도(0~1), reach 면 건질 수 있다 */
-export function scoopPos(f: ScoopFish, clock: number) {
-  const x = clamp(f.cx + Math.sin(clock * f.wx + f.px) * f.ax + Math.sin(clock * f.wx * 2.3 + f.py) * f.ax * 0.3, SWIM.x[0], SWIM.x[1]);
-  const y = clamp(f.cy + Math.sin(clock * f.wy + f.py) * f.ay, SWIM.y[0], SWIM.y[1]);
-  const vx = Math.cos(clock * f.wx + f.px) * f.ax * f.wx;
-  const vy = Math.cos(clock * f.wy + f.py) * f.ay * f.wy;
-  const z = 0.5 + 0.5 * Math.sin(clock * f.wz + f.pz);
-  return { x, y, h: Math.atan2(vy * 1.25, vx), z, reach: z >= f.deepAt };
-}
-
-/** 놀라면 시계가 빨라진다 — 헛손질 뒤엔 다 같이 도망치듯 헤엄친다 */
-export function stepScoop(s: Scoop, dt: number): Scoop {
-  if (s.status !== "on") return s;
-  const startled = Math.max(0, s.startled - dt);
-  const left = s.left - dt;
-  return { ...s, clock: s.clock + dt * (startled > 0 ? 1.8 : 1), startled, left, status: left <= 0 ? "out" : "on" };
-}
-
+/** 그물 반지름(화면 너비 비율) — 좋은 뜰채일수록 넓다. 몰아서 건지기(herdTune)와 함께 끌어올리기 화면이 쓴다 */
 export const netRadius = (netTier: number) => 0.078 + netTier * 0.009;
-/** 떠오름 문턱(z 0~1, 높을수록 수면) — 한 마리가 건질 깊이에 있는 시간은 대략 acos(2·문턱 − 1)/π. 0.8 이면 30% 남짓 */
-export const SURFACE_AT = 0.8;
-const SURFACE_MAX = 0.9;
 
 /* ── 뜰채 2막: 들어올리기 ────────────────────────────────── */
 
@@ -281,24 +229,6 @@ export function stepLift(l: Lift, dt: number, hold: boolean, counter: number, tu
   return n;
 }
 export const liftQuality = (l: Pick<Lift, "good" | "t">) => (l.t <= 0 ? 0 : Math.min(1, l.good / l.t));
-
-/** 내리쳤다 — (x, y) 는 화면 비율, 호출자는 PLUNGE_S 뒤의 시계로 부른다. 그물 안 가까운 놈부터 건진다. 가로세로 비가 4:5 라 세로에 1.25 를 곱한다. */
-export function plunge(s: Scoop, x: number, y: number, radius: number): Scoop {
-  if (s.status !== "on") return s;
-  let best = -1, bestD = Infinity;
-  s.fish.forEach((f, i) => {
-    const p = scoopPos(f, s.clock);
-    if (!p.reach) return;
-    const d = Math.hypot(p.x - x, (p.y - y) * 1.25);
-    if (d <= radius && d < bestD) {
-      best = i;
-      bestD = d;
-    }
-  });
-  if (best >= 0) return { ...s, status: "caught", caught: best, quality: clamp(1 - bestD / radius, 0, 1) };
-  const shots = s.shots - 1;
-  return { ...s, shots, startled: 1.3, status: shots <= 0 ? "out" : "on" };
-}
 
 /* ── 심해: 릴 돌리기 ──────────────────────────────────── */
 
@@ -380,3 +310,131 @@ export function stepDeep(de: Deep, dt: number, rps: number, tune: DeepTune): Dee
   return n;
 }
 export const deepQuality = (de: Pick<Deep, "good" | "t">) => (de.t <= 0 ? 0 : Math.min(1, de.good / de.t));
+
+/* ── 뜰채: 몰아서 건지기 (2026-11-14) ──────────────────────
+ * [사용자: "모든 낚시게임이 다 타이밍 류 낚시게임인데 뜰채 낚시 방법을 개편하고 변경하자"]
+ * 예전 뜰채(떠오를 때 앞서 내리치기 → 몸부림 예고에 반대로 버티기)는 둘 다 '언제 누르나'였다. 이제는 '어디로 모나'다:
+ *  · 손가락이 그물을 끌고 다닌다(그물은 손가락보다 조금 위 · 빠르기 상한이 있다 — 휙 옮겨 덮치지 못한다).
+ *  · 물고기는 그물이 다가오면 달아난다. 흔한 물고기 말고는 그물보다 빠르다 — 쫓기만 해서는 안 잡히고,
+ *    물가 · 구석으로 몰아 달아날 길을 막아야 한다. 오래 쫓기면 지쳐서 느려진다(끈질기게 몰면 결국 잡힌다).
+ *  · 그물 안에 잠깐(dwell) 붙잡아 두면 건진다. 빠져나가면 진행이 되돌아간다. 시간 안에 못 건지면 흩어진다.
+ *  · 반응 속도보다 길(어느 쪽에서 다가가 어디로 모나)이 성공을 가른다 — fishingherd.test 가 봇 둘로 잠근다.
+ * 물고기 뽑기는 예전 뜰채와 같은 seed · 같은 rollCatch(method "scoop" · junk) — 다 큰 놈 없음 · 쓰레기는 빛 고리 없는 그림자. 순수 · 고정 걸음. */
+export const HERD_TIME_S = 25;
+/** 물고기가 헤엄치는 수면 칸(화면 비율) — 예전 뜰채와 같은 칸. 세로 거리는 1.25 를 곱해 잰다(4:5) */
+export const HERD_AREA = { x: [0.12, 0.88], y: [0.46, 0.86] } as const;
+const HERD_STEP = 1 / 60;
+const HY = 1.25;
+export type HerdTune = { netSpeed: number; netR: number };
+export type HerdFish = { id: number; haul: FishCatch; x: number; y: number; vx: number; vy: number; stam: number; dwell: number; need: number; flee: number; fleeR: number; tire: number; wx: number; wy: number; ph: number; side: number };
+export type HerdStatus = "on" | "caught" | "out";
+export type Herd = { t: number; left: number; nx: number; ny: number; fish: HerdFish[]; status: HerdStatus; caught: number; quality: number; acc: number };
+
+export function herdTune(netTier: number, eff: Eff): HerdTune {
+  eff = soft(eff);
+  return { netSpeed: 0.3 * (1 + eff.power * 0.012), netR: netRadius(netTier) * 1.05 + eff.line * 0.0006 };
+}
+/** 판을 연다 — 물고기 4~5마리, 그물은 아래 가운데 물가 */
+export function startHerd(spot: FishSpot, luck: number, bait: number, seed: number, when?: FishMoment): Herd {
+  const r = rng(seed);
+  const n = 4 + (luck >= 20 ? 1 : 0);
+  const fish = Array.from({ length: n }, (_, id): HerdFish => {
+    const haul = rollCatch(spot, luck, 0.5, (seed + (id + 1) * 7919) >>> 0, { bait, method: "scoop", junk: true, when });
+    const d = haul.difficulty;
+    const junk = !!haul.junk;
+    return {
+      id, haul,
+      x: 0.25 + r() * 0.5, y: 0.5 + r() * 0.2, vx: 0, vy: 0, stam: 1, dwell: 0,
+      need: junk ? 0.45 : 0.75 + d * 0.07,
+      // 흔한 물고기(d 1~1.5)는 그물과 비슷한 빠르기 — 쫓아도 잡힌다. 귀할수록 빠르고 일찍 눈치챈다
+      flee: junk ? 0.08 : 0.34 + d * 0.03,
+      fleeR: junk ? 0.1 : 0.2 + d * 0.012,
+      // 귀할수록 덜 지친다 — 쫓기만 해서는(지쳐서 붙잡히기) 시간 안에 못 건진다. 물가로 몰아야 한다
+      tire: junk ? 0.2 : 0.075 / (1 + d * 0.14),
+      wx: 0.4 + r() * 0.5, wy: 0.5 + r() * 0.6, ph: r() * 6.28, side: r() < 0.5 ? -1 : 1,
+    };
+  });
+  return { t: 0, left: HERD_TIME_S, nx: 0.5, ny: 0.8, fish, status: "on", caught: -1, quality: 0, acc: 0 };
+}
+/** 구석 — 두 벽까지 이만큼 안(거리 단위) */
+export const HERD_PIN = 0.07;
+/** 이만큼 지치면 트인 물에서도 붙잡힌다 */
+export const HERD_TIRED = 0.2;
+/** 구석에 몰렸나 — 가로 벽과 세로 벽 둘 다에 붙었다(벽 하나면 벽을 따라 미끄러져 빠져나간다) */
+export const herdPinned = (f: Pick<HerdFish, "x" | "y">) =>
+  Math.min(f.x - HERD_AREA.x[0], HERD_AREA.x[1] - f.x) <= HERD_PIN && Math.min((f.y - HERD_AREA.y[0]) * HY, (HERD_AREA.y[1] - f.y) * HY) <= HERD_PIN;
+/** 그물 중심과의 거리(세로 1.25 배) */
+export const herdDist = (f: Pick<HerdFish, "x" | "y">, x: number, y: number) => Math.hypot(f.x - x, (f.y - y) * HY);
+
+function herdTick(h: Herd, tx: number, ty: number, tune: HerdTune) {
+  const dt = HERD_STEP;
+  h.t += dt;
+  h.left -= dt;
+  // 그물 — 손가락 쪽으로, 빠르기 상한
+  const gx = clamp(tx, HERD_AREA.x[0], HERD_AREA.x[1]), gy = clamp(ty, HERD_AREA.y[0], HERD_AREA.y[1]);
+  const ex = gx - h.nx, ey = (gy - h.ny) * HY, ed = Math.hypot(ex, ey);
+  const step = Math.min(ed, tune.netSpeed * dt);
+  if (ed > 1e-6) { h.nx += (ex / ed) * step; h.ny += (ey / ed) * step / HY; }
+  const [x0, x1] = HERD_AREA.x, [y0, y1] = HERD_AREA.y;
+  for (const f of h.fish) {
+    const dx = f.x - h.nx, dy = (f.y - h.ny) * HY, d = Math.hypot(dx, dy) || 1e-6;
+    let wx: number, wy: number, sp: number;
+    const scared = d < f.fleeR;
+    if (scared) {
+      // 달아난다 — 그물 반대쪽 + 물고기마다 정해진 쪽으로 조금 비껴서(늘 똑같이 곧게 달아나지 않게)
+      wx = dx / d + (-dy / d) * 0.35 * f.side;
+      wy = dy / d + (dx / d) * 0.35 * f.side;
+      // 물가를 꺼린다 — 트인 물로 가려 한다. 그래서 구석에 몰아넣어야 갇힌다(가장자리에 혼자 붙지 않는다)
+      // 그물이 코앞이면 그냥 도망친다(그래서 물가로 밀어붙일 수 있다)
+      const m = 0.14, aw = 1.4 * Math.min(1, d / f.fleeR) ** 2;
+      if (f.x - x0 < m) wx += (1 - (f.x - x0) / m) * aw;
+      if (x1 - f.x < m) wx -= (1 - (x1 - f.x) / m) * aw;
+      if ((f.y - y0) * HY < m) wy += (1 - ((f.y - y0) * HY) / m) * aw;
+      if ((y1 - f.y) * HY < m) wy -= (1 - ((y1 - f.y) * HY) / m) * aw;
+      sp = f.flee * (0.45 + 0.55 * f.stam) * (0.55 + 0.45 * (1 - d / f.fleeR));
+      f.stam = Math.max(0, f.stam - dt * f.tire);
+    } else {
+      // 느긋하게 떠돈다
+      wx = Math.sin(h.t * f.wx + f.ph); wy = Math.cos(h.t * f.wy + f.ph * 1.7) * 0.6;
+      sp = 0.06;
+      f.stam = Math.min(1, f.stam + dt * 0.05);
+    }
+    const wl = Math.hypot(wx, wy) || 1;
+    const vx = (wx / wl) * sp, vy = (wy / wl) * sp;
+    const k = Math.min(1, dt * (scared ? 9 : 3));
+    f.vx += (vx - f.vx) * k;
+    f.vy += (vy - f.vy) * k;
+    // 벽 — 막힌 쪽 빠르기는 버리고 벽을 따라 미끄러진다(구석이면 갇힌다)
+    let x = f.x + f.vx * dt, y = f.y + (f.vy * dt) / HY;
+    if (x < x0) { x = x0; if (f.vx < 0) f.vx = 0; } else if (x > x1) { x = x1; if (f.vx > 0) f.vx = 0; }
+    if (y < y0) { y = y0; if (f.vy < 0) f.vy = 0; } else if (y > y1) { y = y1; if (f.vy > 0) f.vy = 0; }
+    f.x = x; f.y = y;
+    // 트인 물에선 그물 밑으로 빠져나간다 — 물가(벽)에 밀어붙였거나 지쳤을 때만 그물 안에 붙잡힌다
+    const inside = herdDist(f, h.nx, h.ny) <= tune.netR && (herdPinned(f) || f.stam < HERD_TIRED);
+    f.dwell = inside ? f.dwell + dt : Math.max(0, f.dwell - dt * 1.5);
+  }
+}
+/** dt 만큼 — 손가락이 가리키는 곳(tx, ty, 화면 비율)으로 그물을 끈다. 고정 걸음(1/60초)이라 화면 틱 · 테스트가 같은 결과. 순수 */
+export function stepHerd(s: Herd, dt: number, tx: number, ty: number, tune: HerdTune): Herd {
+  if (s.status !== "on") return s;
+  const h: Herd = { ...s, fish: s.fish.map((f) => ({ ...f })) };
+  h.acc += Math.min(0.25, Math.max(0, dt));
+  while (h.acc >= HERD_STEP && h.status === "on") {
+    h.acc -= HERD_STEP;
+    herdTick(h, tx, ty, tune);
+    const got = h.fish.findIndex((f) => f.dwell >= f.need);
+    if (got >= 0) {
+      h.status = "caught";
+      h.caught = got;
+      // 솜씨 — 빨리 건질수록. 20초 판의 절반 안이면 거의 만점
+      h.quality = clamp(1.15 - h.t / (HERD_TIME_S * 0.8), 0, 1);
+    } else if (h.left <= 0) h.status = "out";
+  }
+  return h;
+}
+/** 지금 가장 오래 붙잡아 둔 물고기와 그 진행(0~1) */
+export function herdBest(h: Herd): { i: number; p: number } {
+  let i = -1, p = 0;
+  h.fish.forEach((f, k) => { const v = f.dwell / f.need; if (v > p) { p = v; i = k; } });
+  return { i, p: Math.min(1, p) };
+}

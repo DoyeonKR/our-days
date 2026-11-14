@@ -4,10 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SPOTS, poolFor } from "./fishing.ts";
 import {
-  PLUNGE_S, SCOOP_SHOTS, deepBand, deepTune, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayTune, tapLure,
-  type Scoop,
+  deepBand, deepTune, lureTune, startDeep, startLure, startSway, stepDeep, stepLure, stepSway, swayTune, tapLure,
 } from "./fishingmodes.ts";
 
 const DT = 0.033;
@@ -79,53 +77,7 @@ test("좌우 끌기 — 반대쪽으로 끌어야 잡힌다 · 가만히 있거�
   assert.equal(swayRun(0, 1, 1, 7, "same").status, "snapped");
 });
 
-/* 뜰채 */
-function scoopRun(spotI: number, bait: number, net: number, seed: number, lead: boolean, err: number) {
-  let s: Scoop = startScoop(SPOTS[spotI], 5, bait, seed);
-  const r = noise(seed + 5);
-  const R = netRadius(net);
-  let cool = 1.2;
-  for (let i = 0; i < 3000 && s.status === "on"; i++) {
-    cool -= DT;
-    if (cool <= 0) {
-      const tgt = s.fish.find((f) => scoopPos(f, s.clock + PLUNGE_S).reach) ?? s.fish[0];
-      const p = scoopPos(tgt, s.clock + (lead ? PLUNGE_S : 0));
-      s = plunge({ ...s, clock: s.clock + PLUNGE_S }, p.x + (r() - 0.5) * err, p.y + (r() - 0.5) * err, R);
-      cool = 1.4;
-      continue;
-    }
-    s = stepScoop(s, DT);
-  }
-  return s;
-}
-test("뜰채 — 앞서 노려야 잘 건진다 · 좋은 뜰채는 그물이 넓다 · 세 번 빗나가면 끝 · 깊이 들어간 놈은 못 건진다", () => {
-  const ok = (lead: boolean, net: number) => rate((s) => scoopRun(0, 0, net, s, lead, 0.2).status === "caught");
-  assert.ok(ok(true, 0) > ok(false, 0), `앞서 ${ok(true, 0)} / 그 자리 ${ok(false, 0)}`);
-  assert.ok(ok(true, 0) > 0.6, `첫 뜰채로도 잘 건진다 ${ok(true, 0)}`);
-  assert.ok(ok(true, 5) > ok(true, 0));
-  let s = startScoop(SPOTS.find((x) => x.key === "brook")!, 1, 0, 42);
-  for (let i = 0; i < SCOOP_SHOTS; i++) s = plunge(s, -1, -1, 0.05);
-  assert.equal(s.status, "out");
-  const f = startScoop(SPOTS.find((x) => x.key === "brook")!, 1, 0, 9);
-  const fish = f.fish[0];
-  let deepAt = 0;
-  while (scoopPos(fish, deepAt).reach && deepAt < 60) deepAt += 0.05;
-  const p = scoopPos(fish, deepAt);
-  const only = { ...f, clock: deepAt, fish: [fish] };
-  assert.equal(plunge(only, p.x, p.y, 0.1).status === "caught", false, "깊은 놈");
-});
-test("뜰채 — 수면 물고기는 미끼 상한을 지킨다 · 빗나가면 다 같이 놀라서 빨라진다 · 움직임은 시계만의 함수", () => {
-  for (let i = 0; i < 40; i++) {
-    const s = startScoop(SPOTS.find((x) => x.key === "pond")!, 3, 1, i * 7 + 1);
-    for (const f of s.fish) assert.ok(poolFor(SPOTS.find((x) => x.key === "pond")!, 2).some(([k]) => k === f.haul.family), f.haul.family);
-    for (const f of s.fish) assert.notEqual(f.haul.stage, 2);
-  }
-  const s = startScoop(SPOTS.find((x) => x.key === "brook")!, 1, 0, 3);
-  const missed = plunge(s, -1, -1, 0.05);
-  assert.ok(missed.startled > 0);
-  assert.ok(stepScoop(missed, 0.1).clock > stepScoop(s, 0.1).clock);
-  assert.deepEqual(scoopPos(s.fish[0], 2), scoopPos(s.fish[0], 2));
-});
+/* 뜰채 — 몰아서 건지기는 fishingherd.test */
 
 /* 심해 */
 function deepRun(d: number, p: number, l: number, seed: number, policy: "human" | "fast" | "stop" | "nostop") {
@@ -158,7 +110,7 @@ test("심해 — 초록 속도를 지키고 파고들 때 멈춰야 잡힌다 ·
 
 test("화면 — 네 방식의 진행 함수를 모두 부른다 · 모든 놓침에 문구가 있다", () => {
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
-  for (const k of ["stepFight(", "stepLure(", "tapLure(", "stepSway(", "stepScoop(", "plunge(", "stepDeep("]) assert.ok(src.includes(k), k);
+  for (const k of ["stepFight(", "stepLure(", "tapLure(", "stepSway(", "stepHerd(", "stepDeep("]) assert.ok(src.includes(k), k);
   assert.ok(src.includes("spendBait("), "던질 때 미끼를 쓴다");
   assert.ok(src.includes("haulJunk("), "꽝을 치운다");
   assert.ok(src.includes("junk: true"), "실제 낚시에서 꽝이 켜져 있다");

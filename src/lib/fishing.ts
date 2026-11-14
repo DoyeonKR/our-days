@@ -122,7 +122,7 @@ export type FishMethod = { key: MethodKey; name: string; minLevel: number; baitC
 export const METHODS: readonly FishMethod[] = [
   { key: "float", name: "찌낚시", minLevel: 1, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 1, how: "입질에 챔질하고, 누르고 떼며 줄을 감아요", good: "기본" },
   { key: "lure", name: "루어", minLevel: 2, baitCost: 1, adult: 2.4, lift: 0, capture: 0, junk: 0.6, how: "박자 맞춰 유인하고, 물고기 반대쪽으로 끌어요", good: "다 큰 물고기가 잘 와요" },
-  { key: "scoop", name: "뜰채", minLevel: 3, baitCost: 1, adult: 0, lift: 0, capture: 0.12, junk: 1, how: "떠오른 그림자를 앞서 겨눠 건지고, 기울지 않게 들어 올려요", good: "고를 수 있고 잘 담겨요" },
+  { key: "scoop", name: "뜰채", minLevel: 3, baitCost: 1, adult: 0, lift: 0, capture: 0.12, junk: 1, how: "그물을 끌고 다니며 달아나는 물고기를 구석으로 몰아 건져요", good: "고를 수 있고 잘 담겨요 · 타이밍 대신 몰이" },
   { key: "deep", name: "심해", minLevel: 5, baitCost: 2, adult: 1.4, lift: 0.9, capture: -0.04, junk: 1.5, how: "릴을 빙글빙글 돌려 끌어올려요. 미끼를 2개 써요", good: "귀한 물고기가 와요" },
   // 집어등(2026-11-12) [사용자 승인: "밤에만 열리는 다섯 번째 방식입니다. 불빛으로 물고기를 모았다가 터지는 순간 낚아 올립니다"].
   // lift · adult 는 찌와 같다 — 귀한 등급을 더 부르지 않는다(미끼 1% 규칙). 밤 물고기 쪽으로 기우는 건 같은 단계 안에서만(rollCatch 의 lightRepick).
