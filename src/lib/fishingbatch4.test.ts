@@ -28,10 +28,13 @@ const PRE: Record<string, [string, number][]> = {
   abyss: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3]],
 };
 const spot = (k: string) => SPOTS.find((s) => s.key === k)!;
+/** 2026-11-14 다시 지은 낚시터 — 용궁사 · 거진항은 전설 · 신화 계열뿐이라 무엇을 낚든 100% 전설이었다. 영웅급 바다 물고기를 기본으로 깔았다(대표 물고기가 바뀐 게 의도) */
+const REBUILT = new Set(["palace", "starsea"]);
 
 test("4차 뒤에도 낚시터의 원래 흔한 물고기가 몫을 지킨다 — 행운 5 · 가장 싼 미끼(열대관 · 항구는 민물새우도)에서 4차 전 몫의 80% 이상", () => {
   const rows: string[] = [];
   for (const s of SPOTS) {
+    if (REBUILT.has(s.key)) continue;
     const pre = PRE[s.key];
     assert.ok(pre, `${s.key} 의 4차 전 pool`);
     const min = baitIndex(spotMinBait(s).key);
@@ -52,6 +55,7 @@ test("4차 뒤에도 낚시터의 원래 흔한 물고기가 몫을 지킨다 �
 
 test("4차 새 흔한 계열은 원래 흔한 물고기 바로 뒤(귀한 계열 앞)에 있고 여전히 잡힌다 — 대표 물고기 자리(pool[0])는 그대로", () => {
   for (const s of SPOTS) {
+    if (REBUILT.has(s.key)) continue;
     const pre = PRE[s.key];
     assert.equal(s.pool[0][0], pre[0][0], `${s.key} 대표 물고기 자리`);
     const min = baitIndex(spotMinBait(s).key);
@@ -80,7 +84,8 @@ test("오스카 — 생태원의 귀한 물고기(1% 띠)이고 사냥꾼이다 
   assert.equal(shrimp.find((x) => x.family === "oscar")?.chance ?? 0, 0);
   const squid = catchTable(j, 5, baitIndex("bait_squid"), "float", undefined, 6000);
   const o = squid.find((x) => x.family === "oscar")?.chance ?? 0;
-  assert.ok(o > 0.004 && o < 0.02, `오징어살 오스카 ${o}`);
+  // 2026-11-14 — 같은 미끼 단계의 귀한 계열(디스커스 · 가오리 · 오스카 · 피라냐)이 한 칸을 나눠 갖는다
+  assert.ok(o > 0.0005 && o < 0.02, `오징어살 오스카 ${o}`);
 });
 
 test("피라루쿠 · 전기뱀장어 — 생태원에서 쓰는 가장 높은 미끼(황금 떡밥)로 그때 온다", () => {

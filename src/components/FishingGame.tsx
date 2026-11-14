@@ -35,8 +35,8 @@ import { noteTrophy, trophyCard, type TrophyCard } from "@/lib/fishtrophy";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
 import { NET_MAX, familyOf, fishArtKey, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
-import { TANK_FULL, bossRecOf, bossWhy as bossWhyOf, claimFishGoal, tryNet, tryStoreSwap } from "@/lib/fishing";
-import { awakeBossAt, masterySaleBonus, spotLookOf, spotStars, withMasteryLuck } from "@/lib/fishmastery";
+import { TANK_FULL, bossRecOf, bossWhy as bossWhyOf, claimFishGoal, sellPrice, tryNet, tryStoreSwap } from "@/lib/fishing";
+import { awakeBossAt, spotLookOf, spotStars, withMasteryLuck } from "@/lib/fishmastery";
 import { gearStats, wornLooks } from "@/lib/fishlooks";
 import { asset } from "@/lib/base";
 import { FISH_IMAGE_KEYS } from "@/lib/aquaimages";
@@ -58,7 +58,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMaxMeters, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMaxMeters, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, buySinker, buyReel, reelOf, deepestOf, noteDeepest, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, stepFight, storeBlock, traceMove, traceRelease, traceTick, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -2131,7 +2131,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                         </ActionButton>
                       )}
                       <ActionButton wide className="fish-choice-sell" disabled={busy || !!picked} onClick={() => void sell()}>
-                        {fish.boss ? "보내 주기" : block && block !== TANK_FULL ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {Math.round(coinValue(fish.difficulty) * (1 + masterySaleBonus(st, fish.at))).toLocaleString()}</span>
+                        {fish.boss ? "보내 주기" : block && block !== TANK_FULL ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {sellPrice(st, fish).toLocaleString()}</span>
                       </ActionButton>
                       </div>
                     </>

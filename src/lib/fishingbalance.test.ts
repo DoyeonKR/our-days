@@ -62,7 +62,8 @@ test("깊은 낚시터일수록 힘겨루기가 세다 — 판매가 · 경험�
   const game = code("src/components/FishingGame.tsx");
   for (const f of ["fightTune(fightLevel(fish)", "deepTune(fightLevel(fish)", "swayTune(fightLevel(fish)", "lureTune(fightLevel(fishRef.current ?? c)", "hookWindowMs(fightLevel(fishRef.current ?? c)", "tapLure(cur, tune, fightLevel(fish))", "stepLure(cur, dt, tune, fightLevel(c))"]) assert.ok(game.includes(f), f);
   assert.match(game, /captureChance\(eff\.catch, fish\.difficulty/, "포획 확률은 등급 그대로");
-  assert.match(game, /coinValue\(fish\.difficulty\)/);
+  // 2026-11-14 — 파는 값은 등급 값 × 낚시터 값(SPOT_VALUE — 용궁사 · 거진항 · 심해만) × 숙련 덤, 한 곳(sellPrice)에서
+  assert.match(game, /sellPrice\(st, fish\)/);
 });
 
 test("레벨 곡선 — 늘 오르기만 하고, 첫 레벨은 첫 낚시터를 둘러볼 만큼 · 울릉도 구간(18~24)은 예전보다 짧다", () => {

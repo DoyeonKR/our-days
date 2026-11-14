@@ -3,7 +3,7 @@
 // ④ 비싼 미끼가 쓰라고 만든 낚시터에서도 손해 · 맨 끝 낚시터(심해)가 용궁사보다 덜 벌었다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BAITS, SPOTS, baitIndex, coinValue, rollCatch, spotMinBait, spotOf, type FishSpot } from "./fishing.ts";
+import { BAITS, SPOTS, baitIndex, catchValue, rollCatch, spotMinBait, spotOf, type FishSpot } from "./fishing.ts";
 import { BOSSES, bossReward } from "./fishingworld.ts";
 import { DAILY_COIN_CAP } from "./merge.ts";
 import { SKINS } from "./mergeskins.ts";
@@ -34,7 +34,7 @@ function net(spot: FishSpot, bait: number, luck = 25, n = 3000): number {
   let v = 0;
   for (let i = 0; i < n; i++) {
     const c = rollCatch(spot, luck, 0.6, (Math.imul(i + 1, 2654435761) + 7) >>> 0, { bait, junk: true });
-    v += c.junk ? 2 : coinValue(c.difficulty);
+    v += c.junk ? 2 : catchValue(c);
   }
   return (v / n) * 0.8 - (bait === 0 ? 0 : BAITS[bait].price / BAITS[bait].uses);
 }
