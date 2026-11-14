@@ -11,7 +11,7 @@
 
 export type StartleKind = "dart" | "inflate" | "ink" | "burrow" | "pulse" | "roll" | "tuck";
 /** 한 번 놀라는 데 걸리는 시간(초) — 끝나면 원래 길 그대로 */
-export const STARTLE_S = 2.4;
+export const STARTLE_S = 3.6;
 
 const MAMMALS = new Set(["spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "sea_otter", "otter"]);
 const CEPH = new Set(["octopus", "squid", "giant_squid", "kraken", "cuttlefish"]);
@@ -31,9 +31,10 @@ export function startleKind(family: string, key = family): StartleKind {
 }
 
 /** 얼마나 멀리(몸길이 배) · 얼마나 높이 튀는가 */
-const PEAK: Record<StartleKind, number> = { dart: 2.6, inflate: 0.6, ink: 3.2, burrow: 1.4, pulse: 1.3, roll: 2.4, tuck: 0.35 };
+// 2026-11-14 [사용자: "반응이 너무 빨라"] — 덜 멀리 · 더 천천히(튀어 나가기 0.45 → 1초, 전체 2.4 → 3.6초)
+const PEAK: Record<StartleKind, number> = { dart: 1.7, inflate: 0.4, ink: 2.2, burrow: 1, pulse: 1, roll: 1.6, tuck: 0.25 };
 /** 튀어 나가 가장 멀리 닿는 때(초) */
-const OUT_S = 0.45;
+const OUT_S = 1;
 const ease = (x: number) => { const v = x < 0 ? 0 : x > 1 ? 1 : x; return v * v * (3 - 2 * v); };
 
 export type StartlePose = {
@@ -58,14 +59,14 @@ export function startlePose(kind: StartleKind, t: number, side = 1): StartlePose
   const peak = PEAK[kind];
   // 튀어 나가기(0 ~ OUT_S, 빠르게) → 원래 길로 천천히 돌아오기(OUT_S ~ 끝)
   const out = t < OUT_S ? 1 - (1 - t / OUT_S) ** 3 : 1 - ease((t - OUT_S) / (STARTLE_S - OUT_S));
-  const rush = t < OUT_S ? 1 - t / OUT_S * 0.4 : Math.max(0, 0.6 * (1 - (t - OUT_S) / 0.8));
-  const p: StartlePose = { dash: peak * out, beat: 1 + 2.4 * rush, puff: 1, roll: 0, bend: 0, rush };
+  const rush = t < OUT_S ? 1 - t / OUT_S * 0.4 : Math.max(0, 0.6 * (1 - (t - OUT_S) / 1.2));
+  const p: StartlePose = { dash: peak * out, beat: 1 + 1.3 * rush, puff: 1, roll: 0, bend: 0, rush };
   // C-start — 0.12초에 몸을 한쪽으로 확 꺾고, 다음 0.18초에 반대로 튕긴다
-  if (kind === "dart" || kind === "burrow") p.bend = side * (t < 0.12 ? 3 * (t / 0.12) : t < 0.3 ? 3 - 5 * ((t - 0.12) / 0.18) : -2 * Math.max(0, 1 - (t - 0.3) / 0.3));
-  if (kind === "inflate") { p.puff = 1 + 0.75 * (t < 0.3 ? ease(t / 0.3) : t < 1.8 ? 1 : 1 - ease((t - 1.8) / 0.6)); p.beat = 1 + 1.5 * rush; }
-  if (kind === "roll") p.roll = side * 2 * Math.PI * ease(t / 0.9);
-  if (kind === "pulse") p.beat = 1 + 3 * Math.max(0, 1 - t / 1.2);
-  if (kind === "tuck") p.beat = 1 + 0.5 * rush;
+  if (kind === "dart" || kind === "burrow") p.bend = side * (t < 0.22 ? 2 * (t / 0.22) : t < 0.55 ? 2 - 3.2 * ((t - 0.22) / 0.33) : -1.2 * Math.max(0, 1 - (t - 0.55) / 0.5));
+  if (kind === "inflate") { p.puff = 1 + 0.75 * (t < 0.7 ? ease(t / 0.7) : t < 2.6 ? 1 : 1 - ease((t - 2.6) / 1)); p.beat = 1 + 0.8 * rush; }
+  if (kind === "roll") p.roll = side * 2 * Math.PI * ease(t / 1.8);
+  if (kind === "pulse") p.beat = 1 + 1.8 * Math.max(0, 1 - t / 2);
+  if (kind === "tuck") p.beat = 1 + 0.3 * rush;
   return p;
 }
 

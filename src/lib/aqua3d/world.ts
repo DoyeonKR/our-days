@@ -370,3 +370,62 @@ export function floorPose(heightAt: (x: number, z: number) => number, x: number,
 
 /** 돌 때 몸을 안쪽으로 기울인다(비행기처럼, 최대 10°). turn 은 course.turn(+Y 축 기준 rad/s) — 엔진은 몸 앞 축(로컬 x)으로 이만큼 돌린다 */
 export const bankAngle = (turn: number) => clamp(-turn * 0.09, -0.1745, 0.1745);
+
+/* ── 몸끼리 닿지 않게(2026-11-14) ─────────────────────────────
+ * [사용자: "물고기 개체끼리 겹치면 안돼 물리엔진처럼"] separate 는 보정값을 천천히 따라가게 해서(떨림 없음) 몇 초씩 몸이 겹친 채였다.
+ * 이제 매 프레임 마지막에 몸통 캡슐(몸 방향 선분 + 반지름)끼리 실제로 겹친 만큼을 밀어낸다 — 위치 기반 물리(PBD)의 접촉 제약과 같은 방식.
+ * 무거운 몸(바닥에 붙음 · 바위 위 쉼)은 덜 밀리고, mass 0(굴 속 곰치)은 안 밀린다. skip(사냥 장면의 둘)은 서로 닿아도 된다.
+ * 몇 번 되풀이해 셋 이상이 엉킨 것도 푼다. 민 자리는 유리 · 모래 · 수면 안. 할당 없음. */
+export type ContactOptions = {
+  /** 몸 방향(x,y,z 차례, 크기 상관없음) */ heading: ArrayLike<number>;
+  /** 밀리는 정도(0 안 밀림 ~ 1) — 없으면 모두 1 */ mass?: ArrayLike<number>;
+  /** 바닥에 붙은 정도(0~1) — 납작한 바닥 물고기는 캡슐이 조금 두껍다 */ pinned?: ArrayLike<number>;
+  /** 1 이면 둥근 판(불가사리) */ disc?: ArrayLike<number>;
+  /** 건너뛸 물고기(1) */ skip?: ArrayLike<number>;
+  scale?: number; deep?: number; top?: number; iters?: number;
+};
+export function resolveContacts(pos: Float32Array, lengths: ArrayLike<number>, n: number, o: ContactOptions): number {
+  const H = o.heading, S = o.scale ?? 1, D = o.deep ?? 1, top = o.top ?? 4.7, iters = o.iters ?? 4;
+  let moved = 0;
+  for (let it = 0; it < iters; it++) {
+    let any = false;
+    for (let i = 0; i < n; i++) {
+      if (o.skip && o.skip[i]) continue;
+      const Li = lengths[i], wi = o.mass ? o.mass[i] : 1;
+      let ux = H[i * 3], uy = H[i * 3 + 1], uz = H[i * 3 + 2];
+      const ul = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1; ux /= ul; uy /= ul; uz /= ul;
+      const di = o.disc && o.disc[i] ? 1 : 0, ha = di ? 0 : Li * CAP_HALF, ri = di ? Li * DISC_R : Li * (o.pinned && o.pinned[i] > 0.5 ? CAP_R_PIN : CAP_R);
+      for (let j = i + 1; j < n; j++) {
+        if (o.skip && o.skip[j]) continue;
+        const wj = o.mass ? o.mass[j] : 1;
+        if (wi + wj <= 0) continue;
+        const Lj = lengths[j];
+        // 먼 짝은 빨리 거른다(몸 가운데 사이가 두 몸의 반길이 합보다 멀면 닿을 수 없다)
+        const cx = pos[i * 3] - pos[j * 3], cy = pos[i * 3 + 1] - pos[j * 3 + 1], cz = pos[i * 3 + 2] - pos[j * 3 + 2], reach = (Li + Lj) * 0.62;
+        if (cx * cx + cy * cy + cz * cz > reach * reach) continue;
+        let vx = H[j * 3], vy = H[j * 3 + 1], vz = H[j * 3 + 2];
+        const vl = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1; vx /= vl; vy /= vl; vz /= vl;
+        const dj = o.disc && o.disc[j] ? 1 : 0, hb = dj ? 0 : Lj * CAP_HALF, rj = dj ? Lj * DISC_R : Lj * (o.pinned && o.pinned[j] > 0.5 ? CAP_R_PIN : CAP_R);
+        const g = segGap(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2], ux, uy, uz, ha, pos[j * 3], pos[j * 3 + 1], pos[j * 3 + 2], vx, vy, vz, hb);
+        let gx = g.x, gy = g.y, gz = g.z;
+        const d = Math.sqrt(gx * gx + gy * gy + gz * gz), need = ri + rj;
+        if (d >= need) continue;
+        if (d < 1e-5) { gx = 0; gy = 0; gz = 1; } else { gx /= d; gy /= d; gz /= d; }
+        const push = need - d, ki = wi / (wi + wj), kj = wj / (wi + wj);
+        pos[i * 3] += gx * push * ki; pos[i * 3 + 1] += gy * push * ki; pos[i * 3 + 2] += gz * push * ki;
+        pos[j * 3] -= gx * push * kj; pos[j * 3 + 1] -= gy * push * kj; pos[j * 3 + 2] -= gz * push * kj;
+        any = true; moved++;
+      }
+    }
+    for (let k = 0; k < n; k++) {
+      if (o.skip && o.skip[k]) continue;
+      if (o.mass && o.mass[k] <= 0) continue;
+      const L = lengths[k], mx = 5 * S - L * 0.4, mz = 3 * D - L * 0.25;
+      if (mx > 0) pos[k * 3] = clamp(pos[k * 3], -mx, mx);
+      if (mz > 0) pos[k * 3 + 2] = clamp(pos[k * 3 + 2], -mz, mz);
+      pos[k * 3 + 1] = clamp(pos[k * 3 + 1], WORLD.floor + L * 0.04, top);
+    }
+    if (!any) break;
+  }
+  return moved;
+}

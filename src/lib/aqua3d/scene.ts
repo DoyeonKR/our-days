@@ -17,6 +17,7 @@ import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer, ratioFloor } from "./framepace.ts";
 import { type Course, type Hall, type Obstacle as CourseObstacle } from "./habits.ts";
+import { resolveContacts } from "./world.ts";
 import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
 import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
@@ -714,7 +715,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         if(st.kind!=="ink"&&st.kind!=="pulse"&&pose.rush>0){const w=pose.rush*.85;H[k]=H[k]*(1-w)+st.dir.x*w;H[k+1]=H[k+1]*(1-w)+st.dir.y*w*.5;H[k+2]=H[k+2]*(1-w)+st.dir.z*w;}
         if(dt>0)m.phase+=dt*Math.max(.6,m.course.effort)*(pose.beat-1);
         if(pose.roll)motion.rolls[j]=(motion.rolls[j]??0)+pose.roll;
-        startleNow.set(m,pose);}}j++;}}
+        startleNow.set(m,pose);}}j++;}
+      // 놀라 튀어 나간 몸도 다른 물고기와 닿지 않게(사냥 장면의 둘은 빼고)
+      resolveContacts(motion.positions,motion.lengths,motion.count,{heading:motion.heading,pinned:motion.pinned,skip:motion.busy,scale:wide,deep,top:tallY(4.7,tall),iters:2});}
     // 먹이 알갱이 — 새 먹이면 물고기가 모이는 자리에 뿌리고, 먹이 쪽으로 온 물고기 입에 닿은 알은 먹힌다(food.ts). 움직임 줄이기면 한 장면
     if(motion.feed&&motion.feed!==foodFeed){foodFeed=motion.feed;food.drop(motion.feed.t,motion.feed.x,{top:tallY(4.75,tall),deep,floorAt:foodFloor});}
     food.step(elapsed,dt,motion,reduced.matches);

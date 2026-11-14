@@ -54,14 +54,16 @@ test("놀라는 몸짓은 종마다 다르다 · 끝나면 원래 길로 돌아�
   for (const k of ["dart", "inflate", "ink", "burrow", "pulse", "roll", "tuck"] as const) {
     const end = startlePose(k, STARTLE_S);
     assert.equal(end.dash, 0); assert.equal(end.puff, 1); assert.equal(end.roll, 0);
-    const early = startlePose(k, 0.3), late = startlePose(k, 1.6);
+    const early = startlePose(k, 0.3), late = startlePose(k, 2.6);
     assert.ok(early.beat >= late.beat, `${k} 처음 꼬리가 더 세다`);
     assert.ok(early.dash > 0, k);
   }
-  assert.ok(startlePose("dart", 0.45).dash > 2, "멀리 튀어 나간다");
-  assert.ok(Math.abs(startlePose("dart", 0.1, 1).bend) > 1, "C 자로 꺾는다");
-  assert.ok(startlePose("inflate", 1).puff > 1.6, "복어는 부푼다");
-  assert.ok(Math.abs(startlePose("roll", 0.9, 1).roll - 2 * Math.PI) < 1e-6, "포유류는 한 바퀴 구른다");
+  assert.ok(startlePose("dart", 1).dash > 1.5, "튀어 나간다");
+  // 2026-11-14 [사용자: "반응이 너무 빨라"] — 튀어 나가는 데 1초, 돌아오기까지 3.6초
+  assert.ok(STARTLE_S >= 3.5 && startlePose("dart", 0.5).dash < startlePose("dart", 1).dash, "천천히 멀어진다");
+  assert.ok(Math.abs(startlePose("dart", 0.2, 1).bend) > 1, "C 자로 꺾는다");
+  assert.ok(startlePose("inflate", 1.5).puff > 1.6, "복어는 부푼다");
+  assert.ok(Math.abs(startlePose("roll", 1.8, 1).roll - 2 * Math.PI) < 1e-6, "포유류는 한 바퀴 구른다");
   const up = startleDir("pulse", 1, 0, 1, 0, 1);
   assert.ok(up.y > 0.9, "해파리는 위로");
   const back = startleDir("ink", 0, -1, 1, 0, 1);
