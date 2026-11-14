@@ -80,7 +80,7 @@ test("어군에 맞히면 그 수심 쪽으로 더 세다 · 다른 수심 물�
 test("화면 — 뜰채 · 주인 · 특별한 것만 빼고 모든 낚시가 가라앉기를 거친다 · 수심은 봉돌 한계 안에서", () => {
   const src = readFileSync("src/components/FishingGame.tsx", "utf8");
   assert.ok(src.includes("if (c.boss || c.special) { go(flyMs); return; }"), "주인 · 특별한 것만 가라앉기 없이");
-  assert.match(src, /phase === "sink"\) \{\s*stopSink\(\);/);
+  assert.match(src, /phase === "sink"\) \{[^}]*deviceClock\(\) < sinkRef\.current\.t0\) return;\s*stopSink\(\);/, "날아가는 동안의 누름은 무시하고 내려앉은 뒤 누르면 멈춘다");
   assert.ok(src.includes("const reach = sinkReach(sinkerOf(st), method, spot);"), "수심은 봉돌 한계 안에서");
   assert.match(src, /if \(method === "scoop"\) \{\s*beginScoop\(\);/,"뜰채는 던지지 않고 건진다(가라앉기 없음)");
 });

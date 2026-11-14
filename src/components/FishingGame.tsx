@@ -1365,6 +1365,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       setCharge(0);
       setPhase("charge");
     } else if (phase === "sink") {
+      // 찌가 아직 날아가는 중이면 무시 — 던진 직후 손가락이 한 번 더 닿아 0m 에서 멈추던 것
+      if (sinkRef.current && deviceClock() < sinkRef.current.t0) return;
       stopSink();
     } else if (phase === "wait") {
       loseRound("early");
