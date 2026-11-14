@@ -16,6 +16,7 @@
  *    루어 · 뜰채 · 심해의 규칙은 fishingmodes.ts, 집어등은 fishinglight.ts.
  *  · 꽝 [사용자: "일정 확률로 바다 쓰레기(꽝)도 낚을 수 있는 재미 포인트 … 쓰레기의 종류는 여러개"] — 끌어올리기 전까진 물고기와 똑같다. 낚시터마다 다른 쓰레기가 있고 수집함에 남는다.
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
+import { ACTIVE_SHRIMP, withShrimp } from "./shrimp.ts";
 import type { IslandState } from "./island.ts";
 import type { SpecialCard } from "./fishplus.ts";
 import { josa } from "./josa.ts";
@@ -43,9 +44,9 @@ export const FREE_WORMS = 20;
 /** 민물 · 바다 — 강과 늪엔 민물고기만, 바다엔 바닷물고기만 산다[사용자: "강이나 특정 습지 이런대는 민물고기만 나오도록하고 바다에는 바닷물고기 … 꼭 한국의 특정지역"]. */
 export type FishWater = "river" | "lake" | "valley" | "wetland" | "hall" | "sea";
 export const WATER_NAME: Readonly<Record<FishWater, string>> = { river: "강", lake: "호수", valley: "계곡", wetland: "늪", hall: "열대관", sea: "바다" };
-export const FRESH_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "sweetfish", "goldfish", "betta", "catfish", "angel", "discus", "koi", "ray", "arowana", "salmon", "crucian", "pale_chub", "chinese_minnow", "smelt", "bullhead", "common_carp", "masu_salmon", "snakehead", "mandarin_fish", "perch_kkeokji", "eel", "lenok", "bitterling", "shiri", "sturgeon", "loach", "dark_chub", "sleeper", "gudgeon", "skygazer", "rainbow_trout", "grass_carp", "bluegill", "largemouth_bass", "char", "ricefish", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel", "otter"]);
+export const FRESH_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "sweetfish", "goldfish", "betta", "catfish", "angel", "discus", "koi", "ray", "arowana", "salmon", "crucian", "pale_chub", "chinese_minnow", "smelt", "bullhead", "common_carp", "masu_salmon", "snakehead", "mandarin_fish", "perch_kkeokji", "eel", "lenok", "bitterling", "shiri", "sturgeon", "loach", "dark_chub", "sleeper", "gudgeon", "skygazer", "rainbow_trout", "grass_carp", "bluegill", "largemouth_bass", "char", "ricefish", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel", "otter", ...ACTIVE_SHRIMP.filter((f) => f.fresh).map((f) => f.key)]);
 /** 관상어 — 한국 강 · 늪에 사는 물고기가 아니다. 어울리는 곳(청계천 관상어 거리 · 국립생태원 열대관)에만 둔다[사용자: "관상어는 빼고 … 맞지 않다면 적절한 곳에 배치해"]. */
-export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "goldfish", "betta", "angel", "discus", "ray", "arowana", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel"]);
+export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "goldfish", "betta", "angel", "discus", "ray", "arowana", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel", ...ACTIVE_SHRIMP.filter((f) => f.ornamental).map((f) => f.key)]);
 /** common — 이 낚시터에서 '흔한 물고기'로 치는 미끼 단계(없으면 이 낚시터의 가장 싼 미끼 단계). 미끼 1% 규칙은 이 단계 위의 계열에만 걸린다.
  *  열대관처럼 그 낚시터의 대표 물고기(엔젤피시)가 한 단계 위 미끼부터 무는 곳에만 쓴다. */
 export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[]; art?: string; common?: number; push?: number };
@@ -55,7 +56,7 @@ export const spotArtKey = (s: Pick<FishSpot, "key" | "art">) => s.art ?? `spot_$
  *  ⚠ pool 순서가 무게다 — rollCatch 는 흔한 계열에 (1 + lift × pool 안 자리)를 곱한다. 새 흔한 계열은 **원래 흔한 계열 바로 뒤(귀한 계열 앞)에 작은 무게로** 넣는다.
  *  2026-11-13 4차 54계열을 귀한 계열 뒤(끝)에 붙였더니 가장 큰 덤을 받아 대표 물고기를 밀어냈다(우포늪 붕어 37% → 13%, 생태원 테트라 · 베타 · 구피 26% → 8%).
  *  원래 흔한 계열은 4차 전 자리 그대로고 새 계열 몫은 합쳐 10~15%(행운 5) — fishingbatch4.test 가 4차 전 몫의 80% 를 잠근다. 귀한 계열의 자리는 확률과 무관하다(1% 띠는 계열마다 따로 쌓인다). */
-export const SPOTS: readonly FishSpot[] = [
+const BASE_SPOTS: readonly FishSpot[] = [
   { key: "brook", name: "서울 청계천", water: "river", minLevel: 1, push: 0, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
   { key: "dumulmeori", name: "양평 두물머리", water: "river", minLevel: 2, push: 0.5, pool: [["pale_chub", 40], ["crucian", 34], ["bullhead", 24], ["bitterling", 4.5], ["gudgeon", 4], ["common_carp", 10], ["grass_carp", 10]] },
   { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, push: 1, pool: [["crucian", 40], ["pale_chub", 26], ["bullhead", 22], ["bitterling", 2.5], ["loach", 2], ["ricefish", 2], ["bluegill", 1.5], ["catfish", 40], ["common_carp", 20], ["koi", 15], ["snakehead", 12]] },
@@ -74,6 +75,8 @@ export const SPOTS: readonly FishSpot[] = [
   // 2026-11-11 떡밥 값을 내려 시작 미끼로 57. 물고기 구성은 그대로 — 미끼 1% 규칙(사용자 결정)을 지킨다.
   { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["viperfish", 7], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3], ["frilled_shark", 8]] },
 ];
+/** 낚시터 — 켜진 새우(shrimp.ts)는 정해진 계열 바로 뒤에 끼운다(꺼져 있으면 BASE 그대로) */
+export const SPOTS: readonly FishSpot[] = ACTIVE_SHRIMP.length ? BASE_SPOTS.map((x) => ({ ...x, pool: withShrimp(x.key, x.pool) })) : BASE_SPOTS;
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
 /** 지금 낚시터 — 고른 곳, 없으면 미끼가 있는 곳 중 가장 깊은 곳. 배경과 연출이 이 한 함수를 본다(둘이 갈리면 수평선이 어긋난다). */
 export function currentSpot(f: Pick<FishingState, "level" | "baits" | "wormDay">, pick: string | null, today: string): FishSpot {
@@ -353,7 +356,7 @@ export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; whe
 export type FishDepth = 0 | 1 | 2;
 export const DEPTH_NAMES = ["표층", "중층", "바닥"] as const;
 export const SURFACE_FAMILIES: ReadonlySet<string> = new Set(["guppy", "ricefish", "pale_chub", "zebra_danio", "molly", "anchovy", "saury", "sweetfish", "gourami", "betta", "halfbeak", "skygazer", "snakehead", "salmon", "koi", "sea_otter", "dolphinfish", "arowana", "blue_shark", "sunfish", "marlin", "manta", "swordfish", "astral"]);
-export const BOTTOM_FAMILIES: ReadonlySet<string> = new Set(["corydoras", "lanternfish", "goby", "loach", "hatchetfish", "bullhead", "mudskipper", "sleeper", "gudgeon", "scorpionfish", "pleco", "catfish", "flounder", "shiri", "rockfish", "sailfin_sandfish", "starfish", "cod", "mandarin_fish", "blobfish", "perch_kkeokji", "cutlassfish_pollock", "nurse_shark", "moray", "leopard_shark", "skate", "croaker", "eel", "ray", "viperfish", "octopus", "goosefish", "gulper_eel", "electric_eel", "redtail_catfish", "sturgeon", "frilled_shark", "anglerfish", "oarfish", "coelacanth", "megamouth", "giant_squid", "kraken"]);
+export const BOTTOM_FAMILIES: ReadonlySet<string> = new Set(["corydoras", "lanternfish", "goby", "loach", "hatchetfish", "bullhead", "mudskipper", "sleeper", "gudgeon", "scorpionfish", "pleco", "catfish", "flounder", "shiri", "rockfish", "sailfin_sandfish", "starfish", "cod", "mandarin_fish", "blobfish", "perch_kkeokji", "cutlassfish_pollock", "nurse_shark", "moray", "leopard_shark", "skate", "croaker", "eel", "ray", "viperfish", "octopus", "goosefish", "gulper_eel", "electric_eel", "redtail_catfish", "sturgeon", "frilled_shark", "anglerfish", "oarfish", "coelacanth", "megamouth", "giant_squid", "kraken", ...ACTIVE_SHRIMP.map((f) => f.key)]);
 export const familyDepth = (family: string): FishDepth => (SURFACE_FAMILIES.has(family) ? 0 : BOTTOM_FAMILIES.has(family) ? 2 : 1);
 /** 맞춘 수심의 계열이 받는 무게 배수 · 다른 수심 계열의 배수 — 같은 미끼 단계 안에서만(단계의 몫 = 미끼 1% 규칙은 그대로).
  *  [사용자 2026-11-13: "수심 마다 잡히는 물고기도 달라져야해"] 다른 수심의 물고기는 4분의 1 로 줄인다. 어군에 맞히면 맞춘 수심이 더 세다 */

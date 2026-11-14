@@ -13,6 +13,7 @@
  *    새 칸은 섬의 맨 위 칸 s.aquaPlus 에 저장한다(옛 앱이 s.aquarium 을 다시 만들며 모르는 칸을 버리기 때문 — stow 참고).
  *  · 결과가 양쪽 기기에서 같아야 하므로 뽑기는 물고기 id 로만 정한다(Math.random 금지).
  * ⚠ 섬 엔진은 타입만 부른다 — 값으로 부르면 이 파일을 쓰는 화면이 섬 엔진까지 싣는다. */
+import { ACTIVE_SHRIMP } from "./shrimp.ts";
 import { mealPairs, nextMealTime, pickMeal } from "./predation.ts";
 import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
@@ -40,7 +41,7 @@ export type AquaFamily = {
 
 const s = (key: string, name: string, grade: Grade): AquaSpecies => ({ key, name, grade });
 
-export const FAMILIES: readonly AquaFamily[] = [
+const BASE_FAMILIES: readonly AquaFamily[] = [
   { key: "guppy", name: "구피", price: 300, hours: 24, minTank: 1, size: 15, finals: [s("cobra_guppy", "코브라 구피", "흔함"), s("tuxedo_guppy", "턱시도 구피", "보통"), s("mosaic_guppy", "모자이크 구피", "고급"), s("fullred_guppy", "풀레드 구피", "희귀")] },
   { key: "ricefish", name: "송사리", price: 325, hours: 24.5, minTank: 1, size: 13, finals: [s("ricefish", "송사리", "흔함")] },
   { key: "pale_chub", name: "피라미", price: 350, hours: 25, minTank: 1, size: 14, finals: [s("pale_chub", "피라미", "흔함")] },
@@ -166,9 +167,17 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "astral", name: "별무리어", price: 120000, hours: 504, minTank: 6, size: 34, finals: [s("moon_jelly", "달빛 해파리", "신화"), s("aurora_ray", "오로라 가오리", "신화"), s("galaxy_fish", "은하수어", "태초"), s("genesis_fish", "태초의 물고기", "태초")] },
   { key: "kraken", name: "크라켄", price: 150000, hours: 600, minTank: 6, size: 48, youngName: "새끼", finals: [s("kraken", "크라켄", "태초")] },
 ];
+/** 계열 표 — 새우류는 그림 · 모델이 들어와 SHRIMP_ON 을 켜야 들어온다(shrimp.ts). 표는 값어치 순서라 값 자리에 끼운다(뒤 계열일수록 비싸다) */
+export const FAMILIES: readonly AquaFamily[] = ACTIVE_SHRIMP.reduce<AquaFamily[]>((list, f) => {
+  const fam: AquaFamily = { key: f.key, name: f.name, price: f.price, hours: f.hours, minTank: f.minTank, size: f.size, youngName: "새끼", finals: [s(f.key, f.name, f.grade)] };
+  const i = list.findIndex((x) => x.price > f.price);
+  list.splice(i < 0 ? list.length : i, 0, fam);
+  return list;
+}, [...BASE_FAMILIES]);
 export const ALL_SPECIES: readonly AquaSpecies[] = FAMILIES.flatMap((f) => [...f.finals]);
 /** 다 컸을 때 보통 길이(cm) */
 export const FISH_BASE_CM: Readonly<Record<string, number>> = {
+  ...Object.fromEntries(ACTIVE_SHRIMP.map((f) => [f.key, f.cm])),
   // 해양 포유류(2026-11-13) — 다 큰 몸길이
   spotted_seal: 160, fur_seal: 150, steller_sea_lion: 280, japanese_sea_lion: 230, sea_otter: 130, otter: 110,
   guppy: 5, tetra: 4, goldfish: 22, betta: 7, angel: 15, clown: 9, discus: 18, koi: 65, ray: 45, arowana: 85,

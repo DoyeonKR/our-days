@@ -2,6 +2,7 @@
  *  수조 안의 움직임만 정한다(저장값 · 경제와 무관). 새 계열을 FAMILIES 에 더하면 여기에도 더한다 — habits.test 가 빠진 계열을 잡는다.
  *  물높이는 월드 y(바닥 -5.3, 수면 약 5.5).
  *  모든 계산은 (id, 시각, 몸길이, 옵션) 만으로 정해진다 — 두 사람 기기에서 같은 시각이면 같은 자리다. Math.random 을 쓰지 않는다. */
+import { ACTIVE_SHRIMP } from "../shrimp.ts";
 export type FishHabit = {
   /** 몸 중심이 오가는 높이 */
   lo: number;
@@ -78,6 +79,8 @@ const DRIFT = swim(-2.5, 3.4, 0.035, 0.3, 1, { tilt: 0, pace: 0.5, jet: 2.8, fee
 const AMBUSH = swim(-1.8, 1, 0.18, 0.8, 1.7, { rest: 0.35, hop: 1.2, pace: 0.9 });
 
 export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
+  // 새우류 — 켜진 것만(shrimp.ts). 바닥을 기다 놀라면 뒤로 휙
+  ...Object.fromEntries(ACTIVE_SHRIMP.map((f) => [f.key, f.habit])),
   // 작은 물고기는 무리 지어 위쪽을 빠르게 — 구피 · 은어는 수면 가까이, 테트라는 가운데
   guppy: SCHOOL_TOP,
   tetra: SCHOOL_MID,
