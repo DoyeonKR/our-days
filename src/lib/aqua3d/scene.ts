@@ -11,6 +11,7 @@ import { makeShoal, type Shoal } from "./shoal.ts";
 import { addJaw, type Jaw, calmSpecular, fishShading, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
 import { makeGiants, type Giants } from "./giants.ts";
 import { DOME_TIER, SHOAL_TIER, TUNNEL_R, TUNNEL_TIER, WHALE_TIER, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
+import { tankAxes } from "./tiers.ts";
 import { DOME_R, domeObstacles, makeDome, type Dome } from "./dome.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
@@ -142,7 +143,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const collectBorrowed=(o:T.Object3D)=>{const mesh=o as T.Mesh;if(!mesh.isMesh||!o.userData.glbShared)return;borrowed.add(mesh.geometry);
     for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
-  let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
+  let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
+  let habitat:Habitat|null=null, habitatTier=0, wide=1, wideBase=1, tierX=1, tall=1, pan=0, panReach=0, panPerPx=.02, lastTouch=-99, schools=new Map<number,{leader:number;slot:number}>();
   /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
   let foodTimer=0,motes:Motes|null=null;
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
@@ -501,14 +503,16 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       habitat=makeHabitat(next.aquarium.tank,{anisotropy});habitatTier=next.aquarium.tank;
       scene.add(habitat.root);topologyChanged=true;wide=0;
       // 위로 늘린다 — 바닥(WORLD.floor)을 붙잡고 키운다(habitat.heightAt 도 같은 식)
-      tall=tankTall(habitatTier);habitat.root.scale.y=tall;habitat.root.position.y=WORLD.floor*(1-tall);
+      // 단계마다 수조 자체가 커진다(2026-11-14 tiers.ts 의 tankAxes) — 가로 tierX 배 · 위아래 · 앞뒤도 그 일부만큼
+      const ax=tankAxes(habitatTier,tankTall(habitatTier),tankDeep(habitatTier));tierX=ax.x;
+      tall=ax.tall;habitat.root.scale.y=tall;habitat.root.position.y=WORLD.floor*(1-tall);
       // 대수족관은 앞뒤로도 깊다(터널이 지나갈 자리) — 바닥 높이 · 물고기 길 · 장식 자리도 같은 배율
-      deep=tankDeep(habitatTier);habitat.root.scale.z=deep;habitat.root.updateMatrix();
+      deep=ax.deep;habitat.root.scale.z=deep;habitat.root.updateMatrix();
       if(tunnel){release(tunnel.root);tunnel.dispose();tunnel=null;}
       if(dome){release(dome.root);dome.dispose();dome=null;}
     }
     // ⚠ 넓히면 수조 틀 · LED · 유리 모서리 · 접지 그림자(안 움직이는 묶음)도 다시 올려야 한다 — 예전엔 옛 폭에 남았다
-    const nextWide=wideScale(next.aquarium.wide);
+    wideBase=wideScale(next.aquarium.wide);const nextWide=wideBase*tierX;
     if(nextWide!==wide){wide=nextWide;if(habitat){habitat.root.scale.x=wide;habitat.root.updateMatrix();}topologyChanged=true;}
     schools=schoolsOf(approvedFish);
     for(const[id,m]of swimmers)if(id>=0&&!ids.has(id)){dropFish(m);swimmers.delete(id);topologyChanged=true;}
@@ -599,8 +603,13 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const sel=state.editing?undefined:(meal&&meal.t0>=0?swimmers.get(meal.style==="gulp"&&meal.bitesDone>0?meal.predId:meal.ghostId):undefined)??swimmers.get(state.selectedFish??-1);
     const placeCamera=()=>{
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
-    const half=Math.tan(camera.fov*Math.PI/360),fitW=5*wide/(half*camera.aspect)+3,fitH=5.9*tall/half+3;
-    const fit=Math.max(fitW,fitH),camD=clamp(fit/tankDisplay(habitatTier,wide),19,70),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);
+    // 2026-11-14 — 단계마다 수조가 커져(가로 최대 2.9배 × 넓히기 1.5배) 다 담으면 세로 화면에서 물고기가 점이 된다. 카메라는 가로를 크기의 0.4제곱만큼만 담고(6단계 1.44배 — 물러난 만큼 넓어진 게 보인다)
+    //   나머지는 옆으로 끌어 둘러본다(panReach). 가만히 두면 천천히 한쪽 끝에서 다른 끝까지 흘러간다. 높이는 다 담는다(세로 끌기는 페이지 스크롤이라)
+    const half=Math.tan(camera.fov*Math.PI/360),fitW=5*wideBase*tierX**.4/(half*camera.aspect)+3,fitH=5.9*tall/half+3;
+    const camD=clamp(Math.max(fitW,fitH)/tankDisplay(habitatTier,wideBase),19,80);
+    panReach=Math.max(0,5*wide+.3-camD*half*camera.aspect*.96);panPerPx=2*camD*half*camera.aspect/Math.max(1,canvas.clientWidth);
+    if(dt>0&&!start&&!sel&&!reduced.matches&&panReach>0&&elapsed-lastTouch>8)pan+=(panReach*.9*Math.sin(elapsed*.03)-pan)*Math.min(1,dt*.35);
+    pan=clamp(pan,-panReach,panReach);const camX=pan;
     // 깊이 안개 — 수조는 camD±3 에 있다. 예전 camD+1 ~ +19 는 뒤쪽에도 11% 밖에 안 걸려 깊이가 안 보였다
     // 고른 물고기 따라가기(2026-11-10) — 물고기를 누르면 카메라가 천천히 다가가 따라간다. 수조 전체에선 구피가 몇 픽셀이라 무엇을 골랐는지 안 보였다.
     // 멈춘 그리기(draw(0) — 움직임 줄이기 · 숨김)에선 바로 그 자리로
@@ -936,9 +945,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   on(canvas,"webglcontextrestored",()=>{lost=false;batchesDirty=true;
     envMap=underwaterEnvironment(renderer);scene.environment=envMap;
     compiled=false;schedule();precompile();events.restored?.();});
-  let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
-  const down=(e:PointerEvent)=>{if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};canvas.setPointerCapture(e.pointerId);};
-  const move=(e:PointerEvent)=>{if(!start)return;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*.02,-(wide-1)*3,(wide-1)*3);pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
+  // start 는 draw(placeCamera)에서도 본다(끌고 있는 동안은 저절로 흘러가지 않는다) — 그래서 함수 위에서 미리 선언한 것을 쓴다
+  const down=(e:PointerEvent)=>{if(!e.isPrimary)return;lastTouch=elapsed;start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};canvas.setPointerCapture(e.pointerId);};
+  const move=(e:PointerEvent)=>{if(!start)return;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*panPerPx,-panReach,panReach);lastTouch=elapsed;pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
   const cancel=()=>{start=null;};
   const end=(e:PointerEvent)=>{if(!start)return;const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;if(moved>8)return;
     const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);

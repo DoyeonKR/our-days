@@ -196,3 +196,20 @@ test("단계별 볼거리 — 기준값은 tiers.ts 한곳(three 없음) · 정�
   assert.match(ui, /from "@\/lib\/aqua3d\/tiers"/);
   assert.doesNotMatch(ui, /tank >= 7/);
 });
+
+test("단계마다 수조 자체가 커진다(2026-11-14) — 가로 6단계 2.5배 · 위아래 · 앞뒤도 따라 큰다 · 대수족관의 깊이는 줄지 않는다", async () => {
+  const { tankSize, tankAxes } = await import("./tiers.ts");
+  const { tankTall } = await import("./world.ts");
+  const { tankDeep } = await import("./tunnel.ts");
+  assert.equal(tankSize(1), 1);
+  assert.ok(tankSize(6) >= 2.5, "6단계는 1단계의 2.5배 넘게 넓다");
+  let prev = 0;
+  for (let t = 1; t <= 11; t++) {
+    const a = tankAxes(t, tankTall(t), tankDeep(t));
+    assert.ok(a.x >= prev, `단계 ${t} 가로가 앞 단계보다 좁지 않다`); prev = a.x;
+    assert.ok(a.tall >= tankTall(t) && a.deep >= tankDeep(t), `단계 ${t} 높이 · 깊이가 예전보다 작아지지 않는다`);
+    assert.ok(a.x / a.tall < 1.4 && a.x / a.deep < 1.8, `단계 ${t} 바위가 너무 길쭉하지 않다`);
+  }
+  const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
+  assert.ok(scene.includes("tankAxes(") && scene.includes("panReach"), "장면이 단계 크기를 쓰고 옆으로 끌어 둘러본다");
+});

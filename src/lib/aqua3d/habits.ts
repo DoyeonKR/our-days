@@ -129,7 +129,9 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   kraken: floor(0.28, 0.04, 0.5, 1, { bob: 0.08, rest: 0.6, hop: 0.7, pace: 0.4, lane: 0.6, ceph: "crawl" }),
   // 바닥을 기어 다니는 무척추동물
   starfish: floor(0.09, 0.012, 0.85, 1.4, { pace: 0.3, lane: 0.95 }),
-  octopus: floor(0.28, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7, idle: 0.5, lane: 0.65, ceph: "crawl" }),
+  // 2026-11-14 [사용자: "문어는 여전히 움직임이 자연스럽지않다"] — 70% 를 완전히 멈춰 있다가 몸길이 4분의 1 만 기고, 물을 뿜어 같은 자리로 되돌아왔다(두 자리 왕복).
+  //   쉬는 몫을 줄이고(0.5) 한 번에 더 멀리 기며(hop 1.5), 물 뿜기는 드물게(jetShare — 놀라면 startle 이 따로 뿜는다)
+  octopus: floor(0.28, 0.05, 0.7, 1.5, { rest: 0.5, hop: 1.5, pace: 0.7, idle: 0.5, lane: 0.65, ceph: "crawl" }),
   squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1, idle: 0.4, ceph: "hover" }),
   // 신화의 물고기
   rising: swim(-2.5, 3.4, 0.13, 0.6, 1.4, { tilt: 0.8, pace: 0.8 }),
@@ -763,7 +765,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   U.hover = rest === 0 && habit.hug === undefined && !habit.jet && !habit.breathe;
   U.hoverP = 55 + 40 * unit(hash, 23); U.hoverO = unit(hash, 29) * U.hoverP;
   // 거북 숨 쉬는 주기 — 길(pathU)이 쉬는 몫을 빼려면 길보다 먼저 정한다
-  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.jetShare = habit.ceph === "crawl" ? 0.35 : habit.ceph === "hover" ? 0.5 : 0;
+  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.jetShare = habit.ceph === "crawl" ? 0.14 : habit.ceph === "hover" ? 0.5 : 0;
 
   // 어항 밖으로 몸이 나가지 않게 몸길이만큼 안쪽에서 돈다 — 가로 · 앞뒤 모두(옛 길은 앞뒤 폭이 몸길이를 안 봐서 고래상어가 앞 유리를 21% 뚫었다)
   const roomXs = roomX(half, 1), roomZs = roomZ(half);
@@ -1053,8 +1055,12 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       if (habit.ceph === "crawl" && go > 0) y += Math.min(length * 0.25, 0.3) * Math.sin(Math.min(1, go) * Math.PI);
       effort = (habit.pace ?? 1) * (0.6 + 3.2 * jet); amp = 0.4 + 0.6 * jet;
     } else if (habit.ceph === "crawl") {
-      // 기기 — 팔이 바닥을 짚으며 몸을 조금씩 들썩인다
-      y += length * 0.05 * Math.abs(Math.sin(Math.max(0, go) * Math.PI * 4)) * moving;
+      // 기기 — 팔이 바닥을 짚으며 몸을 부드럽게 들썩인다(예전 |sin| 은 바닥에 닿을 때마다 각지게 튀었다)
+      const sw = Math.sin(Math.max(0, go) * Math.PI * 3);
+      y += length * 0.035 * sw * sw * moving;
+      // 쉬는 동안도 굳어 있지 않다 — 외투막 숨에 맞춰 몸이 아주 조금 오르내린다
+      const still = 1 - moving;
+      y += length * 0.012 * Math.sin(seconds * 2.4 + unit(hash, 31) * 6.28) * still;
     }
     // 몸은 돌리지 않는다 — 길이 거꾸로 가서(pathU) 머리(고리 접선)의 반대로 나아간다. rev 는 '외투막이 앞인 자세'의 몫으로 팔(glb)이 쓴다
   }
