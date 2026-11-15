@@ -55,6 +55,8 @@ const FP = { pitch: 0, roll: 0, slope: 0, ground: 0 };
 export const TURN_TAU = 0.2;
 /** 화면 빠르기를 고르는 시간 상수(초) — 겹침 밀기 · 모래 앉히기가 자리를 조금씩 흔들어 프레임마다 잰 빠르기가 떨린다 */
 export const SPEED_TAU = 0.25;
+/** 몸끼리 · 바위와 닿아 밀어내는 빠르기 상한(몸길이/초) — 한 프레임 순간 이동을 막는다 */
+export const CONTACT_MAX_SPEED = 4;
 /** 꼬리 한 번에 나아가는 거리(몸길이) 위 · 아래 박자(Hz) — 화면에서 또렷이 보이는 만큼만 빠르게, 떠 있어도 꼬리가 아예 서지는 않게 */
 export const BEAT_MAX_HZ = 4.5, BEAT_IDLE_HZ = 0.35;
 const wrapA = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
@@ -225,6 +227,12 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       const P = b.positions, before = contactPrev(n * 3);
       before.set(P.subarray(0, n * 3));
       resolveContacts(P, b.lengths, n, CONTACT);
+      // 한 프레임에 밀어내는 거리는 몸길이 × CONTACT_MAX_SPEED 배/초까지(2026-11-15) — 바위 옆구리에 파고든 몸을 한 번에 바위 위로 밀어 올려 해달 · 물개가 몸길이의 13 ~ 16배/초로 튀었다.
+      //   남은 겹침은 다음 프레임들이 나눠 민다(겹침 보정값에 남는다). 멈춘 그리기(dt 0)는 그대로 다 민다
+      if (dt > 0) for (let k = 0; k < n; k++) {
+        const ox = P[k * 3] - before[k * 3], oy = P[k * 3 + 1] - before[k * 3 + 1], oz = P[k * 3 + 2] - before[k * 3 + 2], d = hyp3(ox, oy, oz), lim = Math.max(0.01, b.lengths[k] * CONTACT_MAX_SPEED * dt);
+        if (d > lim) { const f = lim / d; P[k * 3] = before[k * 3] + ox * f; P[k * 3 + 1] = before[k * 3 + 1] + oy * f; P[k * 3 + 2] = before[k * 3 + 2] + oz * f; }
+      }
       if (off) for (let k = 0; k < n * 3; k++) off[k] += (P[k] - before[k]) * 0.9;
     }
   }

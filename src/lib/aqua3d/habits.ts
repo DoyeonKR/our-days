@@ -1292,8 +1292,9 @@ export function denCourse(id: number, seconds: number, length: number, scale: nu
  * 쉼터는 곰치 굴처럼 id 순으로 나눈다(두 기기 같은 결과). 한 바위를 둘이 나눠 쓰면 바위 위에서 양옆으로 비켜 눕는다. 시각 · id · 장애물만으로 정해진다. */
 /** 쉬는 몫 — 한 바퀴의 이만큼은 바위 위 */
 export const HAUL_REST = 0.5;
-/** 바위에서 내려가고 · 올라오는 데 걸리는 몫(한 바퀴의) */
-const HAUL_RAMP = 0.02;
+/** 바위에서 내려가고 · 올라오는 데 걸리는 몫(한 바퀴의) — 2026-11-15 [사용자: "물범 움직임이 너무 기이하게 빨라"] .02(약 3초)면 헤엄치던 자리에서 쉼터까지 몸길이의 3~4배/초로
+ *  미끄러졌다(평소 헤엄은 .8배/초). .07(약 10 ~ 13초)로 천천히 오간다 */
+export const HAUL_RAMP = 0.07;
 export function haulCandidates(length: number, obstacles: readonly Obstacle[] | undefined, scale = 1): Obstacle[] {
   // 몸이 유리 밖으로 삐져나가지 않는 바위만(포유류는 몸이 크고 바위는 구석에 몰려 있다 — 2026-11-14 화면)
   const fits = (o: Obstacle) => Math.abs(o.x) <= 5 * scale - length * 0.42;
@@ -1323,7 +1324,7 @@ export function haulAssign(fish: readonly { id: number; length: number }[], obst
   }
   return out;
 }
-/** 지금 바위 위에 있는 정도(0 헤엄 ~ 1 쉼) — 한 바퀴의 처음 절반(1 − HAUL_REST)이 헤엄(양 끝 2% 는 내려가고 · 올라오는 중) */
+/** 지금 바위 위에 있는 정도(0 헤엄 ~ 1 쉼) — 한 바퀴의 처음 절반(1 − HAUL_REST)이 헤엄(양 끝 HAUL_RAMP 는 내려가고 · 올라오는 중) */
 export function haulRest(id: number, seconds: number): number {
   const h = denHash(id + 7), per = 140 + 50 * unit(h, 113), u = ((seconds + per * unit(h, 127)) % per) / per;
   const swimSpan = 1 - HAUL_REST;
@@ -1362,8 +1363,9 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     fz = Math.abs(fz);
   }
   const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
-  // 모래사장 — 곧장 가면 모래 경사를 뚫는다. 먼저 수면 높이까지 떠오르고(높이는 일찍) 그다음 모래사장 쪽으로 미끄러진다(가로는 늦게)
-  const beach = !!o && o.kind === "beach", Ry = beach ? Math.sqrt(R) : R, Rx = beach ? R * R : R;
+  // 쉼터로 오갈 때 — 곧장 가면 바위 옆구리 · 모래 경사를 뚫고(그 순간 바위 위로 한 번에 밀려 올라 튀었다 — 2026-11-15 해달 · 물범),
+  //   먼저 쉼터 높이까지 떠오르고(높이는 일찍) 그다음 옆으로 다가간다(가로는 늦게). 쉼터가 없으면(모래 위) 그대로
+  const Ry = o ? Math.sqrt(R) : R, Rx = o ? R * R : R;
   out.x += (rx - out.x) * Rx; out.y += (ry - out.y) * Ry; out.z += (rz - out.z) * Rx;
   const dl = hyp3(out.dx, out.dy, out.dz) || 1;
   out.dx = out.dx / dl * (1 - R) + fx * R; out.dy = out.dy / dl * (1 - R); out.dz = out.dz / dl * (1 - R) + fz * R;

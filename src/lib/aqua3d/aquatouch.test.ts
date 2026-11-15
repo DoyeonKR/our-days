@@ -21,7 +21,7 @@ test("시간의 절반은 바위 위에서 쉬고 절반은 헤엄친다(내려�
     for (let t = 0; t < 3600; t += 0.5) { const r = haulRest(id, t); n++; if (r > 0.99) rest++; if (r < 0.01) swim++; }
     assert.ok(Math.abs(rest / n - HAUL_REST) < 0.04, `id ${id} 쉼 ${rest / n}`);
     assert.equal(HAUL_REST, 0.5);
-    assert.ok(swim / n > 0.42 && swim / n < 0.5, `id ${id} 헤엄 ${swim / n}`);
+    assert.ok(swim / n > 0.3 && swim / n < 0.4, `id ${id} 헤엄 ${swim / n}`);
   }
 });
 
@@ -102,4 +102,16 @@ test("가려진 물고기 윤곽 — 물고기 레이어만 깊이로 한 번 �
   assert.match(scene, /XRAY_SKIP=\/\^\(moray\|octopus/, "굴에 숨은 곰치 · 셰이더로 팔이 움직이는 두족류는 뺀다");
   const { FINAL_FRAG } = await import("./post.ts");
   assert.ok(/^[\x00-\x7F]*$/.test(FINAL_FRAG), "셰이더 원문은 ASCII 만");
+});
+
+// 물범이 기이하게 빨랐다(2026-11-15) — 쉼터를 오가는 3초에 몸길이의 3~4배/초로 미끄러지고, 밀어내기가 한 프레임에 바위 위로 올려 13~16배/초로 튀었다
+import { HAUL_RAMP } from "./habits.ts";
+import { CONTACT_MAX_SPEED } from "./fishstep.ts";
+test("mammals glide to and from their rest spot slowly and are never pushed in one jump", () => {
+  assert.ok(HAUL_RAMP >= 0.06, "about ten seconds to go to and from the rest spot");
+  assert.ok(CONTACT_MAX_SPEED <= 4);
+  const step = readFileSync(new URL("./fishstep.ts", import.meta.url), "utf8");
+  assert.match(step, /lim = Math\.max\(0\.01, b\.lengths\[k\] \* CONTACT_MAX_SPEED \* dt\)/);
+  const habits = readFileSync(new URL("./habits.ts", import.meta.url), "utf8");
+  assert.match(habits, /const Ry = o \? Math\.sqrt\(R\) : R, Rx = o \? R \* R : R;/);
 });
