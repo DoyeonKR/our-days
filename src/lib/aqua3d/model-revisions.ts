@@ -20,6 +20,13 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_sea_otter:'983c226b8a33',juv_sea_otter:'62417a0bda85',sea_otter:'fde7ebd7da79',
  fry_otter:'0b44aa44ef33',juv_otter:'37d609359971',otter:'e2681cba3552',
 });
+/** 주인 모델(public/aqua/models/boss/, 2026-11-15) — 같은 규칙(바이트 해시) */
+export const BOSS_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({
+ boss_sanho:'865dbb2b6640',boss_geomeun:'788d7345e218',
+});
+export function bossRevisionQuery(key:string):string {
+ const revision=BOSS_MODEL_REVISIONS[key];return revision?`?v=${revision}`:'';
+}
 export function fishRevisionQuery(key:string):string {
  const revision=FISH_MODEL_REVISIONS[key];return revision?`?v=${revision}`:'';
 }

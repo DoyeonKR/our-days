@@ -1,0 +1,1340 @@
+{
+  "models": {
+    "boss_sanho": {
+      "key": "boss_sanho",
+      "file": "public/aqua/models/boss/boss_sanho.glb",
+      "triangles": 4900,
+      "bytes": 109140,
+      "sha256": "865dbb2b6640e3c7a1d057f1ebc5fcef22672ff8481f4a7ba9710338e37f0471",
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "parents": [
+        -1,
+        0,
+        1,
+        2,
+        3,
+        4,
+        3,
+        6,
+        3,
+        8
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinnedMeshes": 1,
+      "animations": 0,
+      "hull": {
+        "grid": [
+          256,
+          128,
+          128
+        ],
+        "occupied": 221425,
+        "removedDisconnectedHullTriangles": 0,
+        "marchingCubesTriangles": 67456,
+        "triangles": 1800,
+        "taubin": {
+          "iterations": 100,
+          "postDecimationIterations": 24,
+          "lambda": 0.5,
+          "mu": -0.53
+        },
+        "sourceViews": [
+          "side",
+          "front",
+          "top",
+          "back"
+        ],
+        "anatomicalPrior": "inscribed body cross-sections; appendages reconstructed separately as solid volumes",
+        "simplifierError": 0.007687477860599756,
+        "voxelStep": [
+          0.00823529411764706,
+          0.011503744958709431,
+          0.017226810063376227
+        ]
+      },
+      "parts": [
+        {
+          "name": "body",
+          "role": "body",
+          "paint": null,
+          "triangles": 1140
+        },
+        {
+          "name": "front-flipper--1",
+          "role": "finR",
+          "paint": null,
+          "triangles": 156
+        },
+        {
+          "name": "rear-flipper--1",
+          "role": "rear",
+          "paint": null,
+          "triangles": 108
+        },
+        {
+          "name": "front-flipper-1",
+          "role": "finL",
+          "paint": null,
+          "triangles": 156
+        },
+        {
+          "name": "rear-flipper-1",
+          "role": "rear",
+          "paint": null,
+          "triangles": 108
+        },
+        {
+          "name": "tail",
+          "role": "tail",
+          "paint": null,
+          "triangles": 60
+        },
+        {
+          "name": "eye-rim--1",
+          "role": "head",
+          "paint": "eyeRim",
+          "triangles": 64
+        },
+        {
+          "name": "eye--1",
+          "role": "head",
+          "paint": "eye",
+          "triangles": 64
+        },
+        {
+          "name": "eye-rim-1",
+          "role": "head",
+          "paint": "eyeRim",
+          "triangles": 64
+        },
+        {
+          "name": "eye-1",
+          "role": "head",
+          "paint": "eye",
+          "triangles": 64
+        },
+        {
+          "name": "coral-trunk-0",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 32
+        },
+        {
+          "name": "coral-branch-0-0",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-0-0--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-0-0-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-0-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-0-1--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-0-1-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-0-2",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-0-2--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-0-2-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-0-3",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-0-3--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-0-3-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-trunk-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 32
+        },
+        {
+          "name": "coral-branch-1-0",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-1-0--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-1-0-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-1-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-1-1--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-1-1-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-1-2",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-1-2--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-1-2-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-1-3",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-1-3--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-1-3-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-trunk-2",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 32
+        },
+        {
+          "name": "coral-branch-2-0",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-2-0--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-2-0-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-2-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-2-1--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-2-1-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-2-2",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-2-2--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-2-2-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-2-3",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-2-3--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-2-3-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-trunk-3",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 32
+        },
+        {
+          "name": "coral-branch-3-0",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-3-0--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-3-0-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-3-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-3-1--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-3-1-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-3-2",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-3-2--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-3-2-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-3-3",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-3-3--1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-3-3-1",
+          "role": "shell",
+          "paint": "pink",
+          "triangles": 16
+        },
+        {
+          "name": "coral-trunk-4",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 32
+        },
+        {
+          "name": "coral-branch-4-0",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-4-0--1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-4-0-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-4-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-4-1--1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-4-1-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-4-2",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-4-2--1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-4-2-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-4-3",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-4-3--1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-4-3-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-trunk-5",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 32
+        },
+        {
+          "name": "coral-branch-5-0",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-5-0--1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-5-0-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-5-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-5-1--1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-5-1-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-5-2",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-5-2--1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-5-2-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-branch-5-3",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 24
+        },
+        {
+          "name": "coral-twig-5-3--1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "coral-twig-5-3-1",
+          "role": "shell",
+          "paint": "orange",
+          "triangles": 16
+        },
+        {
+          "name": "purple-sea-fan-web-0",
+          "role": "shell",
+          "paint": "purple",
+          "triangles": 248
+        },
+        {
+          "name": "purple-sea-fan-stem-0",
+          "role": "shell",
+          "paint": "purple",
+          "triangles": 24
+        },
+        {
+          "name": "purple-sea-fan-vein-0--1",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-vein-0--0.5",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-vein-0-0",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-vein-0-0.5",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-vein-0-1",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-web-1",
+          "role": "shell",
+          "paint": "purple",
+          "triangles": 248
+        },
+        {
+          "name": "purple-sea-fan-stem-1",
+          "role": "shell",
+          "paint": "purple",
+          "triangles": 24
+        },
+        {
+          "name": "purple-sea-fan-vein-1--1",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-vein-1--0.5",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-vein-1-0",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-vein-1-0.5",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "purple-sea-fan-vein-1-1",
+          "role": "shell",
+          "paint": "purpleVein",
+          "triangles": 32
+        },
+        {
+          "name": "barnacle-0",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-0",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-1",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-1",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-2",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-2",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-3",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-3",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-4",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-4",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-5",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-5",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-6",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-6",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-7",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-7",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-8",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-8",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "barnacle-9",
+          "role": "shell",
+          "paint": "barnacle",
+          "triangles": 24
+        },
+        {
+          "name": "barnacle-aperture-9",
+          "role": "shell",
+          "paint": "eye",
+          "triangles": 6
+        },
+        {
+          "name": "algae-0-0",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        },
+        {
+          "name": "algae-0-1",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        },
+        {
+          "name": "algae-0-2",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        },
+        {
+          "name": "algae-1-0",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        },
+        {
+          "name": "algae-1-1",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        },
+        {
+          "name": "algae-1-2",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        },
+        {
+          "name": "algae-2-0",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        },
+        {
+          "name": "algae-2-1",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        },
+        {
+          "name": "algae-2-2",
+          "role": "shell",
+          "paint": "algae",
+          "triangles": 24
+        }
+      ],
+      "textureLayout": {
+        "side": [
+          1,
+          1,
+          510,
+          222
+        ],
+        "top": [
+          1,
+          225,
+          254,
+          222
+        ],
+        "front": [
+          257,
+          225,
+          126,
+          222
+        ],
+        "back": [
+          385,
+          225,
+          126,
+          222
+        ],
+        "pink": [
+          2,
+          449,
+          43,
+          60
+        ],
+        "orange": [
+          48,
+          449,
+          43,
+          60
+        ],
+        "purple": [
+          94,
+          449,
+          43,
+          60
+        ],
+        "purpleVein": [
+          140,
+          449,
+          43,
+          60
+        ],
+        "algae": [
+          186,
+          449,
+          43,
+          60
+        ],
+        "barnacle": [
+          232,
+          449,
+          43,
+          60
+        ],
+        "eye": [
+          278,
+          449,
+          43,
+          60
+        ],
+        "eyeRim": [
+          324,
+          449,
+          43,
+          60
+        ],
+        "fin": [
+          370,
+          449,
+          43,
+          60
+        ],
+        "yellow": [
+          416,
+          449,
+          43,
+          60
+        ],
+        "belly": [
+          462,
+          449,
+          43,
+          60
+        ]
+      },
+      "paletteSampleCounts": {
+        "pink": 4808,
+        "orange": 2775,
+        "purple": 2757,
+        "purpleVein": 2757,
+        "algae": 66,
+        "barnacle": 11764,
+        "eye": 60,
+        "eyeRim": 0,
+        "fin": 0,
+        "yellow": 8287,
+        "belly": 1025
+      },
+      "rig": [
+        "spine_2 anchors the trunk; the entire carapace, plastron and all coral are rigidly attached to spine_3. Both front-flipper roots are children of spine_3."
+      ],
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    "boss_geomeun": {
+      "key": "boss_geomeun",
+      "file": "public/aqua/models/boss/boss_geomeun.glb",
+      "triangles": 3764,
+      "bytes": 77288,
+      "sha256": "788d7345e21870a7fa467900ed6e578f24276c0731b67e3cfde19754f3066459",
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "parents": [
+        -1,
+        0,
+        1,
+        2,
+        3,
+        4,
+        1,
+        6,
+        1,
+        8
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinnedMeshes": 1,
+      "animations": 0,
+      "hull": {
+        "grid": [
+          256,
+          128,
+          128
+        ],
+        "occupied": 520850,
+        "removedDisconnectedHullTriangles": 0,
+        "marchingCubesTriangles": 107908,
+        "triangles": 2600,
+        "taubin": {
+          "iterations": 100,
+          "postDecimationIterations": 24,
+          "lambda": 0.5,
+          "mu": -0.53
+        },
+        "sourceViews": [
+          "side",
+          "front",
+          "top",
+          "back"
+        ],
+        "anatomicalPrior": "inscribed body cross-sections; appendages reconstructed separately as solid volumes",
+        "simplifierError": 0.005680716130882502,
+        "voxelStep": [
+          0.00823529411764706,
+          0.007470712502400614,
+          0.0067025158440560785
+        ]
+      },
+      "parts": [
+        {
+          "name": "body",
+          "role": "body",
+          "paint": null,
+          "triangles": 2600
+        },
+        {
+          "name": "pectoral--1",
+          "role": "finR",
+          "paint": "fin",
+          "triangles": 132
+        },
+        {
+          "name": "pectoral-1",
+          "role": "finL",
+          "paint": "fin",
+          "triangles": 132
+        },
+        {
+          "name": "first-dorsal",
+          "role": "spine2",
+          "paint": "fin",
+          "triangles": 12
+        },
+        {
+          "name": "second-dorsal",
+          "role": "spine3",
+          "paint": "fin",
+          "triangles": 8
+        },
+        {
+          "name": "anal",
+          "role": "spine3",
+          "paint": "fin",
+          "triangles": 8
+        },
+        {
+          "name": "pelvic",
+          "role": "spine2",
+          "paint": "fin",
+          "triangles": 8
+        },
+        {
+          "name": "caudal-lobe--1",
+          "role": "caudal",
+          "paint": "fin",
+          "triangles": 208
+        },
+        {
+          "name": "caudal-keel--1",
+          "role": "spine4",
+          "paint": "fin",
+          "triangles": 32
+        },
+        {
+          "name": "caudal-lobe-1",
+          "role": "caudal",
+          "paint": "fin",
+          "triangles": 208
+        },
+        {
+          "name": "caudal-keel-1",
+          "role": "spine4",
+          "paint": "fin",
+          "triangles": 32
+        },
+        {
+          "name": "yellow-finlet-0--1",
+          "role": "spine3",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-0-1",
+          "role": "spine3",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-1--1",
+          "role": "spine3",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-1-1",
+          "role": "spine3",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-2--1",
+          "role": "spine3",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-2-1",
+          "role": "spine3",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-3--1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-3-1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-4--1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-4-1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-5--1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-5-1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-6--1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-6-1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-7--1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "yellow-finlet-7-1",
+          "role": "spine4",
+          "paint": "yellow",
+          "triangles": 8
+        },
+        {
+          "name": "eye-rim--1",
+          "role": "head",
+          "paint": "eyeRim",
+          "triangles": 64
+        },
+        {
+          "name": "eye--1",
+          "role": "head",
+          "paint": "eye",
+          "triangles": 64
+        },
+        {
+          "name": "eye-rim-1",
+          "role": "head",
+          "paint": "eyeRim",
+          "triangles": 64
+        },
+        {
+          "name": "eye-1",
+          "role": "head",
+          "paint": "eye",
+          "triangles": 64
+        }
+      ],
+      "textureLayout": {
+        "side": [
+          1,
+          1,
+          510,
+          222
+        ],
+        "top": [
+          1,
+          225,
+          254,
+          222
+        ],
+        "front": [
+          257,
+          225,
+          126,
+          222
+        ],
+        "back": [
+          385,
+          225,
+          126,
+          222
+        ],
+        "pink": [
+          2,
+          449,
+          43,
+          60
+        ],
+        "orange": [
+          48,
+          449,
+          43,
+          60
+        ],
+        "purple": [
+          94,
+          449,
+          43,
+          60
+        ],
+        "purpleVein": [
+          140,
+          449,
+          43,
+          60
+        ],
+        "algae": [
+          186,
+          449,
+          43,
+          60
+        ],
+        "barnacle": [
+          232,
+          449,
+          43,
+          60
+        ],
+        "eye": [
+          278,
+          449,
+          43,
+          60
+        ],
+        "eyeRim": [
+          324,
+          449,
+          43,
+          60
+        ],
+        "fin": [
+          370,
+          449,
+          43,
+          60
+        ],
+        "yellow": [
+          416,
+          449,
+          43,
+          60
+        ],
+        "belly": [
+          462,
+          449,
+          43,
+          60
+        ]
+      },
+      "paletteSampleCounts": {
+        "pink": 8,
+        "orange": 5,
+        "purple": 4,
+        "purpleVein": 4,
+        "algae": 2,
+        "barnacle": 432,
+        "eye": 3824,
+        "eyeRim": 0,
+        "fin": 15607,
+        "yellow": 58,
+        "belly": 1025
+      },
+      "rig": [
+        "Every caudal lobe vertex is rigidly attached to spine_5."
+      ],
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    }
+  },
+  "visualApproval": "pending",
+  "activation": "not enabled",
+  "gameCodeWrites": false,
+  "committed": false
+}

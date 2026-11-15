@@ -8,7 +8,8 @@ import { stepFish } from "./fishstep.ts";
 import { makeSandPuffs } from "./sandpuff.ts";
 import { breachAt, canBreach, planBreach, type BreachPlan } from "./breach.ts";
 import { makeSplash } from "./splash.ts";
-import { bossLookOf, loadBossSkin } from "./bosslook.ts";
+import { bossLookOf } from "./bosslook.ts";
+import { turtleGlbMotion } from "./turtle.ts";
 import { STARTLE_S, startleDir, startleKind, startlePose, type StartleKind, type StartlePose } from "./startle.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
 import { addJaw, type Jaw, calmSpecular, fishShading, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
@@ -72,7 +73,7 @@ function makeCrown(r:number):T.Group{const g=new T.Group();
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number;
   /** 놀라 부푼 채인가(복어 — 끝나면 원래 크기로 한 번 되돌린다) */ puffed?: boolean;
   /** 산호 여왕(등 위 산호) — 왕관을 작게 머리 쪽에 */ coralQueen?: boolean;
-  /** 이 물고기만의 재질(주인 피부 — 나눠 쓰는 GLB 재질의 복제) — 떠날 때 지운다 */ ownMats?: T.Material[];
+  /** 쥐고 있는 GLB 의 종류(주인 모델은 boss) */ glbKind?: "fish" | "boss";
   /** 제작 모델로 갈아 끼웠나 */ glb: boolean; /** 쥐고 있는 GLB key(놓을 때 돌려준다) */ glbKey: string | null;
   /** 방금 들어왔다 — 첫 프레임은 방향을 바로 맞춘다(다른 물고기는 부드럽게 돈다) */ fresh: boolean; crown: T.Group | null;
   /** 이번 프레임 길 — 매 프레임 새 객체를 안 만들게 물고기마다 하나 들고 쓴다 */ course: Course;
@@ -369,7 +370,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});root.removeFromParent();
   }
   // 자라는 중이면 들고 있던 옛 몸도 같이 놓는다
-  const dropFish=(m:Swimmer):void=>{if(m.grow?.old){dropFish(m.grow.old);m.grow.old=null;}m.ownMats?.forEach(x=>x.dispose());m.ownMats=undefined;release(m.root);if(m.glbKey)glb.release("fish",m.glbKey);};
+  const dropFish=(m:Swimmer):void=>{if(m.grow?.old){dropFish(m.grow.old);m.grow.old=null;}release(m.root);if(m.glbKey)glb.release(m.glbKind??"fish",m.glbKey);};
   const dropDecor=(d:Decoration)=>{release(d.root);if(d.glbKey)glb.release("decor",d.glbKey);};
   /** 아직 코드 모델로 보이는 물고기의 key — 갈아 끼운 물고기의 피부 그림은 놓는다 */
   // 자라는 중인 옛 몸도 아직 보이므로 그 피부 그림을 놓지 않는다
@@ -417,7 +418,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       animal.root.position.copy(shown.root.position);animal.root.quaternion.copy(shown.root.quaternion);animal.root.visible=false;
       m.grow={old:shown,from:shownLen/Math.max(1e-6,length),k:0,wait:0};
     }
-    if(FISH_GLB.has(key)){m.glbKey=key;void glb.load("fish",key).then(src=>{
+    // 주인 전용 모델(bosslook — 산호 여왕 · 검은 파도)이 있으면 종 모델 대신 그것을
+    const gKind=look?.model?"boss" as const:"fish" as const,gKey=look?.model??key;
+    if(look?.model||FISH_GLB.has(key)){m.glbKey=gKey;m.glbKind=gKind;void glb.load(gKind,gKey).then(src=>{
       if(disposed)return;
       // 못 받았다 — 임시 모델 그대로, 이제 피부 그림을 받는다
       if(!src){m.glbFail=true;if(swimmers.get(f.id)===m)kit.loadDeferred(key);if(m.grow?.old&&!active)draw(0);return;}
@@ -425,20 +428,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
         inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);normalsFixed+=repairNormals(inner);calmSpecular(inner);fishShading(inner);
         release(swapBody(m.root,inner,"center",s=>bodyMeasure(f.family,key,s)));
-        m.animate=fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);
-        // 주인 피부(검은 파도) — 종 모델의 uv 에 맞춘 주인 그림으로. 재질은 같은 종끼리 나눠 쓰므로 이 물고기 것만 복제한다(셰이더 덧칠은 그대로 잇는다)
-        if(look?.skin)bossSkin(m,inner,look.skin);placeCrown(m);});
+        // 주인 모델의 거북(산호 여왕)은 거북 헤엄 — 물고기 몸 물결 · 막 떨림이면 등딱지 · 산호가 휘고 떨렸다
+        m.animate=look?.model&&f.family==="sea_turtle"?turtleGlbMotion(inner):fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
     });}
-  }
-  const bossSkins=new Map<string,T.Texture>();
-  function bossSkin(m:Swimmer,inner:T.Object3D,file:string){
-    let tex=bossSkins.get(file);
-    if(!tex){tex=loadBossSkin(file,()=>{if(!active&&!disposed)draw(0);});tex.anisotropy=anisotropy;bossSkins.set(file,tex);}
-    const own:T.Material[]=[];
-    inner.traverse(o=>{if(!(o instanceof T.Mesh))return;const mats=Array.isArray(o.material)?o.material:[o.material];
-      const next=mats.map(src=>{if(!(src instanceof T.MeshStandardMaterial)||!src.map)return src;const c=src.clone();c.onBeforeCompile=src.onBeforeCompile;c.customProgramCacheKey=src.customProgramCacheKey;c.map=tex!;own.push(c);return c;});
-      o.material=Array.isArray(o.material)?next:next[0];});
-    m.ownMats=own;
   }
   function addDecor(p:PlacedDecor):Decoration{
     const made=makeDecor(kit,p.key);waterLitTree(made.root,false);

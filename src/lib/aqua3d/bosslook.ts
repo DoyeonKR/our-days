@@ -1,27 +1,26 @@
 /** 수조의 주인 모습(2026-11-15) [사용자: "산호 여왕과 검은파도 지금 내가 잡아서 수조에 키우고 있는데 모델이 예전과 동일해"]
  *  주인을 잡으면 왕관을 쓰고 1.3배로 수조에 들어오지만 몸은 그 종 그대로였다. 전용 그림(fishingworld 의 BOSSES.art)이 있는 주인은 수조에서도 그 모습으로.
- *  · 산호 여왕(바다거북 — 코드 모델) — 등딱지에 주인 그림을 투영하고(투영 자리는 그림에서 잰 등딱지 타원), 등 위에 3D 산호 · 부채산호 · 해초 · 따개비를 세운다
- *  · 검은 파도(참다랑어 — GLB) — 종 모델의 uv 에 맞춰 구운 주인 피부(public/aqua/boss/, scripts/boss-skin.mjs)로 갈아 끼운다
+ *  · 주인 전용 3D 모델(model — public/aqua/models/boss/<model>.glb, 그림 세션이 네 방향 그림으로 지었다)이 오면 그것으로 갈아 끼운다
+ *  · 모델이 오기 전 · 못 받으면 — 산호 여왕은 거북 코드 모델의 등딱지에 주인 그림을 투영하고 등 위에 3D 산호를 세운다(투영 자리는 그림에서 잰 등딱지 타원)
  *  어느 주인인지는 왕관 이름(AquaFish.crown = 주인 이름) + 종으로 찾는다. 순수 표 + 산호 형상(three) — 저장은 그대로다. */
 import * as T from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { BOSSES } from "../fishingworld.ts";
-import { asset } from "../base.ts";
 
 export type BossLook = {
   /** 주인 그림 key(public/aqua/fish/<art>.webp) */
   art: string;
   /** 거북 등딱지 투영 — 그림 좌표(512)의 등딱지 가운데 · 몸 앞쪽 축(x = .95) · 옆 축(z = .65) */
   shell?: { c: [number, number]; ax: [number, number]; side: [number, number] };
-  /** GLB 피부(public/aqua/boss/<file>.webp) — 종 모델의 uv 에 맞춰 구운 것 */
-  skin?: string;
+  /** 주인 전용 3D 모델(public/aqua/models/boss/<model>.glb) */
+  model?: string;
   /** 등 위 산호 */
   coral?: boolean;
 };
 
 const LOOKS: Record<string, BossLook> = {
-  sanho: { art: "boss_sanho", shell: { c: [220, 238], ax: [114, -24], side: [18, 66] }, coral: true },
-  geomeun: { art: "boss_geomeun", skin: "boss_geomeun" },
+  sanho: { art: "boss_sanho", model: "boss_sanho", shell: { c: [220, 238], ax: [114, -24], side: [18, 66] }, coral: true },
+  geomeun: { art: "boss_geomeun", model: "boss_geomeun" },
 };
 
 /** 수조 물고기의 주인 모습 — 왕관 이름과 종(모습 key)이 맞는 주인이 전용 모습을 가졌으면 */
@@ -130,9 +129,3 @@ export function coralCrownGeometry(): T.BufferGeometry {
   return merged;
 }
 
-/** 주인 피부(GLB 용) — public/aqua/boss/<file>.webp. GLB 텍스처처럼 뒤집지 않는다 */
-export function loadBossSkin(file: string, ready?: () => void): T.Texture {
-  const tex = new T.TextureLoader().load(asset(`/aqua/boss/${file}.webp`), () => ready?.());
-  tex.colorSpace = T.SRGBColorSpace; tex.flipY = false;
-  return tex;
-}

@@ -12,6 +12,6 @@ test('all 48 revised GLBs have content-addressed cache keys matching actual byte
 });
 test('unchanged assets retain their existing URLs; GLB loader versions revised fish requests',()=>{
  assert.equal(fishRevisionQuery('neon_tetra'),'');assert.equal(fishRevisionQuery('mailbox'),'');
- const loader=readFileSync('src/lib/aqua3d/glb.ts','utf8');assert.ok(loader.includes("kind==='fish'?fishRevisionQuery(key):''"));
+ const loader=readFileSync('src/lib/aqua3d/glb.ts','utf8');assert.ok(loader.includes("kind==='fish'?fishRevisionQuery(key):kind==='boss'?bossRevisionQuery(key):''"));
  const worker=readFileSync('public/sw.js','utf8');assert.ok(worker.includes('c.match(request)'),'art cache must include the revision query');
 });

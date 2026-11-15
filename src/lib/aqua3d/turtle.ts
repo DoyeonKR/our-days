@@ -319,3 +319,44 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle", look
     });
   } };
 }
+
+/** 거북 GLB(주인 모델 — 산호 여왕, 2026-11-15)의 헤엄 — 코드 거북(makeDetailedTurtle)과 같은 박자 · 세기 규칙을 뼈로.
+ *  앞지느러미(fin_*)는 두 쪽이 함께 위아래로 크게 젓고(끝은 늦게 따라온다) 앞뒤로 조금 쓸고, 목(spine_0..2)은 살짝 두리번, 꼬리 · 뒷지느러미(spine_4..5)는 조금.
+ *  등딱지(spine_3, 산호 포함)는 굳은 채 — 물고기 몸 물결(fishMotion)을 쓰면 등딱지가 휘었다.
+ *  뼈마다 몸 기준 세 축(앞 X · 위 Y · 옆 Z)을 그 뼈의 쉬는 자세 좌표로 바꿔 둔다(fishMotion 의 굳은 지느러미와 같은 방법 — 뼈 방향이 파일마다 달라도 같은 몸짓) */
+export function turtleGlbMotion(inner: T.Group): (time: number, effort: number, pose?: SwimPose) => void {
+  inner.updateMatrixWorld(true);
+  const innerQ = inner.getWorldQuaternion(new T.Quaternion()).invert();
+  const X = new T.Vector3(1, 0, 0), Y = new T.Vector3(0, 1, 0);
+  const rig = (name: string) => {
+    const bone = inner.getObjectByName(name);
+    if (!bone) return null;
+    const rel = innerQ.clone().multiply(bone.getWorldQuaternion(new T.Quaternion())).invert();
+    return { bone, base: bone.quaternion.clone(), x: X.clone().applyQuaternion(rel), y: Y.clone().applyQuaternion(rel) };
+  };
+  const neck = [rig("spine_0"), rig("spine_1"), rig("spine_2")], tail = [rig("spine_4"), rig("spine_5")];
+  const fins = [rig("fin_L"), rig("fin_L_tip"), rig("fin_R"), rig("fin_R_tip")];
+  const q = new T.Quaternion(), q2 = new T.Quaternion();
+  let stroke = 0, lastTime = 0, lastClock = -1, power = -1, frame = 0;
+  return (time, effort, pose) => {
+    frame++;
+    const rate = 2.1 * Math.max(.2, effort);
+    const grounded = clamp01(pose?.ground ?? 0), hover = clamp01(pose?.hover ?? 0) * (1 - grounded);
+    const target = Math.max(.04, Math.min(1, pose?.amp ?? 1) * (1 - .85 * grounded) * (1 - .55 * hover));
+    const clock = WATER_LIGHT.aquaTime.value, dt = pose?.dt ?? (lastClock >= 0 ? clock - lastClock : 0);
+    lastClock = clock;
+    if (power < 0) power = target; else if (dt > 0 && dt < 1) power += (target - power) * (1 - Math.exp(-dt / .8));
+    const step = time - lastTime;
+    if (frame === 1) stroke = time * rate; else if (step >= 0 && step < 10) stroke += step * rate * (.25 + .75 * power);
+    lastTime = time;
+    const p = stroke, k = power;
+    neck.forEach((r, i) => { if (r) r.bone.quaternion.copy(r.base).multiply(q.setFromAxisAngle(r.y, Math.sin(p * .45) * .02 * (i + 1) / 2)); });
+    tail.forEach((r, i) => { if (r) r.bone.quaternion.copy(r.base).multiply(q.setFromAxisAngle(r.y, Math.sin(p - 1 - i * .4) * .07 * (.3 + .7 * k))); });
+    for (let s = 0; s < 2; s++) {
+      // 왼쪽(fin_L) 끝이 +Z 쪽 — 몸 X 축으로 + 돌리면 +Z 끝이 내려간다. 두 쪽이 같이 내리치게 쪽마다 부호를 바꾼다
+      const side = s ? -1 : 1, root = fins[s * 2], tip = fins[s * 2 + 1];
+      if (root) root.bone.quaternion.copy(root.base).multiply(q.setFromAxisAngle(root.x, side * Math.sin(p) * .55 * k)).multiply(q2.setFromAxisAngle(root.y, side * Math.cos(p + .5) * .18 * k));
+      if (tip) tip.bone.quaternion.copy(tip.base).multiply(q.setFromAxisAngle(tip.x, side * Math.sin(p - .7) * .3 * k));
+    }
+  };
+}
