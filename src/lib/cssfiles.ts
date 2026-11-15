@@ -10,7 +10,7 @@ import { join } from "node:path";
 const SRC = join(import.meta.dirname, "..");
 
 export const GLOBAL_CSS = join(SRC, "app", "globals.css");
-export const GAME_CSS = [join(SRC, "styles", "games.css"), join(SRC, "styles", "adventure.css")];
+export const GAME_CSS = [join(SRC, "styles", "games.css")];
 
 /** globals.css + 게임 화면 CSS 를 실리는 순서대로 이어 붙인다. */
 export function appCss(): string {

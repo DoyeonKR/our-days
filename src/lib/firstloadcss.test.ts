@@ -46,8 +46,8 @@ test("globals.css 에 게임 클래스만으로 된 선택자가 없다 — 게�
   for (const f of GAME_CSS) assert.ok(selectors(readFileSync(f, "utf8")).length > 100, f);
 });
 
-test("게임 CSS 는 게임 탭 · 모험 탭만 부른다 — 홈 · 레이아웃 · 다른 탭이 부르면 다시 첫 화면에 실린다", () => {
-  const importers: Record<string, string[]> = { "styles/games.css": [], "styles/adventure.css": [] };
+test("게임 CSS 는 게임 탭만 부른다(모험 탭은 2026-11-15 걷었다) — 홈 · 레이아웃 · 다른 탭이 부르면 다시 첫 화면에 실린다", () => {
+  const importers: Record<string, string[]> = { "styles/games.css": [] };
   const walk = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : /\.(ts|tsx)$/.test(e.name) && !e.name.endsWith(".test.ts") ? [join(dir, e.name)] : []));
   for (const f of walk(SRC)) {
@@ -55,11 +55,10 @@ test("게임 CSS 는 게임 탭 · 모험 탭만 부른다 — 홈 · 레이아�
     for (const k of Object.keys(importers)) if (code.includes(`import "@/${k}"`)) importers[k].push(f.slice(SRC.length + 1).replace(/\\/g, "/"));
   }
   assert.deepEqual(importers["styles/games.css"], ["components/GameArcade.tsx"]);
-  assert.deepEqual(importers["styles/adventure.css"], ["components/adventure/AdventureTab.tsx"]);
-  // 두 탭은 page.tsx 에서 지연 로드다(정적 import 면 그 CSS 가 첫 화면에 실린다)
+  // 게임 탭은 page.tsx 에서 지연 로드다(정적 import 면 그 CSS 가 첫 화면에 실린다)
   const page = readFileSync(join(SRC, "app", "page.tsx"), "utf8");
   assert.match(page, /const GameArcade = dynamic\(\(\) => import\("@\/components\/GameArcade"\)/);
-  assert.match(page, /const AdventureTab = dynamic\(\(\) => import\("@\/components\/adventure\/AdventureTab"\)/);
+  assert.doesNotMatch(page, /AdventureTab|components\/adventure/, "모험 탭은 걷었다");
   assert.doesNotMatch(strip(page), /^import .*(GameArcade|AdventureTab)/m);
 });
 
