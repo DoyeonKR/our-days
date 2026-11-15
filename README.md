@@ -2165,7 +2165,8 @@ commit;
 2026-11-15 사용자 요청으로 지웠다[사용자: "모험 코드와 이미지는 다 걷어내자 용량만 차지해 하지도 않고"]. 2026-11-07 하단 탭으로 생겼던 생물 잡기 · 실시간 액션 전투 · 온라인 대전(랭킹)이다.
 - 지운 것: 화면(`components/adventure/`) · 엔진(`lib/adventure*` · `arena` · `battlefx` · `battlefull` · `advmobile` · `advsprite` · `spritecache`) · `styles/adventure.css` · 테스트 · 대전 함수 소스(`supabase/functions/adventure-battle` · `_shared/adventure`) · 복사 스크립트(`scripts/adventure-shared.mjs`). 하단 탭은 다섯(홈 · 일기 · 기록 · 계획 · 게임)이고, 옛 주소 · 저장된 탭 값 `adventure` 는 홈으로 간다.
 - 남긴 것: 낚시 · 주인 레이드가 같이 쓰는 그리기 박자(`lib/advframe`)와 새 버전 뒤 보던 탭으로 돌아가기(`lib/reloadview`). 모험 전용 그림은 없었다(펫 원화는 섬과 같이 쓴다).
-- ⚠ 운영에 남은 것(사람 확인 뒤에 걷는다 — 되돌릴 수 없다): 표 `adventure_saves` · `adventure_teams` · `adventure_ratings` · `adventure_matches` · 함수 · 크론 `adventure-retention-daily`(60일 지난 판만 지운다) · 배포된 엣지 함수 `adventure-battle`(부르는 앱이 없다). migration 파일은 운영 기록이라 레포에 남긴다(지우면 연동이 '원격에만 있는 버전'으로 거부한다 — §7). 표를 내릴 땐 옛 게임 표처럼 백업 → 내보내기 · 계정 삭제 함수에서 그 표를 뺀 앱 배포 → drop migration 순서로(§14.1).
+- **운영 정리(2026-11-15 [사용자: "모험 디비 정리 배포하고"])**: `migrations/20261114040000_drop_adventure.sql` 이 표 넷 · RPC 여덟 · 정리 함수 · 크론 · 트리거 함수를 내렸다 — 같은 트랜잭션에서 표마다 모든 행을 `private.adventure_backup`(표 이름 · 때 · rows jsonb)에 먼저 백업. 앱 내보내기 목록(accountPolicy)에서도 뺐다. 배포된 엣지 함수 `adventure-battle` 은 SQL · 커넥터로 못 지워 대시보드에서 지운다(부르는 앱 없음).
+- (정리 전 기록) 운영에 남았던 것: 표 `adventure_saves` · `adventure_teams` · `adventure_ratings` · `adventure_matches` · 함수 · 크론 `adventure-retention-daily`(60일 지난 판만 지운다) · 배포된 엣지 함수 `adventure-battle`(부르는 앱이 없다). migration 파일은 운영 기록이라 레포에 남긴다(지우면 연동이 '원격에만 있는 버전'으로 거부한다 — §7). 표를 내릴 땐 옛 게임 표처럼 백업 → 내보내기 · 계정 삭제 함수에서 그 표를 뺀 앱 배포 → drop migration 순서로(§14.1).
 - 설계 노트(실시간 아레나 · 판정 · 밸런스 · 대전 지키기)는 git 이력의 이 README 에 있다.
 
 ### 14.4 개발/검증 유의
