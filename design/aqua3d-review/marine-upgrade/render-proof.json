@@ -1,0 +1,21 @@
+{
+  "renderer": "Actual saved GLBs, GLTFLoader / MeshoptDecoder neutral PBR",
+  "runtime": "Actual game fishMotion()",
+  "models": {
+    "oceanic_manta": {
+      "sha256": "614cceae533ec81160a71f1c67f7f731ab6e34580f40bf682b84a55b6506f522",
+      "oldSHA256": "f55649518c6c4c95d6da3b41f352f78517f2776e6b2b3d34e53f9ba92628f3ef",
+      "sourceSHA256": "53bcb16ce36d670831964caade48155a746b70ac7af65154515a68548dd1c338"
+    },
+    "whale_shark": {
+      "sha256": "c45f42015733e05f0c8d06ca102d3cae709a4a48973cadea82834160df16c09a",
+      "oldSHA256": "1f392414cd4857a302131247ad138851628ab46d596e95e82b2ba9a41aacee8a",
+      "sourceSHA256": "3e565397dfebe369b03f1494ca3eb749e93863d5d30c66ff699003d7af12cd4c"
+    },
+    "imugi_fish": {
+      "sha256": "75bd0d776b1b1c79852a6809e5f20989c067abe57cb149525d91b2d87c378774",
+      "oldSHA256": "b7433c2baabe4bba8854fb51a3df51a42bc923411c50e5d3f79af71492de753e",
+      "sourceSHA256": "b2de868b62dc693461335833321d8f94b8a41c2da9810f1cbab2aaee395fb30c"
+    }
+  }
+}

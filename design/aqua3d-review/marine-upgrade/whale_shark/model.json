@@ -1,0 +1,182 @@
+{
+  "key": "whale_shark",
+  "family": "whale_shark",
+  "file": "public/aqua/models/fish/whale_shark.glb",
+  "oldFile": "design/aqua3d-review/marine-upgrade/whale_shark/old.glb",
+  "sha256": "c45f42015733e05f0c8d06ca102d3cae709a4a48973cadea82834160df16c09a",
+  "oldSHA256": "1f392414cd4857a302131247ad138851628ab46d596e95e82b2ba9a41aacee8a",
+  "sourceSHA256": "3e565397dfebe369b03f1494ca3eb749e93863d5d30c66ff699003d7af12cd4c",
+  "triangles": 6404,
+  "bytes": 86236,
+  "bones": [
+    "spine_0",
+    "spine_1",
+    "spine_2",
+    "spine_3",
+    "spine_4",
+    "spine_5",
+    "fin_L",
+    "fin_L_tip",
+    "fin_R",
+    "fin_R_tip"
+  ],
+  "parts": [
+    {
+      "name": "broad-blunt-head-fusiform-trunk",
+      "role": "body",
+      "paint": "photo",
+      "triangles": 3120
+    },
+    {
+      "name": "thick-swept-pectoral--1",
+      "role": "finR",
+      "paint": "photo",
+      "triangles": 272
+    },
+    {
+      "name": "pelvic--1",
+      "role": "spine3",
+      "paint": "photo",
+      "triangles": 132
+    },
+    {
+      "name": "lateral-eye-rim--1",
+      "role": "head",
+      "paint": "photo",
+      "triangles": 168
+    },
+    {
+      "name": "small-lateral-eye--1",
+      "role": "head",
+      "paint": "eye",
+      "triangles": 168
+    },
+    {
+      "name": "gill-slit--1-0",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "gill-slit--1-1",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "gill-slit--1-2",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "gill-slit--1-3",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "gill-slit--1-4",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "thick-swept-pectoral-1",
+      "role": "finL",
+      "paint": "photo",
+      "triangles": 272
+    },
+    {
+      "name": "pelvic-1",
+      "role": "spine3",
+      "paint": "photo",
+      "triangles": 132
+    },
+    {
+      "name": "lateral-eye-rim-1",
+      "role": "head",
+      "paint": "photo",
+      "triangles": 168
+    },
+    {
+      "name": "small-lateral-eye-1",
+      "role": "head",
+      "paint": "eye",
+      "triangles": 168
+    },
+    {
+      "name": "gill-slit-1-0",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "gill-slit-1-1",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "gill-slit-1-2",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "gill-slit-1-3",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "gill-slit-1-4",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 56
+    },
+    {
+      "name": "first-dorsal",
+      "role": "spine2",
+      "paint": "photo",
+      "triangles": 12
+    },
+    {
+      "name": "second-dorsal",
+      "role": "spine3",
+      "paint": "photo",
+      "triangles": 8
+    },
+    {
+      "name": "anal-fin",
+      "role": "spine4",
+      "paint": "photo",
+      "triangles": 8
+    },
+    {
+      "name": "large-upper-caudal-lobe",
+      "role": "tail",
+      "paint": "photo",
+      "triangles": 304
+    },
+    {
+      "name": "shorter-lower-caudal-lobe",
+      "role": "tail",
+      "paint": "photo",
+      "triangles": 240
+    },
+    {
+      "name": "wide-anterior-mouth-fleshy-rim",
+      "role": "head",
+      "paint": "photo",
+      "triangles": 384
+    },
+    {
+      "name": "wide-anterior-mouth-recessed-dark-throat",
+      "role": "head",
+      "paint": "mouth",
+      "triangles": 288
+    }
+  ],
+  "visualApproval": "pending"
+}
