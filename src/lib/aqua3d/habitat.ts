@@ -333,6 +333,12 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   // 격자 32 × 20(예전 48 × 24) — 물결이 면 수직으로 ±.02 남짓이라 칸 차이가 안 보이고, 짧은 쪽 물결(약 1.6)에도 5칸이 남는다. 빛 · 반짝임은 픽셀마다 계산한다
   const surface = add(new T.PlaneGeometry(9.95, 5.94, 32, 20), water, "rippling-water-surface", [0, 5.56, 0]); surface.rotation.x = -Math.PI / 2;
   add(boxGeometry, new T.MeshBasicMaterial({ color: 0xcce9d8, transparent: true, opacity: .26, depthWrite: false }), "waterline-meniscus", [0, 5.54, 2.98], [9.95, .018, .025]);
+  // 수면 위 하늘(2026-11-15) — 뒷벽 그림은 수면 바로 위(5.87)에서 끝나 그 위가 검은 빈 곳이었다. 범고래 · 물개가 뛰어오르면 검은 몸이 검은 바탕에 묻혔다.
+  //   뒷벽 위로 밝은 하늘빛 판(아래는 수면 가까이 옅은 빛 · 위로 갈수록 푸르게)을 잇는다. 안개를 안 받는다(물 밖이다). 옆으로 끌어 둘러봐도 끝이 안 보이게 넓게
+  const sky = new T.ShaderMaterial({ fog: false, depthWrite: true, uniforms: { lowC: { value: new T.Color(0xd9eef0) }, highC: { value: new T.Color(0x7fb2d6) } },
+    vertexShader: "varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
+    fragmentShader: "varying vec2 vUv;uniform vec3 lowC;uniform vec3 highC;void main(){float k=smoothstep(0.,1.,vUv.y);vec3 c=mix(lowC,highC,k);float glow=exp(-pow((vUv.x-.5)*2.2,2.))*(1.-vUv.y)*.18;gl_FragColor=vec4(c+glow,1.);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}" });
+  add(new T.PlaneGeometry(1, 1), sky, "sky-above-water", [0, 9.2, -3.1], [16, 7, 1]);
   const led = new T.MeshBasicMaterial({ color: 0xe0f6df, toneMapped: false });
   add(boxGeometry, frame, "lighting-canopy", [0, 5.98, -.25], [7.5, .12, .38]);
   for (let i = 0; i < 18; i++) add(boxGeometry, led, "canopy-led", [-3.45 + i * .405, 5.909, -.25], [.20, .012, .17]);

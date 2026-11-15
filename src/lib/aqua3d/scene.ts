@@ -430,6 +430,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
         inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);normalsFixed+=repairNormals(inner);calmSpecular(inner);fishShading(inner);
         release(swapBody(m.root,inner,"center",s=>bodyMeasure(f.family,key,s)));
+        // 범고래 새끼 · 어린 개체(2026-11-15) — 아직 전용 모델이 없어 다 큰 모델을 쓴다(fry_orca · juv_orca 는 같은 파일). 길이는 그대로 두고 몸통을 통통하게(아기 비율) — 전용 모델이 오면 지운다
+        if(key==="fry_orca"||key==="juv_orca"){const k=key==="fry_orca"?1.2:1.1;inner.scale.y*=k;inner.scale.z*=k;}
         // 주인 모델의 거북(산호 여왕)은 거북 헤엄 — 물고기 몸 물결 · 막 떨림이면 등딱지 · 산호가 휘고 떨렸다
         m.animate=look?.model&&f.family==="sea_turtle"?turtleGlbMotion(inner):fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
     });}
@@ -648,7 +650,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const zReach=3*deep-.6;
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
     const selBreach=sel?breaches.get(sel.root.userData.id):undefined;
-    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,selBreach?selBreach.plan.surface:tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
+    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,selBreach?(selBreach.plan.surface+selBreach.plan.peak)/2:tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
     // 사냥 장면 — 먹이 한 마리가 아니라 사냥꾼의 입과 먹이의 가운데를, 둘이 다 들어오는 거리에서, 둘을 잇는 선의 옆에서(hunt.ts 의 huntShot)
     let shotAng:number|null=null,shotElev=0;

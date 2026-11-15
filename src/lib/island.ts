@@ -3467,13 +3467,15 @@ export function setAutoReplant(s0: IslandState, on: boolean): IslandState {
   return s;
 }
 
-export function buyFertilizer(s0: IslandState, gold: boolean): IslandState {
+/** 비료 · 골드비료 사기 — count 개를 한 번에(2026-11-15 [사용자: "농장 비료 황금비료 10개씩 구매 가능하게"]). 값은 개수만큼 그대로(묶음 할인 없음), 하트가 모자라면 아무것도 안 산다 */
+export function buyFertilizer(s0: IslandState, gold: boolean, count = 1): IslandState {
+  const n = Math.max(1, Math.min(99, Math.floor(count)));
+  const cost = (gold ? TUNING.farm.goldFertilizer : TUNING.farm.fertilizer) * n;
+  if (s0.coins < cost) return s0;
   const s = clone(s0);
-  const cost = gold ? TUNING.farm.goldFertilizer : TUNING.farm.fertilizer;
-  if (s.coins < cost) return s0;
   s.coins -= cost;
-  if (gold) s.farm.gold += 1;
-  else s.farm.fert += 1;
+  if (gold) s.farm.gold += n;
+  else s.farm.fert += n;
   return s;
 }
 
