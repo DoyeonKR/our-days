@@ -1,4 +1,4 @@
-// 포유류는 바위 위에서 쉬고(90%) · 만지면 놀란다(2026-11-14)
+// 포유류는 바위 위에서 쉬고(절반 — 2026-11-15 90% 에서 바꿨다) · 만지면 놀란다(2026-11-14)
 // [사용자: "표유류는 90프로는 바위 위에서 쉬고있는다 · 10프로는 수영한다 · 모든 수조에 동물들은 유저가 탭하거나 만지면 놀라거나 특성 애니메이션을 취하면서 빠르게 움직인다"]
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -15,12 +15,13 @@ test("해양 포유류 여섯은 모두 바위 쉼터를 쓴다 · 다른 종은
   for (const k of ["guppy", "great_white", "sea_turtle", "moray"]) assert.ok(!habitOf(k).haul, k);
 });
 
-test("시간의 90% 는 바위 위에서 쉬고 10% 는 헤엄친다(내려가고 · 올라오는 몇 초 포함)", () => {
+test("시간의 절반은 바위 위에서 쉬고 절반은 헤엄친다(내려가고 · 올라오는 몇 초 포함)", () => {
   for (const id of [1, 7, 42, 99]) {
     let rest = 0, swim = 0, n = 0;
     for (let t = 0; t < 3600; t += 0.5) { const r = haulRest(id, t); n++; if (r > 0.99) rest++; if (r < 0.01) swim++; }
     assert.ok(Math.abs(rest / n - HAUL_REST) < 0.04, `id ${id} 쉼 ${rest / n}`);
-    assert.ok(swim / n > 0.04 && swim / n < 0.1, `id ${id} 헤엄 ${swim / n}`);
+    assert.equal(HAUL_REST, 0.5);
+    assert.ok(swim / n > 0.42 && swim / n < 0.5, `id ${id} 헤엄 ${swim / n}`);
   }
 });
 

@@ -56,7 +56,7 @@ export type FishHabit = {
   stand?: boolean;
   /** 굴에 산다(곰치) — 바위 · 장식 속에 몸 뒤쪽을 넣고 머리만 내민다. 거의 안 나오고, 가끔 반쯤 튀어나왔다 곧바로 돌아간다(denCourse) */
   den?: boolean;
-  /** 바위 위에서 쉰다(해양 포유류, 2026-11-14) — 시간의 90% 는 바위 · 장식 위에 올라가 쉬고 10% 만 헤엄친다(haulBlend) */
+  /** 바위 위에서 쉰다(해양 포유류, 2026-11-14) — 시간의 절반(HAUL_REST, 2026-11-15 90% → 50%)은 바위 · 장식 위에 올라가 쉬고 절반은 헤엄친다(haulBlend) */
   haul?: boolean;
 };
 
@@ -216,6 +216,7 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   arapaima: swim(-1.6, 1.8, 0.08, 0.85, 1.5, { breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.15 }),
   // 해양 포유류(2026-11-13) — 허파로 숨 쉬어 늘 수면에 올라간다(breathe — 거북과 같은 숨쉬기 길).
   // 2026-11-14 [사용자: "포유류는 90프로는 바위 위에서 쉬고있는다 · 10프로는 수영한다"] — 여섯 다 haul: 시간의 90% 는 바위 위에서 쉰다(haulBlend). 아래 습성은 헤엄치는 10% 의 길이다
+  // 2026-11-15 [사용자: "물범이 너무 돌에만 있어 수영 반 쉼 반으로 해야해"] — 쉬는 몫을 90% → 50%(HAUL_REST, 여섯 다)
   // 점박이물범: 바닥 가까이 천천히 미끄러지다 숨 쉬러 오르고, 바닥에 내려앉아 쉰다(물범은 물속에서 잔다 — 모래 위 쉬기 그대로)
   spotted_seal: swim(-3.2, 0.4, 0.16, 0.9, 1.8, { haul: true, breathe: 70, pace: 0.7, tilt: 0.35 }),
   // 물개 · 바다사자 · 강치: 앞지느러미로 날듯이 빠르게, 홱 방향을 튼다. 모래 위에선 안 쉰다
@@ -1285,11 +1286,12 @@ export function denCourse(id: number, seconds: number, length: number, scale: nu
 
 /* ── 해양 포유류의 바위 쉼터(2026-11-14) ─────────────────────────
  * [사용자: "표유류는 90프로는 바위 위에서 쉬고있는다 · 10프로는 수영한다"]
- * 물범 · 물개 · 바다사자 · 강치 · 해달 · 수달은 바위(없으면 높은 장식) 하나를 쉼터로 정해 시간의 90% 를 그 위에 올라가 쉬고, 10% 만 헤엄친다.
+ * 물범 · 물개 · 바다사자 · 강치 · 해달 · 수달은 바위(없으면 높은 장식) 하나를 쉼터로 정해 시간의 절반은 그 위에 올라가 쉬고, 절반은 헤엄친다
+ * (2026-11-15 [사용자: "물범이 너무 돌에만 있어 수영 반 쉼 반으로 해야해"] — 처음엔 90% 쉼이었다).
  * 한 바퀴(140 ~ 190초)마다 한 번 바위에서 미끄러져 내려가 헤엄치고(약 3초에 걸쳐 내려가고 · 올라온다) 돌아온다. 먹이를 주면 쉬다가도 먹으러 간다.
  * 쉼터는 곰치 굴처럼 id 순으로 나눈다(두 기기 같은 결과). 한 바위를 둘이 나눠 쓰면 바위 위에서 양옆으로 비켜 눕는다. 시각 · id · 장애물만으로 정해진다. */
 /** 쉬는 몫 — 한 바퀴의 이만큼은 바위 위 */
-export const HAUL_REST = 0.9;
+export const HAUL_REST = 0.5;
 /** 바위에서 내려가고 · 올라오는 데 걸리는 몫(한 바퀴의) */
 const HAUL_RAMP = 0.02;
 export function haulCandidates(length: number, obstacles: readonly Obstacle[] | undefined, scale = 1): Obstacle[] {
@@ -1321,7 +1323,7 @@ export function haulAssign(fish: readonly { id: number; length: number }[], obst
   }
   return out;
 }
-/** 지금 바위 위에 있는 정도(0 헤엄 ~ 1 쉼) — 한 바퀴의 처음 10% 가 헤엄(양 끝 2% 는 내려가고 · 올라오는 중) */
+/** 지금 바위 위에 있는 정도(0 헤엄 ~ 1 쉼) — 한 바퀴의 처음 절반(1 − HAUL_REST)이 헤엄(양 끝 2% 는 내려가고 · 올라오는 중) */
 export function haulRest(id: number, seconds: number): number {
   const h = denHash(id + 7), per = 140 + 50 * unit(h, 113), u = ((seconds + per * unit(h, 127)) % per) / per;
   const swimSpan = 1 - HAUL_REST;

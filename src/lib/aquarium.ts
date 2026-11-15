@@ -359,7 +359,15 @@ export function decorPose(p: { rotation?: number; scale?: number }): DecorPose {
 /** 성장 소식 한 줄 — 두 사람이 각자 한 번씩 본다(newsSeen). 시각은 안 남긴다(쪼개서 정산해도 같은 소식이어야 한다). */
 export type AquaNews = { n: number; id: number; family: string; stage: 0 | 1 | 2; species?: string; egg?: boolean;
   /** 잡아먹기(2026-11-11, lib/predation) — id · family · stage · species 는 사냥꾼, ate 는 먹힌 물고기 */
-  ate?: { id: number; family: string; stage: 0 | 1 | 2; species?: string } };
+  ate?: { id: number; family: string; stage: 0 | 1 | 2; species?: string };
+  /** 일어난 때(ms, 2026-11-15) — 잡아먹힌 장면 다시 보기는 24시간만 목록에 남는다(EATEN_REPLAY_MS). 옛 소식엔 없다 */
+  at?: number };
+/** 잡아먹힌 장면 다시 보기를 목록에 두는 시간(2026-11-15) [사용자: "물고기 잡아먹힌거 리플레이는 자동으로 24시간 후 삭제시켜줘"] */
+export const EATEN_REPLAY_MS = 24 * 60 * 60 * 1000;
+/** 다시 보기 목록 — 24시간 안에 잡아먹힌 것만, 최근 것부터 6개. 때가 없는 옛 소식(이 기능 전)은 넣지 않는다 */
+export function eatenReplays(news: readonly AquaNews[] | undefined, now: number): AquaNews[] {
+  return (news ?? []).filter((x) => x.ate && typeof x.at === "number" && now - x.at < EATEN_REPLAY_MS && x.at <= now + 5 * 60 * 1000).slice(-6).reverse();
+}
 /** 대기 그물의 한 마리 — 수조가 찼을 때 24시간 붙잡아 둔다. value 는 잡을 때 판매가(지나면 그 값에 저절로 팔린다). */
 export type NetFish = { family: string; stage: 0 | 1 | 2; species?: string; difficulty: number; value: number; at: number; cm?: number; crown?: string };
 export type AquaReqKind = "adult" | "decor" | "beauty";
@@ -792,7 +800,7 @@ export function tickAqua(input: AquaState, now: number, seen: readonly string[] 
     if (meal) {
       const r = tickCore(a, meal.t, seen);
       evolved.push(...r.evolved);
-      a = eatOnce(r.a, meal.d);
+      a = eatOnce(r.a, meal.d, meal.t);
       continue;
     }
     if (!ev) break;
@@ -806,13 +814,13 @@ export function tickAqua(input: AquaState, now: number, seen: readonly string[] 
 }
 
 /** 그날의 사냥 — 상성이 안 맞는 짝 하나가 있고 배가 고프면, 먹이는 수조에서 빠지고 소식에 남는다 */
-function eatOnce(a: AquaState, d: number): AquaState {
+function eatOnce(a: AquaState, d: number, t: number): AquaState {
   const pick = pickMeal(a.fish.map((f) => ({ id: f.id, family: f.family, stage: f.stage, crown: f.crown, cm: fishCm(f) })), a.hunger, d);
   if (!pick) return a;
   const pred = a.fish.find((f) => f.id === pick[0].id)!, prey = a.fish.find((f) => f.id === pick[1].id)!;
   return pushNews({ ...a, fish: a.fish.filter((f) => f.id !== prey.id) }, {
     id: pred.id, family: pred.family, stage: pred.stage, ...(pred.species ? { species: pred.species } : {}),
-    ate: { id: prey.id, family: prey.family, stage: prey.stage, ...(prey.species ? { species: prey.species } : {}) },
+    ate: { id: prey.id, family: prey.family, stage: prey.stage, ...(prey.species ? { species: prey.species } : {}) }, at: t,
   });
 }
 /** 지금 수조에서 상성이 안 맞는 짝 — 화면이 미리 알린다(배를 채워 두면 안 먹힌다) */

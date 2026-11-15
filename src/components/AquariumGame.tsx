@@ -23,7 +23,7 @@ import { feedSpot } from "@/lib/aqua3d/world";
 import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWaits, mealEndOf } from "@/lib/aqua3d/hunt";
 import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
-  aquaDangers, aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
+  aquaDangers, aquaEffects, buyDecor, eatenReplays, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
   fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
   releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
@@ -252,8 +252,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const nextGate = tankGate(view.state, a, a.tank + 1);
   /** 상성이 안 맞는 짝(lib/predation) — 배가 고프면 잡아먹는다. 미리 알려 먹이로 지킬 수 있게 */
   const dangers = aquaDangers(a);
-  // 잡아먹기 소식 — 최근 것부터 6개(소식은 섬 저장에 최근 몇십 개만 남는다)
-  const eaten = (a.news ?? []).filter((x) => x.ate).slice(-6).reverse();
+  // 잡아먹기 소식 — 24시간 안의 것만 최근 것부터 6개(2026-11-15 — 지나면 다시 보기 목록에서 저절로 빠진다, eatenReplays)
+  const eaten = eatenReplays(a.news, now || gameNow());
   const tk = tankOf(a);
   const fx = aquaEffects(a);
   const block = a.fish.length ? growBlock(a) : null;

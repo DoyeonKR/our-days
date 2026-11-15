@@ -235,3 +235,19 @@ test("엔진은 섬 엔진을 값으로 부르지 않는다 · 게임 탭에 카
   const arcade = readFileSync(join(root, "src/components/GameArcade.tsx"), "utf8");
   assert.ok(arcade.includes("game-mode-aqua") && arcade.includes("<AquariumGame"));
 });
+
+// 잡아먹힌 장면 다시 보기는 24시간만(2026-11-15)
+import { EATEN_REPLAY_MS, eatenReplays } from "./aquarium.ts";
+test("eaten replays leave the list after 24 hours", () => {
+  const now = 1_800_000_000_000, ate = { id: 2, family: "guppy", stage: 0 as const };
+  const news = [
+    { n: 1, id: 1, family: "pike", stage: 2 as const, ate },
+    { n: 2, id: 1, family: "pike", stage: 2 as const, ate, at: now - EATEN_REPLAY_MS - 1 },
+    { n: 3, id: 1, family: "pike", stage: 2 as const, ate, at: now - EATEN_REPLAY_MS + 60_000 },
+    { n: 4, id: 1, family: "pike", stage: 2 as const },
+    { n: 5, id: 1, family: "pike", stage: 2 as const, ate, at: now - 1000 },
+  ];
+  assert.deepEqual(eatenReplays(news, now).map((x) => x.n), [5, 3]);
+  assert.deepEqual(eatenReplays(news, now + EATEN_REPLAY_MS - 2000).map((x) => x.n), [5]);
+  assert.deepEqual(eatenReplays(news, now + EATEN_REPLAY_MS), []);
+});
