@@ -27,10 +27,37 @@ const random = (n: number) => { const x = Math.sin(n * 127.13 + 31.7) * 43758.54
 const smooth = (a: number, b: number, n: number) => { const t = clamp((n - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
 /** The center remains low and open; planting banks rise at the sides/back. */
-export function substrateHeight(x: number, z: number, tier: number): number {
+/** beach — false(없음) · true(8 · 9단계, 가운데부터) · "hall"(10 · 11단계 — 가운데 터널 · 돔 밖에서부터) */
+export function substrateHeight(x: number, z: number, tier: number, beach: boolean | "hall" = false): number {
   const bank = smooth(2.3, 4.8, Math.abs(x)) * (.19 + .05 * clamp(tier, 1, 6));
   const back = smooth(.5, 2.9, -z) * (.14 + .05 * tier);
-  return Math.max(WORLD.floor+.005,WORLD.floor + .025 + bank + back + .012 * Math.sin(x * 3 + z) * Math.sin(z * 4)+seabedRelief(x,z,tier));
+  const base = Math.max(WORLD.floor+.005,WORLD.floor + .025 + bank + back + .012 * Math.sin(x * 3 + z) * Math.sin(z * 4)+seabedRelief(x,z,tier));
+  if (!beach) return base;
+  const p = beachProfile(x, beachStart(beach));
+  return p > 0 ? base + (BEACH_TOP + .05 * Math.sin(z * 1.7 + x * 2.1) * p - base) * p : base;
+}
+/* 모래사장(2026-11-15) [사용자: "심해대 수족관 부터는 경사를 두어서 우측 끝으로 얕아지는 경사를 만들어 우측에 모래사장을 두자 그래서 거기에서 포유류들이 쉬게하자"]
+ *  8단계(심해 대수족관)부터 바닥이 오른쪽으로 갈수록 올라와 수면 위로 나온 모래사장이 된다. 좌표는 수조 root 안(넓히기 전) — x 1.2 에서 시작해(터널 · 돔은 가운데 반지름 .9 안이라 안 겹친다)
+ *  4.3 에서 수면 위(5.56)로 올라선 뒤 끝까지 평평하다. 오목한 모양(아래는 가파르고 위로 갈수록 완만한 해변). 포유류는 바위 대신 여기서 쉬고(fishstep 의 beach), 다른 물고기는 물가(shoreX) 안쪽에서만 헤엄친다 */
+export const BEACH_TIER = 8;
+/** 모래사장 꼭대기(root 안 높이) — 수면(5.56)보다 조금 위 */
+export const BEACH_TOP = 5.82;
+export const BEACH_X0 = 1.2, BEACH_X0_OPEN = 0, BEACH_X1 = 4.3;
+/** 모래사장 종류 — 8 · 9단계는 가운데부터 넓게(덜 가파르게), 10 · 11단계는 가운데 터널 · 돔(반지름 .9 안) 밖에서부터 */
+export const hasBeach = (tierInput: number): boolean | "hall" => Math.round(tierInput) >= 10 ? "hall" : Math.round(tierInput) >= BEACH_TIER;
+export const beachStart = (beach: boolean | "hall") => beach === "hall" ? BEACH_X0 : BEACH_X0_OPEN;
+export function beachProfile(x: number, x0 = BEACH_X0): number {
+  const e = clamp((x - x0) / (BEACH_X1 - x0), 0, 1);
+  return 1 - (1 - e) ** 2.2;
+}
+/** 높이 y(root 안)의 물가 — 모래가 y 보다 높아지기 시작하는 가로 위치(root 안). 경사 아래면 BEACH_X0, 꼭대기 위면 5 */
+export function shoreLocal(y: number, z = 0, beach: boolean | "hall" = true): number {
+  const x0 = beachStart(beach);
+  if (y <= substrateHeight(x0, z, 6, beach)) return x0;
+  if (y >= substrateHeight(5, z, 6, beach)) return 5;
+  let lo = x0, hi = 5;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (substrateHeight(mid, z, 6, beach) < y) lo = mid; else hi = mid; }
+  return lo;
 }
 
 /** 이음새 없는 값 잡음(0~1) — 타일이 반복돼도 줄이 안 보인다 */
@@ -148,9 +175,9 @@ export function leafGeometry(broad = false, rows = 16, cols = 4): T.BufferGeomet
 export type HardStone = { at: [number, number, number]; size: [number, number, number]; seed: number; shadow: [number, number] };
 const stoneRotation=(seed:number):[number,number,number]=>[Math.sin(seed)*.08,seed*.71,Math.sin(seed*.7)*.07];
 /** 단계별 바닥 바위 — 그리기(makeHabitat)와 물고기 장애물(rockObstacles)이 같은 표를 쓴다(2026-11-11 — 예전엔 바위가 장애물이 아니어서 흰동가리 · 우럭이 12~19% 시간 바위 속을 지났다) */
-export function hardscapeStones(tierInput: number): HardStone[] {
+export function hardscapeStones(tierInput: number, beach: boolean | "hall" = hasBeach(tierInput)): HardStone[] {
   const tier = Math.min(clamp(Math.round(tierInput), 1, HABITAT_THEMES.length), 6), out: HardStone[] = [];
-  const ground = (x: number, z: number) => substrateHeight(x, z, tier);
+  const ground = (x: number, z: number) => substrateHeight(x, z, tier, beach);
   const stoneCount = tier === 1 ? 9 : tier === 5 ? 16 : 14;
   for (let i = 0; i < stoneCount; i++) {
     const side = i % 2 ? 1 : -1, r = random(i + tier * 51), z = -2.55 + random(i + 18) * 1.4;
@@ -170,7 +197,8 @@ export function hardscapeStones(tierInput: number): HardStone[] {
     const st=out[i],h=.16+random(i+41)*.10;st.size[1]=h;
     st.at[1]=ground(st.at[0],st.at[2])+h*.35;
   }
-  return out;
+  // 모래사장 단계 — 경사 쪽(오른쪽) 바위는 모래에 묻히므로 빼고, 왼쪽 바위만 남긴다
+  return beach ? out.filter((st) => st.at[0] < beachStart(beach) + .6 && beachProfile(st.at[0], beachStart(beach)) < .08) : out;
 }
 /** 바닥 바위 → 물고기 길이 비켜 갈 원기둥(Obstacle — x · r 은 월드, z · h 는 물고기 길 좌표). wide · deep 은 수조를 늘린 배율.
  *  바위는 돌린 타원체라 바닥에서 본 발자국을 월드에서 재고, 앞뒤로 긴 발자국(깊은 수조)은 원 몇 개로 나눈다 — 원 하나로 덮으면 깊은 수조에서 앞뒤로 너무 부풀었다.
@@ -194,17 +222,19 @@ export function rockObstacles(tierInput: number, wide = 1, deep = 1): { x: numbe
   }
   return out;
 }
-export type Habitat = { root: T.Group; floor: T.Mesh; heightAt: (x: number, z: number) => number; setWater: (cleanliness: number) => void; animate: (seconds: number) => void; dispose: () => void };
+export type Habitat = { root: T.Group; floor: T.Mesh; heightAt: (x: number, z: number) => number;
+  /** 모래사장(8단계부터) — 높이 y(월드)의 물가 가로 위치(월드). 모래사장이 없으면 없다 */ shoreX?: (y: number) => number;
+  /** 모래사장 위 쉼터 — 포유류가 눕는 자리(월드 x · 꼭대기 높이는 root 안 BEACH_TOP) */ beachRest?: { x: number; top: number }; setWater: (cleanliness: number) => void; animate: (seconds: number) => void; dispose: () => void };
 /** 받아 둔 배경 그림(아직이면 null) — 11단계 돔의 앞 바다 벽이 같은 tank_9 를 한 번 더 받지 않고 빌려 쓴다(2026-11-11). 지우는 건 수조 몫 */
 export const habitatScenery = (h: Habitat | null): T.Texture | null => (h as (Habitat & { scenery?: () => T.Texture | null }) | null)?.scenery?.() ?? null;
 /** anisotropy: 모래를 비스듬히 볼 때 뭉개지지 않게(렌더러 최대값 — 4 를 넘기지 않는다) */
 export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {}): Habitat {
   // 상위 어항은 6단계 지형을 공유하되, 각 단계 전용 배경과 색을 사용한다.
   const artTier = clamp(Math.round(tierInput), 1, HABITAT_THEMES.length);
-  const tier = Math.min(artTier, 6), theme = HABITAT_THEMES[artTier - 1];
+  const tier = Math.min(artTier, 6), theme = HABITAT_THEMES[artTier - 1], beach = hasBeach(artTier);
   const root = new T.Group(); root.name = `aquascape-${tier}`;
   // 옆으로 늘리면 root 가 가로로 늘어난다 — 바깥에서 묻는 x 는 늘어난 좌표다
-  const bed=sampledBed((x,z)=>substrateHeight(x,z,tier));
+  const bed=sampledBed((x,z)=>substrateHeight(x,z,tier,beach));
   const time = { value: 0 }, heightAt = (x: number, z: number) => WORLD.floor + (bed.sample(x / root.scale.x, z / root.scale.z) - WORLD.floor) * root.scale.y;
   const sandTex = sandMap(512), woodMap = surfaceMap("wood");
   sandTex.map.repeat.set(3, 1.8); sandTex.bump.repeat.set(3, 1.8);
@@ -216,11 +246,17 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     // 물이 더러우면 모래 위 일렁임도 흐려진다(장면이 물 상태로 aquaClarity 를 내린다 — 2026-11-12)
     shader.uniforms.aquaClarity = WATER_LIGHT.aquaClarity;
     shader.uniforms.aquaBankStrength = { value: tier === 1 ? .32 : .72 };
+    // 모래사장(2026-11-15) — 경사 · 모래사장은 가장자리 어둡게(bank)를 끄고 밝은 모래색, 물 밖(수면 5.56 위) 마른 모래는 더 밝고 따뜻하게. 없으면 x0 = 99
+    shader.uniforms.aquaBeachX0 = { value: beach ? beachStart(beach) : 99 };
     shader.vertexShader = `varying vec3 vAquaPosition;\n${shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAquaPosition = position;");
-    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaClarity; uniform float aquaBankStrength;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
+    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaClarity; uniform float aquaBankStrength; uniform float aquaBeachX0;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
       .replace("#include <color_fragment>", `#include <color_fragment>
         float bank=smoothstep(1.15,2.7,abs(vAquaPosition.x+.58*sin(vAquaPosition.z*.8)));
-        diffuseColor.rgb *= mix(vec3(1.),vec3(.28,.34,.24),bank*aquaBankStrength);
+        float beachK=smoothstep(aquaBeachX0,aquaBeachX0+.8,vAquaPosition.x);
+        diffuseColor.rgb *= mix(vec3(1.),vec3(.28,.34,.24),bank*aquaBankStrength*(1.-beachK));
+        diffuseColor.rgb *= mix(vec3(1.),vec3(1.18,1.12,1.0),beachK);
+        float dry=beachK*smoothstep(5.45,5.7,vAquaPosition.y);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(1.55,1.42,1.18), dry);
         // 물 밑 모래는 곳곳이 축축하게 짙다 — 넓은 얼룩이 있어야 타일 반복이 안 보인다
         float damp=.5+.5*sin(vAquaPosition.x*.9+sin(vAquaPosition.z*1.3)*1.4)*sin(vAquaPosition.z*1.1+vAquaPosition.x*.35);
         diffuseColor.rgb *= mix(.8,1.06,damp);`)
@@ -232,6 +268,17 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const pos = terrain.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, bed.values[i]);
   terrain.computeVertexNormals(); const floor = new T.Mesh(terrain, sand); floor.name = "contoured-substrate"; root.add(floor);
+  // 모래사장 앞면 — 높이 지도는 앞유리(z = 3)에서 끝나 솟은 경사 밑이 비어 보였다. 앞 · 오른쪽 끝을 모래 벽으로 막는다(같은 모래 재질)
+  if (beach) {
+    const n = 48, wall = (edge: (t: number) => [number, number]) => {
+      const g = new T.BufferGeometry(), p: number[] = [], uv: number[] = [], idx: number[] = [];
+      for (let i = 0; i <= n; i++) { const [x, z] = edge(i / n); const top = bed.sample(x, z); p.push(x, top, z, x, WORLD.floor - .02, z); uv.push(i / n * 3, (top - WORLD.floor) / 6, i / n * 3, 0); if (i < n) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); } }
+      g.setAttribute("position", new T.Float32BufferAttribute(p, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+      const m = new T.Mesh(g, sand); m.material = sand; root.add(m); return m;
+    };
+    const x0 = beachStart(beach);
+    wall((t) => [x0 - .3 + t * (5 - x0 + .3), 2.995]).name = "beach-front-face";
+  }
   // 바위 — 밝힌 무늬 + 색을 밝은 회갈색 쪽으로 당긴다(짙은 테마도 바위로 읽히게). 꼭대기엔 이끼 · 밑동엔 앙금(정점 색)
   const rockMat = new T.MeshStandardMaterial({ color: new T.Color(theme.rock).lerp(new T.Color(0xc9c6b4), .32), map: rockMap.map, bumpMap: rockMap.bump, bumpScale: .07, roughness: .9, vertexColors: true });
   const woodMat = new T.MeshStandardMaterial({ color: 0x716146, map: woodMap.map, bumpMap: woodMap.bump, bumpScale: .035, roughness: .86 });
@@ -367,7 +414,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const shadowMat=new T.MeshBasicMaterial({map:softShadowTexture(),transparent:true,opacity:.35,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
   const contact=(x:number,z:number,w:number,d:number)=>{const g=new T.PlaneGeometry(w,d,4,4);g.rotateX(-Math.PI/2);const p=g.attributes.position;for(let i=0;i<p.count;i++){const px=x+p.getX(i),pz=z+p.getZ(i);p.setXYZ(i,px,heightAt(px,pz)+.012,pz);}g.computeVertexNormals();shadows.push(g);};
   // 돌 자리는 hardscapeStones 한 곳 — 물고기 길의 장애물(rockObstacles)도 같은 표를 읽는다
-  for (const st of hardscapeStones(tier)) { stone(st.at, st.size, st.seed); contact(st.at[0], st.at[2], st.shadow[0], st.shadow[1]); }
+  for (const st of hardscapeStones(tier, beach)) { stone(st.at, st.size, st.seed); contact(st.at[0], st.at[2], st.shadow[0], st.shadow[1]); }
   root.add(Object.assign(new T.Mesh(mergeGeometries(stones), rockMat), { name: "weathered-hardscape" }));
   root.add(Object.assign(new T.Mesh(mergeGeometries(shadows), shadowMat), { name: "soft-contact-shadow" }));
   stones.forEach(g => g.dispose()); shadows.forEach(g => g.dispose());
@@ -483,7 +530,9 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   // 수조 안 물건은 안 움직인다 — 행렬을 한 번 계산해 두고 매 프레임 다시 짜지 않는다(넓히면 scene 이 root 만 다시 계산한다)
   root.traverse(o => { o.updateMatrix(); o.matrixAutoUpdate = false; });
   const ALGAE=new T.Color(0x3d4c37),algaeLow=ALGAE.clone().multiplyScalar(.5),waterLow=new T.Color(theme.water).multiplyScalar(.48),waterHigh=new T.Color(theme.top);
-  return { root, floor, heightAt, setWater(cleanliness) {
+  // 물가 — 월드 높이 → root 안 높이 → 물가(root 안) → 월드 x(넓힌 만큼)
+  const shoreX = beach ? (y: number) => shoreLocal(WORLD.floor + (y - WORLD.floor) / root.scale.y, 0, beach) * root.scale.x : undefined;
+  return { root, floor, heightAt, ...(beach ? { shoreX, beachRest: { x: 4.65, top: BEACH_TOP } } : {}), setWater(cleanliness) {
     // 물이 갈리는 동안 프레임마다 불린다 — 색을 새로 만들지 않는다(2026-11-12)
     const murk=clamp((60-cleanliness)/100,0,.55);
     backdrop.uniforms.murk.value=murk;

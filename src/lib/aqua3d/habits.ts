@@ -242,7 +242,7 @@ export const hugsFloor = (key: string): boolean => habitOf(key).hug !== undefine
 /** 장식 · 바위 — 물고기 길이 피해 간다. x · r 은 월드(넓힌 어항이면 넓힌 뒤), z 는 물고기 길 좌표(깊은 수조면 월드 z ÷ 깊이), h 는 꼭대기 높이(WORLD.floor 에서 잰 값, 길 좌표).
  *  r 은 월드 반지름이다 — 깊은 수조에서도 발자국은 월드에서 원이다(2026-11-11 — 예전엔 길 좌표에서 원으로 봐서 깊이만큼 앞뒤로 부풀었다. 돔은 앞뒤를 거의 다 막았다).
  *  kind: 없거나 "decor" 면 장식(들여다보러 간다) · "rock" 은 바닥 바위 · "hall" 은 터널 · 돔 유리 */
-export type Obstacle = { x: number; z: number; r: number; h: number; kind?: "decor" | "rock" | "hall" };
+export type Obstacle = { x: number; z: number; r: number; h: number; kind?: "decor" | "rock" | "hall" | "beach" };
 /** 터널 · 돔 — 낮게 사는 물고기는 이 둘레를 아예 안 지나가게 고리를 옮긴다. r 은 월드 반지름, h 는 Obstacle.h 와 같은 높이(길 좌표) */
 export type Hall = { kind: "tunnel" | "dome"; r: number; h: number };
 /** 먹이 — t 는 course 와 같은 시계의 초, x 는 먹이를 뿌린 가로 위치(월드 좌표) */
@@ -1343,7 +1343,13 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
   // 몸이 보는 쪽 — 앞유리 쪽으로 비스듬히, 20초마다 천천히 고개를 돌린다(좌우 0.35 rad)
   const a0 = (unit(h, 131) < 0.5 ? 0 : Math.PI) + (unit(h, 137) - 0.5) * 0.8 + Math.sin(seconds / 20 * TAU + unit(h, 139) * TAU) * 0.35;
   let fx = Math.cos(a0), fz = Math.abs(Math.sin(a0)) * 0.5 + 0.15;
-  if (o) {
+  if (o && o.kind === "beach") {
+    // 모래사장(2026-11-15) — 꼭대기 평지에 물 쪽(왼쪽)을 보고 눕는다. 나눠 쓰면 앞뒤로 비켜 눕는다(모래사장은 가로가 좁고 앞뒤가 길다)
+    const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * length * 0.7;
+    const lim = 5 * scale - length * 0.42, zl = Math.max(0.2, roomZ(length / 2) * (opts.deep || 1) - 0.2);
+    rx = Math.max(-lim, Math.min(lim, o.x - (sh % 3) * length * 0.25)); rz = Math.max(-zl, Math.min(zl, o.z + off)) / (opts.deep || 1); ry = floorY + o.h + (length * 0.12) / (opts.tall || 1);
+    fx = -1; fz = 0.25 + (unit(h, 131) - 0.5) * 0.5;
+  } else if (o) {
     // 바위 꼭대기 — 나눠 쓰면 양옆으로 비켜 눕는다. 둥근 바위라 가운데에서 멀수록 조금 낮다
     const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * Math.min(o.r * 0.55, length * 0.6);
     // 바위 앞 어깨(앞유리 쪽)에 눕는다 — 꼭대기 한가운데면 큰 바위 뒤로 숨어 안 보였다(2026-11-14). 높이는 둥근 언덕의 그 자리 높이 + 몸 두께(물리 밀어내기와 같은 언덕)
@@ -1356,7 +1362,9 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     fz = Math.abs(fz);
   }
   const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
-  out.x += (rx - out.x) * R; out.y += (ry - out.y) * R; out.z += (rz - out.z) * R;
+  // 모래사장 — 곧장 가면 모래 경사를 뚫는다. 먼저 수면 높이까지 떠오르고(높이는 일찍) 그다음 모래사장 쪽으로 미끄러진다(가로는 늦게)
+  const beach = !!o && o.kind === "beach", Ry = beach ? Math.sqrt(R) : R, Rx = beach ? R * R : R;
+  out.x += (rx - out.x) * Rx; out.y += (ry - out.y) * Ry; out.z += (rz - out.z) * Rx;
   const dl = hyp3(out.dx, out.dy, out.dz) || 1;
   out.dx = out.dx / dl * (1 - R) + fx * R; out.dy = out.dy / dl * (1 - R); out.dz = out.dz / dl * (1 - R) + fz * R;
   // 쉬는 동안 — 숨쉬듯 아주 조금만 움직인다(해달은 여기서 배를 위로 — glb 의 otterRoll 이 amp 가 낮을 때 뒤집는다)

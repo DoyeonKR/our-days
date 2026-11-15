@@ -211,7 +211,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let fishShadows = makeShadows(4);
   const shadowTint = new T.Color(), shadowDummy = new T.Object3D();
   // 물고기끼리 비켜 가기 · 먹이 · 장식 피하기에 쓰는 이번 프레임 값 — 할당 없이 채운다(움직임 함수가 받을 자리)
-  const motion = { feed: null as FeedEvent | null, obstacles: [] as Obstacle[], hall: null as Hall | null, positions: new Float32Array(3), lengths: new Float32Array(1), heading: new Float32Array(3), count: 0, rolls: new Float32Array(1),
+  const motion = { shore: undefined as ((y: number) => number) | undefined, beach: undefined as Obstacle | undefined, feed: null as FeedEvent | null, obstacles: [] as Obstacle[], hall: null as Hall | null, positions: new Float32Array(3), lengths: new Float32Array(1), heading: new Float32Array(3), count: 0, rolls: new Float32Array(1),
     /** 겹침 밀기 보정값(x,y,z) · 바닥에 붙어 사는 정도 · 이번 프레임 길 — 물고기 수가 바뀔 때만 다시 잡는다 */
     offsets: new Float32Array(3), pinned: new Float32Array(1), courses: [] as Course[],
     /** 쫓고 달아나기 보정(hunt.ts) · 사냥꾼 표시 — 물고기 순서와 같다 */ flee: new Float32Array(3), preds: new Uint8Array(1),
@@ -322,7 +322,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(breaches.has(id))return true;
     const p=m.root.position,L=shownLength(m),h=motion.hall,hallTop=h?WORLD.floor+h.h*tall+.4+L*.3:-Infinity;
     const kind=trickOf(m.family);if(!kind)return false;
-    const plan=planTrick(kind,{x:p.x,y:p.y,z:p.z,hx:m.course.dx},waterTop(),Math.max(heightAt(p.x,p.z),hallTop),5*wide-L*.55,L,3*deep-L*.5);
+    // 모래사장 단계 — 재주는 물가 안쪽에서(뛰어올라 모래 경사를 뚫지 않게)
+    const halfW=Math.min(5*wide-L*.55,habitat?.shoreX?habitat.shoreX(waterTop()-L*1.2)-L*.6:Infinity);
+    const plan=planTrick(kind,{x:p.x,y:p.y,z:p.z,hx:m.course.dx},waterTop(),Math.max(heightAt(Math.min(p.x,halfW),p.z),hallTop),halfW,L,3*deep-L*.5);
     breaches.set(id,{plan,t0:elapsed,fired:0,trailAt:0,holdPhase:m.phase});startles.delete(id);
     if(!active)draw(0);return true;
   }
@@ -735,6 +737,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     WATER_LIGHT.aquaTime.value=elapsed;
     // 1) 이번 프레임 길 → 늘리기 → 겹침 밀기 → 모래에 앉히기(fishstep.ts — 테스트와 같은 식)
     motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
+    // 모래사장(8단계부터) — 물고기는 물가 안쪽, 포유류는 모래사장에서 쉰다(fishstep 이 buffers 에서 읽는다)
+    motion.shore=habitat?.shoreX;motion.beach=habitat?.beachRest?{x:habitat.beachRest.x*wide,z:0,r:2,h:habitat.beachRest.top-WORLD.floor,kind:"beach"}:undefined;
     stepFish(swimmers,schools,id=>swimmers.get(id)?.length,elapsed,dt,{wide,tall,deep,heightAt,obstacles:motion.obstacles,feed:motion.feed,hall:motion.hall},motion);
     // 순서가 바뀐 뒤 첫 프레임 — 지난 화면 자리와 새 길의 차이를 남기고 1초에 걸쳐 줄인다(relayoutMotion). 멈춘 그리기 · 움직임 줄이기는 바로 새 자리
     if(hand.armed){hand.armed=false;hand.left=0;if(dt>0&&!reduced.matches){const n=Math.min(motion.count,hand.has.length);for(let j=0;j<n;j++)for(let c=0;c<3;c++)hand.d[j*3+c]=hand.has[j]?hand.from[j*3+c]-motion.positions[j*3+c]:0;hand.left=1;}}

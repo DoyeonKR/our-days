@@ -46,6 +46,8 @@ export type StepWorld = {
 export type StepBuffers = {
   positions: Float32Array; heading: Float32Array; lengths: Float32Array; pinned: Float32Array; offsets: Float32Array; rolls: Float32Array;
   courses: Course[]; count: number;
+  /** 모래사장(8단계부터, habitat.shoreX) — 높이 y 의 물가 가로 위치(월드). 물고기는 그 안쪽에서만 헤엄친다 */ shore?: (y: number) => number;
+  /** 모래사장 쉼터(kind "beach" — x 월드 · h 길 좌표) — 있으면 포유류는 바위 대신 여기서 쉰다 */ beach?: Obstacle;
 };
 const FP = { pitch: 0, roll: 0, slope: 0, ground: 0 };
 /** turn(몸을 C 자로 굽히고 기울이는 값)을 고르는 시간 상수(초) — 길의 turn 은 장애물로 휜 길 점의 두 번 차분이라, 장애물 가장자리에서 한 프레임에
@@ -85,11 +87,13 @@ function denPlan(swimmers: Iterable<[number, StepFish]>, obstacles: readonly Obs
 // 포유류 쉼터 나누기(2026-11-14) — 곰치 굴과 같은 방식(포유류 목록이나 장애물이 바뀔 때만 다시 정한다)
 const HAUL_FISH: { id: number; length: number }[] = [];
 let HAUL_SCALE = 1, HAUL_KEY = "", HAUL_OBS: readonly Obstacle[] | undefined, HAUL_MAP: ReturnType<typeof haulAssign> = new Map();
-function haulPlan(swimmers: Iterable<[number, StepFish]>, obstacles: readonly Obstacle[], scale: number) {
+function haulPlan(swimmers: Iterable<[number, StepFish]>, obstacles: readonly Obstacle[], scale: number, beach?: Obstacle) {
   if (scale !== HAUL_SCALE) { HAUL_SCALE = scale; HAUL_KEY = ""; }
   HAUL_FISH.length = 0;
   for (const [id, m] of swimmers) if ((m.swim ??= swimStateOf(m)).haul) HAUL_FISH.push({ id, length: m.length });
   if (!HAUL_FISH.length) { HAUL_KEY = ""; return HAUL_MAP; }
+  // 모래사장 단계 — 모두 모래사장에서 쉰다(id 순으로 앞뒤 자리를 나눈다)
+  if (beach) { const map: ReturnType<typeof haulAssign> = new Map(); [...HAUL_FISH].sort((a, b) => a.id - b.id).forEach((f, i) => map.set(f.id, { rock: beach, share: i })); HAUL_KEY = ""; return map; }
   const key = HAUL_FISH.map((f) => `${f.id}:${f.length}`).join(",");
   if (key !== HAUL_KEY || obstacles !== HAUL_OBS) { HAUL_KEY = key; HAUL_OBS = obstacles; HAUL_MAP = haulAssign(HAUL_FISH, obstacles, HAUL_SCALE); }
   return HAUL_MAP;
@@ -115,7 +119,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
   let n = 0;
   const fishes = STEP_FISH;
   const dens = denPlan(swimmers, w.obstacles);
-  const hauls = haulPlan(swimmers, w.obstacles, wide);
+  const hauls = haulPlan(swimmers, w.obstacles, wide, b.beach);
   // 1) 이번 프레임 길 — 모두의 자리를 먼저 채운다
   for (const [id, m] of swimmers) {
     const sc = schools.get(id), c = m.course, prevTurn = c.turn;
@@ -190,6 +194,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (mx > 0) x = Math.max(-mx, Math.min(mx, x));
       if (mz > 0) z = Math.max(-mz, Math.min(mz, z));
     }
+    // 모래사장 경사 — 물가(shore) 안쪽에서만. 머리(몸 반)까지 모래에 안 닿게, 쉬러 올라가는 포유류는 쉬는 만큼 풀어 준다
+    if (b.shore) { const lim = b.shore(y - L * 0.2) - L * 0.45, give = fishes[k].swim!.haul ? fishes[k].swim!.rest : 0; if (x > lim) x = lim + (x - lim) * give; }
     FP.roll = 0;
     // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
     if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * hyp2(c.dx, c.dz); FP.roll *= c.ground; }
