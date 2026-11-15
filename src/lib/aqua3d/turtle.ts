@@ -3,6 +3,10 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { AnimalModel, ModelKit } from "./models.ts";
 import type { SwimPose } from "./anatomy.ts";
 import { WATER_LIGHT, waterLit } from "./waterlight.ts";
+import { coralCrownGeometry, type BossLook } from "./bosslook.ts";
+import { asset } from "../base.ts";
+/** 산호 여왕의 등 산호 재질 — 정점 색 하나(수조마다 다시 만들 것 없이 나눠 쓴다) */
+let coralMaterial: T.MeshStandardMaterial | null = null;
 
 type Seed = readonly [number, number];
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -186,7 +190,7 @@ function flipper(side: number, rear: boolean) {
   return g;
 }
 
-export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): AnimalModel {
+export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle", look?: BossLook | null): AnimalModel {
   const root = new T.Group(); root.name = key;
   const skinMap = surfaceOf(kit, "skin");
   // 등딱지는 처음엔 단색 — 사진이 오면 사진, 못 받으면(아래 animate) 그때 그린 무늬
@@ -201,14 +205,30 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
   const shellUv = body.geometry.attributes.uv as T.BufferAttribute;
   const projectedUv = new Float32Array(shellUv.array.length);
   const points = body.geometry.attributes.position;
+  const sh = look?.shell;
   for (let i = 0; i < points.count; i++) {
     const x = points.getX(i), z = points.getZ(i);
     const young = key !== "green_sea_turtle";
+    if (sh) { projectedUv[i * 2] = (sh.c[0] + x / .95 * sh.ax[0] + z / .65 * sh.side[0]) / 512; projectedUv[i * 2 + 1] = (sh.c[1] + x / .95 * sh.ax[1] + z / .65 * sh.side[1]) / 512; continue; }
     projectedUv[i * 2] = ((young ? 246 : 238) + x / .95 * (young ? 98 : 113) + z / .65 * 17) / 512;
     projectedUv[i * 2 + 1] = ((young ? 236 : 225) - x / .95 * (young ? 13 : 22) + z / .65 * (young ? 55 : 64)) / 512;
   }
   let photo = false;
-  kit.referenceTexture(key, texture => {
+  // 주인(산호 여왕) — 등딱지엔 주인 그림을, 등 위엔 3D 산호를(bosslook.ts). 그림은 이 거북 재질의 것이라 거북이 떠날 때 같이 지운다
+  if (sh && look && typeof document !== "undefined") {
+    new T.TextureLoader().load(asset(`/aqua/fish/${look.art}.webp`), texture => {
+      texture.colorSpace = T.SRGBColorSpace; texture.flipY = false; photo = true;
+      shell.map = texture; shell.color.set(0xffffff); shell.bumpMap = null;
+      shellUv.copyArray(projectedUv); shellUv.needsUpdate = true; shell.needsUpdate = true;
+    });
+  }
+  if (look?.coral) {
+    coralMaterial ??= new T.MeshStandardMaterial({ vertexColors: true, roughness: .78, metalness: 0, side: T.DoubleSide });
+    const coral = new T.Mesh(coralCrownGeometry(), coralMaterial); coral.name = "coral-crown";
+    // 나눠 쓰는 형상 · 재질 — 거북이 떠날 때 지우지 않는다
+    coral.userData.glbShared = true; root.add(coral);
+  }
+  if (!sh) kit.referenceTexture(key, texture => {
     photo = true;
     shell.map = texture; shell.color.set(0xffffff);
     // The photographic map has its own details; the sculpted geometry supplies relief.

@@ -8,6 +8,7 @@ import { stepFish } from "./fishstep.ts";
 import { makeSandPuffs } from "./sandpuff.ts";
 import { breachAt, canBreach, planBreach, type BreachPlan } from "./breach.ts";
 import { makeSplash } from "./splash.ts";
+import { bossLookOf, loadBossSkin } from "./bosslook.ts";
 import { STARTLE_S, startleDir, startleKind, startlePose, type StartleKind, type StartlePose } from "./startle.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
 import { addJaw, type Jaw, calmSpecular, fishShading, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
@@ -70,6 +71,8 @@ function makeCrown(r:number):T.Group{const g=new T.Group();
   return g;}
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number;
   /** 놀라 부푼 채인가(복어 — 끝나면 원래 크기로 한 번 되돌린다) */ puffed?: boolean;
+  /** 산호 여왕(등 위 산호) — 왕관을 작게 머리 쪽에 */ coralQueen?: boolean;
+  /** 이 물고기만의 재질(주인 피부 — 나눠 쓰는 GLB 재질의 복제) — 떠날 때 지운다 */ ownMats?: T.Material[];
   /** 제작 모델로 갈아 끼웠나 */ glb: boolean; /** 쥐고 있는 GLB key(놓을 때 돌려준다) */ glbKey: string | null;
   /** 방금 들어왔다 — 첫 프레임은 방향을 바로 맞춘다(다른 물고기는 부드럽게 돈다) */ fresh: boolean; crown: T.Group | null;
   /** 이번 프레임 길 — 매 프레임 새 객체를 안 만들게 물고기마다 하나 들고 쓴다 */ course: Course;
@@ -366,7 +369,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});root.removeFromParent();
   }
   // 자라는 중이면 들고 있던 옛 몸도 같이 놓는다
-  const dropFish=(m:Swimmer):void=>{if(m.grow?.old){dropFish(m.grow.old);m.grow.old=null;}release(m.root);if(m.glbKey)glb.release("fish",m.glbKey);};
+  const dropFish=(m:Swimmer):void=>{if(m.grow?.old){dropFish(m.grow.old);m.grow.old=null;}m.ownMats?.forEach(x=>x.dispose());m.ownMats=undefined;release(m.root);if(m.glbKey)glb.release("fish",m.glbKey);};
   const dropDecor=(d:Decoration)=>{release(d.root);if(d.glbKey)glb.release("decor",d.glbKey);};
   /** 아직 코드 모델로 보이는 물고기의 key — 갈아 끼운 물고기의 피부 그림은 놓는다 */
   // 자라는 중인 옛 몸도 아직 보이므로 그 피부 그림을 놓지 않는다
@@ -389,17 +392,19 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   /** 왕관은 몸의 꼭대기에 — 몸을 갈아 끼우면 새 몸으로 다시 잰다(왕관까지 재면 제작 모델이 작고 높게 앉았다) */
   function placeCrown(m:Swimmer){
     if(!m.crown)return;const box=bodyBounds(m.root),center=box.getCenter(new T.Vector3());
+    // 산호 여왕 — 등 위가 산호라 왕관은 작게, 머리 쪽 어깨에(가운데에 두면 산호를 통째로 가렸다)
+    if(m.coralQueen){const top=bodyBounds(m.root);m.crown.scale.setScalar(.6);m.crown.position.set(top.max.x*.55,top.max.y*.55,center.z);m.crown.updateMatrix();return;}
     m.crown.position.set(0,box.max.y,center.z);m.crown.updateMatrix();
   }
   /** prev — 자라서 모습(key)이 바뀐 같은 물고기의 지금 몸. 같은 Map 자리에 새 몸을 넣고 자리 · 방향 · 꼬리 박자를 잇는다 */
   function addFish(f:AquaFish,prev?:Swimmer){
-    const key=fishArtKey(f);
-    const animal=makeAnimal(kit,f.family,key),length=fishLength(fishCm(f),f.family);
+    const key=fishArtKey(f),look=bossLookOf(f.crown,key);
+    const animal=makeAnimal(kit,f.family,key,look),length=fishLength(fishCm(f),f.family);
     waterLitTree(animal.root,false);normalsFixed+=repairNormals(animal.root);calmSpecular(animal.root);fishShading(animal.root);
     // 머리~꼬리 길이로 잰다(anatomy.bodyMeasure) — 키로 재면 엔젤 · 디스커스 같은 키 큰 물고기가 잡은 cm 의 71~90% 로 보였다
     const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(.001,bodyMeasure(f.family,key,size));
     animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
-    const m:Swimmer={...animal,key,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
+    const m:Swimmer={...animal,coralQueen:!!look?.coral,key,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
     if(f.crown){m.crown=makeCrown(Math.max(size.x,size.z)*.2);m.crown.userData.aquaKeep=true;m.root.add(m.crown);placeCrown(m);}
     swimmers.set(f.id,m);
     if(prev){
@@ -420,8 +425,20 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
         inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);normalsFixed+=repairNormals(inner);calmSpecular(inner);fishShading(inner);
         release(swapBody(m.root,inner,"center",s=>bodyMeasure(f.family,key,s)));
-        m.animate=fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
+        m.animate=fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);
+        // 주인 피부(검은 파도) — 종 모델의 uv 에 맞춘 주인 그림으로. 재질은 같은 종끼리 나눠 쓰므로 이 물고기 것만 복제한다(셰이더 덧칠은 그대로 잇는다)
+        if(look?.skin)bossSkin(m,inner,look.skin);placeCrown(m);});
     });}
+  }
+  const bossSkins=new Map<string,T.Texture>();
+  function bossSkin(m:Swimmer,inner:T.Object3D,file:string){
+    let tex=bossSkins.get(file);
+    if(!tex){tex=loadBossSkin(file,()=>{if(!active&&!disposed)draw(0);});tex.anisotropy=anisotropy;bossSkins.set(file,tex);}
+    const own:T.Material[]=[];
+    inner.traverse(o=>{if(!(o instanceof T.Mesh))return;const mats=Array.isArray(o.material)?o.material:[o.material];
+      const next=mats.map(src=>{if(!(src instanceof T.MeshStandardMaterial)||!src.map)return src;const c=src.clone();c.onBeforeCompile=src.onBeforeCompile;c.customProgramCacheKey=src.customProgramCacheKey;c.map=tex!;own.push(c);return c;});
+      o.material=Array.isArray(o.material)?next:next[0];});
+    m.ownMats=own;
   }
   function addDecor(p:PlacedDecor):Decoration{
     const made=makeDecor(kit,p.key);waterLitTree(made.root,false);

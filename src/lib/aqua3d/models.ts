@@ -1,5 +1,6 @@
 import * as T from "three";
 import { makeDetailedTurtle } from "./turtle.ts";
+import type { BossLook } from "./bosslook.ts";
 import { asset } from "../base.ts";
 import { FISH_IMAGE_KEYS } from "../aquaimages.ts";
 import { makeReferenceAnimal } from "./reference-model.ts";
@@ -84,7 +85,7 @@ export class ModelKit {
 
 export type AnimalModel = { root: T.Group; animate: (time: number, effort: number, pose?: SwimPose) => void };
 
-export function makeAnimal(kit: ModelKit, family: string, key: string): AnimalModel {
-  if (family === "sea_turtle" && ["green_sea_turtle", "fry_sea_turtle", "juv_sea_turtle"].includes(key)) return makeDetailedTurtle(kit, key);
+export function makeAnimal(kit: ModelKit, family: string, key: string, look?: BossLook | null): AnimalModel {
+  if (family === "sea_turtle" && ["green_sea_turtle", "fry_sea_turtle", "juv_sea_turtle"].includes(key)) return makeDetailedTurtle(kit, key, look);
   return makeReferenceAnimal(kit, family, key);
 }
