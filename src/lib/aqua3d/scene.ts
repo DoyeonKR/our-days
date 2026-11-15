@@ -6,6 +6,8 @@ import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaNews, type AquaS
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { stepFish } from "./fishstep.ts";
 import { makeSandPuffs } from "./sandpuff.ts";
+import { breachAt, canBreach, planBreach, type BreachPlan } from "./breach.ts";
+import { makeSplash } from "./splash.ts";
 import { STARTLE_S, startleDir, startleKind, startlePose, type StartleKind, type StartlePose } from "./startle.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
 import { addJaw, type Jaw, calmSpecular, fishShading, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
@@ -307,9 +309,22 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const puffs=makeSandPuffs(heightAt);scene.add(puffs.points);
   // 만지면 놀란다(startle.ts, 2026-11-14) — 물고기마다 놀란 때 · 종류 · 꺾는 쪽 · 달아나는 방향. 이번 프레임 모습은 startleNow(그리는 고리가 C 자 · 부풀기를 쓴다)
   const startles=new Map<number,{t0:number;kind:StartleKind;side:number;dir:{x:number;y:number;z:number}}>(),startleNow=new Map<Swimmer,StartlePose>();
+  // 범고래 뛰어오르기(breach.ts · splash.ts, 2026-11-15) — 누르면 잠수 → 솟구쳐 수면을 박차고 나가 → 포물선 → 다시 들어와 원래 길로. 나갈 때 · 들어올 때 물보라 · 물결 고리 · 거품
+  const splash=makeSplash();scene.add(splash.points);scene.add(splash.rings);
+  const breaches=new Map<number,{plan:BreachPlan;t0:number;exited:boolean;entered:boolean;trailAt:number;holdPhase:number}>();
+  const waterTop=()=>tallY(5.56,tall);
+  function startBreach(id:number,m:Swimmer){
+    if(breaches.has(id))return true;
+    const p=m.root.position,L=shownLength(m),h=motion.hall,hallTop=h?WORLD.floor+h.h*tall+.4+L*.3:-Infinity;
+    const plan=planBreach({x:p.x,y:p.y,z:p.z,hx:m.course.dx},waterTop(),Math.max(heightAt(p.x,p.z),hallTop),5*wide-L*.55,L,3*deep-L*.5);
+    breaches.set(id,{plan,t0:elapsed,exited:false,entered:false,trailAt:0,holdPhase:m.phase});startles.delete(id);
+    if(!active)draw(0);return true;
+  }
   function startleFish(id:number){
     const m=swimmers.get(id);if(!m||reduced.matches)return;
     if(meal&&(id===meal.predId||id===meal.ghostId))return;
+    if(breaches.has(id))return;
+    if(canBreach(m.family)&&!inTunnel&&!inDome&&startBreach(id,m))return;
     const kind=startleKind(m.family,m.key),side=Math.random()<.5?-1:1,p=m.root.position;
     const dir=startleDir(kind,p.x-camera.position.x,p.z-camera.position.z,m.course.dx,m.course.dz,side);
     startles.set(id,{t0:elapsed,kind,side,dir});
@@ -621,7 +636,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 깊은 수조(10 · 11단계 깊이 2.4배)는 물고기가 앞뒤 ±6.6 까지 간다 — ±2.4 로 자르면 뒤쪽 물고기 대신 빈 물을 따라갔다. 수조 앞뒤 끝(3·깊이)에서 조금 안쪽까지
     const zReach=3*deep-.6;
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
-    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
+    const selBreach=sel?breaches.get(sel.root.userData.id):undefined;
+    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,selBreach?selBreach.plan.surface:tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
     // 사냥 장면 — 먹이 한 마리가 아니라 사냥꾼의 입과 먹이의 가운데를, 둘이 다 들어오는 거리에서, 둘을 잇는 선의 옆에서(hunt.ts 의 huntShot)
     let shotAng:number|null=null,shotElev=0;
@@ -635,7 +651,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 고른 물고기 따라가기도 가리는 것을 비킨다(2026-11-12) — 광어 · 가오리 같은 바닥 물고기는 앞의 대문어 · 바닥 장식에 가려 통째로 안 보였다.
     //   기준은 사용자가 끈 각(angle) — 끌면 그 각에서 다시 고른다(예전 자리를 붙들면 끌어도 안 돌았다). 터널 · 돔은 보는 곳이 정해져 있어 안 한다
     else if(sel&&!state.editing&&!inTunnel&&!inDome){
-      const nd=Math.min(camD*.65,Math.max(3.6,focusLen*3.4));if(Math.abs(angle-followBase)>.02){followPick=null;followBase=angle;}
+      const nd=Math.min(camD*.65,Math.max(3.6,focusLen*3.4))*(selBreach?1.55:1);if(Math.abs(angle-followBase)>.02){followPick=null;followBase=angle;}
       fillBlockers(sel);followPick=clearShot(focusGoal.x,focusGoal.y,focusGoal.z,nd,(1+pitch*10)*nd/camD,angle,followPick,mealBlockers);shotAng=followPick.angle;shotElev=followPick.elev;}
     else followPick=null;
     mealK=dt>0?mealK+((shotAng!==null?1:0)-mealK)*Math.min(1,dt*1.6):shotAng!==null?1:0;
@@ -713,6 +729,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 사냥꾼 곁의 작은 물고기는 달아나고 사냥꾼은 다가간다(hunt.ts — 길 위의 보정만)
     // 사냥 장면의 둘은 빼고(busy) — 다른 사냥꾼이 장면 속 먹이에 몰려들지 않게
     if(motion.busy.length<motion.count)motion.busy=new Uint8Array(Math.max(1,motion.count));motion.busy.fill(0);
+    if(breaches.size){let j=0;for(const id of swimmers.keys()){if(breaches.has(id)&&j<motion.count)motion.busy[j]=1;j++;}}
     if(meal&&meal.t0>=0){let j=0;for(const id of swimmers.keys()){if(id===meal.predId||id===meal.ghostId)motion.busy[j]=1;j++;}}
     // 장면이 벌어지는 자리 둘레의 다른 물고기는 비켜난다(물기 전엔 먹이 자리, 문 뒤엔 입 자리 — 지난 프레임 값)
     let scare:{x:number;y:number;z:number;r:number}|undefined;
@@ -734,6 +751,19 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         startleNow.set(m,pose);}}j++;}
       // 놀라 튀어 나간 몸도 다른 물고기와 닿지 않게(사냥 장면의 둘은 빼고)
       resolveContacts(motion.positions,motion.lengths,motion.count,{heading:motion.heading,pinned:motion.pinned,skip:motion.busy,scale:wide,deep,top:tallY(4.7,tall),iters:2,rocks:motion.obstacles,tall});}
+    // 범고래 뛰어오르기 — 길 위의 자리와 섞는다(처음 0.25초 · 끝 1.4초), 공중에선 꼬리를 멈추고 몸을 비튼다
+    if(breaches.size){let j=0;for(const[id,m]of swimmers){const br=breaches.get(id);if(br&&j<motion.count){const t=elapsed-br.t0,pl=br.plan;
+      if(t>=pl.total||reduced.matches||(meal&&(id===meal.predId||id===meal.ghostId)))breaches.delete(id);
+      else{const b=breachAt(pl,t),P=motion.positions,H=motion.heading,k=j*3,w=b.w,L=motion.lengths[j];
+        P[k]=P[k]*(1-w)+b.x*w;P[k+1]=P[k+1]*(1-w)+b.y*w;P[k+2]=P[k+2]*(1-w)+b.z*w;
+        H[k]=H[k]*(1-w)+b.hx*w;H[k+1]=H[k+1]*(1-w)+b.hy*w;H[k+2]=H[k+2]*(1-w)+b.hz*w;
+        if(b.air){m.phase=br.holdPhase;}else{if(dt>0)m.phase+=dt*Math.max(.6,m.course.effort)*(b.beat-1);br.holdPhase=m.phase;}
+        if(b.roll)motion.rolls[j]=(motion.rolls[j]??0)+b.roll;
+        if(!br.exited&&t>=pl.exitT){br.exited=true;splash.burst(pl.exitX,pl.z,pl.surface,L,elapsed,false,pl.dir);}
+        if(!br.entered&&t>=pl.enterT){br.entered=true;splash.burst(pl.enterX,pl.z,pl.surface,L,elapsed,true,pl.dir);}
+        // 솟구칠 때 · 들어온 뒤 꼬리에서 거품 줄
+        if((b.phase==="rise"||b.phase==="sink")&&elapsed>=br.trailAt){br.trailAt=elapsed+.05;splash.trail(P[k]-b.hx*L*.45,P[k+1]-b.hy*L*.45,P[k+2],L,elapsed,pl.surface);}}}j++;}}
+    if(splash.active)splash.step(elapsed,renderer.domElement.height*.9);
     // 먹이 알갱이 — 새 먹이면 물고기가 모이는 자리에 뿌리고, 먹이 쪽으로 온 물고기 입에 닿은 알은 먹힌다(food.ts). 움직임 줄이기면 한 장면
     if(motion.feed&&motion.feed!==foodFeed){foodFeed=motion.feed;food.drop(motion.feed.t,motion.feed.x,{top:tallY(4.75,tall),deep,floorAt:foodFloor});}
     food.step(elapsed,dt,motion,reduced.matches);
@@ -833,7 +863,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 수평 시선 — 몸을 카메라 쪽으로 덜 돌려 옆모습을 보인다(sideon.ts)
     camera.getWorldDirection(viewTmp);{const l=Math.hypot(viewTmp.x,viewTmp.z)||1;viewH.x=viewTmp.x/l;viewH.z=viewTmp.z/l;}
     for(const m of swimmers.values()){const x=motion.positions[i*3],y=motion.positions[i*3+1],z=motion.positions[i*3+2];m.root.position.set(x,y,z);
-      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so,m,dt,SIDE_HOLD_OF[m.family]??SIDE_HOLD,SIDE_SWITCH_OF[m.family]??SIDE_SWITCH_S);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
+      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family)*(breaches.has(m.root.userData.id)?0:1);if(so>0){faceSide(direction,viewH,so,m,dt,SIDE_HOLD_OF[m.family]??SIDE_HOLD,SIDE_SWITCH_OF[m.family]??SIDE_SWITCH_S);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       // 새로 들어온 물고기만 바로 맞춘다 — 다른 물고기까지 맞추면 모양이 바뀔 때마다 전부 방향이 튀었다
       // 돌 때 안쪽으로 살짝 기운다(최대 10°) · 바닥 물고기는 비탈만큼 옆으로
       // 산갈치가 쉬는 동안 몸을 세운다(habits 의 stand — 머리가 위, 약 80°)
@@ -842,6 +872,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       // 사냥 장면의 둘은 계산한 몸 방향 그대로 — 옆모습 돌리기(sideon)와 느린 따라 돌기(초당 2.8)가 머리 흔들기를 10% 로 죽이고 입 자리를 옮겨, 먹이가 입 옆에 떠 있었다
       const qk=m===mealGhost||m===mealPredS?(mealLock?1:dt*10):dt*2.8;
       if(dt===0||m.fresh||qk>=1){m.root.quaternion.copy(targetQuat);m.fresh=false;}else m.root.quaternion.slerp(targetQuat,Math.min(1,qk));
+      // 뛰어오르는 범고래는 몸이 가는 쪽을 빨리 따른다(솟구침 · 포물선)
+      if(dt>0&&breaches.has(m.root.userData.id))m.root.quaternion.slerp(targetQuat,Math.min(1,dt*7));
       const sp=startleNow.get(m);
       if(m!==mealGhost){if(sp&&sp.bend)m.animate(m.phase,1,{...m.course,turn:m.course.turn+sp.bend});else m.animate(m.phase,1,m.course);}
       else if(mealVitality>0)m.animate(m.phase,1,{...m.course,dt:dt*mealVitality,turn:0,speed:mealVitality,effort:mealVitality,amp:mealVitality,hover:0});
@@ -913,6 +945,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(!meal){dropSwimmer(pid);if(!active)draw(0);}
     return meal?huntOf(pred).style:"skipped";};}
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaTime?:()=>number;__aquaCourse?:()=>unknown}).__aquaTime=()=>elapsed;(host as HTMLElement&{__aquaCourse?:()=>unknown}).__aquaCourse=()=>[...swimmers.values()].map((m)=>({family:m.family,jet:m.course.jet??0,rev:m.course.rev??0,amp:m.course.amp,stand:m.course.stand??0,pos:m.root.position.toArray().map(v=>+v.toFixed(2)),len:+m.length.toFixed(2)}));if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaRocks?:()=>unknown}).__aquaRocks=()=>motion.obstacles.map(o=>({...o})); // 개발 전용: 지금 수조 시각(장면을 정해진 순간으로 넘겨 찍을 때)
+  // 개발 전용: 범고래(등 뛰어오르는 물고기)를 누른 것처럼 — host.__aquaBreach() 는 뛰어오른 물고기 id, 없으면 -1
+  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaBreach?:()=>number}).__aquaBreach=()=>{for(const[id,m]of swimmers)if(canBreach(m.family)){startleFish(id);events.fish(id);return id;}return -1;};(host as HTMLElement&{__aquaBreachPlan?:()=>unknown}).__aquaBreachPlan=()=>({tall,wide,deep,plans:[...breaches.values()].map(b=>b.plan)});
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{if(swaps.length)flushSwaps();for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
   // 점은 장면 그림에 찍힌다 — 계단 3(장면 그림 0.75배)이면 그만큼 작게
