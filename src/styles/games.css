@@ -545,6 +545,9 @@
 
 /* 우리 수조 — 그림은 파일로 들어온다(AquaArt). 여기 배경 · 거품은 파일이 없어도 수조처럼 보이게 하는 바탕. */
 .aqua-shell { background: linear-gradient(180deg, #06263d, #041a2c 55%, #03121f); color: #eaf6ff; }
+/* 게임 창은 위아래로만 스크롤한다(2026-11-15) — overflow-y auto 만 주면 좌우도 auto 가 되어, 판 위에 잠깐 넓은 것이 생기면 창이 옆으로 밀렸다
+   (낚시 화면이 통째로 왼쪽으로 밀리고 수조 카드가 오른쪽으로 삐져나왔다). 스크립트로 밀린 것은 GameWindowGuard 가 되돌린다 */
+.aqua-shell, .merge-shell, .island-shell { overflow-x: clip; overscroll-behavior-x: none; }
 .aqua-shell > div { padding-bottom: calc(var(--game-safe-bottom, 0px) + 24px); }
 /* 사파리 아래 도구 막대 자리 — 고정 창 밖이라 페이지 바탕(밝은 색)이 흰 띠로 비쳤다. 수조 · 낚시가 열린 동안은 바탕도 물빛으로 */
 html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !important; }
@@ -1427,7 +1430,10 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .aqua-danger b { margin-right: 6px; color: #fca5a5; font-weight: 900; }
 .aqua-danger small { display: block; opacity: .85; }
 .aqua-danger.is-hungry { border-color: #f87171; background: rgba(153,27,27,.45); animation: fish-hint-pulse .8s ease-in-out infinite alternate; }
-.aqua-eaten-pics { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.aqua-eaten-pics { display: flex; align-items: center; justify-content: center; gap: 8px; max-width: 100%; }
+/* 잡아먹힌 카드의 두 그림 — 160px 둘이면 카드 안 폭(약 280px)보다 넓어 카드가 오른쪽으로 삐져나왔다(2026-11-15 캡처). 둘 + 화살표가 카드 안에 들어오게 */
+.aqua-eaten-pics .aqua-grown-pic { width: min(116px, 34vw); height: min(116px, 34vw); flex: 0 1 auto; min-width: 0; }
+.aqua-grown > div { max-width: 100%; min-width: 0; }
 .aqua-eaten-pics i { color: #f87171; font-style: normal; font-weight: 900; }
 .aqua-grown.is-eaten .aqua-grown-kicker { color: #fca5a5; }
 .aqua-grown-pic.is-gone { filter: grayscale(.8) brightness(.7); opacity: .75; }
