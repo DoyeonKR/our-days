@@ -1,0 +1,77 @@
+{
+  "tool": "built-in image_gen",
+  "assets": {
+    "boss_sanho": {
+      "source": "C:\\Users\\kdy78\\.codex\\generated_images\\01a05cf2-b96c-7473-aa5f-1c0e02c6499c\\exec-ccd5e0f1-38cb-461a-8bca-256df689606c.png",
+      "sourceSHA256": "9dff24d4d1742e3cc3c5b99041ed4666f9ac8f49a72b2d80859f8940bcc75409",
+      "outputs": [
+        {
+          "file": "public/aqua/fish/boss_sanho.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 49498,
+          "alphaBounds": {
+            "left": 52,
+            "top": 62,
+            "width": 408,
+            "height": 393
+          },
+          "transparentMarginPixels": 52,
+          "sha256": "1f12fcc76310fc058c13a341bad772e376969ce617e7aba58bb551ae4387a64b"
+        },
+        {
+          "file": "public/aqua/fish/sm/boss_sanho.webp",
+          "width": 192,
+          "height": 192,
+          "bytes": 7294,
+          "alphaBounds": {
+            "left": 25,
+            "top": 24,
+            "width": 144,
+            "height": 133
+          },
+          "transparentMarginPixels": 23,
+          "sha256": "cb6dc97ec4281c89b84c196ecd3728ac1040240d5e9ebbc0e7e23ea473d78e6e"
+        }
+      ]
+    },
+    "boss_geomeun": {
+      "source": "C:\\Users\\kdy78\\.codex\\generated_images\\01a05cf2-b96c-7473-aa5f-1c0e02c6499c\\exec-79c867e6-df08-4e08-87f3-9d8e12d5241a.png",
+      "sourceSHA256": "db182e2f338ba06f38e8d91319596322140e8d65e13c99ae3fde2b71f607542f",
+      "outputs": [
+        {
+          "file": "public/aqua/fish/boss_geomeun.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 22610,
+          "alphaBounds": {
+            "left": 52,
+            "top": 52,
+            "width": 402,
+            "height": 363
+          },
+          "transparentMarginPixels": 52,
+          "sha256": "50b03c3a3928923d009e3ef9891ac743df428ed0102a505c4ceadda6f1e695c7"
+        },
+        {
+          "file": "public/aqua/fish/sm/boss_geomeun.webp",
+          "width": 192,
+          "height": 192,
+          "bytes": 3548,
+          "alphaBounds": {
+            "left": 21,
+            "top": 65,
+            "width": 149,
+            "height": 84
+          },
+          "transparentMarginPixels": 21,
+          "sha256": "00e32819167f7223d1876a94dfbc80be4034fddce954f8774fb8df9b393568ca"
+        }
+      ]
+    }
+  },
+  "existingUnchanged": true,
+  "gameCodeModified": false,
+  "committed": false,
+  "reviewSheet": "design/aqua3d-review/boss-art-review.webp"
+}

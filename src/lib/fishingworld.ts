@@ -161,7 +161,10 @@ export const finalAllowed = (species: string, spot: string, m: FishMoment | unde
 /* ── 주인 ───────────────────────────────────────────── */
 
 /** repeat — 다시 잡을 때 보상 비율(없으면 BOSS_REPEAT_SHARE). 각성한 주인(숙련도 ★5)만 0 을 쓴다 */
-export type FishBoss = { key: string; spot: string; name: string; family: string; species: string; level: number; difficulty: number; chunk: number; cm: number; coins: number; story: string; repeat?: number };
+export type FishBoss = { key: string; spot: string; name: string; family: string; species: string; level: number; difficulty: number; chunk: number; cm: number; coins: number; story: string; repeat?: number;
+  /** 주인 전용 그림(2026-11-15) — public/aqua/fish/<art>.webp. 없으면 그 종 그림 */ art?: string };
+/** 주인을 그릴 그림 key — 전용 그림이 있으면 그것, 없으면 종 그림(수조에 들어가는 물고기는 여전히 종 그림이다) */
+export const bossArt = (b: Pick<FishBoss, "art" | "species">) => b.art ?? b.species;
 /** 낚시터의 주인 — 레벨은 그 낚시터를 좀 다닌 뒤 열리게 잡았다. chunk 는 한 판을 끝까지 끌어왔을 때 깎이는 체력이다 — 그래서 끝까지 끌어와도 대개 한 판엔 안 잡힌다.
  * ⚠ 감기는 속도를 줄여 오래 걸리게 하면 안 된다 — 물고기가 차고 나가는 힘에 밀려 어느 값부터 아예 못 잡는 절벽이 된다(실측: 0.6배 평균 30판, 0.4배 80판 넘게도 못 잡음). */
 export const BOSSES: readonly FishBoss[] = [
@@ -175,8 +178,8 @@ export const BOSSES: readonly FishBoss[] = [
   { key: "eoreum", spot: "hwacheon", name: "얼음 밑 산천어", family: "masu_salmon", species: "masu_salmon", level: 10, difficulty: 3.2, chunk: 0.16, cm: 60, coins: 4500, story: "화천천 얼음 구멍 밑을 천천히 지나가는 그림자. 겨울마다 조금씩 더 커진다고 한다." },
   { key: "baetmeori", spot: "harbor", name: "뱃머리 영감", family: "striped_jack", species: "striped_jack", level: 11, difficulty: 3.4, chunk: 0.155, cm: 190, coins: 5000, story: "통영 방파제 밑을 수십 년 지킨 줄전갱이. 낚싯줄 냄새를 어부보다 잘 맡는다." },
   { key: "dodam", spot: "sanriver", name: "도담 가물치", family: "snakehead", species: "snakehead", level: 12, difficulty: 3.6, chunk: 0.15, cm: 130, coins: 6000, story: "남한강 물풀 밑에서 숨을 쉬러 올라온다. 입을 열면 찌가 통째로 사라진다." },
-  { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다." },
-  { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다." },
+  { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다.", art: "boss_sanho" },
+  { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다.", art: "boss_geomeun" },
   { key: "munji", spot: "palace", name: "용궁 문지기", family: "rising", species: "golden_dragonfish", level: 27, difficulty: 5.6, chunk: 0.13, cm: 620, coins: 20000, story: "용궁 대문을 천 년 지켰다. 지나가려면 먼저 이겨야 한다." },
   { key: "byeol", spot: "starsea", name: "별을 삼킨 자", family: "astral", species: "genesis_fish", level: 34, difficulty: 6.6, chunk: 0.12, cm: 900, coins: 40000, story: "밤하늘의 별 하나가 사라진 날, 이 물고기가 처음 보였다." },
   { key: "simyeon", spot: "abyss", name: "심연의 크라켄", family: "kraken", species: "kraken", level: 38, difficulty: 7.2, chunk: 0.11, cm: 1800, coins: 60000, story: "울릉분지 바닥에 산다는 전설. 줄이 내려간 만큼 무언가 끌어당긴다." },

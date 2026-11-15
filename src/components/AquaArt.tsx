@@ -5,7 +5,7 @@
  * (이모지는 픽셀 서체에 없는 게 많아 ⊠ 네모로 깨진다).
  * 물고기 그림은 전부 **오른쪽을 본다**(프롬프트 규칙) — 왼쪽으로 헤엄칠 땐 화면이 좌우로 뒤집는다. */
 import { asset } from "@/lib/base";
-import { DECOR_IMAGE_KEYS, FISH_IMAGE_KEYS } from "@/lib/aquaimages";
+import { BOSS_IMAGE_KEYS, DECOR_IMAGE_KEYS, FISH_IMAGE_KEYS, hasFishImage } from "@/lib/aquaimages";
 import { decorOf } from "@/lib/aquarium";
 import { useState, type CSSProperties } from "react";
 import { aquaSwimSheet, AQUA_SWIM_SHEETS } from "@/lib/aquamotion";
@@ -40,7 +40,7 @@ function SwimArt({ artKey, size }: { artKey: string; size?: number }) {
 /** 물고기 그림을 미리 받아 해독까지 끝낸다 — 잠깐 나오는 화면에서 빈 칸으로 지나가지 않게 */
 export function preloadFishArt(keys: readonly string[]): Promise<void> {
   if (typeof Image === "undefined") return Promise.resolve();
-  const jobs = keys.filter((k) => FISH_IMAGE_KEYS.has(k)).map((k) => {
+  const jobs = keys.filter((k) => hasFishImage(k)).map((k) => {
     const img = new Image();
     img.src = asset(`/aqua/fish/sm/${k}.webp`);
     return img.decode().catch(() => {});
@@ -51,7 +51,7 @@ export function preloadFishArt(keys: readonly string[]): Promise<void> {
 export function FishArt({ artKey, size, animate = false, sync = false }: { artKey: string; size?: number; animate?: boolean; sync?: boolean }) {
   if (animate && aquaSwimSheet(artKey)) return <SwimArt key={artKey} artKey={artKey} size={size} />;
   const style = size ? undefined : { width: "100%", height: "100%", objectFit: "contain" as const };
-  if (FISH_IMAGE_KEYS.has(artKey)) {
+  if (FISH_IMAGE_KEYS.has(artKey) || BOSS_IMAGE_KEYS.has(artKey)) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={asset(`/aqua/fish/sm/${artKey}.webp`)} alt="" width={size} height={size} style={style} draggable={false} decoding={sync ? "sync" : "async"} loading={sync ? undefined : "lazy"} className="aqua-img" />;
   }

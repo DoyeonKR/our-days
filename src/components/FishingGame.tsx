@@ -44,7 +44,7 @@ import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
 import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
 import { islandSnapshot } from "@/lib/islandstore";
 import { sendPokePush } from "@/lib/push";
-import { BOSS_DUO, bossChunk, bossDealt, bossDuo, familyName } from "@/lib/fishingworld";
+import { BOSS_DUO, bossArt, bossChunk, bossDealt, bossDuo, familyName } from "@/lib/fishingworld";
 import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { lightBand, lightFightTune, lightHook, lightQuality, lightTotalQuality, lightTune, startLight, stepLight, type Light, type LightTune } from "@/lib/fishinglight";
 import { useForecast } from "@/lib/useforecast";
@@ -1193,7 +1193,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       raidResult.current = null;
       raidSave.current = null;
       setBossNote(null);
-      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day), bg: FISHING_IMAGE_KEYS.has(spotArtKey(spot)) ? asset(`/fishing/${spotArtKey(spot)}.webp`) : undefined });
+      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, art: bossArt(b), seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day), bg: FISHING_IMAGE_KEYS.has(spotArtKey(spot)) ? asset(`/fishing/${spotArtKey(spot)}.webp`) : undefined });
     }).finally(() => {
       raidOpening.current = false;
     });
@@ -2085,7 +2085,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 style={{ "--gc": FX_GRADE_LIGHT[GRADES.indexOf(fish.grade)], "--rv": `${revealMs(GRADES.indexOf(fish.grade), false)}ms` } as CSSProperties}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <span className="fish-card-pic" style={fish.junk || fish.special ? undefined : { width: `${50 + shadowSize(fish) * 28}%`, left: `${25 - shadowSize(fish) * 14}%` }}>{fish.special ? (phase === "reveal" ? null : <SpecialPic kind={fish.special.kind} id={fish.special.id} />) : fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
+                <span className="fish-card-pic" style={fish.junk || fish.special ? undefined : { width: `${50 + shadowSize(fish) * 28}%`, left: `${25 - shadowSize(fish) * 14}%` }}>{fish.special ? (phase === "reveal" ? null : <SpecialPic kind={fish.special.kind} id={fish.special.id} />) : fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={fish.boss ? bossArt(bossOf(fish.boss) ?? { species: catchArt(fish) }) : catchArt(fish)} />}</span>
                 {phase === "reveal" && <b className="fish-reveal-q" aria-live="polite">?</b>}
                 {phase === "scoop" && <span className="fish-net" aria-hidden><GearPic k={NETS[fs.net].key} label={NETS[fs.net].name} /></span>}
                 {phase === "result" && result?.outcome === "sold" && Array.from({ length: 12 }, (_, k) => (

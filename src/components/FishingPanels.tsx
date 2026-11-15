@@ -18,7 +18,7 @@ import { BAITS, DEPTH_NAMES, familyDepth, JUNKS, SINKERS, REELS, NETS, RODS, SPO
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
-import { BOSS_DUO, bossDuo, type BossHit } from "@/lib/fishingworld";
+import { BOSS_DUO, bossArt, bossDuo, type BossHit } from "@/lib/fishingworld";
 import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, MOON_FISH, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { REQUEST_ALL_BONUS, type FishRequest } from "@/lib/fishrequest";
@@ -145,7 +145,7 @@ function BossList({ fs, today }: { fs: FishingState; today: string }) {
           const r = fs.bosses[b.key], locked = fs.level < b.level, hp = bossHp(r, today);
           return (
             <li key={b.key} className={locked ? "is-claimed" : ""}>
-              <span className="fish-boss-pic">{locked ? <b aria-hidden>?</b> : <FishArt artKey={b.species} />}</span>
+              <span className="fish-boss-pic">{locked ? <b aria-hidden>?</b> : <FishArt artKey={bossArt(b)} />}</span>
               <span className="min-w-0 flex-1">
                 <strong>{locked ? "???" : b.name}{r?.caught ? ` · ${r.caught}번 잡음` : ""}</strong>
                 {!locked && <i className="fish-goal-bar is-boss" aria-hidden><b style={{ width: `${hp * 100}%` }} /></i>}
@@ -344,7 +344,7 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
   const beaten = bossesBeaten(all);
   return (
     <SheetShell title={`이 낚시터의 주인 · ${boss.name}`} onClose={onClose}>
-      <div className="fish-boss-hero"><FishArt artKey={boss.species} /></div>
+      <div className="fish-boss-hero"><FishArt artKey={bossArt(boss)} /></div>
       <p className="fish-how">{boss.story}</p>
       <p className="aqua-note">{speciesName(boss.species)} · {speciesGrade(boss.species) ?? GRADES[0]} · 길이 {fmtCm(boss.cm)}</p>
       <i className="fish-goal-bar is-boss is-ticked mt-2" aria-hidden><b style={{ width: `${hp * 100}%` }} /><u style={{ left: "33%" }} /><u style={{ left: "66%" }} /></i>
@@ -362,7 +362,7 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
           const where = SPOTS.find((x) => x.key === b.spot)?.name ?? b.spot;
           return (
             <li key={b.key} className={`${b.key === boss.key ? "is-now" : ""} ${got ? "is-got" : ""}`}>
-              <span className="fish-boss-pic">{locked ? <LockMark /> : <FishArt artKey={b.species} />}</span>
+              <span className="fish-boss-pic">{locked ? <LockMark /> : <FishArt artKey={bossArt(b)} />}</span>
               <span className="min-w-0 flex-1">
                 <strong>{locked ? "???" : b.name}{got && <> <CrownIcon /></>}</strong>
                 <small>{where} · {locked ? `낚시 Lv.${b.level}부터` : got ? `${r!.caught}번 잡음` : r ? `체력 ${pctOf(h)}` : "아직 겨루지 않음"}</small>

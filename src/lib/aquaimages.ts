@@ -471,3 +471,8 @@ export const TANK_IMAGE_KEYS: ReadonlySet<string> = new Set<string>([
   "tank_8",
   "tank_9",
 ]);
+
+/** 주인 전용 그림(2026-11-15 — fishingworld 의 BOSSES.art). 물고기 그림 목록(종 · 모습과 1:1)과 따로 둔다 — 같은 폴더(public/aqua/fish)에 있다 */
+export const BOSS_IMAGE_KEYS: ReadonlySet<string> = new Set<string>(["boss_sanho", "boss_geomeun"]);
+/** FishArt 가 파일로 그릴 수 있는 key — 물고기 + 주인 */
+export const hasFishImage = (k: string) => FISH_IMAGE_KEYS.has(k) || BOSS_IMAGE_KEYS.has(k);
