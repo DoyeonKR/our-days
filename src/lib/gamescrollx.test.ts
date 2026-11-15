@@ -21,3 +21,12 @@ test("eaten card pictures fit inside the card", () => {
   assert.ok(Number(m![1]) * 2 + 16 + 16 <= 280, `${m![1]}px x2 fits`);
   assert.match(css, /\.aqua-grown > div \{ max-width: 100%; min-width: 0; \}/);
 });
+
+test("one-column grids in the tank screen never grow wider than the screen", () => {
+  // 2026-11-15 사용자 캡처(갤럭시 · 삼성 인터넷): 잡아먹힌 물고기 이름이 길면 칸을 안 정한 격자가 그 한 줄 폭(잘리게 해 둔 글자의 원래 폭)만큼 넓어져
+  // 포만 · 물 막대 · 상성 주의 · 목록이 오른쪽으로 쏠리며 잘렸다
+  for (const sel of [".aqua-meters", ".aqua-list", ".aqua-eaten-log ul"]) {
+    assert.ok(css.includes(`${sel} { display: grid; grid-template-columns: minmax(0, 1fr);`), sel);
+  }
+  assert.match(css, /\.aqua-eaten-log-head \{ display: flex; flex-wrap: wrap;/);
+});

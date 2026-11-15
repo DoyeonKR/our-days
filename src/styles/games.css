@@ -587,7 +587,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-bubble { position: absolute; left: var(--x); bottom: -12px; z-index: 300; width: var(--s); height: var(--s); border-radius: 50%; border: 1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.18); pointer-events: none; animation: aqua-rise var(--t) linear var(--d) infinite; }
 .aqua-empty, .aqua-hint { position: absolute; inset: 0; z-index: 410; display: grid; place-content: center; text-align: center; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); pointer-events: none; }
 .aqua-hint { inset: auto 0 8px; }
-.aqua-meters { display: grid; gap: 6px; margin-top: 10px; }
+.aqua-meters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 10px; }
 .aqua-meter { display: grid; grid-template-columns: 52px 1fr 28px; align-items: center; gap: 8px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
 .aqua-meter i { display: block; height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }
 .aqua-meter b { display: block; height: 100%; border-radius: inherit; background: #38bdf8; }
@@ -624,7 +624,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-preview-dialog p { margin: 12px 0 6px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
 .aqua-model-viewer { width: 100%; aspect-ratio: 1; max-height: 48dvh; margin-top: 12px; }
 .aqua-model-viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; border-radius: 16px; }
-.aqua-list { display: grid; gap: 4px; }
+.aqua-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .aqua-list button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 8px; border-radius: 10px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; text-align: left; }
 .aqua-list button.is-on { background: rgba(125,211,252,.16); }
 .aqua-list small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; white-space: nowrap; }
@@ -1532,11 +1532,11 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 
 /* 잡아먹힌 물고기 · 다시 보기(2026-11-12) */
 .aqua-eaten-log { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
-.aqua-eaten-log-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.aqua-eaten-log-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; margin-bottom: 6px; }
 .aqua-eaten-log-head b { font-size: 15px; font-family: var(--font-body); line-height: 24px; }
 .aqua-eaten-log-head small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
-.aqua-eaten-log ul { display: grid; gap: 6px; }
-.aqua-eaten-log li { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.aqua-eaten-log ul { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.aqua-eaten-log li { display: flex; align-items: center; gap: 8px; min-height: 44px; min-width: 0; }
 .aqua-eaten-log li strong { display: block; overflow: hidden; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .aqua-eaten-log-pics { flex: none; display: flex; align-items: center; gap: 2px; }
 .aqua-eaten-log-pics > span { display: block; width: 34px; height: 26px; }

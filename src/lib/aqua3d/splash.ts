@@ -14,7 +14,7 @@ export type Splash = {
   points: T.Points;
   rings: T.Group;
   /** x · z — 수면 위 자리, surface — 수면 높이, size — 몸길이, enter — 들어가는 물보라(더 크다) */
-  burst(x: number, z: number, surface: number, size: number, now: number, enter: boolean, dir?: number): void;
+  burst(x: number, z: number, surface: number, size: number, now: number, enter: boolean, dir?: number, amount?: number): void;
   /** 물속 거품 줄 — 몸이 지나간 자리에 */
   trail(x: number, y: number, z: number, size: number, now: number, surface: number): void;
   step(now: number, pxScale: number): void;
@@ -60,31 +60,34 @@ export function makeSplash(): Splash {
   return {
     points, rings,
     get active() { return live > 0 || ringList.length > 0; },
-    burst(x, z, surface, L, now, enter, dir = 0) {
+    // amount — 입자 수 배율(0~1, 포유류의 작은 재주 · 해달의 톡톡은 적게)
+    burst(x, z, surface, L, now, enter, dir = 0, amount = 1) {
+      const cnt = (n: number) => Math.max(2, Math.round(n * amount));
       const big = enter ? 1.35 : 1;
       // 물방울 — 둘레에서 위 · 바깥으로(가는 쪽으로 조금 더)
-      const nd = enter ? 170 : 120;
+      const nd = cnt(enter ? 170 : 120);
       for (let n = 0; n < nd; n++) {
         const s = seq++, a = h(s, 1) * Math.PI * 2, r = (.15 + .45 * h(s, 2)) * L, up = (1.6 + 3.2 * h(s, 3)) * Math.sqrt(L) * big, out = (.5 + 1.8 * h(s, 4)) * Math.sqrt(L) * big;
         add(0, now + h(s, 5) * .12, x + Math.cos(a) * r, surface + .02, z + Math.sin(a) * r * .7, Math.cos(a) * out + dir * .8 * Math.sqrt(L), up, Math.sin(a) * out * .7, (.022 + .035 * h(s, 6)) * L, 2.4, surface);
       }
       // 물기둥 — 들어갈 때 둘레로 곧게 솟는다
-      if (enter) for (let n = 0; n < 46; n++) {
-        const s = seq++, a = n / 46 * Math.PI * 2 + h(s, 1) * .2, r = (.45 + .12 * h(s, 2)) * L;
+      const nc = cnt(46);
+      if (enter) for (let n = 0; n < nc; n++) {
+        const s = seq++, a = n / nc * Math.PI * 2 + h(s, 1) * .2, r = (.45 + .12 * h(s, 2)) * L;
         add(1, now + .05 + h(s, 3) * .1, x + Math.cos(a) * r, surface + .02, z + Math.sin(a) * r * .7, Math.cos(a) * .5, (3.4 + 2.2 * h(s, 4)) * Math.sqrt(L), Math.sin(a) * .35, (.03 + .03 * h(s, 5)) * L, 2.2, surface);
       }
       // 물안개
-      for (let n = 0; n < (enter ? 22 : 16); n++) {
+      for (let n = 0; n < cnt(enter ? 22 : 16); n++) {
         const s = seq++, a = h(s, 1) * Math.PI * 2, r = h(s, 2) * .6 * L;
         add(2, now + h(s, 3) * .2, x + Math.cos(a) * r, surface + .1 + h(s, 4) * .3 * L, z + Math.sin(a) * r * .6, Math.cos(a) * .4, .5 + .8 * h(s, 5), Math.sin(a) * .3, (.16 + .18 * h(s, 6)) * L, 1.6, surface);
       }
       // 물속 거품 구름 — 들어갈 때 크게
-      for (let n = 0; n < (enter ? 90 : 40); n++) {
+      for (let n = 0; n < cnt(enter ? 90 : 40); n++) {
         const s = seq++, a = h(s, 1) * Math.PI * 2, r = h(s, 2) * .7 * L, dy = (enter ? 1.6 : .5) * L * h(s, 3);
         add(3, now + h(s, 4) * .4, x + Math.cos(a) * r + dir * h(s, 6) * L * .6, surface - .1 - dy, z + Math.sin(a) * r * .6, Math.cos(a) * .25, .6 + 1.1 * h(s, 5), Math.sin(a) * .2, (.03 + .06 * h(s, 7)) * L, 3.2, surface);
       }
       // 물결 고리 둘
-      for (const [delay, rr, lf] of [[0, 1.5, 2.2], [.3, .95, 1.8]] as const) {
+      for (const [delay, rr, lf] of (amount < .3 ? [[0, 1.1, 1.4]] : [[0, 1.5, 2.2], [.3, .95, 1.8]]) as [number, number, number][]) {
         const m = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ color: 0xeaf8ff, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide, fog: true }));
         m.position.set(x, surface + .015, z); m.raycast = () => {}; m.renderOrder = 3; m.scale.setScalar(.01);
         rings.add(m); ringList.push({ m, t0: now + delay, r: rr * L * big, life: lf });

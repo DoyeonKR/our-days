@@ -117,3 +117,142 @@ export function breachAt(p: BreachPlan, t: number): BreachState {
   const k = (t - sink) / (p.total - sink);
   return { x: endX, y: p.sinkY, z: p.z, hx: d, hy: .15, hz: 0, w: 1 - ease(k), air: false, beat: 1.3, roll: 0, phase: "back" };
 }
+
+/* ── 포유류 재주(2026-11-15) [사용자: "2순위 5번만 진행해" — 범고래 말고 다른 포유류도 누르면 그 종다운 동작] ──
+ *  · hop(물개 · 큰바다사자 · 독도 강치) — 수면 위로 작게 세 번 연달아 뛰기(포퍼싱, 바다사자류가 빨리 헤엄칠 때 실제로 한다)
+ *  · spyhop(점박이물범) — 수면 아래에서 몸을 세워 머리만 물 밖으로 내밀고 두리번거린다
+ *  · float(해달) — 수면에 배를 위로 하고 누워 가슴 위에서 조개를 톡톡 깬다(작은 물방울)
+ *  · twirl(수달) — 물속에서 두 바퀴 빙글 돌며 쏜살같이 앞으로(거품 줄)
+ *  · breach(범고래) — 위의 planBreach 그대로
+ *  모두 같은 틀(TrickPlan)이다: 시각 → 자리 · 몸 방향 · 원래 길과 섞는 몫, 그리고 물보라를 터뜨릴 때 목록. 순수 · 같은 입력 = 같은 길. */
+export type TrickKind = "breach" | "hop" | "spyhop" | "float" | "twirl";
+const TRICK_OF: Record<string, TrickKind> = {
+  orca: "breach", fur_seal: "hop", steller_sea_lion: "hop", japanese_sea_lion: "hop", spotted_seal: "spyhop", sea_otter: "float", otter: "twirl",
+};
+export const trickOf = (family: string): TrickKind | null => TRICK_OF[family] ?? null;
+export type TrickSplash = { t: number; x: number; z: number; enter: boolean; scale: number; amount: number };
+export type TrickState = Omit<BreachState, "phase"> & { phase: string; trail: boolean };
+export type TrickPlan = { kind: TrickKind; total: number; surface: number; peak: number; splashes: TrickSplash[]; at: (t: number) => TrickState };
+
+const BACK = 1.4;
+const unit = (x: number, y: number, z: number) => { const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l] as const; };
+const finished = (x: number, y: number, z: number, d: number): TrickState => ({ x, y, z, hx: d, hy: 0, hz: 0, w: 0, air: false, beat: 1, roll: 0, phase: "done", trail: false });
+
+/** 재주 계획 — 몸 가운데는 늘 수조 가로 안(끝에서 원래 길로 돌아가며 조금 더 가던 것이 벽을 넘었다) */
+export function planTrick(kind: TrickKind, start: { x: number; y: number; z: number; hx: number }, surface: number, floor: number, halfW: number, L: number, zFront: number): TrickPlan {
+  const p = planTrickRaw(kind, start, surface, floor, halfW, L, zFront), raw = p.at;
+  return { ...p, at: (t) => { const s = raw(t); s.x = clampN(s.x, -halfW, halfW); return s; } };
+}
+function planTrickRaw(kind: TrickKind, start: { x: number; y: number; z: number; hx: number }, surface: number, floor: number, halfW: number, L: number, zFront: number): TrickPlan {
+  const len = Math.max(.3, L), lo = floor + len * .45;
+  if (kind === "breach") {
+    const p = planBreach(start, surface, floor, halfW, L, zFront);
+    return {
+      kind, total: p.total, surface, peak: p.peak,
+      splashes: [{ t: p.exitT, x: p.exitX, z: p.z, enter: false, scale: 1, amount: 1 }, { t: p.enterT, x: p.enterX, z: p.z, enter: true, scale: 1, amount: 1 }],
+      at: (t) => { const b = breachAt(p, t); return { ...b, trail: b.phase === "rise" || b.phase === "sink" }; },
+    };
+  }
+  // 가로로 갈 쪽 — 넓은 쪽(가는 쪽이 좁으면 돌아선다)
+  const room = (dd: number) => dd > 0 ? halfW - start.x : start.x + halfW;
+  let d = start.hx >= 0 ? 1 : -1;
+  if (room(d) < room(-d) * .6) d = -d;
+  const z = Math.max(start.z, Math.min(zFront, .9));
+  if (kind === "hop") {
+    // 세 번 뛴다 — 한 번에 공중 .7초 · 높이 몸길이 .45, 사이 물속 .45초 · 깊이 .3
+    const A = .7, U = .45, H = .45 * len, D = .3 * len, n = 3, per = A + U;
+    const want = 1.5 * len / per, vx = Math.min(want, Math.max(0, 2 * halfW - len) / (n * per));
+    const xa = clampN(start.x, d > 0 ? -halfW : -halfW + vx * n * per, d > 0 ? halfW - vx * n * per : halfW);
+    const T0 = Math.min(2, .9 + Math.abs(xa - start.x) / (2.5 * len)), Tend = T0 + n * per, total = Tend + BACK;
+    const splashes: TrickSplash[] = [];
+    for (let i = 0; i < n; i++) {
+      const t = T0 + i * per;
+      splashes.push({ t, x: xa + d * vx * i * per, z, enter: false, scale: .6, amount: .55 });
+      splashes.push({ t: t + A, x: xa + d * vx * (i * per + A), z, enter: true, scale: .6, amount: .5 });
+    }
+    const endX = xa + d * vx * n * per, endY = surface - .25 * len;
+    return {
+      kind, total, surface, peak: surface + H, splashes, at: (t) => {
+        if (!(t >= 0) || t >= total) return finished(start.x, start.y, start.z, d);
+        if (t < T0) {
+          // 수면 바로 아래로 다가가며 빨라진다(수면에서 첫 뜀으로 이어진다)
+          const u = t / T0, k = ease(u), x = start.x + (xa - start.x) * k, y = start.y + (surface - start.y) * u * u, zz = start.z + (z - start.z) * k;
+          const [hx, hy, hz] = unit(d * (.4 + u), Math.max(-.6, Math.min(.9, (surface - start.y) * u / len)), 0);
+          return { x, y, z: zz, hx, hy, hz, w: Math.min(1, t / .25), air: false, beat: 1.8, roll: 0, phase: "dive", trail: u > .5 };
+        }
+        if (t < Tend) {
+          const s = t - T0, i = Math.floor(s / per), r = s - i * per, x = xa + d * vx * s;
+          if (r < A) { const q = r / A, y = surface + 4 * H * q * (1 - q), vy = 4 * H * (1 - 2 * q) / A, [hx, hy, hz] = unit(d * vx, vy, 0); return { x, y, z, hx, hy, hz, w: 1, air: true, beat: 0, roll: 0, phase: "air", trail: false }; }
+          const q = (r - A) / U, y = surface - 4 * D * q * (1 - q), vy = -4 * D * (1 - 2 * q) / U, [hx, hy, hz] = unit(d * vx, vy, 0);
+          return { x, y, z, hx, hy, hz, w: 1, air: false, beat: 2.4, roll: 0, phase: "rise", trail: true };
+        }
+        const k = (t - Tend) / BACK, y = surface + (endY - surface) * ease(Math.min(1, k * 2));
+        return { x: endX + d * vx * .4 * ease(k), y, z, hx: d, hy: -.2 * (1 - k), hz: 0, w: 1 - ease(k), air: false, beat: 1.3, roll: 0, phase: "back", trail: k < .3 };
+      },
+    };
+  }
+  if (kind === "spyhop") {
+    // 몸을 세워 머리를 물 밖으로 — 몸 가운데가 수면 위 몸길이 .12(머리 · 어깨가 나온다)
+    const x = clampN(start.x + d * .4 * len, -halfW, halfW), under = Math.max(lo, surface - .7 * len), up = surface + .12 * len;
+    const T0 = 1.1, T1 = T0 + .8, T2 = T1 + 2.2, T3 = T2 + .9, total = T3 + BACK;
+    const upright = (k: number) => unit(d * (1 - .78 * k), .25 + .72 * k, 0);
+    return {
+      kind, total, surface, peak: up + .4 * len,
+      splashes: [{ t: T0 + .55, x, z, enter: false, scale: .4, amount: .35 }, { t: T2 + .3, x, z, enter: true, scale: .4, amount: .35 }],
+      at: (t) => {
+        if (!(t >= 0) || t >= total) return finished(start.x, start.y, start.z, d);
+        if (t < T0) { const k = ease(t / T0), [hx, hy, hz] = upright(k * .2); return { x: start.x + (x - start.x) * k, y: start.y + (under - start.y) * k, z: start.z + (z - start.z) * k, hx, hy, hz, w: Math.min(1, t / .25), air: false, beat: 1.4, roll: 0, phase: "dive", trail: false }; }
+        if (t < T1) { const k = ease((t - T0) / (T1 - T0)), [hx, hy, hz] = upright(.2 + .8 * k); return { x, y: under + (up - under) * k, z, hx, hy, hz, w: 1, air: false, beat: 1.6, roll: 0, phase: "rise", trail: true }; }
+        if (t < T2) {
+          // 떠 있으며 두리번 — 머리를 좌우로(옆 z 로 조금) · 숨 쉬듯 오르내린다
+          const s = t - T1, [hx, hy] = upright(1), look = Math.sin(s * 2.4) * .35, [ux, uy, uz] = unit(hx, hy, look);
+          return { x, y: up + Math.sin(s * 5.2) * .035 * len, z, hx: ux, hy: uy, hz: uz, w: 1, air: true, beat: .3, roll: 0, phase: "air", trail: false };
+        }
+        if (t < T3) { const k = ease((t - T2) / (T3 - T2)), [hx, hy, hz] = upright(1 - k); return { x: x + d * .3 * len * k, y: up + (under - up) * k, z, hx, hy: hy - .5 * k, hz, w: 1, air: false, beat: 1.2, roll: 0, phase: "sink", trail: true }; }
+        const k = (t - T3) / BACK;
+        return { x: x + d * .3 * len, y: under, z, hx: d, hy: 0, hz: 0, w: 1 - ease(k), air: false, beat: 1.2, roll: 0, phase: "back", trail: false };
+      },
+    };
+  }
+  if (kind === "float") {
+    // 수면에 누워(배를 위로) 가슴을 톡톡 — 몸 가운데가 수면 바로 아래, 천천히 떠 간다
+    const x = clampN(start.x + d * .3 * len, -halfW + len, halfW - len), at0 = surface - .08 * len, under = Math.max(lo, surface - .9 * len);
+    const T0 = 1.3, T1 = T0 + .6, T2 = T1 + 3.2, T3 = T2 + .6, T4 = T3 + .8, total = T4 + BACK, drift = .05 * len;
+    const splashes: TrickSplash[] = [{ t: T0, x, z, enter: false, scale: .35, amount: .25 }];
+    for (let i = 0; i < 5; i++) { const t = T1 + .3 + i * .55; splashes.push({ t, x: x + d * (.15 * len + drift * (t - T0)), z, enter: false, scale: .22, amount: .2 }); }
+    const ex = x + d * drift * (T3 - T0);
+    return {
+      kind, total, surface, peak: surface + .3 * len, splashes, at: (t) => {
+        if (!(t >= 0) || t >= total) return finished(start.x, start.y, start.z, d);
+        if (t < T0) { const k = ease(t / T0), [hx, hy, hz] = unit(d, .5 * (1 - k), 0); return { x: start.x + (x - start.x) * k, y: start.y + (at0 - start.y) * k, z: start.z + (z - start.z) * k, hx, hy, hz, w: Math.min(1, t / .25), air: false, beat: 1.5, roll: 0, phase: "rise", trail: true }; }
+        const dx = x + d * drift * (Math.min(t, T3) - T0);
+        if (t < T1) { const k = ease((t - T0) / (T1 - T0)); return { x: dx, y: at0, z, hx: d, hy: 0, hz: 0, w: 1, air: false, beat: .4, roll: d * Math.PI * k, phase: "air", trail: false }; }
+        if (t < T2) {
+          // 톡톡 — 0.55초마다 가슴 쪽이 살짝 들렸다 내려온다
+          const s = t - T1, tap = Math.max(0, Math.sin(s / .55 * Math.PI * 2)) ** 3;
+          return { x: dx, y: at0 + tap * .03 * len, z, hx: d, hy: .12 * tap, hz: 0, w: 1, air: true, beat: 0, roll: d * Math.PI, phase: "air", trail: false };
+        }
+        if (t < T3) { const k = ease((t - T2) / (T3 - T2)); return { x: dx, y: at0, z, hx: d, hy: 0, hz: 0, w: 1, air: false, beat: .5, roll: d * Math.PI * (1 - k), phase: "air", trail: false }; }
+        if (t < T4) { const k = ease((t - T3) / (T4 - T3)), [hx, hy, hz] = unit(d, -.6 * (1 - k * .5), 0); return { x: ex + d * .4 * len * k, y: at0 + (under - at0) * k, z, hx, hy, hz, w: 1, air: false, beat: 1.6, roll: 0, phase: "sink", trail: true }; }
+        const k = (t - T4) / BACK;
+        return { x: ex + d * .4 * len, y: under, z, hx: d, hy: 0, hz: 0, w: 1 - ease(k), air: false, beat: 1.3, roll: 0, phase: "back", trail: false };
+      },
+    };
+  }
+  // twirl — 물속에서 두 바퀴 빙글 돌며 앞으로(몸길이 1.8 · 살짝 위로 솟았다 내려온다)
+  const T0 = .35, T1 = T0 + 1.5, total = T1 + BACK, x0 = start.x;
+  const top = Math.min(surface - .6 * len, Math.max(lo, start.y + .5 * len)), xEnd = clampN(x0 + d * 1.8 * len, -halfW, halfW);
+  return {
+    kind, total, surface, peak: top, splashes: [], at: (t) => {
+      if (!(t >= 0) || t >= total) return finished(start.x, start.y, start.z, d);
+      if (t < T0) return { x: x0, y: start.y, z: start.z, hx: d, hy: 0, hz: 0, w: Math.min(1, t / T0 * 1.5), air: false, beat: 2.2, roll: 0, phase: "dive", trail: false };
+      if (t < T1) {
+        const u = (t - T0) / (T1 - T0), k = ease(u), x = x0 + (xEnd - x0) * k, y = start.y + (top - start.y) * Math.sin(Math.PI * u);
+        const vx = (xEnd - x0) * 6 * u * (1 - u), vy = (top - start.y) * Math.PI * Math.cos(Math.PI * u), [hx, hy, hz] = unit(Math.abs(vx) > 1e-3 ? vx : d * .1, vy * .5, 0);
+        return { x, y, z: start.z, hx, hy, hz, w: 1, air: false, beat: 2.8, roll: d * Math.PI * 4 * k, phase: "rise", trail: true };
+      }
+      const k = (t - T1) / BACK;
+      return { x: xEnd, y: start.y, z: start.z, hx: d, hy: 0, hz: 0, w: 1 - ease(k), air: false, beat: 1.4, roll: 0, phase: "back", trail: false };
+    },
+  };
+}

@@ -6,7 +6,7 @@ import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaNews, type AquaS
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { stepFish } from "./fishstep.ts";
 import { makeSandPuffs } from "./sandpuff.ts";
-import { breachAt, canBreach, planBreach, type BreachPlan } from "./breach.ts";
+import { planTrick, trickOf, type TrickPlan } from "./breach.ts";
 import { makeSplash } from "./splash.ts";
 import { bossLookOf } from "./bosslook.ts";
 import { turtleGlbMotion } from "./turtle.ts";
@@ -315,20 +315,22 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const startles=new Map<number,{t0:number;kind:StartleKind;side:number;dir:{x:number;y:number;z:number}}>(),startleNow=new Map<Swimmer,StartlePose>();
   // 범고래 뛰어오르기(breach.ts · splash.ts, 2026-11-15) — 누르면 잠수 → 솟구쳐 수면을 박차고 나가 → 포물선 → 다시 들어와 원래 길로. 나갈 때 · 들어올 때 물보라 · 물결 고리 · 거품
   const splash=makeSplash();scene.add(splash.points);scene.add(splash.rings);
-  const breaches=new Map<number,{plan:BreachPlan;t0:number;exited:boolean;entered:boolean;trailAt:number;holdPhase:number}>();
+  // 2026-11-15 — 범고래만이 아니라 포유류마다 재주 하나(breach.ts 의 planTrick): 물개류 세 번 뛰기 · 물범 머리 내밀기 · 해달 누워 조개 깨기 · 수달 빙글 돌기
+  const breaches=new Map<number,{plan:TrickPlan;t0:number;fired:number;trailAt:number;holdPhase:number}>();
   const waterTop=()=>tallY(5.56,tall);
   function startBreach(id:number,m:Swimmer){
     if(breaches.has(id))return true;
     const p=m.root.position,L=shownLength(m),h=motion.hall,hallTop=h?WORLD.floor+h.h*tall+.4+L*.3:-Infinity;
-    const plan=planBreach({x:p.x,y:p.y,z:p.z,hx:m.course.dx},waterTop(),Math.max(heightAt(p.x,p.z),hallTop),5*wide-L*.55,L,3*deep-L*.5);
-    breaches.set(id,{plan,t0:elapsed,exited:false,entered:false,trailAt:0,holdPhase:m.phase});startles.delete(id);
+    const kind=trickOf(m.family);if(!kind)return false;
+    const plan=planTrick(kind,{x:p.x,y:p.y,z:p.z,hx:m.course.dx},waterTop(),Math.max(heightAt(p.x,p.z),hallTop),5*wide-L*.55,L,3*deep-L*.5);
+    breaches.set(id,{plan,t0:elapsed,fired:0,trailAt:0,holdPhase:m.phase});startles.delete(id);
     if(!active)draw(0);return true;
   }
   function startleFish(id:number){
     const m=swimmers.get(id);if(!m||reduced.matches)return;
     if(meal&&(id===meal.predId||id===meal.ghostId))return;
     if(breaches.has(id))return;
-    if(canBreach(m.family)&&!inTunnel&&!inDome&&startBreach(id,m))return;
+    if(trickOf(m.family)&&!inTunnel&&!inDome&&startBreach(id,m))return;
     const kind=startleKind(m.family,m.key),side=Math.random()<.5?-1:1,p=m.root.position;
     const dir=startleDir(kind,p.x-camera.position.x,p.z-camera.position.z,m.course.dx,m.course.dz,side);
     startles.set(id,{t0:elapsed,kind,side,dir});
@@ -763,15 +765,15 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 범고래 뛰어오르기 — 길 위의 자리와 섞는다(처음 0.25초 · 끝 1.4초), 공중에선 꼬리를 멈추고 몸을 비튼다
     if(breaches.size){let j=0;for(const[id,m]of swimmers){const br=breaches.get(id);if(br&&j<motion.count){const t=elapsed-br.t0,pl=br.plan;
       if(t>=pl.total||reduced.matches||(meal&&(id===meal.predId||id===meal.ghostId)))breaches.delete(id);
-      else{const b=breachAt(pl,t),P=motion.positions,H=motion.heading,k=j*3,w=b.w,L=motion.lengths[j];
+      else{const b=pl.at(t),P=motion.positions,H=motion.heading,k=j*3,w=b.w,L=motion.lengths[j];
         P[k]=P[k]*(1-w)+b.x*w;P[k+1]=P[k+1]*(1-w)+b.y*w;P[k+2]=P[k+2]*(1-w)+b.z*w;
         H[k]=H[k]*(1-w)+b.hx*w;H[k+1]=H[k+1]*(1-w)+b.hy*w;H[k+2]=H[k+2]*(1-w)+b.hz*w;
         if(b.air){m.phase=br.holdPhase;}else{if(dt>0)m.phase+=dt*Math.max(.6,m.course.effort)*(b.beat-1);br.holdPhase=m.phase;}
         if(b.roll)motion.rolls[j]=(motion.rolls[j]??0)+b.roll;
-        if(!br.exited&&t>=pl.exitT){br.exited=true;splash.burst(pl.exitX,pl.z,pl.surface,L,elapsed,false,pl.dir);}
-        if(!br.entered&&t>=pl.enterT){br.entered=true;splash.burst(pl.enterX,pl.z,pl.surface,L,elapsed,true,pl.dir);}
-        // 솟구칠 때 · 들어온 뒤 꼬리에서 거품 줄
-        if((b.phase==="rise"||b.phase==="sink")&&elapsed>=br.trailAt){br.trailAt=elapsed+.05;splash.trail(P[k]-b.hx*L*.45,P[k+1]-b.hy*L*.45,P[k+2],L,elapsed,pl.surface);}}}j++;}}
+        // 물보라 — 계획의 때마다 한 번씩(나갈 때 · 들어올 때 · 해달의 톡톡)
+        while(br.fired<pl.splashes.length&&t>=pl.splashes[br.fired].t){const sp=pl.splashes[br.fired++];splash.burst(sp.x,sp.z,pl.surface,L*sp.scale,elapsed,sp.enter,Math.sign(b.hx)||1,sp.amount);}
+        // 솟구칠 때 · 들어온 뒤 · 빙글 돌 때 꼬리에서 거품 줄
+        if(b.trail&&elapsed>=br.trailAt){br.trailAt=elapsed+.05;splash.trail(P[k]-b.hx*L*.45,P[k+1]-b.hy*L*.45,P[k+2],L,elapsed,pl.surface);}}}j++;}}
     if(splash.active)splash.step(elapsed,renderer.domElement.height*.9);
     // 먹이 알갱이 — 새 먹이면 물고기가 모이는 자리에 뿌리고, 먹이 쪽으로 온 물고기 입에 닿은 알은 먹힌다(food.ts). 움직임 줄이기면 한 장면
     if(motion.feed&&motion.feed!==foodFeed){foodFeed=motion.feed;food.drop(motion.feed.t,motion.feed.x,{top:tallY(4.75,tall),deep,floorAt:foodFloor});}
@@ -955,7 +957,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     return meal?huntOf(pred).style:"skipped";};}
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaTime?:()=>number;__aquaCourse?:()=>unknown}).__aquaTime=()=>elapsed;(host as HTMLElement&{__aquaCourse?:()=>unknown}).__aquaCourse=()=>[...swimmers.values()].map((m)=>({family:m.family,jet:m.course.jet??0,rev:m.course.rev??0,amp:m.course.amp,stand:m.course.stand??0,pos:m.root.position.toArray().map(v=>+v.toFixed(2)),len:+m.length.toFixed(2)}));if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaRocks?:()=>unknown}).__aquaRocks=()=>motion.obstacles.map(o=>({...o})); // 개발 전용: 지금 수조 시각(장면을 정해진 순간으로 넘겨 찍을 때)
   // 개발 전용: 범고래(등 뛰어오르는 물고기)를 누른 것처럼 — host.__aquaBreach() 는 뛰어오른 물고기 id, 없으면 -1
-  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaBreach?:()=>number}).__aquaBreach=()=>{for(const[id,m]of swimmers)if(canBreach(m.family)){startleFish(id);events.fish(id);return id;}return -1;};(host as HTMLElement&{__aquaBreachPlan?:()=>unknown}).__aquaBreachPlan=()=>({tall,wide,deep,plans:[...breaches.values()].map(b=>b.plan)});
+  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaBreach?:(family?:string)=>number}).__aquaBreach=(family?:string)=>{for(const[id,m]of swimmers)if(trickOf(m.family)&&(!family||m.family===family)){startleFish(id);events.fish(id);return id;}return -1;};(host as HTMLElement&{__aquaBreachPlan?:()=>unknown}).__aquaBreachPlan=()=>({tall,wide,deep,plans:[...breaches.values()].map(b=>b.plan)});
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{if(swaps.length)flushSwaps();for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
   // 점은 장면 그림에 찍힌다 — 계단 3(장면 그림 0.75배)이면 그만큼 작게
