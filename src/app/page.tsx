@@ -83,6 +83,11 @@ const loadBucketList = () => import("@/components/BucketList");
 const BucketList = dynamic(loadBucketList, {
   loading: tabLoading,
 });
+// 같이 하는 습관(2026-11-13 §10.27) — 계획 › 습관. 홈의 오늘 카드(HabitTodayCard)는 '오늘의 우리' 안에 있다.
+const loadHabitBoard = () => import("@/components/HabitBoard");
+const HabitBoard = dynamic(loadHabitBoard, {
+  loading: tabLoading,
+});
 const loadTodayLog = () => import("@/components/TodayLog");
 const TodayLog = dynamic(loadTodayLog, {
   loading: () => <SkeletonList rows={2} />,
@@ -174,7 +179,7 @@ const LS = {
 } as const;
 
 /** 오프라인 PWA 대비로 유휴 시간에 데우는 탭 · 설정 조각 — 위 dynamic() 과 같은 load… 를 쓴다(같은 조각 파일). */
-const WARM_TABS = [loadTodayLog, loadCalendar, loadDecoBook, loadPhotoAlbum, loadBucketList, loadPushSettings, loadNotifySettings, loadDiagnostics, loadCoupleSync, loadAccountSection];
+const WARM_TABS = [loadTodayLog, loadCalendar, loadDecoBook, loadPhotoAlbum, loadBucketList, loadHabitBoard, loadPushSettings, loadNotifySettings, loadDiagnostics, loadCoupleSync, loadAccountSection];
 
 const VIEWS = ["home", "diary", "records", "plan", "adventure", "game"] as const;
 type View = (typeof VIEWS)[number];
@@ -289,7 +294,7 @@ export default function Home() {
   const hungSaveLock = useRef(false); // 빠른 연타가 같은 서버 버전에 겹쳐 쓰지 않도록 직렬화
   const hungSaveOp = useRef(0); // 커플 변경/늦은 응답이 새 화면 상태를 덮지 않게 하는 세대 번호
   const hungSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [planView, setPlanView] = useState<"cal" | "bucket">("cal"); // 캘린더 탭: 일정 | 버킷
+  const [planView, setPlanView] = useState<"cal" | "bucket" | "habit">("cal"); // 캘린더 탭: 일정 | 버킷 | 습관
   // 기록 = 지난 우리: 로그 · 일기 · 사진 · 추억(작년 오늘·월간 리캡·이 달의 기분) [2026-09-24 IA 개편]
   const [recordView, setRecordView] = useState<RecordView>("log");
   const [visitedRecords, setVisitedRecords] = useState<Set<RecordView>>(() => new Set(["log"]));
@@ -305,7 +310,7 @@ export default function Home() {
   const [editNotice, setEditNotice] = useState<string | null>(null); // 편집 충돌 뒤 다시 연 시트의 안내
   // 알림 · 활동함 → 달력의 그 일정(Calendar 가 그 회차의 달 · 날을 연다). ts 로 같은 알림을 다시 눌러도 돈다
   const [planFocus, setPlanFocus] = useState<{ id: string; ts: number } | null>(null);
-  const [visitedPlan, setVisitedPlan] = useState<Set<"cal" | "bucket">>(() => new Set(["cal"]));
+  const [visitedPlan, setVisitedPlan] = useState<Set<"cal" | "bucket" | "habit">>(() => new Set(["cal"]));
   // 한 번 연 탭은 언마운트하지 않고 숨김(keep-mounted) — 탭 전환마다 전체 refetch/채널 재구독 반복 제거
   const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
   // 새 기기 로그인 시 서버(커플) 시작일 확인 전 온보딩을 띄우지 않기 위한 게이트
@@ -1100,7 +1105,7 @@ export default function Home() {
     setView("records");
   }
 
-  function goPlan(next: "cal" | "bucket" = "cal") {
+  function goPlan(next: "cal" | "bucket" | "habit" = "cal") {
     setPlanView(next);
     setVisitedPlan((prev) => (prev.has(next) ? prev : new Set(prev).add(next)));
     setView("plan");
@@ -1382,6 +1387,8 @@ export default function Home() {
           myUserId={myUserId}
           myName={me}
           partnerName={partnerName}
+          partnerId={coupleMembers.find((m) => m.user_id !== myUserId)?.user_id ?? null}
+          onOpenHabits={() => goPlan("habit")}
           onOpenLog={(openCapture) => {
             goRecords("log");
             if (openCapture) setLogCaptureReq((n) => n + 1);
@@ -1531,6 +1538,7 @@ export default function Home() {
                 options={[
                   { value: "cal", label: "일정", icon: "calendar" },
                   { value: "bucket", label: "버킷리스트", icon: "target" },
+                  { value: "habit", label: "습관", icon: "check" },
                 ]}
               />
             </div>
@@ -1619,6 +1627,19 @@ export default function Home() {
             {visitedPlan.has("bucket") && (
               <div hidden={planView !== "bucket"}>
                 <BucketList coupleId={coupleId} onConnect={goHomePoke} />
+              </div>
+            )}
+            {/* 습관도 처음 열 때 마운트하고 그 뒤엔 숨김만(일정 · 버킷과 같다) */}
+            {visitedPlan.has("habit") && (
+              <div hidden={planView !== "habit"}>
+                <HabitBoard
+                  coupleId={coupleId}
+                  myUserId={myUserId}
+                  partnerId={coupleMembers.find((m) => m.user_id !== myUserId)?.user_id ?? null}
+                  myName={me}
+                  partnerName={partnerName}
+                  onConnect={goHomePoke}
+                />
               </div>
             )}
           </div>

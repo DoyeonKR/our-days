@@ -112,3 +112,38 @@ export const ICON_PATHS: Record<IconName, string> = {
   cloudsun:
     '<path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/>',
 };
+
+/* ── 같이 하는 습관 아이콘(2026-11-13, README §10.27) ──────────────────────────
+ * 사용자가 습관마다 고르는 그림 — 이모지 대신 이 고정 SVG 묶음에서만 고른다(저장값은 키, 서버 CHECK 는 소문자 1~16자).
+ * IconName 에 넣지 않는다 — pixelicon.test 가 ICON_PATHS 키를 픽셀 아이콘과 맞춰 본다. 모르는 키는 sprout 으로 그린다. */
+export const HABIT_ICONS = {
+  water: { label: "물", path: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>' },
+  walk: {
+    label: "걷기",
+    path: '<path d="M7 4.5C8.7 4.5 10 6.6 10 9s-1 4-3 4-3-1.6-3-4 1.3-4.5 3-4.5z"/><path d="M4.5 16h5v1.5a2.5 2.5 0 0 1-5 0z"/><path d="M17 8.5c1.7 0 3 2.1 3 4.5s-1 4-3 4-3-1.6-3-4 1.3-4.5 3-4.5z"/><path d="M14.5 20h5"/>',
+  },
+  workout: { label: "운동", path: '<path d="M6 7v10"/><path d="M18 7v10"/><path d="M3 10v4"/><path d="M21 10v4"/><path d="M6 12h12"/>' },
+  book: { label: "독서", path: ICON_PATHS.book },
+  sleep: { label: "잠", path: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>' },
+  sun: {
+    label: "아침",
+    path: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  },
+  pill: { label: "약", path: '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>' },
+  sprout: {
+    label: "식물",
+    path: '<path d="M7 20h10"/><path d="M12 20v-8"/><path d="M12 12c0-3-2-5-6-5 0 3 2 5 6 5z"/><path d="M12 10c0-3 2-6 6-6 0 3.5-2 6-6 6z"/>',
+  },
+  apple: {
+    label: "건강식",
+    path: '<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/>',
+  },
+  music: { label: "음악", path: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>' },
+  study: { label: "공부", path: ICON_PATHS.pencil },
+  heart: { label: "마음", path: ICON_PATHS.heart },
+} as const;
+export type HabitIconKey = keyof typeof HABIT_ICONS;
+export const HABIT_ICON_KEYS = Object.keys(HABIT_ICONS) as HabitIconKey[];
+export function habitIconPath(key: string): string {
+  return (HABIT_ICONS as Record<string, { path: string }>)[key]?.path ?? HABIT_ICONS.sprout.path;
+}

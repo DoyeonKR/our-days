@@ -18,6 +18,7 @@ import Icon, { type IconName } from "@/components/Icon";
 import TodayLogCard from "@/components/TodayLogCard";
 import MoodLine from "@/components/MoodLine";
 import DailyQuestion from "@/components/DailyQuestion";
+import HabitTodayCard from "@/components/HabitTodayCard";
 import StreakChip from "@/components/StreakChip";
 import type { HomeFocus } from "@/lib/activity";
 
@@ -44,12 +45,18 @@ export default function TodayTogether({
   myUserId,
   myName,
   partnerName,
+  partnerId = null,
+  onOpenHabits,
   onOpenLog,
 }: {
   coupleId: string;
   myUserId: string | null;
   myName: string;
   partnerName: string;
+  /** 같이 하는 습관의 '둘 다' 판정 · 하트에 쓴다(없으면 혼자 쓰는 공간으로 본다). */
+  partnerId?: string | null;
+  /** 습관 카드의 '관리' — 계획 › 습관으로. 없으면 습관 카드를 안 그린다. */
+  onOpenHabits?: () => void;
   onOpenLog: (openCapture?: boolean) => void;
 }) {
   const [done, setDone] = useState<Record<StepKey, boolean>>({ log: false, mood: false, question: false });
@@ -63,16 +70,19 @@ export default function TodayTogether({
     log={<TodayLogCard coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onOpen={onOpenLog} onStatus={onLog}/>}
     mood={<MoodLine coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onStatus={onMood}/>}
     question={<DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} onStatus={onQuestion}/>}
+    habits={onOpenHabits ? <HabitTodayCard coupleId={coupleId} myUserId={myUserId} partnerId={partnerId} partnerName={partnerName} onOpen={onOpenHabits}/> : null}
   />;
 }
 
 /** Data-free presentation shell shared by real daily cards and isolated UI verification. */
-export function TodayTogetherFrame({ done, streak, log, mood, question }: {
+export function TodayTogetherFrame({ done, streak, log, mood, question, habits }: {
   done: Record<StepKey, boolean>;
   streak: ReactNode;
   log: ReactNode;
   mood: ReactNode;
   question: ReactNode;
+  /** 같이 하는 습관(2026-11-13 §10.27) — 머리의 '3개 중 N개'와 따로 센다(습관 수는 커플마다 달라서). */
+  habits?: ReactNode;
 }) {
   const n = STEPS.filter((st) => done[st.k]).length;
 
@@ -108,6 +118,8 @@ export function TodayTogetherFrame({ done, streak, log, mood, question }: {
       <div id="today-question" className="home-chapter-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)]">
         {question}
       </div>
+      {/* 습관 카드는 자기 자리(#today-habit 감싸개)를 스스로 그린다 — 표가 없거나 숨을 땐 빈 여백도 안 남게 */}
+      {habits}
     </section>
   );
 }
