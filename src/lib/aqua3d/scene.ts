@@ -30,11 +30,16 @@ import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
 import {modelTextureQuality} from './color-quality.ts';
 import { FOOD_LIFE, makeFood } from "./food.ts";
 import { makeMotes, type Motes } from "./murk.ts";
+import { decorTints, makeDecorGlow, makeSurfaceFx, type DecorGlow, type SeasonLayer, type SurfaceFx } from "./seasonfx.ts";
+import { bubbleStream, type BubbleStream } from "./bubbles.ts";
+import { eventDef, type AquaEventKey } from "../aquaevent.ts";
 import { captureRatio, clampPhotoCam, photoDistance, photoGrade, pinchZoom, type PhotoCam, type PhotoView } from "./photo.ts";
 
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null;
   /** 이 기기에서 이미 본 사냥 장면의 소식 번호 — 화면이 기억해 넘긴다(장면은 저장소를 안 만진다) */ mealSeen?: number;
-  /** 안에서 보기 — 10단계 터널 · 11단계 돔만. 꾸미는 동안은 밖에서 본다 */ tunnel?: boolean };
+  /** 안에서 보기 — 10단계 터널 · 11단계 돔만. 꾸미는 동안은 밖에서 본다 */ tunnel?: boolean;
+  /** 계절 수조 행사(2026-11-13, lib/aquaevent) — 지금 열린 행사 · 한정 장식 빛깔(놓인 장식 id → 행사). 그림만 바뀐다 */
+  season?: { keys: readonly AquaEventKey[]; tints: Readonly<Record<number, AquaEventKey>> } };
 /** lost · restored · ready 가 없으면 예전처럼 error 로 알린다 */
 export type TankEvents = { fish: (id: number) => void; decor: (id: number) => void; place: (x: number, y: number) => void; error: (message: string) => void;
   /** WebGL 연결이 끊겼다 — 화면이 다시 보이면 새로 열어 본다(Aquarium3D) */
@@ -93,7 +98,7 @@ type Swimmer = AnimalModel & { key: string; family: string; length: number; phas
 const GROW_S = 1, GROW_WAIT = 8, HANDOFF_S = 1;
 /** 지금 보이는 몸길이 — 자라는 동안은 옛 몸 · 키우는 중의 크기(그림자 · 고른 표시 · 따라가기 거리가 한 프레임에 뛰지 않게) */
 const shownLength = (m: Swimmer) => { const g = m.grow, v = g?.old ?? m; return g ? v.length * (v.root.scale.x / Math.max(1e-6, v.scale)) : m.length; };
-type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string };
+type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string; /** 한정 장식 빛깔(seasonfx) */ tint: AquaEventKey | null };
 
 /** 안에서 보기 첫 장면(2026-11-11) — 폰(세로 화면)에서 돔에 들어서면 첫 장의 아래 3분의 2 가 수조 둘레의 키 큰 수초(높이 1.5배로 늘어 6 넘게 자란다) · 바위였고
  *  물고기는 위쪽 끝에 작게 걸렸다. 10 · 11단계는 높이 1.5배라 물고기 대부분이 눈높이보다 5~8 위(올려다보는 각 40~60°)에 있다.
@@ -145,7 +150,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // ⚠ 단, 이 렌더러가 그것들에 단 dispose 리스너(three 내부 — 형상 · 재질 · 텍스처마다 렌더러의 닫힌 함수)는 renderer.dispose 가 안 뗀다.
     //   캐시가 들고 있는 형상이 닫은 렌더러를 끝까지 붙잡아(수조를 오갈 때마다 하나씩) WebGL 상태 · 프로그램이 통째로 남았다(2026-11-11).
     //   dispose 이벤트만 쏴서 리스너가 스스로 떨어지게 한다 — 이벤트일 뿐 캐시의 그림 · 형상은 그대로고, 다른 살아 있는 렌더러(미리보기)는 다음에 쓸 때 다시 올린다
-    scene.traverse(collectBorrowed);for(const r of borrowed)r.dispose();borrowed.clear();morphs.dispose();
+    scene.traverse(collectBorrowed);for(const r of borrowed)r.dispose();borrowed.clear();morphs.dispose();tintReg.dispose();
     const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();scene.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.LineSegments||o instanceof T.Points){if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();if(o.userData.glbShared)return;geometries.add(o.geometry);for(const mat of(Array.isArray(o.material)?o.material:[o.material])){materials.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)textures.add(value);}}});
     geometries.add(kit.sphere);geometries.add(kit.box);geometries.add(kit.cylinder);kit.materials.forEach(m=>materials.add(m));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});kit.disposeReferences();renderer.dispose();if(!lost&&renderer.extensions.has("WEBGL_lose_context"))renderer.forceContextLoss();canvas.remove();
   }
@@ -156,12 +161,16 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const borrowed=new Set<T.BufferGeometry|T.Material|T.Texture>();
   /** 색 변이 재질 — (원본 재질, 변이)마다 하나를 같은 모습 · 같은 변이 물고기끼리 나눠 쓴다. 떼어 낼 때(release) 지우지 않고 닫을 때 한 번에 */
   const morphs=morphMaterials();
+  /** 계절 행사 한정 장식 빛깔 — 같은 방식(재질 복제를 장식끼리 나눠 쓴다 · 닫을 때 한 번에) */
+  const tintReg=decorTints();
   const collectBorrowed=(o:T.Object3D)=>{const mesh=o as T.Mesh;if(!mesh.isMesh||!o.userData.glbShared)return;borrowed.add(mesh.geometry);
     for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
   let foodTimer=0,motes:Motes|null=null;
+  /** 계절 수조 행사(seasonfx.ts) — 물 위 그림 한 묶음 · 여름 거품 · 명절 장식 빛. 행사 · 수조 크기가 바뀌면 새로 */
+  let seasonLayer:SeasonLayer|null=null,heat:BubbleStream|null=null,heatKey="",glow:DecorGlow|null=null,glowKey="";const ICE=new T.Color(0xdff3ff);
   /** 사진 모드(2026-11-13) — 켜져 있으면 시계가 서고(schedule) 끌기가 사진 카메라를 움직인다. 들어올 때의 카메라를 기억해 끝낼 때 그대로 돌려놓는다 */
   let photoOn=false,photoZoom=1,photoSaved:{angle:number;pitch:number;pan:number;yaw:number}|null=null;
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
@@ -407,13 +416,15 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     });}
   }
   function addDecor(p:PlacedDecor):Decoration{
-    const made=makeDecor(kit,p.key);waterLitTree(made.root,false);
-    const d:Decoration={...made,key:p.key,glb:false,glbKey:null,pose:""};d.root.userData={type:"decor",id:p.id};scene.add(d.root);decorations.set(p.id,d);
+    // 한정 장식 빛깔 — 지금 보는 화면 값(update 가 state 를 먼저 바꾼다)
+    const tint=state.season?.tints?.[p.id]??null;
+    const made=makeDecor(kit,p.key);waterLitTree(made.root,false);tintReg.apply(made.root,tint);
+    const d:Decoration={...made,key:p.key,glb:false,glbKey:null,pose:"",tint};d.root.userData={type:"decor",id:p.id};scene.add(d.root);decorations.set(p.id,d);
     if(DECOR_GLB.has(p.key)){d.glbKey=p.key;void glb.load("decor",p.key).then(src=>{if(disposed||!src)return;
       queueSwap(()=>{if(decorations.get(p.id)!==d||d.glb)return;const inner=glb.instance(src);release(swapBody(d.root,inner,"base"));
         modelTextureQuality(inner,anisotropy);
         // 거품은 몸과 따로 남아 있다(decor-details) — 효과와 부품 움직임을 같이 돌린다
-        const fx=d.effects,parts=decorMotion(inner);d.animate=t=>{fx(t);parts(t);};d.glb=true;
+        const fx=d.effects,parts=decorMotion(inner);d.animate=t=>{fx(t);parts(t);};d.glb=true;tintReg.apply(inner,d.tint);
         seatDecor(d.root,(x,z)=>habitat?.heightAt(x,z)??WORLD.floor,4.9*wide);refreshObstacles();});
     });}
     return d;
@@ -529,8 +540,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // Preview replaces a moved item or adds one temporary item. Never mutates inventory or shared saves.
     const placed=next.preview?[...next.aquarium.placed.filter(p=>p.id!==next.preview!.id),next.preview]:next.aquarium.placed;
     const placedIds=new Set(placed.map(p=>p.id));for(const[id,m]of decorations)if(!placedIds.has(id)){dropDecor(m);decorations.delete(id);topologyChanged=true;}
-    for(const p of placed){let m=decorations.get(p.id);
-      if(!m||m.key!==p.key){topologyChanged=true;if(m){dropDecor(m);decorations.delete(p.id);}try{m=addDecor(p);}catch(e){skip(`장식 ${p.key}`,e);continue;}}
+    const tints=next.season?.tints??{};
+    for(const p of placed){let m=decorations.get(p.id);const tint=tints[p.id]??null;
+      if(!m||m.key!==p.key||m.tint!==tint){topologyChanged=true;if(m){dropDecor(m);decorations.delete(p.id);}try{m=addDecor(p);}catch(e){skip(`장식 ${p.key}`,e);continue;}}
       // 놓인 자리가 그대로면 다시 앉히지 않는다(앉히기는 장식 전체를 훑는다 — 화면이 다시 그려질 때마다 돌았다)
       const pose=decorPose(p),sig=`${p.x},${p.y},${p.rotation},${pose.scale},${wide},${habitatTier}`;if(m.pose===sig)continue;m.pose=sig;moved=true;
       const pos=decorToWorld(p.x,p.y,wide);pos.z*=deep;
@@ -571,6 +583,28 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       motes=makeMotes({halfX:4.5*wide,halfZ:3*deep-.4,bottom:WORLD.floor+.3,top:tallY(4.8,tall)},h?(x,y,z)=>y<top&&(h.kind==="tunnel"?Math.abs(x)<h.r+.2&&z>back-.2:Math.hypot(x,z)<h.r+.2):undefined);
       motes.points.userData.key=moteKey;scene.add(motes.points);}
     const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,HABITAT_THEMES.length-1)];waterTheme.set(theme.water);waterTopC.set(theme.top);
+    // 계절 수조 행사(seasonfx.ts) — 물 위 그림 하나(꽃잎 · 빗방울 물결 · 낙엽 · 살얼음 반짝임) · 여름 거품 · 명절 장식 빛 · 겨울 수면 얼음빛
+    const evKeys=next.season?.keys??[],evFx=evKeys.map(k=>eventDef(k)?.fx);
+    const surf=(["petal","rain","leaf","frost"] as SurfaceFx[]).find(k=>evFx.includes(k))??null;
+    const surfKey=surf&&habitat?`${surf}|${moteKey}`:"";
+    if(seasonLayer&&seasonLayer.points.userData.key!==surfKey){seasonLayer.dispose();seasonLayer=null;}
+    if(!seasonLayer&&surf&&habitat){const h=motion.hall;
+      // 돔은 수면 가까이 솟아 있다 — 돔 둘레 안(공기)엔 두지 않는다. 터널은 바닥 가까이라 수면과 안 겹친다
+      seasonLayer=makeSurfaceFx(surf,{halfX:4.5*wide,halfZ:3*deep-.4,bottom:WORLD.floor+.3,top:tallY(4.75,tall)},h&&h.kind!=="tunnel"?(x,z)=>Math.hypot(x,z)<h.r+.3:undefined);
+      seasonLayer.points.userData.key=surfKey;scene.add(seasonLayer.points);}
+    const hk=evFx.includes("heat")&&habitat?moteKey:"";
+    if(heat&&heatKey!==hk){heat.points.removeFromParent();heat.points.geometry.dispose();(heat.points.material as T.Material).dispose();heat=null;heatKey="";}
+    if(!heat&&hk){const hall=motion.hall,hx=4.2*wide,hz=Math.max(.6,3*deep-.9);
+      heat=bubbleStream({count:64,origin:i=>{let x=(((i*.618034)%1)*2-1)*hx,z=(((i*.414214+.13)%1)*2-1)*hz;
+        if(hall&&hall.kind!=="tunnel"){const r=Math.hypot(x,z);if(r<hall.r+.4){const k=(hall.r+.4)/Math.max(.01,r);x*=k;z*=k;}}return[x,z] as const;},
+        bottom:WORLD.floor+.25,top:tallY(4.75,tall),size:[.05,.13],speed:[.45,1.05],seed:11,opacity:.5});
+      heatKey=hk;scene.add(heat.points);}
+    const holiday=evKeys.map(k=>eventDef(k)).find(d=>d?.fx==="glow");
+    const gk=holiday&&habitat?holiday.key:"";
+    if(glow&&glowKey!==gk){glow.dispose();glow=null;glowKey="";}
+    if(!glow&&gk&&holiday){glow=makeDecorGlow([holiday.decor.glow??holiday.decor.tint,holiday.decor.tint]);glowKey=gk;scene.add(glow.points);}
+    if(glow){const spots:[number,number,number,number][]=[];for(const d of decorations.values()){const s=d.root.scale.x;spots.push([d.root.position.x,d.root.position.y+.55*s,d.root.position.z,2.4*s]);}glow.setSpots(spots);}
+    if(evFx.includes("frost")){waterTopC.lerp(ICE,.4);waterTheme.lerp(ICE,.1);}
     // 물을 갈았다(물 값이 오른다) — 여기선 목표만 두고 draw 가 2~3초에 걸쳐 따라간다. 처음 · 수조가 바뀜 · 더러워지는 쪽 · 움직임 줄이기 · 멈춘 그리기는 바로
     const wGoal=clamp(next.aquarium.water,0,100);
     if(waterShown<0||rescaled||reduced.matches||!active||wGoal<=waterShown)waterShown=wGoal;
@@ -849,6 +883,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       if(meal.wrap){let grip=armGrips.get(pred.root);if(!grip){grip=makeMealGrip(pred.root);armGrips.set(pred.root,grip);}grip(ghost.root.position,ghost.length,mealGrip);}
     }
     puffs.update(motion.courses,motion.positions,motion.lengths,motion.count,reduced.matches);
+    // 계절 행사 — 거품은 시계로, 빗방울 물결은 움직임 줄이기면 숨긴다(멈춘 물결 고리는 얼룩으로 보인다)
+    heat?.update(elapsed);if(seasonLayer)seasonLayer.points.visible=!(seasonLayer.kind==="rain"&&reduced.matches);
     fishShadows.count=Math.min(i,fishShadows.instanceMatrix.count);fishShadows.instanceMatrix.needsUpdate=true;if(fishShadows.instanceColor)fishShadows.instanceColor.needsUpdate=true;
     placeCamera();
     for(const d of decorations.values())d.animate(elapsed);
