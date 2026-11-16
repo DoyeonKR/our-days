@@ -253,3 +253,51 @@
 @keyframes adv-rt-nope0 { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
 @keyframes adv-rt-nope1 { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
 @keyframes adv-rt-now { to { scale: 1.06; box-shadow: 0 0 0 3px #ffd84d, 0 0 14px rgba(255, 216, 77, .8); } }
+/* 커플 레이드(2026-11-13, components/adventure/RaidPanel · lib/advraid) — 이번 주 영물 카드 · 몫 막대 · 기록 · 휘장 · 결과 창.
+   글자는 12/18 · 15/24 두 짝만. 나는 분홍 · 상대는 파랑(낚시 크기 기록과 같은 규칙). 움직임 줄이기면 깜빡임 없음 */
+.adv-raid { position: relative; overflow: hidden; border-radius: 20px; padding: 14px; color: #fff; background: radial-gradient(circle at 18% 20%, #5b3aa8, #1d1236 72%); border: 1px solid rgba(255, 226, 122, .35); box-shadow: 0 8px 24px rgba(30, 20, 50, .18); }
+.adv-raid.is-phase-1 { border-color: rgba(255, 140, 90, .7); background: radial-gradient(circle at 18% 20%, #8a3a5a, #241030 72%); }
+.adv-raid.is-phase-2 { border-color: #ff6a4a; background: radial-gradient(circle at 18% 20%, #a52a2a, #2a0c18 72%); animation: adv-raid-fury 1.6s ease-in-out infinite alternate; }
+@keyframes adv-raid-fury { from { box-shadow: 0 8px 24px rgba(255, 80, 60, .15); } to { box-shadow: 0 8px 30px rgba(255, 80, 60, .45); } }
+.adv-raid-head { display: flex; align-items: center; gap: 12px; }
+.adv-raid-boss { position: relative; flex: none; width: 72px; height: 72px; border-radius: 18px; background: rgba(255, 255, 255, .08); }
+.adv-raid-crest.adv-raid-worn { position: absolute; right: -10px; top: -10px; }
+.adv-raid-kicker { margin: 0; font-size: 12px; line-height: 18px; font-weight: 800; color: #ffe27a; }
+.adv-raid-title { margin: 0; font-size: 15px; line-height: 24px; font-weight: 900; }
+.adv-raid-sub { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; line-height: 18px; opacity: .9; }
+.adv-raid-result .adv-raid-sub { color: var(--muted); opacity: 1; }
+.adv-raid-phase { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 12px; line-height: 18px; font-weight: 900; color: #fff; background: #e2483a; }
+.adv-raid-bar { position: relative; display: flex; height: 12px; margin-top: 12px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, .16); }
+.adv-raid-result .adv-raid-bar { background: var(--line); }
+.adv-raid-bar > span { display: block; height: 100%; }
+.adv-raid-bar .is-me, .adv-raid-legend u.is-me { background: #ff7eb3; }
+.adv-raid-bar .is-you, .adv-raid-legend u.is-you { background: #5aa9ff; }
+.adv-raid-tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(255, 255, 255, .55); }
+.adv-raid-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 6px; font-size: 12px; line-height: 18px; font-weight: 700; }
+.adv-raid-legend u { display: inline-block; width: 10px; height: 10px; margin-right: 4px; border-radius: 3px; vertical-align: -1px; }
+.adv-raid-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.adv-raid .adv-btn:not(.adv-btn-main) { color: #fff; background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .3); }
+.adv-raid .adv-btn-main { background: linear-gradient(#ffb13d, #f06a3d); }
+.adv-raid .adv-btn:disabled { opacity: .5; }
+.adv-raid-note { margin: 8px 0 0; font-size: 12px; line-height: 18px; opacity: .85; }
+.adv-raid-more { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
+.adv-raid-h { margin: 10px 0 4px; font-size: 12px; line-height: 18px; font-weight: 900; color: #ffe27a; }
+.adv-raid-h small { margin-left: 4px; font-size: 12px; font-weight: 600; color: #fff; opacity: .7; }
+.adv-raid-log, .adv-raid-rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 12px; line-height: 18px; }
+.adv-raid-log li { display: flex; gap: 8px; align-items: center; padding: 2px 8px; border-radius: 8px; background: rgba(255, 255, 255, .06); border-left: 3px solid #5aa9ff; }
+.adv-raid-log li.is-me { border-left-color: #ff7eb3; }
+.adv-raid-log b { font-weight: 900; }
+.adv-raid-log em { margin-left: auto; font-style: normal; font-weight: 800; font-variant-numeric: tabular-nums; }
+.adv-raid-rules li { padding-left: 12px; position: relative; }
+.adv-raid-rules li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: #ffe27a; }
+.adv-raid-crests { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.adv-raid-crestbtn { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 64px; padding: 4px 0; border-radius: 12px; border: 1px solid transparent; background: rgba(255, 255, 255, .06); color: #fff; font-size: 12px; line-height: 18px; }
+.adv-raid-crestbtn.is-on { border-color: #ffe27a; background: rgba(255, 226, 122, .16); }
+.adv-raid-crestbtn > span:last-child { max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adv-raid-crest { position: relative; display: inline-grid; place-items: center; flex: none; }
+.adv-raid-crest > svg { position: absolute; inset: 0; }
+.adv-raid-crestart { position: relative; display: grid; place-items: center; border-radius: 50%; overflow: hidden; }
+.adv-raid-result.is-won { border-color: #e8b23a; box-shadow: 0 0 0 2px rgba(232, 178, 58, .35), 0 8px 24px rgba(30, 20, 50, .2); }
+@media (prefers-reduced-motion: reduce) {
+  .adv-raid.is-phase-2 { animation: none; }
+}

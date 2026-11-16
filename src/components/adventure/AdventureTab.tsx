@@ -38,12 +38,14 @@ const DuelPanel = dynamic(() => import("@/components/adventure/DuelPanel"), { ss
 const FieldView = dynamic(() => import("@/components/adventure/FieldView"), { ssr: false });
 // 보관한 기록(최근 셋) — 팀 칸 맨 아래 작은 줄
 const SaveBackups = dynamic(() => import("@/components/adventure/SaveBackups"), { ssr: false });
+// 커플 레이드(2026-11-13) — 지역 칸 맨 위 카드. 레이드 판(BattleView)은 이 안에서 늦게 받는다
+const RaidPanel = dynamic(() => import("@/components/adventure/RaidPanel"), { ssr: false });
 
 
 type Sub = "map" | "team" | "duel" | "dex" | "shop";
 
-/** coupleId — 시즌 미션(게임 탭)의 모험 수를 올릴 섬. 없으면 혼자 하는 섬(lib/seasonsync) */
-export default function AdventureTab({ myUserId: signedIn, coupleId = null }: { myUserId: string | null; coupleId?: string | null }) {
+/** coupleId — 시즌 미션(게임 탭)의 모험 수를 올릴 섬 · 커플 레이드의 섬. 없으면 혼자 하는 섬(lib/seasonsync) */
+export default function AdventureTab({ myUserId: signedIn, coupleId = null, partnerName }: { myUserId: string | null; coupleId?: string | null; partnerName?: string }) {
   // 서버 설정이 없는 로컬 모드(개발 · 체험)에선 이 기기에만 저장한다
   const myUserId = signedIn ?? (isSupabaseConfigured ? null : "local");
   const [save, setSave] = useState<AdvSave | null>(null);
@@ -72,6 +74,8 @@ export default function AdventureTab({ myUserId: signedIn, coupleId = null }: { 
   const staleRef = useRef<(e: unknown) => boolean>(() => false);
   /** 전투 화면이 열려 있나 — 돌아왔을 때 다시 읽기가 판 도중의 저장을 바꾸지 않게 */
   const battleOpen = useRef(false);
+  /** 커플 레이드 판이 열려 있나(RaidPanel) — 위의 battle 과 같은 이유로 다시 읽기를 미룬다 */
+  const [raidFight, setRaidFight] = useState(false);
 
   const load = useCallback(async () => {
     if (!myUserId) return;
@@ -140,7 +144,7 @@ export default function AdventureTab({ myUserId: signedIn, coupleId = null }: { 
   }
   useEffect(() => {
     staleRef.current = onStale;
-    battleOpen.current = !!battle;
+    battleOpen.current = !!battle || raidFight;
   });
 
   /** 저장은 차례대로(앞 저장이 끝난 뒤) — 버전이 엉키지 않게. 이 기기 사본은 줄을 기다리지 않고 지금 쓴다(멈춘 저장 뒤에 묶이지 않게) */
@@ -349,6 +353,7 @@ export default function AdventureTab({ myUserId: signedIn, coupleId = null }: { 
       {sub === "map" && (
         <div className="mt-3 grid gap-3">
           <div className="adv-goal"><b>다음 목표</b><span>{nextGoal(s).text}</span></div>
+          {myUserId && <RaidPanel save={s} myUserId={myUserId} coupleId={coupleId} partnerName={partnerName} today={today} commit={commit} spend={spend} flash={flash} onFighting={setRaidFight} />}
           <section className="adv-card">
             <h2 className="adv-h">오늘의 임무</h2>
             <div className="mt-2 grid gap-1.5">
@@ -442,7 +447,7 @@ export default function AdventureTab({ myUserId: signedIn, coupleId = null }: { 
 
       {result && evos.length === 0 && <ResultDialog result={result} onAgain={result.again ? () => { const r = result.again!; setResult(null); explore(r); } : undefined} onClose={() => setResult(null)} />}
       {/* 필드 · 전투 위에선 위쪽에 — 아래에 뜨면 막대 · 기술을 덮었다(2026-11-09, 손가락은 늘 지나간다) */}
-      {toast && <div className={`adv-toast${field || battle ? " is-top" : ""}`} role="status">{toast}</div>}
+      {toast && <div className={`adv-toast${field || battle || raidFight ? " is-top" : ""}`} role="status">{toast}</div>}
     </div>
   );
 }

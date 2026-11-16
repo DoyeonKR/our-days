@@ -1602,6 +1602,9 @@ export type IslandState = {
   /** 낚시 업그레이드(2026-11-12) — 편지 · 숙련도 · 보물 · 만든 미끼 · 꾸미기 …. 옵셔널 = 무마이그레이션. 읽기는 fishplus.ts 의 fishPlusOf() 로.
    *  s.fishing 안에 두면 fishingOf 가 아는 칸만 다시 만들어 지운다(옛 앱도) — 그래서 맨 위 칸이다 */
   fishPlus?: Record<string, unknown>;
+  /** 모험 커플 레이드(2026-11-13) — 이번 주 영물에 둘이 깎은 기록. 옵셔널 = 무마이그레이션. 읽기 · 쓰기는 advraid.ts(raidOf · raidOpenIsland · raidHitIsland).
+   *  모험 저장(adventure_saves)은 사람마다 한 줄이고 RLS 가 자기 것만 보여 줘서 상대 몫을 못 읽는다 — 그래서 커플이 같이 보는 섬 맨 위 칸이다 */
+  advRaid?: unknown;
   /* (bubble — 보글보글 기록. 게임은 2026-09-24 지웠다. 옛 저장분에 남은 칸은 clone 의 ...s 로
      그대로 흘러가기만 하고 아무도 안 읽는다 — 지우려고 쓰기를 따로 하지 않는다.) */
   sets: string[]; // 완성 세트 id
