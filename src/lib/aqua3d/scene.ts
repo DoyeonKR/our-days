@@ -1018,7 +1018,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         // 큰 그림이 안 되면(메모리 · 드라이버) 지금 배율로 한 번 더
         if(!shot&&want>cur){try{shot=shoot(cur);}catch{shot=null;}}
         return shot;
-      }finally{if(!disposed&&!gl.isContextLost()){renderer.setPixelRatio(cur);syncPointScale();draw(0);}}},
+      // 배율은 늘 되돌린다 — 찍는 도중 연결이 끊겨도 브라우저가 되돌려 준 뒤 2배로 계속 돌지 않게. 다시 그리기만 살아 있을 때
+      }finally{if(!disposed){renderer.setPixelRatio(cur);syncPointScale();if(!gl.isContextLost())draw(0);}}},
     dispose,
   };
   } catch (e) { dispose(); throw e; }

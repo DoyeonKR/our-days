@@ -49,13 +49,15 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   // 끊긴 뒤 저절로 다시 연 횟수 — 수조를 새로 열면(다시 시도) 0
   const recovered = useRef(0);
   // 사진 모드(2026-11-13) — 수조 시계를 세우고 머리 단추 · 안내를 걷는다. 들어올 때의 전체 보기 · 카메라는 끝낼 때 그대로(scene.photoEnd)
-  const [photo, setPhoto] = useState<{ tank: TankHandle; host: HTMLDivElement | null } | null>(null);
+  // dead — 찍은 카드를 보는 중에 수조가 다시 지어졌다(연결 끊김). 카드는 남겨 공유할 수 있고, 다시 찍기는 사진 모드를 끝낸다
+  const [photo, setPhoto] = useState<{ tank: TankHandle; host: HTMLDivElement | null; dead?: boolean } | null>(null);
+  const [hasShot, setHasShot] = useState(false);
   const [photoNote, setPhotoNote] = useState<string | null>(null);
   const camListeners = useRef(new Set<() => void>());
   const subscribeCam = useCallback((fn: () => void) => { camListeners.current.add(fn); return () => { camListeners.current.delete(fn); }; }, []);
   const latestOnPhoto = useRef(onPhoto);
   useEffect(() => { latestOnPhoto.current = onPhoto; }, [onPhoto]);
-  const exitPhoto = useCallback(() => { controller.current?.photoEnd(); setPhoto(null); latestOnPhoto.current?.(false); }, []);
+  const exitPhoto = useCallback(() => { controller.current?.photoEnd(); setPhoto(null); setHasShot(false); latestOnPhoto.current?.(false); }, []);
   const enterPhoto = () => {
     const tank = controller.current;
     if (!tank || photo) return;
@@ -65,7 +67,12 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   };
   useEffect(() => { if (!photoNote) return; const t = window.setTimeout(() => setPhotoNote(null), 3500); return () => window.clearTimeout(t); }, [photoNote]);
   // 수조를 다시 짓거나(연결 끊김 · 다시 시도) 꾸미기 · 다시 보기가 시작되면 사진 모드를 끝낸다 — 새 수조엔 사진 모드가 없다
-  useEffect(() => { if (photo && (error || !ready || given.editing || replaying)) exitPhoto(); }, [photo, error, ready, given.editing, replaying, exitPhoto]);
+  //   찍은 카드가 있으면(2배 그림을 그린 순간이 연결이 가장 잘 끊기는 때다) 카드는 남기고 사진 도구만 죽은 수조로 둔다
+  useEffect(() => {
+    if (!photo || photo.dead || !(error || !ready || given.editing || replaying)) return;
+    if (hasShot && (error || !ready)) { photo.tank.photoEnd(); setPhoto((p) => (p && !p.dead ? { ...p, dead: true } : p)); return; }
+    exitPhoto();
+  }, [photo, hasShot, error, ready, given.editing, replaying, exitPhoto]);
   useEffect(() => () => { latestOnPhoto.current?.(false); }, []);
   useBackClose(exitPhoto, !!photo);
   const fishNames = useMemo(() => new Map(given.aquarium.fish.map((f) => [f.id, fishName(f)] as const)), [given.aquarium.fish]);
@@ -138,7 +145,7 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   const chrome = !photo;
   return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full || photo ? "is-full" : ""} ${photo ? "is-photo" : ""}`}>
     <div ref={host} className="aqua-webgl" />
-    {photo && <AquaPhoto tank={photo.tank} host={photo.host} view={photoView} fishNames={fishNames} people={people ?? []} subscribe={subscribeCam} onExit={exitPhoto} />}
+    {photo && <AquaPhoto tank={photo.tank} host={photo.host} view={photoView} fishNames={fishNames} people={people ?? []} subscribe={subscribeCam} onExit={exitPhoto} dead={!!photo.dead} onShot={setHasShot} />}
     {chrome && <CloseButton onClose={toggleFull} label={full ? "닫기" : "전체 보기"} className="aqua-full-btn" />}
     {chrome && ready && !error && !view.editing && !replaying && <CloseButton onClose={enterPhoto} label="사진" ariaLabel="수조 사진 찍기" className="aqua-photo-btn" />}
     {photoNote && <p className="aqua-replay-note" role="status">{photoNote}</p>}

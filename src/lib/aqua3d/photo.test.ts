@@ -143,7 +143,7 @@ test("엔진 계약 — 사진 모드는 시계를 세우고, 사냥 장면 · �
   // 찍기 — 배율을 올려 그린 뒤 같은 일 안에서 2D 캔버스로 옮기고, 점 크기를 맞추고, 끝나면 되돌린다. preserveDrawingBuffer 는 켜지 않는다
   assert.match(scene, /renderer\.setPixelRatio\(ratio\);syncPointScale\(\);draw\(0\);/);
   assert.match(scene, /ctx\.drawImage\(canvas,0,0,w,h\)/);
-  assert.match(scene, /renderer\.setPixelRatio\(cur\);syncPointScale\(\);draw\(0\);/);
+  assert.match(scene, /finally\{if\(!disposed\)\{renderer\.setPixelRatio\(cur\);syncPointScale\(\);if\(!gl\.isContextLost\(\)\)draw\(0\);\}\}/, "배율은 연결이 끊겨도 되돌린다");
   assert.match(scene, /isContextLost\(\)\)return null/);
   assert.doesNotMatch(scene, /preserveDrawingBuffer/);
   const shoot = scene.slice(scene.indexOf("const shoot="), scene.indexOf("return shot;"));
@@ -156,7 +156,10 @@ test("화면 계약 — 사진 도구는 누를 때 받고, 공유는 탭 안에
   const ui = code("src/components/Aquarium3D.tsx"), photo = code("src/components/AquaPhoto.tsx");
   assert.match(ui, /dynamic\(\(\) => import\("@\/components\/AquaPhoto"\)/);
   assert.doesNotMatch(ui, /from "three"/);
-  assert.match(ui, /if \(photo && \(error \|\| !ready \|\| given\.editing \|\| replaying\)\) exitPhoto\(\);/);
+  assert.match(ui, /if \(!photo \|\| photo\.dead \|\| !\(error \|\| !ready \|\| given\.editing \|\| replaying\)\) return;/);
+  // 찍은 카드는 수조가 다시 지어져도 남는다(다시 찍기 = 끝내기)
+  assert.match(ui, /if \(hasShot && \(error \|\| !ready\)\) \{ photo\.tank\.photoEnd\(\); setPhoto/);
+  assert.match(photo, /const retake = \(\) => \{ if \(dead\) \{ onExit\(\); return; \}/);
   assert.match(ui, /useBackClose\(exitPhoto, !!photo\)/);
   assert.match(photo, /다시 찍기/);
   assert.match(photo, /<CloseButton/);

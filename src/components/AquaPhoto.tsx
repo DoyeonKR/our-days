@@ -73,7 +73,7 @@ async function composeCard(photo: HTMLCanvasElement, labels: readonly PlacedLabe
   return new Promise((resolve) => card.toBlob((b) => resolve(b), "image/jpeg", 0.92));
 }
 
-export default function AquaPhoto({ tank, host, view, fishNames, people, subscribe, onExit }: {
+export default function AquaPhoto({ tank, host, view, fishNames, people, subscribe, onExit, dead = false, onShot }: {
   tank: TankHandle;
   /** 수조 칸(캔버스를 감싼 상자) — 이름표 자리를 CSS 픽셀로 잰다 */
   host: HTMLElement | null;
@@ -85,6 +85,10 @@ export default function AquaPhoto({ tank, host, view, fishNames, people, subscri
   /** 끌기 · 집기로 카메라가 바뀔 때 부른다 — 확대 막대 · 이름표를 맞춘다 */
   subscribe: (fn: () => void) => () => void;
   onExit: () => void;
+  /** 수조가 다시 지어져 이 사진 도구의 수조가 사라졌다 — 찍은 카드만 남는다(다시 찍기 = 사진 모드 끝) */
+  dead?: boolean;
+  /** 찍은 카드가 있는지 — 수조가 다시 지어져도 카드를 남길지 화면이 정한다 */
+  onShot?: (has: boolean) => void;
 }) {
   const [filter, setFilter] = useState<PhotoFilterId>("none");
   const [names, setNames] = useState(false);
@@ -113,6 +117,7 @@ export default function AquaPhoto({ tank, host, view, fishNames, people, subscri
   useEffect(() => { tank.photoFilter(filter); }, [tank, filter]);
   // 찍은 카드 주소는 다시 찍거나 닫을 때 놓는다
   useEffect(() => () => { if (shot) URL.revokeObjectURL(shot.url); }, [shot]);
+  useEffect(() => { onShot?.(!!shot); }, [shot, onShot]);
 
   const setZoomTo = (z: number) => { const c = tank.photoCamera({ zoom: z }); setZoom(c.zoom); measure(); };
 
@@ -148,7 +153,7 @@ export default function AquaPhoto({ tank, host, view, fishNames, people, subscri
     }
     void webShareOrDownload(shot.file, "우리 수조").then(done);
   };
-  const retake = () => { setShot(null); setNote(null); };
+  const retake = () => { if (dead) { onExit(); return; } setShot(null); setNote(null); };
 
   const zoomPct = useMemo(() => Math.round(((zMax - zoom) / (zMax - zMin)) * 100), [zoom, zMin, zMax]);
 
