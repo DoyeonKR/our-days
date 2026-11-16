@@ -13,6 +13,7 @@
  *    새 칸은 섬의 맨 위 칸 s.aquaPlus 에 저장한다(옛 앱이 s.aquarium 을 다시 만들며 모르는 칸을 버리기 때문 — stow 참고).
  *  · 결과가 양쪽 기기에서 같아야 하므로 뽑기는 물고기 id 로만 정한다(Math.random 금지).
  * ⚠ 섬 엔진은 타입만 부른다 — 값으로 부르면 이 파일을 쓰는 화면이 섬 엔진까지 싣는다. */
+import { ACTIVE_SHRIMP } from "./shrimp.ts";
 import { mealPairs, nextMealTime, pickMeal } from "./predation.ts";
 import { adoptMorphs, morphOf as bookMorph, noteMorph, readMorphBook, rollMorph, type Morph, type MorphBook } from "./aquamorph.ts";
 import { checkFishName, lifeLeave, lifeLog, lifeName, lifeSettle, lifeTime, readLife, type AquaLife, type LifeEntry, type LifeRef } from "./aqualife.ts";
@@ -44,7 +45,7 @@ export type AquaFamily = {
 
 const s = (key: string, name: string, grade: Grade): AquaSpecies => ({ key, name, grade });
 
-export const FAMILIES: readonly AquaFamily[] = [
+const BASE_FAMILIES: readonly AquaFamily[] = [
   { key: "guppy", name: "구피", price: 300, hours: 24, minTank: 1, size: 15, finals: [s("cobra_guppy", "코브라 구피", "흔함"), s("tuxedo_guppy", "턱시도 구피", "보통"), s("mosaic_guppy", "모자이크 구피", "고급"), s("fullred_guppy", "풀레드 구피", "희귀")] },
   { key: "ricefish", name: "송사리", price: 325, hours: 24.5, minTank: 1, size: 13, finals: [s("ricefish", "송사리", "흔함")] },
   { key: "pale_chub", name: "피라미", price: 350, hours: 25, minTank: 1, size: 14, finals: [s("pale_chub", "피라미", "흔함")] },
@@ -115,6 +116,7 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "squid", name: "살오징어", price: 8800, hours: 118, minTank: 3, size: 22, youngName: "새끼", finals: [s("squid", "살오징어", "희귀")] },
   { key: "discus", name: "디스커스", price: 9000, hours: 120, minTank: 3, size: 23, finals: [s("blue_discus", "블루 디스커스", "희귀"), s("pigeon_discus", "피전 블러드 디스커스", "영웅"), s("leopard_discus", "레오파드 디스커스", "영웅"), s("turquoise_discus", "터콰이즈 디스커스", "전설")] },
   { key: "char", name: "곤들매기", price: 9500, hours: 125, minTank: 3, size: 24, finals: [s("char", "곤들매기", "희귀")] },
+  { key: "otter", name: "수달", price: 9750, hours: 127.5, minTank: 3, size: 26, youngName: "새끼", finals: [s("otter", "수달", "희귀")] },
   { key: "nurse_shark", name: "수염상어", price: 10000, hours: 130, minTank: 3, size: 30, youngName: "새끼", finals: [s("nurse_shark", "수염상어", "희귀")] },
   { key: "parrotfish", name: "파랑비늘돔", price: 10667, hours: 136.7, minTank: 3, size: 24, finals: [s("parrotfish", "파랑비늘돔", "희귀")] },
   { key: "moray", name: "곰치", price: 11333, hours: 143.3, minTank: 3, size: 29, finals: [s("moray", "곰치", "희귀")] },
@@ -128,7 +130,9 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "yellowtail", name: "방어", price: 20000, hours: 190, minTank: 4, size: 31, finals: [s("yellowtail", "방어", "영웅")] },
   { key: "seahorse", name: "해마", price: 20500, hours: 192.5, minTank: 4, size: 19, youngName: "새끼", finals: [s("seahorse", "해마", "영웅")] },
   { key: "barred_knifejaw", name: "돌돔", price: 21000, hours: 195, minTank: 4, size: 25, finals: [s("barred_knifejaw", "돌돔", "영웅")] },
+  { key: "spotted_seal", name: "점박이물범", price: 21500, hours: 197.5, minTank: 4, size: 32, youngName: "새끼", finals: [s("spotted_seal", "점박이물범", "영웅")] },
   { key: "ray", name: "민물가오리", price: 22000, hours: 200, minTank: 4, size: 28, finals: [s("motoro_ray", "모토로 가오리", "영웅"), s("polka_ray", "폴카닷 가오리", "전설"), s("black_ray", "블랙 다이아몬드 가오리", "전설"), s("pearl_ray", "펄 가오리", "신화")] },
+  { key: "fur_seal", name: "물개", price: 22500, hours: 201.5, minTank: 4, size: 31, youngName: "새끼", finals: [s("fur_seal", "물개", "영웅")] },
   { key: "viperfish", name: "독사고기", price: 23000, hours: 203, minTank: 4, size: 22, finals: [s("viperfish", "독사고기", "영웅")] },
   { key: "octopus", name: "대문어", price: 24000, hours: 206, minTank: 4, size: 30, youngName: "새끼", finals: [s("octopus", "대문어", "영웅")] },
   { key: "goosefish", name: "아귀", price: 25000, hours: 209.5, minTank: 4, size: 29, finals: [s("goosefish", "아귀", "영웅")] },
@@ -137,6 +141,7 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "grouper", name: "자바리", price: 28500, hours: 222.5, minTank: 4, size: 29, finals: [s("grouper", "자바리", "영웅")] },
   { key: "lenok", name: "열목어", price: 29000, hours: 225, minTank: 4, size: 25, finals: [s("lenok", "열목어", "전설")] },
   { key: "puffer", name: "황복", price: 30000, hours: 230, minTank: 4, size: 22, finals: [s("puffer", "황복", "전설")] },
+  { key: "sea_otter", name: "해달", price: 30333, hours: 231.7, minTank: 4, size: 30, youngName: "새끼", finals: [s("sea_otter", "해달", "전설")] },
   { key: "dolphinfish", name: "만새기", price: 30667, hours: 233.3, minTank: 4, size: 31, finals: [s("dolphinfish", "만새기", "영웅")] },
   // 전기뱀장어 · 피라루쿠 전설 → 영웅(2026-11-13) — 생태원 때 손님인데 전설이라 발광 미끼(2,400)로만 왔다. 생태원에서 새 계열이 열리는 마지막 미끼(황금 떡밥)로 온다
   { key: "electric_eel", name: "전기뱀장어", price: 31333, hours: 236.7, minTank: 4, size: 34, finals: [s("electric_eel", "전기뱀장어", "영웅")] },
@@ -151,6 +156,7 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "sea_turtle", name: "바다거북", price: 45000, hours: 288, minTank: 5, size: 32, youngName: "새끼", finals: [s("green_sea_turtle", "바다거북", "전설")] },
   { key: "oarfish", name: "산갈치", price: 46000, hours: 292, minTank: 5, size: 38, finals: [s("oarfish", "산갈치", "전설")] },
   { key: "sunfish", name: "개복치", price: 47000, hours: 296, minTank: 5, size: 35, finals: [s("sunfish", "개복치", "전설")] },
+  { key: "steller_sea_lion", name: "큰바다사자", price: 47500, hours: 298, minTank: 5, size: 40, youngName: "새끼", finals: [s("steller_sea_lion", "큰바다사자", "전설")] },
   { key: "hammerhead", name: "귀상어", price: 48000, hours: 300, minTank: 5, size: 38, youngName: "새끼", finals: [s("hammerhead", "귀상어", "전설")] },
   { key: "marlin", name: "청새치", price: 50000, hours: 306, minTank: 5, size: 36, finals: [s("marlin", "청새치", "전설")] },
   { key: "whale_shark", name: "고래상어", price: 52000, hours: 312, minTank: 5, size: 45, youngName: "새끼", finals: [s("whale_shark", "고래상어", "신화")] },
@@ -160,13 +166,26 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "coelacanth", name: "실러캔스", price: 57000, hours: 326, minTank: 5, size: 36, finals: [s("coelacanth", "실러캔스", "신화")] },
   { key: "megamouth", name: "넓은주둥이상어", price: 58000, hours: 330, minTank: 5, size: 44, youngName: "새끼", finals: [s("megamouth", "넓은주둥이상어", "신화")] },
   { key: "giant_squid", name: "대왕오징어", price: 59000, hours: 333, minTank: 5, size: 42, youngName: "새끼", finals: [s("giant_squid", "대왕오징어", "신화")] },
+  { key: "japanese_sea_lion", name: "독도 강치", price: 59500, hours: 334.5, minTank: 5, size: 38, youngName: "새끼", finals: [s("japanese_sea_lion", "독도 강치", "신화")] },
+  // 범고래(2026-11-14) — 사용자가 만든 메시(Tripo)를 게임용으로 바꿨다(design/aqua3d-review/orca-build.mjs). 새끼 · 어린 그림은 아직 다 큰 그림을 쓴다(ART-GUIDE F)
+  { key: "orca", name: "범고래", price: 59800, hours: 335.5, minTank: 5, size: 46, youngName: "새끼", finals: [s("orca", "범고래", "신화")] },
   { key: "rising", name: "등용어", price: 60000, hours: 336, minTank: 5, size: 34, finals: [s("pearl_carp", "여의주 잉어", "전설"), s("imugi_fish", "이무기어", "신화"), s("azure_dragonfish", "청룡어", "신화"), s("golden_dragonfish", "황룡어", "태초")] },
   { key: "astral", name: "별무리어", price: 120000, hours: 504, minTank: 6, size: 34, finals: [s("moon_jelly", "달빛 해파리", "신화"), s("aurora_ray", "오로라 가오리", "신화"), s("galaxy_fish", "은하수어", "태초"), s("genesis_fish", "태초의 물고기", "태초")] },
   { key: "kraken", name: "크라켄", price: 150000, hours: 600, minTank: 6, size: 48, youngName: "새끼", finals: [s("kraken", "크라켄", "태초")] },
 ];
+/** 계열 표 — 새우류는 그림 · 모델이 들어와 SHRIMP_ON 을 켜야 들어온다(shrimp.ts). 표는 값어치 순서라 값 자리에 끼운다(뒤 계열일수록 비싸다) */
+export const FAMILIES: readonly AquaFamily[] = ACTIVE_SHRIMP.reduce<AquaFamily[]>((list, f) => {
+  const fam: AquaFamily = { key: f.key, name: f.name, price: f.price, hours: f.hours, minTank: f.minTank, size: f.size, youngName: "새끼", finals: [s(f.key, f.name, f.grade)] };
+  const i = list.findIndex((x) => x.price > f.price);
+  list.splice(i < 0 ? list.length : i, 0, fam);
+  return list;
+}, [...BASE_FAMILIES]);
 export const ALL_SPECIES: readonly AquaSpecies[] = FAMILIES.flatMap((f) => [...f.finals]);
 /** 다 컸을 때 보통 길이(cm) */
 export const FISH_BASE_CM: Readonly<Record<string, number>> = {
+  ...Object.fromEntries(ACTIVE_SHRIMP.map((f) => [f.key, f.cm])),
+  // 해양 포유류(2026-11-13) — 다 큰 몸길이
+  spotted_seal: 160, fur_seal: 150, steller_sea_lion: 280, japanese_sea_lion: 230, sea_otter: 130, otter: 110, orca: 650,
   guppy: 5, tetra: 4, goldfish: 22, betta: 7, angel: 15, clown: 9, discus: 18, koi: 65, ray: 45, arowana: 85,
   bluefin: 220, sea_turtle: 95, whale_shark: 950, manta: 420, rising: 280, astral: 160, sweetfish: 22, catfish: 55, jellyfish: 30,
   nurse_shark: 180, leopard_shark: 130, blue_shark: 280, hammerhead: 350, great_white: 480, megamouth: 520,
@@ -279,6 +298,10 @@ export const DECOR: readonly AquaDecor[] = [
   d("water_lily", "수련", "plant", 800),
   d("coral", "산호", "plant", 1500),
   d("glow_kelp", "빛나는 해초", "plant", 5000),
+  // 해초류(2026-11-14) [사용자: "해초류는 꾸미기로 추가"] — 3D 는 코드로 지은 모델(decor.ts 의 SEAWEEDS), 가게 그림은 그림 세션 몫(design/ART-GUIDE.md)
+  d("sea_lettuce", "파래", "plant", 250),
+  d("sea_mustard", "미역", "plant", 450),
+  d("dasima", "다시마", "plant", 800),
   // 돌 · 나무
   d("pebbles", "조약돌", "rock", 100),
   d("driftwood", "유목", "rock", 350),
@@ -340,7 +363,15 @@ export function decorPose(p: { rotation?: number; scale?: number }): DecorPose {
 /** 성장 소식 한 줄 — 두 사람이 각자 한 번씩 본다(newsSeen). 시각은 안 남긴다(쪼개서 정산해도 같은 소식이어야 한다). */
 export type AquaNews = { n: number; id: number; family: string; stage: 0 | 1 | 2; species?: string; egg?: boolean;
   /** 잡아먹기(2026-11-11, lib/predation) — id · family · stage · species 는 사냥꾼, ate 는 먹힌 물고기 */
-  ate?: { id: number; family: string; stage: 0 | 1 | 2; species?: string } };
+  ate?: { id: number; family: string; stage: 0 | 1 | 2; species?: string };
+  /** 일어난 때(ms, 2026-11-15) — 잡아먹힌 장면 다시 보기는 24시간만 목록에 남는다(EATEN_REPLAY_MS). 옛 소식엔 없다 */
+  at?: number };
+/** 잡아먹힌 장면 다시 보기를 목록에 두는 시간(2026-11-15) [사용자: "물고기 잡아먹힌거 리플레이는 자동으로 24시간 후 삭제시켜줘"] */
+export const EATEN_REPLAY_MS = 24 * 60 * 60 * 1000;
+/** 다시 보기 목록 — 24시간 안에 잡아먹힌 것만, 최근 것부터 6개. 때가 없는 옛 소식(이 기능 전)은 넣지 않는다 */
+export function eatenReplays(news: readonly AquaNews[] | undefined, now: number): AquaNews[] {
+  return (news ?? []).filter((x) => x.ate && typeof x.at === "number" && now - x.at < EATEN_REPLAY_MS && x.at <= now + 5 * 60 * 1000).slice(-6).reverse();
+}
 /** 대기 그물의 한 마리 — 수조가 찼을 때 24시간 붙잡아 둔다. value 는 잡을 때 판매가(지나면 그 값에 저절로 팔린다). */
 export type NetFish = { family: string; stage: 0 | 1 | 2; species?: string; difficulty: number; value: number; at: number; cm?: number; crown?: string;
   /** 어느 낚시터에서 누가 잡았나(2026-11-13 개체 이야기) — 옵셔널: 옛 그물 · 옛 앱은 없다 */
@@ -874,7 +905,7 @@ function settleSpan(input: AquaState, now: number, seen: readonly string[], evol
     if (meal) {
       const r = tickCore(a, meal.t, seen);
       evolved.push(...r.evolved);
-      a = eatOnce(r.a, meal.d);
+      a = eatOnce(r.a, meal.d, meal.t);
       continue;
     }
     if (!ev) break;
@@ -888,13 +919,13 @@ function settleSpan(input: AquaState, now: number, seen: readonly string[], evol
 }
 
 /** 그날의 사냥 — 상성이 안 맞는 짝 하나가 있고 배가 고프면, 먹이는 수조에서 빠지고 소식에 남는다 */
-function eatOnce(a: AquaState, d: number): AquaState {
+function eatOnce(a: AquaState, d: number, t: number): AquaState {
   const pick = pickMeal(a.fish.map((f) => ({ id: f.id, family: f.family, stage: f.stage, crown: f.crown, cm: fishCm(f) })), a.hunger, d);
   if (!pick) return a;
   const pred = a.fish.find((f) => f.id === pick[0].id)!, prey = a.fish.find((f) => f.id === pick[1].id)!;
   return pushNews({ ...a, fish: a.fish.filter((f) => f.id !== prey.id) }, {
     id: pred.id, family: pred.family, stage: pred.stage, ...(pred.species ? { species: pred.species } : {}),
-    ate: { id: prey.id, family: prey.family, stage: prey.stage, ...(prey.species ? { species: prey.species } : {}) },
+    ate: { id: prey.id, family: prey.family, stage: prey.stage, ...(prey.species ? { species: prey.species } : {}) }, at: t,
   }, { preyMorph: bookMorph(a.morph, prey) });
 }
 /** 지금 수조에서 상성이 안 맞는 짝 — 화면이 미리 알린다(배를 채워 두면 안 먹힌다) */

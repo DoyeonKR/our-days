@@ -1,0 +1,51 @@
+{
+  "source": "C:/Users/kdy78/Downloads/orca whale 3d model.glb",
+  "output": "C:/Users/kdy78/Downloads/orca whale 3d model-colored.glb",
+  "sourceSHA256": "6ee492cfde1f0dacaf93fa548077cd78d129dd5656756b849014e2a73447c3cf",
+  "sha256": "3da734f55ecbaf2b43f4c8223f223e99fbd58921c636930e3856cfc8e761b2bc",
+  "vertices": 67571,
+  "triangles": 135138,
+  "sourceBytes": 3244476,
+  "bytes": 4055584,
+  "paintMethod": "Linear RGB COLOR_0 vertex paint; standard PBR material, no external textures or UV dependence.",
+  "sourceGeometryBuffersUnchanged": true,
+  "sourceNodeTransformsUnchanged": true,
+  "skins": 0,
+  "animations": 0,
+  "validation": {
+    "sourceErrors": 0,
+    "outputErrors": 0,
+    "warnings": 0,
+    "messages": [
+      {
+        "code": "UNSUPPORTED_EXTENSION",
+        "message": "Cannot validate an extension as it is not supported by the validator: 'FB_ngon_encoding'.",
+        "severity": 2,
+        "pointer": "/extensionsUsed/1"
+      }
+    ]
+  },
+  "counts": {
+    "white": 17565,
+    "saddle": 1918,
+    "black": 48088,
+    "eyes": 29
+  },
+  "visualApproval": "pending",
+  "gameActivation": "not enabled",
+  "nativeReview": {
+    "renderer": "Actual supplied GLB / Three.js WebGL PBR",
+    "views": [
+      "side",
+      "reverse",
+      "oblique",
+      "front",
+      "rear",
+      "top",
+      "bottom",
+      "high"
+    ],
+    "frames": 16,
+    "sourceAndOutputSHA256Verified": true
+  }
+}

@@ -72,6 +72,35 @@ export const JUNK_ART = [
   ["junk_satellite", "인공위성 조각", "A broken piece of a small satellite with one bent blue solar panel, sparkling with stardust."],
 ];
 
+/** 보물 · 유물 조각(2026-11-13) — 화면은 지금 벡터 아이콘(FishRelics 의 ART). 그림이 오면 relic_<조각 key> 를 먼저 쓴다. 네 세트는 색 톤을 맞춘다 */
+export const RELIC_ART = [
+  ["relic_pottery_vase", "청자 매병", "A Goryeo celadon maebyeong vase: jade-green glaze with fine crackle, inlaid white-and-black cranes and clouds, narrow neck, broad shoulder, a little river silt at the foot."],
+  ["relic_pottery_jar", "백자 달항아리", "A Joseon white porcelain moon jar: large milky-white round body slightly lopsided, soft warm glaze, a faint water stain."],
+  ["relic_pottery_bowl", "분청 대접", "A buncheong stoneware bowl: grey clay with quick white slip brush strokes, simple stamped pattern, slightly chipped rim."],
+  ["relic_pottery_dropper", "청자 연적", "A small celadon water dropper shaped like a peach with a leaf, jade-green glaze, tiny spout."],
+  ["relic_wreck_plate", "배 이름 명판", "A weathered wooden ship nameplate with carved blank border (no readable letters), brass corner studs turned green."],
+  ["relic_wreck_compass", "놋쇠 나침반", "An antique brass ship compass in a round case, glass slightly cracked, verdigris on the edges."],
+  ["relic_wreck_bell", "뱃종", "A small bronze ship bell with a short rope, green patina, barnacles on one side."],
+  ["relic_wreck_anchor", "닻 조각", "A broken old iron anchor fluke and shank, rusty with small shells stuck on it."],
+  ["relic_wreck_wheel", "키 손잡이", "A broken wooden ship steering wheel segment with three spokes and brass hub, worn wood."],
+  ["relic_pirate_coin", "금화", "A small stack of three old gold coins with worn sun emblems (no letters), shining."],
+  ["relic_pirate_glass", "망원경", "An extended brass spyglass telescope with leather grip, a little sea salt crust."],
+  ["relic_pirate_key", "녹슨 열쇠", "A large ornate old iron key with a ring bow, rusty, a little seaweed on it."],
+  ["relic_pirate_map", "보물 지도 조각", "A torn piece of an old treasure map on parchment: a dotted path, a small red X, a compass rose, no readable text."],
+  ["relic_palace_scale", "용의 비늘", "A single large iridescent dragon scale, teal to gold shimmer, shaped like a shield, Korean Dragon King legend."],
+  ["relic_palace_pearl", "여의주", "A glowing wish-granting pearl (yeouiju) held in a small swirl of flame-shaped cloud, soft golden light."],
+  ["relic_palace_crown", "산호 관", "A small crown made of red coral branches and pearls, Korean undersea palace style."],
+  ["relic_palace_tile", "용궁 기와", "A Korean roof-end tile (sumaksae) with a dragon face relief, blue-green glaze with gold edges."],
+  ["relic_palace_seal", "거북 인장", "A royal seal stamp with a turtle-shaped handle carved in jade, red ink on the base (no readable characters)."],
+];
+/** 만든 미끼(fishcraft) 4가지 — 화면은 지금 벡터 아이콘(FishCraft 의 CRAFT_ART). 그림이 오면 같은 key 를 먼저 쓴다 */
+export const CRAFT_ART = [
+  ["craft_scent", "향 미끼", "A soft pink fishing bait dough ball with three wavy pink scent wisps rising from it, sweet and fragrant look."],
+  ["craft_glow", "빛 미끼", "A golden glowing bait bead with a small four-point star inside and a warm soft halo around it."],
+  ["craft_shine", "반짝 미끼", "A pale cyan pearly bait bead with tiny sparkles and a small yellow twinkle above it, attracts floating bottles."],
+  ["craft_sticky", "끈끈 미끼", "A green sticky bait blob with a little stretchy drip hanging down, glossy but cute, not gross."],
+];
+
 function prompts() {
   const rows = (list) => list.map(([k, ko, t]) => `| \`${k}\` | ${ko} | ${t} |`).join("\n");
   writeFileSync("design/FISHING-ART.md", `# 낚시 그림 목록 · 프롬프트
@@ -80,7 +109,8 @@ function prompts() {
 > **이 문서의 그림은 전부 2D 다.** 수조 내부의 3D 모델은 별도 제작·검수하며(\`design/aqua3d-review/\`), 이 문서의 낚시터 · 장비 · 미끼 · 쓰레기를 대체하지 않는다.
 > 낚시 결과 카드 · 게임 탭 카드의 물고기는 2D 그림(\`public/aqua/fish\`, design/AQUARIUM-ART.md)을 그대로 쓴다 — 수조가 3D 가 돼도 지우지 않는다.
 >
-> 모두 **${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length}장**: 낚시터 배경 ${SPOTS.length} · 장비 ${GEAR.length} · 미끼 ${BAIT_ART.length} · 꽝 쓰레기 ${JUNK_ART.length}. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다.
+> 모두 **${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length + RELIC_ART.length + CRAFT_ART.length}장**: 낚시터 배경 ${SPOTS.length} · 장비 ${GEAR.length} · 미끼 ${BAIT_ART.length} · 꽝 쓰레기 ${JUNK_ART.length} · 유물 ${RELIC_ART.length} · 만든 미끼 ${CRAFT_ART.length}. 미끼 · 쓰레기 · 유물 · 만든 미끼는 없으면 화면이 벡터 아이콘으로 그린다.
+> **아직 안 그린 것**은 \`node scripts/fishing-art.mjs sync\` 가 끝에 '아직 없음'으로 알려 준다. 최신 지침서는 \`design/ART-GUIDE.md\`.
 
 ## 넣는 법
 
@@ -133,8 +163,20 @@ ${rows(BAIT_ART)}
 | key | 이름 | 설명 |
 |---|---|---|
 ${rows(JUNK_ART)}
+
+## 보물 · 유물 조각 (${RELIC_ART.length}장) — 장비 공통 프롬프트(물속에서 건진 느낌은 살짝만, 글자 없이)
+
+| key | 이름 | 설명 |
+|---|---|---|
+${rows(RELIC_ART)}
+
+## 만든 미끼 (${CRAFT_ART.length}장) — 장비 공통 프롬프트(미끼 7장과 같은 크기 · 같은 톤)
+
+| key | 이름 | 설명 |
+|---|---|---|
+${rows(CRAFT_ART)}
 `);
-  console.log(`design/FISHING-ART.md ${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length}장`);
+  console.log(`design/FISHING-ART.md ${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length + RELIC_ART.length + CRAFT_ART.length}장`);
 }
 
 async function sync(from) {
@@ -145,7 +187,7 @@ async function sync(from) {
   });
   const out = join(process.cwd(), "public/fishing");
   mkdirSync(out, { recursive: true });
-  const known = new Set([...SPOTS, ...GEAR, ...BAIT_ART, ...JUNK_ART].map((x) => x[0]));
+  const known = new Set([...SPOTS, ...GEAR, ...BAIT_ART, ...JUNK_ART, ...RELIC_ART, ...CRAFT_ART].map((x) => x[0]));
   const walk = (dir) => readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
     if (statSync(p).isDirectory()) return walk(p);

@@ -1,0 +1,62 @@
+{
+  "key": "imugi_fish",
+  "sha256": "75bd0d776b1b1c79852a6809e5f20989c067abe57cb149525d91b2d87c378774",
+  "triangles": 6368,
+  "bytes": 100080,
+  "bones": [
+    "spine_0",
+    "spine_1",
+    "spine_2",
+    "spine_3",
+    "spine_4",
+    "spine_5",
+    "fin_L",
+    "fin_L_tip",
+    "fin_R",
+    "fin_R_tip"
+  ],
+  "textureSize": [
+    512,
+    512
+  ],
+  "materials": 1,
+  "skinnedMeshes": 1,
+  "animations": 0,
+  "compressedErrors": 0,
+  "expandedErrors": 0,
+  "expandedWarnings": 0,
+  "validationNote": "Expanded geometry validated independently; WebP losslessly decoded only in the private validation copy.",
+  "deformation": {
+    "allVerticesFinite": true,
+    "testedPoses": 5,
+    "maxRestError": 5.360165933125077e-8,
+    "maxDisplacement": 0.21151794413323174,
+    "maxRadius": 1.0205201418545098,
+    "weightedBones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "jointWeightTotals": [
+      2190.156847510487,
+      273.703808888793,
+      305.73575960006565,
+      329.540324319154,
+      322.0975810326636,
+      208.76568362303078,
+      9.446158558130264,
+      6.553841456770897,
+      9.446158558130264,
+      6.553841456770897
+    ]
+  },
+  "visualApproval": "pending",
+  "sourceSHA256": "b2de868b62dc693461335833321d8f94b8a41c2da9810f1cbab2aaee395fb30c"
+}

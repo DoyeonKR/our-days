@@ -2,6 +2,7 @@
  *  수조 안의 움직임만 정한다(저장값 · 경제와 무관). 새 계열을 FAMILIES 에 더하면 여기에도 더한다 — habits.test 가 빠진 계열을 잡는다.
  *  물높이는 월드 y(바닥 -5.3, 수면 약 5.5).
  *  모든 계산은 (id, 시각, 몸길이, 옵션) 만으로 정해진다 — 두 사람 기기에서 같은 시각이면 같은 자리다. Math.random 을 쓰지 않는다. */
+import { ACTIVE_SHRIMP } from "../shrimp.ts";
 export type FishHabit = {
   /** 몸 중심이 오가는 높이 */
   lo: number;
@@ -46,8 +47,17 @@ export type FishHabit = {
   lap?: number;
   /** 숨만 쉬러 올라간다(피라루쿠 · 전기뱀장어 — 공기 호흡). breathe 와 같이 쓰고, 거북처럼 모래 위에서 쉬지는 않는다 */
   breathOnly?: boolean;
+  /** 두족류의 움직임(2026-11-13) [사용자: "문어도 움직임이 다른 물고기랑 비슷해 연체동물의 움직임을 파악하고 개선해야해"] —
+   *  crawl(문어 · 크라켄): 팔로 바닥을 기어 옮겨 가고(팔 쪽이 앞), 가끔 외투막을 앞세워 물을 뿜고 튀어 올라 미끄러진 뒤 팔을 펴며 내려앉는다.
+   *  hover(오징어 · 대왕오징어): 지느러미로 떠 있다가(팔 쪽이 앞) 외투막을 앞세워 뒤로 쏘아 나간다.
+   *  물 뿜기는 쉬었다 옮겨 가기(rest · hop)의 한 번을 '빠르게 출발해 미끄러지는' 길로 바꾸고, 몸을 180° 돌려 외투막이 앞으로(course.rev), 세기는 course.jet */
+  ceph?: "crawl" | "hover";
+  /** 쉬는 동안 몸을 세워 떠 있다(산갈치 — 머리를 위로 하고 꼿꼿이 서서 떠 있는 모습이 알려져 있다, 2026-11-13). rest 와 같이 쓴다 — 쉬는 동안 바닥에서 몸 반 길이 위로 떠올라 선다(course.stand) */
+  stand?: boolean;
   /** 굴에 산다(곰치) — 바위 · 장식 속에 몸 뒤쪽을 넣고 머리만 내민다. 거의 안 나오고, 가끔 반쯤 튀어나왔다 곧바로 돌아간다(denCourse) */
   den?: boolean;
+  /** 바위 위에서 쉰다(해양 포유류, 2026-11-14) — 시간의 절반(HAUL_REST, 2026-11-15 90% → 50%)은 바위 · 장식 위에 올라가 쉬고 절반은 헤엄친다(haulBlend) */
+  haul?: boolean;
 };
 
 const swim = (lo: number, hi: number, speed: number, reach: number, depth: number, more: Partial<FishHabit> = {}): FishHabit => ({ lo, hi, speed, reach, depth, ...more });
@@ -69,6 +79,8 @@ const DRIFT = swim(-2.5, 3.4, 0.035, 0.3, 1, { tilt: 0, pace: 0.5, jet: 2.8, fee
 const AMBUSH = swim(-1.8, 1, 0.18, 0.8, 1.7, { rest: 0.35, hop: 1.2, pace: 0.9 });
 
 export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
+  // 새우류 — 켜진 것만(shrimp.ts). 바닥을 기다 놀라면 뒤로 휙
+  ...Object.fromEntries(ACTIVE_SHRIMP.map((f) => [f.key, f.habit])),
   // 작은 물고기는 무리 지어 위쪽을 빠르게 — 구피 · 은어는 수면 가까이, 테트라는 가운데
   guppy: SCHOOL_TOP,
   tetra: SCHOOL_MID,
@@ -114,18 +126,20 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   megamouth: floor(0.13, 0.12, 0.8, 1.4, { bob: 0.08, pace: 0.45, lane: 0.95 }),
   gulper_eel: { ...DEEP, lane: 0.75 },
   anglerfish: floor(0.3, 0.05, 0.5, 1.2, { rest: 0.75, hop: 0.8, pace: 0.5, lane: 0.5 }),
-  oarfish: floor(0.14, 0.05, 0.75, 1.2, { bob: 0.1, pace: 0.5, lane: 0.9 }),
+  oarfish: floor(0.14, 0.05, 0.75, 1.2, { bob: 0.1, pace: 0.5, lane: 0.9, rest: 0.45, hop: 0.9, stand: true }),
   coelacanth: { ...DEEP, lane: 0.85 },
-  giant_squid: floor(0.25, 0.06, 0.6, 1.2, { bob: 0.1, pace: 0.5, lane: 0.7 }),
-  kraken: floor(0.42, 0.04, 0.5, 1, { bob: 0.08, pace: 0.4, lane: 0.6 }),
+  giant_squid: floor(0.25, 0.06, 0.6, 1.2, { bob: 0.1, rest: 0.5, hop: 0.9, pace: 0.5, lane: 0.7, ceph: "hover" }),
+  kraken: floor(0.28, 0.04, 0.5, 1, { bob: 0.08, rest: 0.6, hop: 0.7, pace: 0.4, lane: 0.6, ceph: "crawl" }),
   // 바닥을 기어 다니는 무척추동물
   starfish: floor(0.09, 0.012, 0.85, 1.4, { pace: 0.3, lane: 0.95 }),
-  octopus: floor(0.42, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7, idle: 0.5, lane: 0.65 }),
-  squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1, idle: 0.4 }),
+  // 2026-11-14 [사용자: "문어는 여전히 움직임이 자연스럽지않다"] — 70% 를 완전히 멈춰 있다가 몸길이 4분의 1 만 기고, 물을 뿜어 같은 자리로 되돌아왔다(두 자리 왕복).
+  //   쉬는 몫을 줄이고(0.5) 한 번에 더 멀리 기며(hop 1.5), 물 뿜기는 드물게(jetShare — 놀라면 startle 이 따로 뿜는다)
+  octopus: floor(0.28, 0.05, 0.7, 1.5, { rest: 0.5, hop: 1.5, pace: 0.7, idle: 0.5, lane: 0.65, ceph: "crawl" }),
+  squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1, idle: 0.4, ceph: "hover" }),
   // 신화의 물고기
   rising: swim(-2.5, 3.4, 0.13, 0.6, 1.4, { tilt: 0.8, pace: 0.8 }),
   astral: swim(0.2, 3.4, 0.13, 0.85, 1.8, { pace: 0.7 }),
-  // 앞으로 켤 토종 · 대표 어종(design/FISH-NATIVE-ART.md)
+  // 앞으로 켤 토종 · 대표 어종(옛 토종 지침서 — git 이력, 최신은 design/ART-GUIDE.md)
   crucian: POTTER,
   pale_chub: SCHOOL_TOP,
   chinese_minnow: SCHOOL_MID,
@@ -133,7 +147,8 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   bullhead: { ...SITTER, lane: 0.85 },
   common_carp: swim(-3, 0, 0.1, 0.7, 1.5, { school: true, pace: 0.7 }),
   masu_salmon: swim(-0.4, 2, 0.2, 0.6, 1.5, { pace: 1.1 }),
-  snakehead: swim(2, 3.6, 0.07, 0.5, 1.2, { rest: 0.6, hop: 0.9, pace: 0.7 }),
+  // 가물치 · 구라미는 공기 호흡 물고기 — 가끔 수면까지 올라 숨을 쉰다(2026-11-13, 피라루쿠와 같은 길)
+  snakehead: swim(2, 3.6, 0.07, 0.5, 1.2, { rest: 0.6, hop: 0.9, pace: 0.7, breathe: 60, breathOnly: true }),
   mandarin_fish: HIDER,
   perch_kkeokji: HIDER,
   eel: floor(0.1, 0.06, 0.7, 1.4, { rest: 0.5, hop: 0.9, pace: 0.9, lane: 0.78 }),
@@ -141,15 +156,16 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   mackerel: CRUISER,
   rockfish_bollak: swim(-2.6, -0.6, 0.08, 0.4, 1, { school: true, pace: 0.6 }),
   black_seabream: LOW_REEF,
-  hairtail: swim(-1, 2, 0.05, 0.5, 1, { pace: 0.5, tilt: 0.1 }),
+  // 갈치는 쉬는 동안 머리를 위로 꼿꼿이 서서 떠 있다(실제로 잘 알려진 자세 — 산갈치와 같은 stand, 2026-11-13)
+  hairtail: swim(-1, 2, 0.05, 0.5, 1, { pace: 0.5, tilt: 0.1, rest: 0.45, hop: 1, stand: true }),
   barred_knifejaw: swim(-3, -0.8, 0.14, 0.45, 1.1, { home: true, pace: 1 }),
   cutlassfish_pollock: floor(0.24, 0.14, 0.85, 1.6, { school: true, bob: 0.3, pace: 0.9, lane: 0.95 }),
   sailfin_sandfish: floor(0.1, 0.06, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.9, lane: 0.62 }),
   puffer: swim(-3, -0.6, 0.08, 0.45, 1.1, { pace: 1.2, tilt: 0.1 }),
-  // 4차 54계열(2026-11-13 — design/FISH-EXPANSION-4-ART.md '사는 곳 · 움직임'). 심해어는 바닥, 곰치는 굴(den)
+  // 4차 54계열(2026-11-13 — 옛 4차 지침서(git 이력) — 최신은 design/ART-GUIDE.md '사는 곳 · 움직임'). 심해어는 바닥, 곰치는 굴(den)
   bitterling: swim(-1, 1.2, 0.2, 0.6, 1.4, { school: true, pace: 1.2 }),
   hatchetfish: floor(0.4, 0.1, 0.7, 1.4, { school: true, bob: 0.3, pace: 0.9, lane: 0.8 }),
-  gourami: swim(1, 3, 0.1, 0.5, 1.2, { pace: 0.7 }),
+  gourami: swim(1, 3, 0.1, 0.5, 1.2, { pace: 0.7, breathe: 50, breathOnly: true }),
   boxfish: swim(-2.6, -0.4, 0.06, 0.35, 0.9, { home: true, pace: 1.4, tilt: 0.05 }),
   butterflyfish: swim(-2, 0.4, 0.14, 0.45, 1.1, { home: true, pace: 1 }),
   mudskipper: floor(0.08, 0.05, 0.6, 1.3, { rest: 0.8, hop: 0.6, pace: 1.2, lane: 0.6 }),
@@ -198,6 +214,19 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   electric_eel: swim(-3.6, -2, 0.05, 0.7, 1.3, { breathe: 95, breathOnly: true, pace: 0.7, tilt: 0.3 }),
   frilled_shark: floor(0.14, 0.05, 0.8, 1.3, { bob: 0.1, pace: 0.6, lane: 0.85 }),
   arapaima: swim(-1.6, 1.8, 0.08, 0.85, 1.5, { breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.15 }),
+  // 해양 포유류(2026-11-13) — 허파로 숨 쉬어 늘 수면에 올라간다(breathe — 거북과 같은 숨쉬기 길).
+  // 2026-11-14 [사용자: "포유류는 90프로는 바위 위에서 쉬고있는다 · 10프로는 수영한다"] — 여섯 다 haul: 시간의 90% 는 바위 위에서 쉰다(haulBlend). 아래 습성은 헤엄치는 10% 의 길이다
+  // 2026-11-15 [사용자: "물범이 너무 돌에만 있어 수영 반 쉼 반으로 해야해"] — 쉬는 몫을 90% → 50%(HAUL_REST, 여섯 다)
+  // 점박이물범: 바닥 가까이 천천히 미끄러지다 숨 쉬러 오르고, 바닥에 내려앉아 쉰다(물범은 물속에서 잔다 — 모래 위 쉬기 그대로)
+  spotted_seal: swim(-3.2, 0.4, 0.16, 0.9, 1.8, { haul: true, breathe: 70, pace: 0.7, tilt: 0.35 }),
+  // 물개 · 바다사자 · 강치: 앞지느러미로 날듯이 빠르게, 홱 방향을 튼다. 모래 위에선 안 쉰다
+  fur_seal: swim(-1.6, 2.4, 0.32, 1, 2, { haul: true, breathe: 55, breathOnly: true, dart: 0.25, pace: 0.9, tilt: 0.45 }),
+  steller_sea_lion: swim(-1.8, 2, 0.24, 1, 2, { haul: true, breathe: 75, breathOnly: true, dart: 0.12, pace: 0.6, tilt: 0.35 }),
+  japanese_sea_lion: swim(-1.6, 2.2, 0.26, 1, 2, { haul: true, breathe: 70, breathOnly: true, dart: 0.15, pace: 0.65, tilt: 0.4 }),
+  // 해달: 수면 가까이 떠서 쉬다가 가끔 잠수한다. 수달: 바닥 바위 사이를 빠르게 누비고 자주 숨 쉬러 오른다
+  sea_otter: swim(2.2, 4.4, 0.08, 0.7, 1.4, { haul: true, breathe: 40, breathOnly: true, rest: 0.5, hop: 0.8, pace: 0.6, tilt: 0.2 }),
+  orca: swim(-1, 2.6, 0.26, 1, 2, { breathe: 60, breathOnly: true, pace: 0.55, tilt: 0.3 }),
+  otter: swim(-3.4, -0.4, 0.3, 0.9, 1.8, { haul: true, breathe: 45, breathOnly: true, dart: 0.3, pace: 1.1, tilt: 0.45 }),
   sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
   marlin: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
   swordfish: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
@@ -213,7 +242,7 @@ export const hugsFloor = (key: string): boolean => habitOf(key).hug !== undefine
 /** 장식 · 바위 — 물고기 길이 피해 간다. x · r 은 월드(넓힌 어항이면 넓힌 뒤), z 는 물고기 길 좌표(깊은 수조면 월드 z ÷ 깊이), h 는 꼭대기 높이(WORLD.floor 에서 잰 값, 길 좌표).
  *  r 은 월드 반지름이다 — 깊은 수조에서도 발자국은 월드에서 원이다(2026-11-11 — 예전엔 길 좌표에서 원으로 봐서 깊이만큼 앞뒤로 부풀었다. 돔은 앞뒤를 거의 다 막았다).
  *  kind: 없거나 "decor" 면 장식(들여다보러 간다) · "rock" 은 바닥 바위 · "hall" 은 터널 · 돔 유리 */
-export type Obstacle = { x: number; z: number; r: number; h: number; kind?: "decor" | "rock" | "hall" };
+export type Obstacle = { x: number; z: number; r: number; h: number; kind?: "decor" | "rock" | "hall" | "beach" };
 /** 터널 · 돔 — 낮게 사는 물고기는 이 둘레를 아예 안 지나가게 고리를 옮긴다. r 은 월드 반지름, h 는 Obstacle.h 와 같은 높이(길 좌표) */
 export type Hall = { kind: "tunnel" | "dome"; r: number; h: number };
 /** 먹이 — t 는 course 와 같은 시계의 초, x 는 먹이를 뿌린 가로 위치(월드 좌표) */
@@ -254,6 +283,11 @@ export type Course = {
   hover: number;
   /** 0~1 — 먹이에 몰려 있는 정도(먹이 쪽으로 섞는 무게와 같은 값). 지느러미를 펴는 데 쓴다(glb.fishMotion) */
   feed?: number;
+  /** 두족류(habit.ceph) — 물 뿜기 세기(0~1, 뿜는 순간 1 에서 미끄러지며 0) · 외투막이 앞인 정도(0~1, 몸이 돌아선 몫). 없으면 0 */
+  jet?: number;
+  rev?: number;
+  /** 0~1 — 몸을 세운 정도(habit.stand). 엔진이 머리를 위로 돌린다(1 이면 약 80°) */
+  stand?: number;
 };
 
 const TAU = Math.PI * 2;
@@ -588,7 +622,25 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
 }
 
 // 길 위치 u(시간 → 길) 계산에 쓰는 값
-const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false };
+const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0 };
+/** 두족류 — n 번째로 옮겨 가는 것이 물 뿜기인가(물고기마다 · 몇 번째인지로만 정해진다) */
+const jetHop = (n: number) => U.jetShare > 0 && unit(U.hash, 911 + (((n % 4999) + 4999) % 4999)) < U.jetShare;
+/** n 번째 옮겨 가기 전까지의 물 뿜기 수 — 물 뿜기는 길을 거꾸로 한 칸 가므로 그만큼(두 칸) 뒤에서 다음 걸음을 이어 간다. 물고기마다 앞에서부터 쌓아 둔다 */
+const JETS = new Map<string, Int32Array>();
+function jetsBefore(n: number) {
+  if (n <= 0) return 0;
+  const k = U.hash + ":" + U.jetShare;
+  let a = JETS.get(k);
+  if (!a || a.length <= n) {
+    const b = new Int32Array(Math.max(n + 1, (a?.length ?? 0) * 2, 64));
+    let start = 1;
+    if (a) { b.set(a); start = a.length; }
+    for (let i = start; i < b.length; i++) b[i] = b[i - 1] + (jetHop(i - 1) ? 1 : 0);
+    if (JETS.size > 400) JETS.clear();
+    JETS.set(k, (a = b));
+  }
+  return a[n];
+}
 function pathU(t: number) {
   if (U.rest > 0) {
     // 멈춰 있다가 짧게 옮겨 간다 — 쉬는 동안 길의 위치 u 가 그대로라 몸도 그대로다
@@ -596,6 +648,13 @@ function pathU(t: number) {
     const go = (frac(c) - U.rest) / (1 - U.rest);
     U.moving = go > 0 ? Math.sin(Math.min(1, go) * Math.PI) : 0; U.c = c;
     U.hoverW = 0;
+    // 물 뿜기는 빠르게 출발해 미끄러지며 선다(1 − (1 − g)³), 기기 · 지느러미는 고르게.
+    // 두족류는 물을 뿜으면 외투막 쪽(머리 방향의 반대)으로 나간다 — 몸을 돌리지 않고 길을 거꾸로 한 칸(실제 문어 · 오징어가 그렇다)
+    if (U.jetShare > 0) {
+      const n = Math.floor(c), base = n - 2 * jetsBefore(n);
+      if (jetHop(n)) { const g = Math.min(1, Math.max(0, go)); return (base - (1 - (1 - g) ** 3)) * U.hop; }
+      return (base + ease(go)) * U.hop;
+    }
     return (Math.floor(c) + ease(go)) * U.hop;
   }
   let tau = t;
@@ -711,7 +770,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   U.hover = rest === 0 && habit.hug === undefined && !habit.jet && !habit.breathe;
   U.hoverP = 55 + 40 * unit(hash, 23); U.hoverO = unit(hash, 29) * U.hoverP;
   // 거북 숨 쉬는 주기 — 길(pathU)이 쉬는 몫을 빼려면 길보다 먼저 정한다
-  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash; U.noSand = !!habit.breathOnly;
+  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.jetShare = habit.ceph === "crawl" ? 0.14 : habit.ceph === "hover" ? 0.5 : 0;
 
   // 어항 밖으로 몸이 나가지 않게 몸길이만큼 안쪽에서 돈다 — 가로 · 앞뒤 모두(옛 길은 앞뒤 폭이 몸길이를 안 봐서 고래상어가 앞 유리를 21% 뚫었다)
   const roomXs = roomX(half, 1), roomZs = roomZ(half);
@@ -990,12 +1049,40 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       hx += bx * k; hz += (bz * k) / D;
     }
   }
+  // 두족류 — 물 뿜기 전엔 몸을 돌려 외투막을 앞으로(쉬는 끝 12%), 뿜고 미끄러진 뒤 천천히 다시 팔 쪽으로. 문어는 뿜으며 바닥에서 떠오른다
+  let jet = 0, rev = 0;
+  if (habit.ceph && rest > 0) {
+    const f = frac(cycle), go = (f - rest) / (1 - rest), isJet = jetHop(Math.floor(cycle));
+    if (isJet) {
+      rev = go <= 0 ? ease((f - (rest - 0.12)) / 0.12) : go < 0.7 ? 1 : 1 - ease((go - 0.7) / 0.3);
+      if (go > 0) jet = (1 - go) ** 1.5;
+      // 바닥에서 조금만 떠오른다(바닥 생활 규칙 — 몸길이의 0.25, 많아야 0.3)
+      if (habit.ceph === "crawl" && go > 0) y += Math.min(length * 0.25, 0.3) * Math.sin(Math.min(1, go) * Math.PI);
+      effort = (habit.pace ?? 1) * (0.6 + 3.2 * jet); amp = 0.4 + 0.6 * jet;
+    } else if (habit.ceph === "crawl") {
+      // 기기 — 팔이 바닥을 짚으며 몸을 부드럽게 들썩인다(예전 |sin| 은 바닥에 닿을 때마다 각지게 튀었다)
+      const sw = Math.sin(Math.max(0, go) * Math.PI * 3);
+      y += length * 0.035 * sw * sw * moving;
+      // 쉬는 동안도 굳어 있지 않다 — 외투막 숨에 맞춰 몸이 아주 조금 오르내린다
+      const still = 1 - moving;
+      y += length * 0.012 * Math.sin(seconds * 2.4 + unit(hash, 31) * 6.28) * still;
+    }
+    // 몸은 돌리지 않는다 — 길이 거꾸로 가서(pathU) 머리(고리 접선)의 반대로 나아간다. rev 는 '외투막이 앞인 자세'의 몫으로 팔(glb)이 쓴다
+  }
+  // 산갈치 — 쉬는 동안(앞 4분의 1 에 걸쳐) 몸을 세우고 떠올랐다가, 끝 4분의 1 에 다시 눕는다. 세운 몸 아래 끝이 모래에 안 닿게 몸 반 길이 위로
+  let stand = 0;
+  if (habit.stand && rest > 0) {
+    const f = frac(cycle);
+    if (f < rest) stand = ease(f / (rest * 0.25)) * ease((rest - f) / (rest * 0.25));
+    y += stand * (length * 0.55 + 0.05);
+    amp = amp * (1 - 0.7 * stand); effort *= 1 - 0.6 * stand;
+  }
   const out = opts?.out ?? ({} as Course);
   out.x = x; out.y = y; out.z = z;
   out.dx = hx || 1e-3; out.dy = hy; out.dz = hz;
-  out.effort = effort; out.turn = turn; out.amp = amp;
+  out.effort = effort; out.turn = turn; out.amp = amp; out.jet = jet; out.rev = rev;
   out.pulse = habit.jet ? J.pulse : 0; out.ground = ground; out.puff = puff; out.hover = rest > 0 ? 1 - moving : Math.max(hoverW, turtleRest);
-  out.feed = feedW;
+  out.feed = feedW; out.stand = stand;
   return out;
 }
 
@@ -1195,4 +1282,95 @@ export function denCourse(id: number, seconds: number, length: number, scale: nu
   out.effort = strike > 0 ? 2.4 : 0.35; out.turn = 0; out.amp = strike > 0 ? 1.2 : 0.35; out.pulse = 0;
   out.ground = 1; out.puff = -1; out.hover = strike > 0 ? 0 : 1; out.feed = 0;
   return out;
+}
+
+/* ── 해양 포유류의 바위 쉼터(2026-11-14) ─────────────────────────
+ * [사용자: "표유류는 90프로는 바위 위에서 쉬고있는다 · 10프로는 수영한다"]
+ * 물범 · 물개 · 바다사자 · 강치 · 해달 · 수달은 바위(없으면 높은 장식) 하나를 쉼터로 정해 시간의 절반은 그 위에 올라가 쉬고, 절반은 헤엄친다
+ * (2026-11-15 [사용자: "물범이 너무 돌에만 있어 수영 반 쉼 반으로 해야해"] — 처음엔 90% 쉼이었다).
+ * 한 바퀴(140 ~ 190초)마다 한 번 바위에서 미끄러져 내려가 헤엄치고(약 3초에 걸쳐 내려가고 · 올라온다) 돌아온다. 먹이를 주면 쉬다가도 먹으러 간다.
+ * 쉼터는 곰치 굴처럼 id 순으로 나눈다(두 기기 같은 결과). 한 바위를 둘이 나눠 쓰면 바위 위에서 양옆으로 비켜 눕는다. 시각 · id · 장애물만으로 정해진다. */
+/** 쉬는 몫 — 한 바퀴의 이만큼은 바위 위 */
+export const HAUL_REST = 0.5;
+/** 바위에서 내려가고 · 올라오는 데 걸리는 몫(한 바퀴의) — 2026-11-15 [사용자: "물범 움직임이 너무 기이하게 빨라"] .02(약 3초)면 헤엄치던 자리에서 쉼터까지 몸길이의 3~4배/초로
+ *  미끄러졌다(평소 헤엄은 .8배/초). .07(약 10 ~ 13초)로 천천히 오간다 */
+export const HAUL_RAMP = 0.07;
+export function haulCandidates(length: number, obstacles: readonly Obstacle[] | undefined, scale = 1): Obstacle[] {
+  // 몸이 유리 밖으로 삐져나가지 않는 바위만(포유류는 몸이 크고 바위는 구석에 몰려 있다 — 2026-11-14 화면)
+  const fits = (o: Obstacle) => Math.abs(o.x) <= 5 * scale - length * 0.42;
+  const base = (obstacles ?? []).filter((o) => o.kind !== "hall" && o.h > 0.12 && o.r > length * 0.2);
+  const inside = base.filter(fits), all = inside.length ? inside : base;
+  // 바위를 먼저(장식 위보다 바위 위가 자연스럽다), 그중 보기 좋은 바위부터 — 넓고 낮고(뾰족한 기둥 위에 위태롭게 앉지 않게) · 가운데 · 앞쪽 · 앞을 가리는 장식이 없는 바위.
+  //   2026-11-14 [사용자: "물범이 아예 보이지 않아 수초에 가려서"] — 넓고 낮은 것만 봤더니 큰 수조에서 양옆 끝 뒤쪽(수초가 가장 빽빽하고 카메라가 잘라 내는 곳) 바위만 골랐다
+  const flat = (o: Obstacle) => o.r - 0.6 * o.h;
+  const half = 5 * scale, decor = (obstacles ?? []).filter((d) => d.kind === "decor" && d.h > 0.15);
+  const covered = (o: Obstacle) => decor.filter((d) => d.z > o.z && Math.abs(d.x - o.x) < o.r + d.r * 0.8).length;
+  const score = (o: Obstacle) => flat(o) * 0.5 - 2.2 * Math.abs(o.x) / half + 0.35 * o.z - 0.8 * covered(o);
+  return all.slice().sort((a, b) => (a.kind === "rock" ? 0 : 1) - (b.kind === "rock" ? 0 : 1) || score(b) - score(a) || a.x - b.x || a.z - b.z);
+}
+/** 쉼터 나누기 — denAssign 과 같은 방식(id 순, 아직 아무도 안 쓴 바위부터) */
+export function haulAssign(fish: readonly { id: number; length: number }[], obstacles: readonly Obstacle[] | undefined, scale = 1): Map<number, { rock: Obstacle | null; share: number }> {
+  const out = new Map<number, { rock: Obstacle | null; share: number }>();
+  const used = new Map<Obstacle, number>();
+  for (const f of [...fish].sort((a, b) => a.id - b.id)) {
+    const cand = haulCandidates(f.length, obstacles, scale);
+    if (!cand.length) { out.set(f.id, { rock: null, share: 0 }); continue; }
+    const rocks = cand.filter((o) => o.kind === "rock"), pool = rocks.length ? rocks : cand;
+    // 가장 넓고 낮은 빈 바위부터 — 다 찼으면 가장 덜 붐비는 바위를 나눠 쓴다
+    const rock = pool.find((o) => !used.has(o)) ?? pool.reduce((m, o) => ((used.get(o) ?? 0) < (used.get(m) ?? 0) ? o : m), pool[0]);
+    const share = used.get(rock) ?? 0;
+    used.set(rock, share + 1);
+    out.set(f.id, { rock, share });
+  }
+  return out;
+}
+/** 지금 바위 위에 있는 정도(0 헤엄 ~ 1 쉼) — 한 바퀴의 처음 절반(1 − HAUL_REST)이 헤엄(양 끝 HAUL_RAMP 는 내려가고 · 올라오는 중) */
+export function haulRest(id: number, seconds: number): number {
+  const h = denHash(id + 7), per = 140 + 50 * unit(h, 113), u = ((seconds + per * unit(h, 127)) % per) / per;
+  const swimSpan = 1 - HAUL_REST;
+  if (u >= swimSpan) return 1;
+  if (u < HAUL_RAMP) return 1 - ease(u / HAUL_RAMP);
+  if (u > swimSpan - HAUL_RAMP) return ease((u - (swimSpan - HAUL_RAMP)) / HAUL_RAMP);
+  return 0;
+}
+/** 헤엄 길(out — 이미 계산한 schoolCourse)을 쉼터와 섞는다. 돌려주는 값 = 쉬는 정도(0~1) */
+export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number }, out: Course): number {
+  let R = haulRest(id, seconds);
+  // 먹이를 주면 쉬다가도 먹으러 간다
+  R *= 1 - clamp01((out.feed ?? 0) * 1.5);
+  if (R <= 0) return 0;
+  const h = denHash(id + 7), o = opts.rock;
+  let rx: number, ry: number, rz: number, ground = 0;
+  // 몸이 보는 쪽 — 앞유리 쪽으로 비스듬히, 20초마다 천천히 고개를 돌린다(좌우 0.35 rad)
+  const a0 = (unit(h, 131) < 0.5 ? 0 : Math.PI) + (unit(h, 137) - 0.5) * 0.8 + Math.sin(seconds / 20 * TAU + unit(h, 139) * TAU) * 0.35;
+  let fx = Math.cos(a0), fz = Math.abs(Math.sin(a0)) * 0.5 + 0.15;
+  if (o && o.kind === "beach") {
+    // 모래사장(2026-11-15) — 꼭대기 평지에 물 쪽(왼쪽)을 보고 눕는다. 나눠 쓰면 앞뒤로 비켜 눕는다(모래사장은 가로가 좁고 앞뒤가 길다)
+    const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * length * 0.7;
+    const lim = 5 * scale - length * 0.42, zl = Math.max(0.2, roomZ(length / 2) * (opts.deep || 1) - 0.2);
+    rx = Math.max(-lim, Math.min(lim, o.x - (sh % 3) * length * 0.25)); rz = Math.max(-zl, Math.min(zl, o.z + off)) / (opts.deep || 1); ry = floorY + o.h + (length * 0.12) / (opts.tall || 1);
+    fx = -1; fz = 0.25 + (unit(h, 131) - 0.5) * 0.5;
+  } else if (o) {
+    // 바위 꼭대기 — 나눠 쓰면 양옆으로 비켜 눕는다. 둥근 바위라 가운데에서 멀수록 조금 낮다
+    const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * Math.min(o.r * 0.55, length * 0.6);
+    // 바위 앞 어깨(앞유리 쪽)에 눕는다 — 꼭대기 한가운데면 큰 바위 뒤로 숨어 안 보였다(2026-11-14). 높이는 둥근 언덕의 그 자리 높이 + 몸 두께(물리 밀어내기와 같은 언덕)
+    const front = o.r * 0.35, d = Math.min(0.95, Math.hypot(off, front) / Math.max(0.05, o.r));
+    const lim = 5 * scale - length * 0.42;
+    rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z + front / (opts.deep || 1); ry = floorY + o.h * Math.sqrt(1 - d * d) + (length * 0.12) / (opts.tall || 1); // 몸 두께는 월드 길이 — 길 좌표의 높이는 엔진이 tall 배로 늘리므로 미리 나눈다(안 나누면 6단계에서 바위 위로 붕 떴다)
+  } else {
+    // 바위가 없으면 뒤 유리 앞 모래 위
+    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + (length * 0.1) / (opts.tall || 1); ground = 1;
+    fz = Math.abs(fz);
+  }
+  const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
+  // 쉼터로 오갈 때 — 곧장 가면 바위 옆구리 · 모래 경사를 뚫고(그 순간 바위 위로 한 번에 밀려 올라 튀었다 — 2026-11-15 해달 · 물범),
+  //   먼저 쉼터 높이까지 떠오르고(높이는 일찍) 그다음 옆으로 다가간다(가로는 늦게). 쉼터가 없으면(모래 위) 그대로
+  const Ry = o ? Math.sqrt(R) : R, Rx = o ? R * R : R;
+  out.x += (rx - out.x) * Rx; out.y += (ry - out.y) * Ry; out.z += (rz - out.z) * Rx;
+  const dl = hyp3(out.dx, out.dy, out.dz) || 1;
+  out.dx = out.dx / dl * (1 - R) + fx * R; out.dy = out.dy / dl * (1 - R); out.dz = out.dz / dl * (1 - R) + fz * R;
+  // 쉬는 동안 — 숨쉬듯 아주 조금만 움직인다(해달은 여기서 배를 위로 — glb 의 otterRoll 이 amp 가 낮을 때 뒤집는다)
+  out.effort = out.effort * (1 - R) + 0.12 * R; out.amp = out.amp * (1 - R) + 0.12 * R; out.turn *= 1 - R;
+  out.hover = out.hover * (1 - R) + R; out.ground = out.ground * (1 - R) + ground * R; out.puff = -1;
+  return R;
 }

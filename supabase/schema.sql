@@ -6493,7 +6493,167 @@ revoke all on function private.fish_family_ok(text) from public, anon, authentic
 notify pgrst, 'reload schema';
 commit;
 
--- ── migrations/20261107100000_merge_weekly.sql ──
+-- ── migrations/20261107100000_fish_families_mammals.sql ──
+-- 해양 포유류 6계열(2026-11-13) — 점박이물범 · 물개 · 큰바다사자 · 독도 강치 · 해달 · 수달을 낚시 순위 · 크기 순위가 아는 계열 목록에 더한다.
+-- 20261107090000_fish_families_54 의 private.fish_family_ok 와 같은 정의에 계열만 늘렸다(목록은 src/lib/aquarium.ts 의 FAMILIES 순서 — serverguard.test 가 견준다).
+-- 함수 하나를 다시 정의할 뿐이다 — 표 · 행 · 다른 함수 · 권한은 그대로. 몇 번 다시 돌려도 같다.
+begin;
+
+create or replace function private.fish_family_ok(p_family text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(p_family = any (array[
+    'guppy', 'ricefish', 'pale_chub', 'zebra_danio', 'corydoras', 'platy', 'chinese_minnow', 'crucian', 'lanternfish', 'molly',
+    'anchovy', 'dark_chub', 'goby', 'loach', 'bluegill', 'tetra', 'saury', 'smelt', 'sweetfish', 'bitterling',
+    'goldfish', 'hatchetfish', 'gourami', 'boxfish', 'butterflyfish', 'bullhead', 'mudskipper', 'sleeper', 'gudgeon', 'betta',
+    'scorpionfish', 'halfbeak', 'pleco', 'mackerel', 'rockfish_bollak', 'catfish', 'flounder', 'shiri', 'common_carp', 'rockfish',
+    'blue_tang', 'masu_salmon', 'angel', 'filefish', 'black_seabream', 'oscar', 'sailfin_sandfish', 'starfish', 'largemouth_bass', 'rainbow_trout',
+    'skygazer', 'cod', 'spanish_mackerel', 'clown', 'sea_bream', 'snakehead', 'mandarin_fish', 'blobfish', 'jellyfish', 'perch_kkeokji',
+    'sea_bass', 'lionfish', 'hairtail', 'salmon', 'piranha', 'cutlassfish_pollock', 'squid', 'discus', 'char', 'otter',
+    'nurse_shark', 'parrotfish', 'moray', 'leopard_shark', 'barracuda', 'grass_carp', 'skate', 'koi', 'croaker', 'eel',
+    'yellowtail', 'seahorse', 'barred_knifejaw', 'spotted_seal', 'ray', 'fur_seal', 'viperfish', 'octopus', 'goosefish', 'gulper_eel',
+    'striped_jack', 'grouper', 'lenok', 'puffer', 'sea_otter', 'dolphinfish', 'electric_eel', 'arowana', 'redtail_catfish', 'blue_shark',
+    'sturgeon', 'frilled_shark', 'bluefin', 'anglerfish', 'arapaima', 'sea_turtle', 'oarfish', 'sunfish', 'steller_sea_lion', 'hammerhead',
+    'marlin', 'whale_shark', 'great_white', 'manta', 'swordfish', 'coelacanth', 'megamouth', 'giant_squid', 'japanese_sea_lion', 'rising',
+    'astral', 'kraken'
+  ]::text[]), false);
+$$;
+revoke all on function private.fish_family_ok(text) from public, anon, authenticated;
+
+notify pgrst, 'reload schema';
+commit;
+
+-- ── migrations/20261114020000_fish_families_shrimp.sql ──
+-- 새우류 3계열(2026-11-14) — 체리새우 · 대하 · 독도새우를 낚시 순위 · 크기 순위가 아는 계열 목록에 더한다.
+-- 20261107100000_fish_families_mammals 의 private.fish_family_ok 와 같은 정의에 계열만 늘렸다(목록은 src/lib/aquarium.ts 의 FAMILIES 순서 — serverguard.test 가 견준다).
+-- 함수 하나를 다시 정의할 뿐이다 — 표 · 행 · 다른 함수 · 권한은 그대로. 몇 번 다시 돌려도 같다.
+begin;
+
+create or replace function private.fish_family_ok(p_family text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(p_family = any (array[
+    'guppy', 'ricefish', 'cherry_shrimp', 'pale_chub', 'zebra_danio', 'corydoras', 'platy', 'chinese_minnow', 'crucian', 'lanternfish',
+    'molly', 'anchovy', 'dark_chub', 'goby', 'loach', 'bluegill', 'tetra', 'saury', 'smelt', 'sweetfish',
+    'bitterling', 'goldfish', 'hatchetfish', 'gourami', 'boxfish', 'butterflyfish', 'bullhead', 'mudskipper', 'sleeper', 'gudgeon',
+    'betta', 'scorpionfish', 'halfbeak', 'pleco', 'mackerel', 'rockfish_bollak', 'catfish', 'fleshy_prawn', 'flounder', 'shiri',
+    'common_carp', 'rockfish', 'blue_tang', 'masu_salmon', 'angel', 'filefish', 'black_seabream', 'oscar', 'sailfin_sandfish', 'dokdo_shrimp',
+    'starfish', 'largemouth_bass', 'rainbow_trout', 'skygazer', 'cod', 'spanish_mackerel', 'clown', 'sea_bream', 'snakehead', 'mandarin_fish',
+    'blobfish', 'jellyfish', 'perch_kkeokji', 'sea_bass', 'lionfish', 'hairtail', 'salmon', 'piranha', 'cutlassfish_pollock', 'squid',
+    'discus', 'char', 'otter', 'nurse_shark', 'parrotfish', 'moray', 'leopard_shark', 'barracuda', 'grass_carp', 'skate',
+    'koi', 'croaker', 'eel', 'yellowtail', 'seahorse', 'barred_knifejaw', 'spotted_seal', 'ray', 'fur_seal', 'viperfish',
+    'octopus', 'goosefish', 'gulper_eel', 'striped_jack', 'grouper', 'lenok', 'puffer', 'sea_otter', 'dolphinfish', 'electric_eel',
+    'arowana', 'redtail_catfish', 'blue_shark', 'sturgeon', 'frilled_shark', 'bluefin', 'anglerfish', 'arapaima', 'sea_turtle', 'oarfish',
+    'sunfish', 'steller_sea_lion', 'hammerhead', 'marlin', 'whale_shark', 'great_white', 'manta', 'swordfish', 'coelacanth', 'megamouth',
+    'giant_squid', 'japanese_sea_lion', 'rising', 'astral', 'kraken'
+  ]::text[]), false);
+$$;
+revoke all on function private.fish_family_ok(text) from public, anon, authenticated;
+
+notify pgrst, 'reload schema';
+commit;
+
+-- ── migrations/20261114030000_fish_families_orca.sql ──
+-- 범고래(2026-11-14) 를 낚시 순위 · 크기 순위가 아는 계열 목록에 더한다.
+-- 20261114020000_fish_families_shrimp 의 private.fish_family_ok 와 같은 정의에 계열만 늘렸다(목록은 src/lib/aquarium.ts 의 FAMILIES 순서 — serverguard.test 가 견준다).
+-- 함수 하나를 다시 정의할 뿐이다 — 표 · 행 · 다른 함수 · 권한은 그대로. 몇 번 다시 돌려도 같다.
+begin;
+
+create or replace function private.fish_family_ok(p_family text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(p_family = any (array[
+    'guppy', 'ricefish', 'cherry_shrimp', 'pale_chub', 'zebra_danio', 'corydoras', 'platy', 'chinese_minnow', 'crucian', 'lanternfish',
+    'molly', 'anchovy', 'dark_chub', 'goby', 'loach', 'bluegill', 'tetra', 'saury', 'smelt', 'sweetfish',
+    'bitterling', 'goldfish', 'hatchetfish', 'gourami', 'boxfish', 'butterflyfish', 'bullhead', 'mudskipper', 'sleeper', 'gudgeon',
+    'betta', 'scorpionfish', 'halfbeak', 'pleco', 'mackerel', 'rockfish_bollak', 'catfish', 'fleshy_prawn', 'flounder', 'shiri',
+    'common_carp', 'rockfish', 'blue_tang', 'masu_salmon', 'angel', 'filefish', 'black_seabream', 'oscar', 'sailfin_sandfish', 'dokdo_shrimp',
+    'starfish', 'largemouth_bass', 'rainbow_trout', 'skygazer', 'cod', 'spanish_mackerel', 'clown', 'sea_bream', 'snakehead', 'mandarin_fish',
+    'blobfish', 'jellyfish', 'perch_kkeokji', 'sea_bass', 'lionfish', 'hairtail', 'salmon', 'piranha', 'cutlassfish_pollock', 'squid',
+    'discus', 'char', 'otter', 'nurse_shark', 'parrotfish', 'moray', 'leopard_shark', 'barracuda', 'grass_carp', 'skate',
+    'koi', 'croaker', 'eel', 'yellowtail', 'seahorse', 'barred_knifejaw', 'spotted_seal', 'ray', 'fur_seal', 'viperfish',
+    'octopus', 'goosefish', 'gulper_eel', 'striped_jack', 'grouper', 'lenok', 'puffer', 'sea_otter', 'dolphinfish', 'electric_eel',
+    'arowana', 'redtail_catfish', 'blue_shark', 'sturgeon', 'frilled_shark', 'bluefin', 'anglerfish', 'arapaima', 'sea_turtle', 'oarfish',
+    'sunfish', 'steller_sea_lion', 'hammerhead', 'marlin', 'whale_shark', 'great_white', 'manta', 'swordfish', 'coelacanth', 'megamouth',
+    'giant_squid', 'japanese_sea_lion', 'orca', 'rising', 'astral', 'kraken'
+  ]::text[]), false);
+$$;
+revoke all on function private.fish_family_ok(text) from public, anon, authenticated;
+
+notify pgrst, 'reload schema';
+commit;
+
+-- ── migrations/20261114040000_drop_adventure.sql ──
+-- 모험 DB 정리 [2026-11-15] [사용자: "정리할거 정리하고" — 모험은 같은 날 앱에서 걷었다(README §14.6)]
+-- 모험(생물 잡기 · 실시간 전투 · 온라인 대전)의 화면 · 엔진 · 대전 함수 소스는 레포에서 지웠다. 부르는 앱이 없어 새 기록이 쌓일 길도 없다.
+-- 남은 표 넷 · RPC · 크론 · 트리거 함수를 내린다.
+--
+-- ⚠ 되돌릴 수 없는 drop 이라 같은 트랜잭션 안에서 **먼저 백업**한다 — 표마다 모든 행을 jsonb 로 private.adventure_backup 에 한 줄씩(작다: 저장 2 · 팀 1 · 대전 1).
+--   되살리려면 옛 migration(20261107030000 · 040000 · 050000 · 070000)의 create 블록을 다시 실행하고 이 백업의 rows 를 jsonb_populate_recordset 으로 넣는다.
+-- 계정 삭제 함수(purge_account_data)는 이 표들을 부르지 않는다(외래키 on delete cascade 로 지워졌다) — 그래서 함수는 그대로 둔다.
+-- 앱의 내보내기 목록(accountPolicy)에서 같은 커밋으로 뺐다. 옛 앱의 내보내기는 없는 표를 건너뛴다(42P01 · PGRST205).
+-- 배포된 엣지 함수 adventure-battle 은 SQL 로 못 지운다 — 대시보드 Edge Functions 에서 지운다(부르는 앱 없음, 이 뒤로는 부르면 DB 오류만 난다).
+-- 한 트랜잭션 · 다시 돌려도 안전하다(if exists · 백업은 표가 있을 때만). schema.sql 끝에 그대로 붙는다.
+begin;
+
+-- ── 1) 백업 ─────────────────────────────────────────────────────────────────────
+create table if not exists private.adventure_backup (
+  tbl text not null,
+  taken_at timestamptz not null default now(),
+  rows jsonb not null
+);
+revoke all on private.adventure_backup from public, anon, authenticated;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['adventure_saves', 'adventure_teams', 'adventure_ratings', 'adventure_matches'] loop
+    if to_regclass('public.' || t) is not null then
+      execute format('insert into private.adventure_backup (tbl, rows) select %L, coalesce(jsonb_agg(to_jsonb(x)), ''[]''::jsonb) from public.%I x', t, t);
+    end if;
+  end loop;
+end $$;
+
+-- ── 2) 크론 ─────────────────────────────────────────────────────────────────────
+do $$
+begin
+  if to_regclass('cron.job') is not null and exists (select 1 from cron.job where jobname = 'adventure-retention-daily') then
+    perform cron.unschedule('adventure-retention-daily');
+  end if;
+end $$;
+
+-- ── 3) RPC ──────────────────────────────────────────────────────────────────────
+drop function if exists public.adventure_board(integer);
+drop function if exists public.adventure_candidates(uuid, integer, integer);
+drop function if exists public.adventure_finish(uuid, uuid, boolean, integer, jsonb, jsonb, integer, integer);
+drop function if exists public.adventure_history();
+drop function if exists public.adventure_nick_taken(text, uuid);
+drop function if exists public.adventure_save(jsonb, integer);
+drop function if exists public.adventure_settle(uuid, uuid, boolean, integer, integer);
+drop function if exists public.adventure_today(uuid);
+drop function if exists private.adventure_retention();
+
+-- ── 4) 표(정책 · 트리거 · 인덱스가 같이 내려간다) → 트리거 함수 ─────────────────
+drop table if exists public.adventure_matches;
+drop table if exists public.adventure_ratings;
+drop table if exists public.adventure_teams;
+drop table if exists public.adventure_saves;
+drop function if exists private.adventure_matches_cap();
+drop function if exists private.adventure_matches_scrub_name();
+
+notify pgrst, 'reload schema';
+commit;
+
+-- ── migrations/20261114050000_merge_weekly.sql ──
 -- 정원 합치기 주간 도전판 (2026-11-13) [사용자 승인: "합치기 주간 도전판"]
 -- 주(KST 월요일 0시 ~ 다음 월요일 0시 전)마다 특별한 판 규칙 하나(돌밭 · 60수 · 같은 출발 · 거름 풍년 · 넓은 밭)를 정하고,
 -- 커플 점수 = 그 주 두 사람 각자의 최고 도전 점수의 합으로 커플 순위를 낸다.
@@ -6712,7 +6872,7 @@ grant execute on function public.merge_weekly_board(date) to authenticated;
 notify pgrst, 'reload schema';
 commit;
 
--- ── migrations/20261107110000_time_capsule.sql ──
+-- ── migrations/20261114060000_time_capsule.sql ──
 -- 타임캡슐 편지 (2026-11-13) — README §10.26
 --
 -- 한 사람이 편지(글 2000자 이하 · 사진 한 장은 선택)를 쓰고 여는 날(내일 ~ 10년 뒤, KST 날짜)을 고른다.
@@ -7340,7 +7500,7 @@ begin
   delete from public.quiz_responses where user_id = p_user;
   delete from public.mood_checkins where user_id = p_user;
   delete from public.habit_checkins where user_id = p_user; -- 같이 하는 습관 체크(개인 기록) [2026-11-13]
-  delete from public.time_capsules where created_by = p_user; -- 타임캡슐 편지(쓴 것) [2026-11-13] — 20261107110000 의 purge 에 있던 줄. 이 정의가 마지막이라 옮긴다
+  delete from public.time_capsules where created_by = p_user; -- 타임캡슐 편지(쓴 것) [2026-11-13] — 20261114060000 의 purge 에 있던 줄. 이 정의가 마지막이라 옮긴다
   delete from public.chat_reads where user_id = p_user;
   delete from public.pokes where from_user = p_user;
   delete from public.letters where from_user = p_user; -- 편지 본문도 개인 데이터다 [2026-08-26]

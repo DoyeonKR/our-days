@@ -1602,9 +1602,6 @@ export type IslandState = {
   /** 낚시 업그레이드(2026-11-12) — 편지 · 숙련도 · 보물 · 만든 미끼 · 꾸미기 …. 옵셔널 = 무마이그레이션. 읽기는 fishplus.ts 의 fishPlusOf() 로.
    *  s.fishing 안에 두면 fishingOf 가 아는 칸만 다시 만들어 지운다(옛 앱도) — 그래서 맨 위 칸이다 */
   fishPlus?: Record<string, unknown>;
-  /** 모험 커플 레이드(2026-11-13) — 이번 주 영물에 둘이 깎은 기록. 옵셔널 = 무마이그레이션. 읽기 · 쓰기는 advraid.ts(raidOf · raidOpenIsland · raidHitIsland).
-   *  모험 저장(adventure_saves)은 사람마다 한 줄이고 RLS 가 자기 것만 보여 줘서 상대 몫을 못 읽는다 — 그래서 커플이 같이 보는 섬 맨 위 칸이다 */
-  advRaid?: unknown;
   /* (bubble — 보글보글 기록. 게임은 2026-09-24 지웠다. 옛 저장분에 남은 칸은 clone 의 ...s 로
      그대로 흘러가기만 하고 아무도 안 읽는다 — 지우려고 쓰기를 따로 하지 않는다.) */
   sets: string[]; // 완성 세트 id
@@ -3030,6 +3027,36 @@ function applyDishEffect(s: IslandState, p: Product, star: number, now: number):
   pushLog(s, `${l.emoji} '${l.name}' 효과! ${l.unit}${e.kind === "quality" ? e.amount : `${e.amount}%`} (${Math.round(e.hours * m)}시간)`);
 }
 
+/** 창고 재료 그냥 팔기(2026-11-14) [사용자: "섬에서 농작물 그냥 팔 수 있도록 적정가 측정 · 음식 값에 비례해서 더 저렴하게"] —
+ *  예전엔 창고의 작물 · 꿀 · 달걀 · 우유는 먹이기 · 요리 · 주문 · 퇴비에만 쓰여, 남는 재료를 돈으로 바꿀 길이 없었다.
+ *  값은 요리와 같은 식(기본값 × (0.6 + 0.4 × ★배수))에 BARN_SELL_SHARE 를 곱한다 — 작물은 거둘 때 이미 판매가를 받았고(수확 코인),
+ *  창고 몫은 덤이라 0.4(★1 이면 수확 값의 40%, ★5 면 22% 를 더 받는다 — 2026-11-11 리뷰로 줄인 농사 수입을 다시 크게 늘리지 않게). 그래서 같은 재료로 만든 요리(재료 판매가 합보다 비싸다)를 파는 쪽이 늘 더 낫다(요리할 이유가 남는다).
+ *  생산 재료(꿀 · 달걀 · 우유)는 모을 때 코인이 없어서 0.6. */
+export const BARN_SELL_SHARE = { crop: 0.4, goods: 0.6 } as const;
+export function barnSellPrice(key: string, star: number): number {
+  const it = barnItem(key);
+  if (!it) return 0;
+  const mult = TUNING.farm.starMult[clamp(Math.round(star) || 1, 1, 5)];
+  return Math.max(1, Math.round(it.sell * (0.6 + 0.4 * mult) * (it.goods ? BARN_SELL_SHARE.goods : BARN_SELL_SHARE.crop)));
+}
+/** 창고 재료를 qty 개 판다(가진 것보다 많으면 가진 만큼). 장사 수완 효과 · 카페 세트는 요리 팔기와 똑같이 붙는다 */
+export function sellBarn(s0: IslandState, key: string, qty: number, now: number): IslandState {
+  const b = s0.farm.barn[key];
+  const n = Math.min(Math.floor(qty), b?.qty ?? 0);
+  if (!b || n <= 0 || !barnItem(key)) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  const box = s.farm.barn[key]!;
+  const each = barnSellPrice(key, box.star);
+  box.qty -= n;
+  if (box.qty <= 0) delete s.farm.barn[key];
+  const coins = Math.round(each * n * (1 + buffAmount(s, "sell", now) / 100) * (s.sets.includes("cafe") ? SET_PERK.cafeSell : 1));
+  s.coins += coins;
+  const it = barnItem(key)!;
+  pushLog(s, `${it.emoji} ${it.name} ${n}개를 팔았어요 +${coins}💗`);
+  return s;
+}
+
 /** 찬장 요리 쓰기 — 먹이기(간식·효과) / 팔기 / 선물. 조리대 수령과 같은 값(dishPayout)을 쓴다. */
 export function pantryAction(s0: IslandState, key: ProductKey, use: "sell" | "treat" | "gift", now: number): IslandState {
   const b = s0.farm.pantry?.[key];
@@ -3448,13 +3475,15 @@ export function setAutoReplant(s0: IslandState, on: boolean): IslandState {
   return s;
 }
 
-export function buyFertilizer(s0: IslandState, gold: boolean): IslandState {
+/** 비료 · 골드비료 사기 — count 개를 한 번에(2026-11-15 [사용자: "농장 비료 황금비료 10개씩 구매 가능하게"]). 값은 개수만큼 그대로(묶음 할인 없음), 하트가 모자라면 아무것도 안 산다 */
+export function buyFertilizer(s0: IslandState, gold: boolean, count = 1): IslandState {
+  const n = Math.max(1, Math.min(99, Math.floor(count)));
+  const cost = (gold ? TUNING.farm.goldFertilizer : TUNING.farm.fertilizer) * n;
+  if (s0.coins < cost) return s0;
   const s = clone(s0);
-  const cost = gold ? TUNING.farm.goldFertilizer : TUNING.farm.fertilizer;
-  if (s.coins < cost) return s0;
   s.coins -= cost;
-  if (gold) s.farm.gold += 1;
-  else s.farm.fert += 1;
+  if (gold) s.farm.gold += n;
+  else s.farm.fert += n;
   return s;
 }
 

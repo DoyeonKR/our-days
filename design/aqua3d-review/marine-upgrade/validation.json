@@ -1,0 +1,182 @@
+{
+  "results": [
+    {
+      "key": "oceanic_manta",
+      "sha256": "614cceae533ec81160a71f1c67f7f731ab6e34580f40bf682b84a55b6506f522",
+      "triangles": 6984,
+      "bytes": 61212,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinnedMeshes": 1,
+      "compressedErrors": 0,
+      "expandedErrors": 0,
+      "expandedWarnings": 0,
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 9.061916685985495e-8,
+        "maxDisplacement": 0.4702913531110368,
+        "maxRadius": 1.1942391171869624,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          1374.9509436488152,
+          282.8631271086633,
+          192.17549397051334,
+          187.11589171737432,
+          253.5199197269976,
+          113.3746243128553,
+          288.13275500014424,
+          445.86724622920156,
+          288.13275500014424,
+          445.86724622920156
+        ]
+      },
+      "visualApproval": "pending"
+    },
+    {
+      "key": "whale_shark",
+      "sha256": "c45f42015733e05f0c8d06ca102d3cae709a4a48973cadea82834160df16c09a",
+      "triangles": 6404,
+      "bytes": 86236,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinnedMeshes": 1,
+      "compressedErrors": 0,
+      "expandedErrors": 0,
+      "expandedWarnings": 0,
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 3.404582458466086e-8,
+        "maxDisplacement": 0.2549870388100192,
+        "maxRadius": 1.05613337657441,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          1254.8297103217337,
+          478.0635217688978,
+          280.05801583174616,
+          441.6208128519356,
+          288.77409076690674,
+          447.65384760499,
+          55.499473652103916,
+          82.50052625546232,
+          55.499473652103916,
+          82.50052625546232
+        ]
+      },
+      "visualApproval": "pending"
+    },
+    {
+      "key": "imugi_fish",
+      "sha256": "75bd0d776b1b1c79852a6809e5f20989c067abe57cb149525d91b2d87c378774",
+      "triangles": 6368,
+      "bytes": 100080,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinnedMeshes": 1,
+      "compressedErrors": 0,
+      "expandedErrors": 0,
+      "expandedWarnings": 0,
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 5.360165933125077e-8,
+        "maxDisplacement": 0.21151794413323174,
+        "maxRadius": 1.0205201418545098,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          2190.156847510487,
+          273.703808888793,
+          305.73575960006565,
+          329.540324319154,
+          322.0975810326636,
+          208.76568362303078,
+          9.446158558130264,
+          6.553841456770897,
+          9.446158558130264,
+          6.553841456770897
+        ]
+      },
+      "visualApproval": "pending"
+    }
+  ],
+  "validationNote": "Compressed container and expanded geometry both validated; WebP decoded losslessly only in private expanded validation copy."
+}

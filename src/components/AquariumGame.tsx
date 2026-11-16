@@ -3,6 +3,7 @@
 /* 우리 수조 화면 — 규칙은 전부 lib/aquarium(순수). 여기는 그리기와 저장뿐이다.
  * 저장은 사람이 무언가 했을 때 + 정산에 저장할 변화(자람 · 알 · 그물 판매 · 오늘의 손님 · 시계 보정)가 있을 때만 한다(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더).
  * 매분 다시 그리는 건 저장하지 않는 미리보기다. */
+import { HUNGRY_BELOW } from "@/lib/predation";
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { SPOTS, formsSeen, releaseToSea, releaseXp } from "@/lib/fishing";
@@ -22,7 +23,7 @@ import { feedSpot } from "@/lib/aqua3d/world";
 import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWaits, mealEndOf } from "@/lib/aqua3d/hunt";
 import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
-  aquaDangers, aquaEffects, buyDecor, fishAge, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
+  aquaDangers, aquaEffects, buyDecor, eatenReplays, fishAge, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
   fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
   releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
@@ -273,8 +274,8 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   const nextGate = tankGate(view.state, a, a.tank + 1);
   /** 상성이 안 맞는 짝(lib/predation) — 배가 고프면 잡아먹는다. 미리 알려 먹이로 지킬 수 있게 */
   const dangers = aquaDangers(a);
-  // 잡아먹기 소식 — 최근 것부터 6개(소식은 섬 저장에 최근 몇십 개만 남는다)
-  const eaten = (a.news ?? []).filter((x) => x.ate).slice(-6).reverse();
+  // 잡아먹기 소식 — 24시간 안의 것만 최근 것부터 6개(2026-11-15 — 지나면 다시 보기 목록에서 저절로 빠진다, eatenReplays)
+  const eaten = eatenReplays(a.news, now || gameNow());
   const tk = tankOf(a);
   // 계절 수조 행사(2026-11-13, lib/aquaevent) — 정산과 같은 배율로 남은 시간을 보인다. 카드 · 3D 그림은 개발용 덮어쓰기를 따른다
   const fx = aquaEffects(a, modsAt(a.at));
@@ -399,7 +400,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
             {dangers.length > 0 && (
               <p className={`aqua-danger ${a.hunger < 60 ? "is-hungry" : ""}`} role="note">
                 <b>상성 주의</b> {dangerLine(dangers)}
-                <small>{a.hunger < 60 ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : `약 ${Math.max(1, Math.round(((a.hunger - 60) * fx.hungerHours) / 100))}시간 뒤 포만이 60 밑으로 내려가면 잡아먹어요`}</small>
+                <small>{a.hunger < HUNGRY_BELOW ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : `약 ${Math.max(1, Math.round(((a.hunger - HUNGRY_BELOW) * fx.hungerHours) / 100))}시간 뒤 포만이 ${HUNGRY_BELOW} 밑으로 내려가면 잡아먹어요`}</small>
               </p>
             )}
             {eaten.length > 0 && (
@@ -607,7 +608,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                   const sp = speciesOf(f.species);
                   return (
                     <li key={f.id}>
-                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => setSelFish(selFish === f.id ? null : f.id)}>
+                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => { const on = selFish !== f.id; setSelFish(on ? f.id : null); /* 2026-11-14 [사용자: "하단에 물고기 선택하면 수조에 포커싱 되도록"] — 목록은 수조 아래라 골라도 카메라가 다가가는 걸 못 봤다. 고르면 수조로 올라간다 */ if (on) stageRef.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }}>
                         <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
                         {/* 변이 표는 이름 칸 안에 — 오른쪽 등급 · 남은 시간 칸을 375px 밖으로 밀어내지 않게(넘치면 길이 글이 먼저 잘린다) */}
                         <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)}<MorphTag morph={fishMorph(a, f)} /> <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
@@ -736,7 +737,7 @@ function EatenCard({ g, onNext, onReplay }: { g: AquaNews; onNext: () => void; o
         <p className="aqua-grown-kicker">잡아먹혔어요…</p>
         <span className="aqua-eaten-pics"><span className="aqua-grown-pic"><FishArt artKey={fishArtKey(pred)} /></span><i aria-hidden>▶</i><span className="aqua-grown-pic is-gone"><FishArt artKey={fishArtKey(prey)} /></span></span>
         <strong>{josa(fishName(pred), "이/가")} {josa(fishName(prey), "을/를")} 잡아먹었어요</strong>
-        <small className="aqua-note">상성이 안 맞는 물고기는 배가 고프면 사냥해요. 포만을 60 위로 두면 안전해요</small>
+        <small className="aqua-note">상성이 안 맞는 물고기는 배가 고프면 사냥해요. 포만을 {HUNGRY_BELOW} 위로 두면 안전해요</small>
         <ActionButton main wide data-dialog-initial onClick={onNext}>확인</ActionButton>
         {onReplay && <ActionButton wide onClick={onReplay}>▶ 사냥꾼 시점으로 다시 보기</ActionButton>}
       </div>

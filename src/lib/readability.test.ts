@@ -63,3 +63,11 @@ test("트렌드 층 — 떠 있는 유리 탭 바 · 큰 제목 · 흐림 미지
   assert.match(css, /\.tab-header-v2 \.tab-header-emblem \{ display: none; \}/);
   assert.doesNotMatch(read("../app/page.tsx"), /startViewTransition\(/, "WebKit 에서 페이지가 죽었다");
 });
+
+test("크기 기록 전광판 — 커플이면 표 위에 '나 N : M 상대'를 크게, 앞선 쪽이 빛난다(2026-11-14)", () => {
+  const p = read("../components/FishingPanels.tsx");
+  assert.match(p, /\{couple && <SizeScore rows=\{rows\} who=\{who\} \/>\}/);
+  assert.match(p, /if \(mine > other\) me\+\+; else if \(other > mine\) partner\+\+; else tie\+\+;/);
+  assert.match(css, /\.fish-score\.is-me \.fish-score-side\.is-me b \{ font-size: 64px/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.fish-score-side b \{ animation: none/);
+});

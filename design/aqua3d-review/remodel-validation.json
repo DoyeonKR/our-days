@@ -1,0 +1,1952 @@
+{
+  "complete": true,
+  "results": [
+    {
+      "key": "fry_spotted_seal",
+      "triangles": 2800,
+      "bytes": 53448,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.753380078765829e-8,
+        "maxDisplacement": 0.2762369251138766,
+        "maxRadius": 1.066919939073298,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          170.65329956798814,
+          242.30899522313848,
+          228.11366499168798,
+          192.00405890773982,
+          259.86196668143384,
+          679.0580145902932,
+          81.93807877972722,
+          75.06192140001804,
+          72.96534672379494,
+          72.03465331345797
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "c828e1336d1fc5f7954dfabed5a5bfca46a76972eb1dbb995ee06b1594269252",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_spotted_seal",
+      "triangles": 2924,
+      "bytes": 61764,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.680541797406486e-8,
+        "maxDisplacement": 0.281208575696149,
+        "maxRadius": 1.0568922359963022,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          149.9989475836046,
+          203.7919735563919,
+          201.18626677547581,
+          253.06224300782196,
+          472.6025630137883,
+          770.3580073844641,
+          71.8662091344595,
+          73.13379108719528,
+          77.50217479094863,
+          75.49782557785511
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "b53158ce7368eb1e11ebbc0e9812bce5690c5e2eee4f550667239da58fd685c2",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "spotted_seal",
+      "triangles": 2784,
+      "bytes": 61184,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.707800800393132e-8,
+        "maxDisplacement": 0.2757289572669159,
+        "maxRadius": 1.0438070362453338,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          162.48612170759588,
+          226.0889597646892,
+          225.46272942703217,
+          223.82326999562792,
+          262.5583738111891,
+          710.5805448815227,
+          81.17900440841913,
+          69.82099705003202,
+          68.96760508790612,
+          72.03239459404722
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "e39b32845c6d026504e27a61a845ec926fea8db79106f48846a1fee5c0265e89",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_fur_seal",
+      "triangles": 2728,
+      "bytes": 54468,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 5.054572687510577e-8,
+        "maxDisplacement": 0.33722654229822047,
+        "maxRadius": 1.2465011848211003,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          136.54648664407432,
+          190.5144735877402,
+          561.3806213000789,
+          184.26451508072205,
+          223.75303248642012,
+          525.540870429948,
+          74.15962433069944,
+          60.84037550073117,
+          70.68216982483864,
+          68.31782969273627
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "1a442b2b648b39508d46d8a50de65584648166f698dc2673be95185ae171112d",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_fur_seal",
+      "triangles": 2756,
+      "bytes": 55384,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.6879562276199266e-8,
+        "maxDisplacement": 0.2771063002399511,
+        "maxRadius": 1.0491892544894408,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          208.43173835240304,
+          257.4360422594473,
+          378.60744596016593,
+          258.2992908975575,
+          272.82005046866834,
+          281.4054321462754,
+          72.59653633832932,
+          68.40346359461546,
+          76.52901539579034,
+          68.47098492830992
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "4f7fe5a1fb596c0c1fc431a5d275e5372dd027986768b6e914c5df86110b8177",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fur_seal",
+      "triangles": 2764,
+      "bytes": 57676,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 5.141692466081933e-8,
+        "maxDisplacement": 0.28433702987556575,
+        "maxRadius": 1.1417426458283328,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          158.24449574272148,
+          270.5026015327312,
+          294.89958051149733,
+          178.89698650478385,
+          285.5978025337681,
+          609.8585329048801,
+          74.83369197137654,
+          66.16630805144086,
+          67.25987662374973,
+          66.74012348148972
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "185ecd63178ecf5190cc548e90ec15a019cd26f8c66946abed838f96003f5117",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_steller_sea_lion",
+      "triangles": 2752,
+      "bytes": 56452,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.991588265439245e-8,
+        "maxDisplacement": 0.2950768453000546,
+        "maxRadius": 1.1974610677196564,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          165.13986425288022,
+          270.1717096976936,
+          274.53818595712073,
+          188.96989363781177,
+          261.1384136611596,
+          527.0419317889027,
+          79.6834366619587,
+          72.31656347215176,
+          78.28342057578266,
+          67.71657869918272
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "f8179fe04a91eec932c6f38614a79f957f43b52e5b0af126da10a4c74dcf1ae2",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_steller_sea_lion",
+      "triangles": 2764,
+      "bytes": 58192,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.976017746320212e-8,
+        "maxDisplacement": 0.2920330870591817,
+        "maxRadius": 1.1913573528648063,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          173.7825895785354,
+          253.32059190492146,
+          248.6244600515347,
+          195.58147593447939,
+          260.60564517695457,
+          569.0852370720822,
+          91.26396577060223,
+          73.736034440808,
+          74.46040996909142,
+          74.53958935849369
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "d54b107219b96d8cf46a30a1704a8112531dd9a8ddb312f14d0d763da35f2ed4",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "steller_sea_lion",
+      "triangles": 2736,
+      "bytes": 63776,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 5.05009183036871e-8,
+        "maxDisplacement": 0.3040506405387637,
+        "maxRadius": 1.2379809278010032,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          196.2013586012181,
+          317.2047909575049,
+          256.8798814495094,
+          177.6941482697148,
+          256.38483267789707,
+          511.63498982344754,
+          72.94599878042936,
+          68.05400181561708,
+          65.93302738666534,
+          65.0669718454592
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "f87b60ca9f2d104aa65b2db83f72c173c8d582eb75abe5af2f76c3f9fc608195",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_japanese_sea_lion",
+      "triangles": 2740,
+      "bytes": 56480,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.789653026524347e-8,
+        "maxDisplacement": 0.29569771656805893,
+        "maxRadius": 1.1533757270770562,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          172.77560095768422,
+          224.83350860211067,
+          287.2478212802671,
+          209.96514822519384,
+          307.4288697466254,
+          510.74905047472566,
+          76.47402114421129,
+          69.52597840782255,
+          66.08831904828548,
+          67.91168049070984
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "eef92c3f670a4f0ded55c04c71d94a6fbe8d0e52785b041e9e1cc593a3df3de2",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_japanese_sea_lion",
+      "triangles": 2748,
+      "bytes": 55744,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.9419478137420125e-8,
+        "maxDisplacement": 0.27865404117863457,
+        "maxRadius": 1.0788544971040979,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          150.70345583185554,
+          187.4136721440591,
+          253.5588156473823,
+          192.98597737005912,
+          319.42092038691044,
+          684.9171579973772,
+          73.44310627877712,
+          72.55689327605069,
+          72.0218200692907,
+          70.97817965969443
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "a1454c82204ed589e4723b26de4ec6e4e9f6e86dbd991a0d050f705a25f9ef13",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "japanese_sea_lion",
+      "triangles": 2752,
+      "bytes": 55136,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 5.189805261208023e-8,
+        "maxDisplacement": 0.3129332594214164,
+        "maxRadius": 1.2468688330180322,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          233.0694591293577,
+          305.82600178569555,
+          279.6711529851891,
+          227.61191821238026,
+          241.39015799947083,
+          333.43131169932894,
+          65.85900638252497,
+          65.14099349826574,
+          73.73327273502946,
+          77.26672780048102
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "ad5e44b0016fbf0e558e927baaae5d82786c34fe9e0963a94484647da5c88dd7",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_sea_otter",
+      "triangles": 2808,
+      "bytes": 61004,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.8338338693354146e-8,
+        "maxDisplacement": 0.291544559159397,
+        "maxRadius": 1.1071039915374314,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          195.30586714996025,
+          275.71763116447255,
+          244.6865187450312,
+          226.85200263466686,
+          331.0583959519863,
+          430.37958302535117,
+          89.48883825540543,
+          75.51116162166,
+          75.56574334204197,
+          77.43425679951906
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "983c226b8a339dd9d9a6847473915ab0ae2aedde1714f5ab80db147f736b5763",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_sea_otter",
+      "triangles": 2928,
+      "bytes": 60380,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.628360001511555e-8,
+        "maxDisplacement": 0.30035025455263903,
+        "maxRadius": 1.1299199178591197,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          213.30377697432414,
+          358.6097191423178,
+          249.218067308655,
+          242.15085060778074,
+          366.3058974281885,
+          546.4116878062487,
+          57.81179554294795,
+          59.18820468150079,
+          62.56993964314461,
+          64.43006025766954
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "62417a0bda85f2b070ba255442c92cf6190bd943872ac751d39471caff0e9a4c",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "sea_otter",
+      "triangles": 2930,
+      "bytes": 61656,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.5986611613466185e-8,
+        "maxDisplacement": 0.27105129840333714,
+        "maxRadius": 1.0295867176522555,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          188.55848020501435,
+          260.52774837915786,
+          247.1925233604852,
+          245.62948044133373,
+          408.6576181659475,
+          564.4341489365324,
+          70.6685744188726,
+          69.33142617344856,
+          70.84196180850267,
+          71.15803762897849
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "fde7ebd7da798fedc0859645ea7a48ad9ff3a6fb0f36a90ccedfca979d49a0ef",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_otter",
+      "triangles": 2772,
+      "bytes": 55800,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.557538699586441e-8,
+        "maxDisplacement": 0.271129981710257,
+        "maxRadius": 1.007258099992576,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          197.7301440348383,
+          298.26495745871216,
+          291.2699928279035,
+          267.0564127215184,
+          262.2146638731938,
+          97.4638284840621,
+          138.04644793272018,
+          163.95355119090527,
+          142.90748444199562,
+          166.09251484647393
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "0b44aa44ef3338af00ad50519c40011e08404acee1fc8f67369be1b38c1fb945",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_otter",
+      "triangles": 2904,
+      "bytes": 58308,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.287554206880192e-8,
+        "maxDisplacement": 0.27225104270326655,
+        "maxRadius": 1.0373636577642062,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          180.1430075066164,
+          276.6354470392689,
+          261.3821010456886,
+          243.67678389395587,
+          547.8254208238795,
+          297.337240253808,
+          81.95275816693902,
+          74.04724212363362,
+          90.51036860048771,
+          78.4896318372339
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "37d609359971a06e22c5cbc27b3f48591240179bfd6b50c9724c30bf3a58728b",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "otter",
+      "triangles": 2808,
+      "bytes": 53220,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.6421938905283427e-8,
+        "maxDisplacement": 0.27106830889506034,
+        "maxRadius": 1.0332520816135993,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          190.53128847572953,
+          300.7918520346284,
+          251.41521359374747,
+          263.3304487608839,
+          265.2969250129536,
+          109.6342716559302,
+          160.09741404652596,
+          168.9025861211121,
+          143.65914441645145,
+          148.34085641987622
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "e2681cba355242809e9dac60198ed6936625641517315ee7ccc2a836d0b7fe34",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_orca",
+      "triangles": 2920,
+      "bytes": 54568,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.764961245122196e-8,
+        "maxDisplacement": 0.2965465163920807,
+        "maxRadius": 1.1218756589210395,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          174.7698331773281,
+          240.99992369883694,
+          310.454154177336,
+          325.35600895853713,
+          250.2474250071682,
+          559.1726560899988,
+          85.13379091024399,
+          74.86620886577293,
+          71.6695658992976,
+          66.33043374912813
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "9aab522ff606894417ab7d10322cc4421bd59d71d756301af315de585b194330",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_orca",
+      "triangles": 2856,
+      "bytes": 50932,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.8160319955923455e-8,
+        "maxDisplacement": 0.29001630950878493,
+        "maxRadius": 1.1020321693851727,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          206.1484093037434,
+          302.6509195389226,
+          379.4953078685794,
+          233.08549614669755,
+          228.43314301688224,
+          514.1867251265794,
+          73.3010902479291,
+          73.6989081799984,
+          82.19716158509254,
+          83.80283777555451
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "3c0f92a0dcf204770d47f242d99d5e08f4fb311da8976e78abaa4b832a4fa76b",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "orca",
+      "triangles": 2912,
+      "bytes": 49716,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.656483059399841e-8,
+        "maxDisplacement": 0.29401022837069446,
+        "maxRadius": 1.125553975302719,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          170.0305633842945,
+          263.5785455626901,
+          344.1676361300051,
+          258.3485771610867,
+          178.80317430663854,
+          620.0715039793868,
+          95.54399904608727,
+          75.4560004370287,
+          95.61855445057154,
+          79.38144556712359
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "49c39a1a9c6e1cb8747ba82164ea529e9c7e17f35f9c756b617f77ddc206dbae",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_octopus",
+      "triangles": 4984,
+      "bytes": 103588,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.7361143972006106e-8,
+        "maxDisplacement": 0.2709989785227884,
+        "maxRadius": 1.0172462247674507,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          506.24805843643844,
+          672.8623024725821,
+          775.369297149824,
+          413.43123574531637,
+          276.7811395851895,
+          236.85928151733242,
+          323.2317095696926,
+          221.36700983252376,
+          314.4892499875277,
+          228.36070740176365
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "9a2da7e2469ad1cc6b541474a0ad328a9c72e879ee16a22f6298de196782135c",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_octopus",
+      "triangles": 4984,
+      "bytes": 110476,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.458670051621788e-8,
+        "maxDisplacement": 0.27090425025867243,
+        "maxRadius": 1.0623415567104308,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          505.71872151410207,
+          631.532707532635,
+          696.3306318270043,
+          553.122423205059,
+          266.5135578617919,
+          228.88206319790334,
+          309.57093204790726,
+          231.1793846236542,
+          302.2016636983026,
+          239.9479044501204
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "5677553b9fb0033f5a6a5577d26d4c60c65958fcd75df470cafc1eb938fb3bde",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "octopus",
+      "triangles": 4984,
+      "bytes": 116480,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 1.195816949749196e-7,
+        "maxDisplacement": 0.2799629847122214,
+        "maxRadius": 1.20831714546277,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          760.2356535056606,
+          317.70156415342353,
+          872.6686206206214,
+          667.1202734189574,
+          273.4827500632964,
+          160.69153927406296,
+          368.54196928814054,
+          212.80784272961318,
+          373.37491439888254,
+          209.37485281657428
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "9638498b8a9e165ea16ca83bed710456b2ff09b358c92b3180f30ef52b3034d7",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_squid",
+      "triangles": 5516,
+      "bytes": 97252,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.376512373540384e-8,
+        "maxDisplacement": 0.27107843495069267,
+        "maxRadius": 1.0080659573193853,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          194.89701227704063,
+          393.644464955898,
+          691.1027257740498,
+          483.6685124831274,
+          725.7125973040238,
+          775.0266880393028,
+          388.13350210990757,
+          211.06515519926324,
+          395.3239182650577,
+          201.42542135086842
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "5e2fef9a275188bc8220bc404512039184d02ba12523bcb71ce7d22c18076543",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_squid",
+      "triangles": 5648,
+      "bytes": 104036,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.161930294440564e-8,
+        "maxDisplacement": 0.2712377808843734,
+        "maxRadius": 1.0087873402289522,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          121.90040256804787,
+          350.4929435127415,
+          757.1684593933169,
+          518.4366676877253,
+          637.0332171928603,
+          1053.8195162431803,
+          412.0833754185587,
+          188.8665432324633,
+          410.5596087630838,
+          188.63926109834574
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "abbbcd507e5f4a9482ffde396986eefe8dc9909e7d368298f39c691aa85131b0",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "squid",
+      "triangles": 5400,
+      "bytes": 98556,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.767226694181286e-8,
+        "maxDisplacement": 0.2711147571930637,
+        "maxRadius": 1.1483697262761174,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          390.6704758738633,
+          556.5898538504262,
+          450.5104758697562,
+          380.4684527905192,
+          575.9672853050288,
+          746.3458305299282,
+          408.78468095650896,
+          184.11337424605154,
+          419.5720319862012,
+          172.97753794351593
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "70d97a21ff40d9751c9cc65408b26ae956f4c4f1858671a47a3230ddd534f3bd",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_giant_squid",
+      "triangles": 5400,
+      "bytes": 93696,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 3.8658983843344324e-8,
+        "maxDisplacement": 0.27231135164044185,
+        "maxRadius": 1.0185669634692653,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          126.82584668486379,
+          360.36003868095577,
+          680.8444510176778,
+          511.8740811389871,
+          640.7123067111243,
+          818.6350351572037,
+          409.5524376297835,
+          183.69652806734666,
+          415.94000173103996,
+          175.55927334306762
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "1ebe1e5f73f8989ab6a889513855afd4d5a8bfc539042d93e9febed34c5c950b",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_giant_squid",
+      "triangles": 5400,
+      "bytes": 94260,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 3.776954150422994e-8,
+        "maxDisplacement": 0.2758813780665105,
+        "maxRadius": 1.0468457759640408,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          94.48410541191697,
+          287.51450286246836,
+          807.9017185799312,
+          529.8392149747815,
+          643.8021665473934,
+          825.9594261946622,
+          476.1778457420878,
+          248.32083547860384,
+          322.19495108746924,
+          160.80523320869543
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "77365b1a6f36fd82bb60ccb5b61465fcdf64c27d7de158c8d72ceb71226a2f7a",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "giant_squid",
+      "triangles": 5808,
+      "bytes": 106412,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.775462231847934e-8,
+        "maxDisplacement": 0.2709477259092213,
+        "maxRadius": 1.2251389375379236,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          610.946908920072,
+          1085.9818729050457,
+          942.6610819441266,
+          262.1212788312696,
+          199.42545238533057,
+          258.36514840228483,
+          414.45180460158736,
+          249.84803441003896,
+          381.37125254725106,
+          280.8271609323565
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "75a3137100cbce8dcf7ff62a00ddd9c34675e41ac7362274427ad2f0c6a5672f",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_kraken",
+      "triangles": 4984,
+      "bytes": 102276,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 5.15571546651388e-8,
+        "maxDisplacement": 0.27106948283376536,
+        "maxRadius": 1.0649373510456634,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          581.6969605775084,
+          674.7626612074673,
+          887.3629208437633,
+          366.7072401957121,
+          233.58976107253693,
+          169.4814219470136,
+          299.4532542510424,
+          242.34653232758865,
+          301.1117267147638,
+          243.4875105007086
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "3feedd8877c75898b2d703a4232b1898cadb596079144b94bf0c6df746483f65",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_kraken",
+      "triangles": 5424,
+      "bytes": 112356,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 5.104180541335524e-8,
+        "maxDisplacement": 0.2968024414471175,
+        "maxRadius": 1.1142085550786476,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          297.0760149531998,
+          355.2706491362769,
+          795.1577924948651,
+          591.3539478916209,
+          458.04399104765616,
+          884.3480120962486,
+          325.819470226299,
+          228.23083782731555,
+          341.12085236236453,
+          212.57842320622876
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "375fefdc40525d9e9105c6bc9a742f22b923f966e8b35550c846a349ee9940fe",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "kraken",
+      "triangles": 4984,
+      "bytes": 115924,
+      "texture": [
+        512,
+        512
+      ],
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 5.001000524095182e-8,
+        "maxDisplacement": 0.27167050905906626,
+        "maxRadius": 1.0923428260139443,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          437.96007384499535,
+          613.1485308695119,
+          811.7360174434725,
+          362.1174345421605,
+          364.7036244997289,
+          389.0363775063306,
+          349.53812490962446,
+          216.41054380033165,
+          347.3277950203046,
+          213.02146895672195
+        ]
+      },
+      "compressedErrors": 0,
+      "decodedErrors": 0,
+      "validationTexture": "WebP pixels decoded losslessly to PNG only in private expanded validation copy",
+      "originalUnchanged": true,
+      "sha256": "3abafe634645a3803c53503172f74f491aa7b0290c50a3cc60edb4c431e10edf",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    }
+  ]
+}

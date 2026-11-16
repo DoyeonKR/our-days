@@ -116,7 +116,7 @@ export const HUNT: Readonly<Record<string, HuntProfile>> = {
   squid: { style: "wrap", jaw: J("none", 0, 0, 0, 0) },
   giant_squid: { style: "wrap", jaw: J("none", 0, 0, 0, 0) },
   kraken: { style: "wrap", jaw: J("none", 0, 0, 0, 0) },
-  // 4차(2026-11-13) — 방식 · 이빨 · 경첩은 design/FISH-EXPANSION-4-ART.md 의 '사냥' 칸
+  // 4차(2026-11-13) — 방식 · 이빨 · 경첩은 옛 4차 지침서(git 이력) — 최신은 design/ART-GUIDE.md 의 '사냥' 칸
   sleeper: { style: "ambush", jaw: J("needle", 40, 0.14, 0.95, 0.3) },
   skygazer: { style: "charge", jaw: J("needle", 40, 0.14, 0.95, 0.22) },
   rainbow_trout: { style: "charge", jaw: J("needle", 40, 0.14, 0.95, 0.22) },
@@ -140,6 +140,12 @@ export const HUNT: Readonly<Record<string, HuntProfile>> = {
   dolphinfish: { style: "charge", jaw: J("needle", 40, 0.14, 0.95, 0.2) },
   viperfish: { style: "ambush", jaw: J("fang", 18, 0.4, 1, 0.3) },
   frilled_shark: { style: "strike", jaw: J("needle", 40, 0.14, 0.95, 0.22) },
+  // 해양 포유류(2026-11-13) — 짐승의 이빨: 드문드문 큰 송곳니
+  spotted_seal: { style: "gulp", jaw: J("fang", 22, 0.3, 0.95, 0.2) },
+  fur_seal: { style: "charge", jaw: J("fang", 22, 0.32, 1, 0.18) },
+  steller_sea_lion: { style: "charge", jaw: J("fang", 20, 0.34, 1, 0.2) },
+  japanese_sea_lion: { style: "charge", jaw: J("fang", 20, 0.34, 1, 0.2) },
+  otter: { style: "strike", jaw: J("fang", 24, 0.3, 1, 0.16) },
 };
 const FALLBACK: HuntProfile = { style: "charge", jaw: J("saw", 40, 0.24, 0.9, 0.24) };
 export const huntOf = (family: string): HuntProfile => HUNT[family] ?? FALLBACK;

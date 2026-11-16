@@ -119,13 +119,17 @@ export async function sendEventPush(
   if (!sb) return;
   const target = go ?? CATEGORY_GO[category];
   const body = { couple_id: coupleId, category, title, message, ...(target ? { url: pushUrlFor(target) + focusQuery(focus) } : {}) };
+  let last = "";
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const { error } = await sb.functions.invoke("send-poke-push", { body });
-      if (!error) return; // 발송 요청 성공
-    } catch {
-      /* 네트워크 오류 → 재시도 */
+      if (!error) return; // 발송 요청 성공(전달 결과는 서버가 debug_logs 'push_out' 에 남긴다)
+      last = error.message;
+    } catch (e) {
+      last = e instanceof Error ? e.message : String(e); // 네트워크 오류 → 재시도
     }
     if (attempt === 0) await new Promise((r) => setTimeout(r, 800));
   }
+  // 두 번 다 실패 — 예전엔 아무 흔적 없이 사라졌다(2026-11-14). 진단 기록에 남긴다.
+  void import("@/lib/debug").then((m) => m.logDebug("push_send_fail", { category, error: last.slice(0, 200) })).catch(() => {});
 }

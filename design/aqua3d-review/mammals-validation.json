@@ -1,0 +1,452 @@
+[
+  {
+    "key": "fry_spotted_seal",
+    "triangles": 1824,
+    "bytes": 36928,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "b804e2910e7d183bad718338dd54bfa4ac381bd9fe9cbe55ae0408a79c7312ff",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "juv_spotted_seal",
+    "triangles": 1824,
+    "bytes": 45472,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "ec39598a4da178c211bdce42d2542458ee13ca1ed84d2727c4d04e3598e5b775",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "spotted_seal",
+    "triangles": 1824,
+    "bytes": 63356,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "5b9d1280effbf79afb739527f9250a62db174205241e4d49951e843841854866",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "fry_fur_seal",
+    "triangles": 1952,
+    "bytes": 44936,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "c7aa88bd390d49b856c1b6b7cc887b6ad3a4d6bc00f519ebf6dcea8e3c8518cd",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "juv_fur_seal",
+    "triangles": 1952,
+    "bytes": 50936,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "5d8f6e6d6c768a09c7157a4956509e6f212f156878f4b1a676ea1a15685f0606",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "fur_seal",
+    "triangles": 1952,
+    "bytes": 50996,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "14865dce18371dc70944995b8cbd314ad7e2f3816f5d4dfdad327946dd376763",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "fry_steller_sea_lion",
+    "triangles": 1952,
+    "bytes": 45036,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "a21549948f30c892bf4c1ffe8787d1dd984762b845876ea77173e654ca51b14f",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "juv_steller_sea_lion",
+    "triangles": 1952,
+    "bytes": 43460,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "dd05568dcfc00fefb79ae44bcbb2b33b7186e35e68e49927c7b01c2e01f3cde1",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "steller_sea_lion",
+    "triangles": 1952,
+    "bytes": 48980,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "1cbfdd379cc8cba4ec3c1261035c500ac526e52c4c0417e6d84440dd0fc3fb78",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "fry_japanese_sea_lion",
+    "triangles": 1952,
+    "bytes": 43912,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "5649496b42e79d57d1c1dadcb9b5e4a9906786af53324ffe431905855ec3849f",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "juv_japanese_sea_lion",
+    "triangles": 1952,
+    "bytes": 45300,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "f1f103f97a217fe50cd5983a4116fd762bb94303a60e1f08e303851e99b84ee2",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "japanese_sea_lion",
+    "triangles": 1952,
+    "bytes": 44868,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "d9ba0a0158993bf72bd85534fd8891d0a6118377ddc4ddff8ff33e99ac93a0a7",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "fry_sea_otter",
+    "triangles": 1952,
+    "bytes": 58444,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "1797efb76481d4837fa491373322658325607bb82906381e679d781ca27cf8f0",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "juv_sea_otter",
+    "triangles": 1952,
+    "bytes": 54296,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "e4f781a2b5e64eaa9d6311d4382bd6728fc0a6396425b3f6b69b175061d13726",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "sea_otter",
+    "triangles": 1952,
+    "bytes": 46984,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "d5b06c58c58611515fbdf7d0f2b998cb9108137c051d2062d6b4f27aabd76f49",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "fry_otter",
+    "triangles": 1952,
+    "bytes": 56240,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "c31ef749dc0134b6c80ea2ea9825efda2a5fdd1e07551551cf01cf5eec85320f",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "juv_otter",
+    "triangles": 1952,
+    "bytes": 57416,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "f944102bf37532d1d99bf986b60d526dd65975bb6d41dc73692150f083585848",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  },
+  {
+    "key": "otter",
+    "triangles": 1952,
+    "bytes": 50260,
+    "errors": 0,
+    "expandedErrors": 0,
+    "bones": [
+      "spine_0",
+      "spine_1",
+      "spine_2",
+      "spine_3",
+      "spine_4",
+      "spine_5",
+      "fin_L",
+      "fin_L_tip",
+      "fin_R",
+      "fin_R_tip"
+    ],
+    "textureSize": [
+      512,
+      512
+    ],
+    "sha256": "1200d31eaa4691116f8fcb18c9ef548c228ab4cd432487a760fb5c88e1ecc602",
+    "renderMethod": "Actual GLTFLoader / WebGL PBR, 4 views, hash verified"
+  }
+]

@@ -9,8 +9,8 @@ import {shellGeometry} from "./decor-details.ts";
 import {seatDecor} from "./decor-layout.ts";
 import {bodyBounds,swapBody} from "./glb.ts";
 
-test("all 37 decorations use detailed volumetric meshes, texture relief and finite animation",()=>{
-  assert.equal(DECOR.length,37);
+test("all 40 decorations use detailed volumetric meshes, texture relief and finite animation",()=>{
+  assert.equal(DECOR.length,40);
   for(const d of DECOR){const m=makeDecor(new ModelKit(),d.key);assert.equal(m.root.userData.detailVersion,2,d.key);let textured=0,triangles=0;
     m.animate(0);m.animate(1.2);m.root.updateMatrixWorld(true);
     m.root.traverse(o=>{if(o instanceof T.Mesh){for(const n of o.geometry.attributes.position.array)assert.ok(Number.isFinite(n),d.key);

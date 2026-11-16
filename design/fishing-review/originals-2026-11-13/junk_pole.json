@@ -1,0 +1,8 @@
+{
+  "key": "junk_pole",
+  "name": "등산 스틱",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A bent aluminium hiking pole with a worn rubber grip and wrist strap, a little muddy.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "abd419655c6fd9a0abf8a302ee8dd9f8ed57fde3eaab78ef7c3507184358ba9b"
+}

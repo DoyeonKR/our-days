@@ -14,7 +14,7 @@ import { createIsland, type IslandState } from "./island.ts";
 
 const root = join(import.meta.dirname, "..", "..");
 const raw = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n");
-const MIG_NAME = "20261107100000_merge_weekly.sql";
+const MIG_NAME = "20261114050000_merge_weekly.sql";
 const MIG = raw(`supabase/migrations/${MIG_NAME}`);
 const sql = MIG.replace(/--[^\n]*/g, "");
 const code = (p: string) => raw(p).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");

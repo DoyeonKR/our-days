@@ -118,7 +118,7 @@ insert into public.merge_runs (user_id, nickname, score) select u.id, 'n', 100 *
 insert into public.merge_scores (user_id, nickname, score) select id, 'n', 200 from auth.users;
 insert into public.daily_visits (day, device) select current_date - (n % 3), md5('d'||n)::uuid::text from generate_series(1,9) n;
 insert into public.reminder_log (user_id, sent_on, r_key) select id, current_date, 'k' from auth.users;
--- 2026-11-13 같이 하는 습관(§10.27) — 이 표가 생긴 뒤의 migration 부터 견준다(20261107120000_habits 자신을 견줄 땐 이 두 줄을 빼고 돌린다)
+-- 2026-11-13 같이 하는 습관(§10.27) — 이 표가 생긴 뒤의 migration 부터 견준다(20261114070000_habits 자신을 견줄 땐 이 두 줄을 빼고 돌린다)
 insert into public.couple_habits (couple_id, name, created_by) select m.couple_id, 'h'||n, m.user_id from public.couple_members m, generate_series(1,2) n;
 insert into public.habit_checkins (habit_id, couple_id, user_id, day)
   select h.id, h.couple_id, m.user_id, (now() at time zone 'Asia/Seoul')::date - d

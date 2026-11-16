@@ -1,15 +1,9 @@
-// 뜰채 개편(2026-11-05) [사용자: "뜰채 낚시는 너무 빠르게 끝나는 것 같아 새롭게 변형해야" → "1안 (떠오름+들어올리기)"]
-// 실측: 한 판 중앙 1.2~1.4초 · 한 번 내리치면 끝 · 보통 실력 90%. 물고기가 늘 건질 깊이에 있었고 건지는 순간 판이 끝났다.
-// 바꾼 것: 수면 가까이 떠오를 때만 건진다(SURFACE_AT) + 건진 뒤 기울지 않게 들어 올린다(stepLift).
+// 들어올리기 엔진(stepLift) — 2026-11-05 뜰채 2막으로 만들었고, 2026-11-14 뜰채가 몰아서 건지기(fishingherd.test)로 바뀐 뒤엔
+// 함께 끌어올리기(fishcoop — 상대를 돕는 짧은 들어올리기)만 쓴다.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { SPOTS } from "./fishing.ts";
-import { LIFT_EDGE, LIFT_SLIP_S, SURFACE_AT, liftQuality, liftTune, scoopPos, startLift, startScoop, stepLift, type Lift } from "./fishingmodes.ts";
+import { LIFT_EDGE, LIFT_SLIP_S, liftQuality, liftTune, startLift, stepLift, type Lift } from "./fishingmodes.ts";
 
-const root = join(import.meta.dirname, "../..");
-const code = (f: string) => readFileSync(join(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 const DT = 1 / 30;
 
 /** 0.24초 늦게 보고, 예고를 보면 미리 반대로 기대는 사람 흉내 */
@@ -28,18 +22,6 @@ function play(d: number, eff: number, seed: number, mode: "human" | "still" | "n
   return l;
 }
 const rate = (f: (s: number) => boolean, n = 200) => { let k = 0; for (let i = 0; i < n; i++) if (f(i * 7 + 1)) k++; return k / n; };
-
-test("떠오름 — 한 마리가 건질 깊이에 있는 시간은 3분의 1 아래 · 귀할수록 더 짧다", () => {
-  assert.ok(SURFACE_AT >= 0.75);
-  for (const spot of [SPOTS[0], SPOTS.find((s) => s.key === "harbor")!]) {
-    const sc = startScoop(spot, 5, 1, 11);
-    for (const f of sc.fish) {
-      let on = 0, n = 0;
-      for (let t = 0; t < 120; t += 0.1) { n++; if (scoopPos(f, t).reach) on++; }
-      assert.ok(on / n < 0.34, `${f.haul.family} ${Math.round((on / n) * 100)}%`);
-    }
-  }
-});
 
 test("들어올리기 — 버티면 올라오고, 가만히 있으면 몸부림에 튀어 나가고, 안 누르면 안 올라온다", () => {
   assert.ok(rate((s) => play(1.5, 3, s, "human").status === "landed") > 0.9, "흔한 물고기는 대부분 건진다");
@@ -72,17 +54,6 @@ test("들어올리기 — 끝에 닿아도 잠깐은 버틸 틈 · 기울수록 
   const a = play(2.5, 4, 99, "human"), b = play(2.5, 4, 99, "human");
   assert.deepEqual(a, b);
   assert.ok(liftQuality(a) >= 0 && liftQuality(a) <= 1);
-});
-
-test("화면 — 건지면 들어올리기로 이어지고, 피버는 들어올리는 도중에, 떨어뜨리면 놓친다", () => {
-  const g = code("src/components/FishingGame.tsx");
-  assert.match(g, /setPhase\("lift"\)/);
-  assert.match(g, /stepLift\(cur, dt, holdRef\.current, liftCounter\.current, tune\)/);
-  assert.match(g, /feverNow\(1 - next\.h, q\)/);
-  assert.match(g, /loseRound\("netDrop"\)/);
-  assert.doesNotMatch(g, /feverPlan\.current = \{ triggerDist: 1 \}/, "건지는 순간 바로 피버로 가지 않는다");
-  const fx = code("src/lib/fishingfx.ts");
-  for (const k of ["liftStart(", "liftSet(", "liftEnd("]) assert.ok(fx.includes(k), k);
 });
 
 test("들어올리기 — 몸부림을 못 막아 기운 동안엔 그물이 도로 내려간다(누르고만 있어선 안 올라온다) [사용자 2026-11-12]", () => {

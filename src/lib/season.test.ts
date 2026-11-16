@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   GAME_ORDER, KINDS_MAX, MISSION_POOL, SEASON_BOBBER, SEASON_DECOR, SEASON_QUOTA, TIERS,
-  activeMonth, claimBlock, daysLeft, missionValue, missionsFor, monthOf, seasonAdd, seasonAdvMerge, seasonBoard, seasonOf, type Mission,
+  activeMonth, claimBlock, daysLeft, missionValue, missionsFor, monthOf, seasonAdd, seasonBoard, seasonOf, type Mission,
 } from "./season.ts";
 import { claimSeason } from "./seasonclaim.ts";
 import { addFish, aquaOf, claimRequest, cleanWater, feedFish, stow, decorOf } from "./aquarium.ts";
@@ -93,24 +93,6 @@ test("달 넘김 — 새 달이면 비우고 칭호는 남긴다 · 날짜는 �
   const back = seasonAdd(dec, T0, { harvest: 1 });
   assert.equal(seasonOf(back, "2026-12").n.harvest, 2);
   assert.equal(activeMonth(back, T0), "2026-12");
-  // 지난 달의 모험 수는 버린다
-  assert.equal(seasonAdvMerge(dec, "u1", { m: "2026-11", advCatch: 3 }), dec);
-});
-
-test("모험 — 사람마다 큰 값으로 · 다시 보내도 두 번 세지 않는다 · 둘을 더한다 · 이 기기 값이 먼저 보인다", () => {
-  let s = seasonAdvMerge(rich(), "me", { m: "2026-11", advCatch: 3, advBoss: 1 });
-  s = seasonAdvMerge(s, "me", { m: "2026-11", advCatch: 3, advBoss: 1 });
-  assert.equal(seasonAdvMerge(s, "me", { m: "2026-11", advCatch: 2 }), s, "작은 값은 아무것도 안 바꾼다");
-  s = seasonAdvMerge(s, "you", { m: "2026-11", advCatch: 2, advWin: 4 });
-  assert.equal(value(s, "adv_catch"), 5);
-  assert.equal(value(s, "adv_boss"), 1);
-  assert.equal(value(s, "adv_win"), 4);
-  const v = seasonOf(s, "2026-11");
-  assert.equal(missionValue(v, mission("adv_catch"), { uid: "me", tally: { m: "2026-11", advCatch: 6 } }), 8);
-  // 사람 칸은 넷까지(커플 둘 + 기기를 바꾼 여유)
-  let full = s;
-  for (const u of ["a", "b", "c", "d"]) full = seasonAdvMerge(full, u, { m: "2026-11", advWin: 1 });
-  assert.equal(Object.keys(seasonOf(full, "2026-11").adv).length, 4);
 });
 
 test("섬 — 수확 · 모두 수확 · 진화를 엔진이 센다 · 안 된 동작은 안 센다", () => {
@@ -177,7 +159,6 @@ function doneN(n: number, st = rich(), now = T0): IslandState {
   for (const m of missionsFor(monthOf(now)).slice(0, n)) {
     if (m.stat === "kinds") for (let i = 0; i < m.goal; i++) s = seasonAdd(s, now, {}, { kind: `fam${i}` });
     else if (m.stat === "mergeScore" || m.stat === "mergeTop") s = seasonAdd(s, now, {}, { max: { [m.stat]: m.goal } });
-    else if (m.stat.startsWith("adv")) s = seasonAdvMerge(s, "me", { m: monthOf(now), [m.stat]: m.goal });
     else s = seasonAdd(s, now, { [m.stat]: m.goal });
   }
   return s;
@@ -230,7 +211,7 @@ test("시즌 찌 — 한정 꾸미기 · 연출이 그린다 · 하트로 못 �
   for (const k of SEASON_DECOR) assert.ok(decorOf(k), `${k} 는 이미 있는 장식`);
 });
 
-test("첫 그림 — season.ts 는 kst 만 · 허브는 받기 · 시트 코드를 정적으로 안 싣는다 · 모험 탭은 동적으로", () => {
+test("첫 그림 — season.ts 는 kst 만 · 허브는 받기 · 시트 코드를 정적으로 안 싣는다", () => {
   const strip = (f: string) => readFileSync(join(SRC, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/[^\n]*/g, "$1");
   const imports = (f: string) => [...strip(f).matchAll(/^\s*import\s+(?!type\s)[\s\S]*?from\s+["']([^"']+)["']/gm)].map((m) => m[1]);
   assert.deepEqual(imports("lib/season.ts"), ["./kst.ts"]);
@@ -238,16 +219,10 @@ test("첫 그림 — season.ts 는 kst 만 · 허브는 받기 · 시트 코드�
   assert.doesNotMatch(hub, /from\s+["']@\/lib\/seasonclaim["']/);
   assert.doesNotMatch(hub, /from\s+["']@\/components\/SeasonSheet["']/);
   assert.match(hub, /const SeasonSheet = dynamic\(\(\) => import\("@\/components\/SeasonSheet"\), \{ ssr: false/);
-  const tab = strip("components/adventure/AdventureTab.tsx");
-  assert.doesNotMatch(tab, /from\s+["']@\/lib\/season(sync|claim)?["']/, "섬에 올리는 코드는 정적으로 안 싣는다");
-  assert.match(tab, /import\("@\/lib\/seasonsync"\)/);
-  // 이 기기 수는 가벼운 모듈로 정적으로 — 오프라인에서 동적 조각을 못 받아도 수가 남는다
-  assert.match(tab, /from "@\/lib\/seasontally"/);
-  assert.deepEqual(imports("lib/seasontally.ts").sort(), ["./islandsync.ts", "./season.ts"]);
   assert.deepEqual(imports("lib/islandsync.ts"), [], "islandsync 는 섬 엔진을 타입으로만 본다");
 });
 
-test("동작 자리 — 낚시 · 모험 · 수조가 수를 같은 저장에 넣는다(지우면 미션이 조용히 안 찬다)", () => {
+test("동작 자리 — 낚시 · 수조가 수를 같은 저장에 넣는다(지우면 미션이 조용히 안 찬다)", () => {
   const strip = (f: string) => readFileSync(join(SRC, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/[^\n]*/g, "$1");
   const fish = strip("components/FishingGame.tsx");
   // 끌어올린 물고기 — 결과 저장(trophyRef)이 계열과 함께. 쓰레기 · 편지 · 보물은 뺀다
@@ -257,40 +232,22 @@ test("동작 자리 — 낚시 · 모험 · 수조가 수를 같은 저장에 �
   // 바나나킥 — 미끼를 쓰는 같은 저장, 던질 때 바나나킥 이상이면
   assert.match(fish, /return r\.ok && kick \? \{ \.\.\.r, state: seasonAdd\(r\.state, t, \{ kick: 1 \}\) \} : r;/);
   assert.match(fish, /payBait\(meters, banana >= 1\);/);
-  const tab = strip("components/adventure/AdventureTab.tsx");
-  assert.match(tab, /settled\.current = \{ b, out \};\s*noteSeason\(b\);/, "판이 끝난 그 틱 · 한 판에 한 번");
-  assert.match(tab, /b\.over === "caught" \? \{ advCatch: 1 \} : \{ advWin: 1, \.\.\.\(b\.boss \? \{ advBoss: 1 \} : \{\}\) \}/);
   const aqua = strip("lib/aquarium.ts");
   assert.match(aqua, /return hatched > 0 \? seasonAdd\(out, a\.at, \{ hatch: hatched \}\) : out;/, "알은 stow 가 저장값과 견준다");
   for (const [fn, stat] of [["feedFish", "feed"], ["cleanWater", "water"], ["claimRequest", "guest"]]) {
     const body = aqua.slice(aqua.indexOf(`export function ${fn}(`), aqua.indexOf("\n}\n", aqua.indexOf(`export function ${fn}(`)));
     assert.match(body, new RegExp(`withSeason\\([\\s\\S]*, now, "${stat}"\\);`), fn);
   }
-  // 시즌 시트 — 받기 전에 이 기기 모험 수를 섬에 올린다(카드는 그 몫을 겹쳐 '받기'를 보인다)
-  const sheet = strip("components/SeasonSheet.tsx");
-  assert.ok(sheet.indexOf("await syncAdvTally(coupleId, uid);") >= 0 && sheet.indexOf("await syncAdvTally(coupleId, uid);") < sheet.indexOf("claimSeason(row.state"));
 });
 
-test("이 기기 모험 수 — 동기로 쌓이고 · 달이 바뀌면 새로 · 섬에는 큰 값으로", async () => {
-  const mem = new Map<string, string>();
-  const g = globalThis as { localStorage?: unknown };
-  const had = g.localStorage;
-  g.localStorage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
-  try {
-    const { bumpAdvTally, readAdvTally } = await import("./seasontally.ts");
-    assert.equal(readAdvTally("me", T0), null);
-    bumpAdvTally("me", { advWin: 1, advBoss: 1 }, T0);
-    const t = bumpAdvTally("me", { advCatch: 1 }, T0 + H);
-    assert.deepEqual(t, { m: "2026-11", advBoss: 1, advCatch: 1, advWin: 1 });
-    assert.deepEqual(readAdvTally("me", T0), t);
-    assert.equal(readAdvTally("you", T0), null, "사람마다 따로");
-    assert.equal(readAdvTally("me", DEC), null, "다음 달엔 지난 수를 안 쓴다");
-    assert.deepEqual(bumpAdvTally("me", { advWin: 1 }, DEC), { m: "2026-12", advWin: 1, advBoss: 0, advCatch: 0 });
-    // 같은 수를 두 번 올려도 섬엔 한 번
-    const once = seasonAdvMerge(rich(), "me", t);
-    assert.equal(seasonAdvMerge(once, "me", t), once);
-    assert.equal(value(once, "adv_catch"), 1);
-  } finally {
-    g.localStorage = had;
+test("모험 미션 없음(2026-11-15 모험을 걷었다) — 미션 풀 · 몫에 모험이 없다 · 12개는 그대로", () => {
+  for (const m of ["2026-11", "2026-12", "2027-01", "2027-06"]) {
+    const ms = missionsFor(m);
+    assert.equal(ms.length, 12);
+    assert.ok(ms.every((x) => !x.id.startsWith("adv")), m);
   }
+  // 옛 기록의 adv 칸은 읽지 않고 흘려보낸다(지우지 않는다)
+  const old = { ...rich(), season: { m: "2026-11", n: { harvest: 1 }, adv: { me: { advWin: 3 } } } } as IslandState;
+  const next = seasonAdd(old, T0, { harvest: 1 });
+  assert.deepEqual((next as { season: { adv?: unknown } }).season.adv, { me: { advWin: 3 } });
 });

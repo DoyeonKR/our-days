@@ -1,0 +1,177 @@
+{
+  "structuralChecksPassed": true,
+  "visualApproval": "pending",
+  "activation": "not enabled",
+  "results": [
+    {
+      "key": "boss_sanho",
+      "file": "public/aqua/models/boss/boss_sanho.glb",
+      "sha256": "865dbb2b6640e3c7a1d057f1ebc5fcef22672ff8481f4a7ba9710338e37f0471",
+      "triangles": 4900,
+      "bytes": 109140,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "texture": {
+        "width": 512,
+        "height": 512,
+        "format": "webp",
+        "embedded": true
+      },
+      "materials": 1,
+      "skinnedMeshes": 1,
+      "animations": 0,
+      "bodyLength": 2.0000267028808594,
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.916989583264405e-8,
+        "maxDisplacement": 0.3347214544761929,
+        "maxRadius": 1.2938263636046132,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          225.5822079796344,
+          31.765865579247475,
+          14.651926463935524,
+          2466,
+          95.53974182158709,
+          80.46025815233588,
+          36.87995719187893,
+          43.12004288099706,
+          36.87995719187893,
+          43.12004288099706
+        ]
+      },
+      "khronos": {
+        "compressedErrors": 0,
+        "expandedErrors": 0,
+        "compressedWarnings": 0,
+        "expandedWarnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ],
+        "expandedMessages": [
+          {
+            "code": "UNUSED_OBJECT",
+            "message": "This object may be unused.",
+            "severity": 2,
+            "pointer": "/bufferViews/7"
+          }
+        ]
+      },
+      "expandedValidationNote": "WebP decoded losslessly to PNG in private validation copy; shipping GLB retains WebP",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "boss_geomeun",
+      "file": "public/aqua/models/boss/boss_geomeun.glb",
+      "sha256": "788d7345e21870a7fa467900ed6e578f24276c0731b67e3cfde19754f3066459",
+      "triangles": 3764,
+      "bytes": 77288,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "texture": {
+        "width": 512,
+        "height": 512,
+        "format": "webp",
+        "embedded": true
+      },
+      "materials": 1,
+      "skinnedMeshes": 1,
+      "animations": 0,
+      "bodyLength": 2,
+      "deformation": {
+        "allVerticesFinite": true,
+        "testedPoses": 5,
+        "maxRestError": 4.016948979085526e-8,
+        "maxDisplacement": 0.23051905096156505,
+        "maxRadius": 1.0672042203660252,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          438.95429930253886,
+          409.9807430296205,
+          392.2393527934328,
+          347.4200348753948,
+          230.37221332988702,
+          254.03335632383823,
+          28.72237735055387,
+          39.27762265037745,
+          28.72237735055387,
+          39.27762265037745
+        ]
+      },
+      "khronos": {
+        "compressedErrors": 0,
+        "expandedErrors": 0,
+        "compressedWarnings": 0,
+        "expandedWarnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ],
+        "expandedMessages": [
+          {
+            "code": "UNUSED_OBJECT",
+            "message": "This object may be unused.",
+            "severity": 2,
+            "pointer": "/bufferViews/7"
+          }
+        ]
+      },
+      "expandedValidationNote": "WebP decoded losslessly to PNG in private validation copy; shipping GLB retains WebP",
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    }
+  ]
+}

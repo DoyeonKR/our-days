@@ -37,7 +37,7 @@ export function shellGeometry(): T.BufferGeometry {
 export function addDecorDetails(root:T.Group,key:string,kit:ModelKit) {
   const metallic=key.startsWith("filter")||key.startsWith("heater")||key.startsWith("feeder")||key==="diver";
   const timber=["treasure","sunken_ship","turtle_ship","hanok","windmill","mailbox","driftwood"].includes(key);
-  const plant=["moss_ball","vallisneria","java_fern","anubias","red_rotala","water_lily","coral","glow_kelp"].includes(key);
+  const plant=["moss_ball","vallisneria","java_fern","anubias","red_rotala","water_lily","coral","glow_kelp","sea_mustard","dasima","sea_lettuce"].includes(key);
   const surface=surfaceMap(timber?"wood":"stone",128),copies=new Map<T.Material,T.MeshStandardMaterial>();
   surface.map.repeat.set(3,3);surface.bump.repeat.set(4,4);
   root.traverse(o=>{if(!(o instanceof T.Mesh)||!(o.material instanceof T.MeshStandardMaterial)||o.name==="polished-pearl")return;

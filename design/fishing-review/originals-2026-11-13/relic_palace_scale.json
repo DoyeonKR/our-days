@@ -1,0 +1,8 @@
+{
+  "key": "relic_palace_scale",
+  "name": "용의 비늘",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A single large iridescent dragon scale, teal to gold shimmer, shaped like a shield, Korean Dragon King legend.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "d52c40b58721705a4e5781a6339c64b3909cddf64db664321b85d51889ee5c70"
+}

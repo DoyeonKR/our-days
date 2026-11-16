@@ -1,0 +1,8 @@
+{
+  "key": "junk_ring",
+  "name": "유람선 구명환",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: An old orange and white ring life buoy from a lake ferry, faded paint, a short rope attached.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "740851484f57cb9efea0ead4db00a42737d55a99d6c5776cc0cd6836dc51d6c4"
+}

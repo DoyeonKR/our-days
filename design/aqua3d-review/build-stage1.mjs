@@ -19,6 +19,9 @@ import {createInvertebrateGeometry,makeInvertebrateRig,INVERTEBRATE_FAMILIES} fr
 import {FAMILIES,DECOR} from '../../src/lib/aquarium.ts';
 import {YOUNG,FINALS} from '../../scripts/aqua-art-prompts.mjs';
 
+// Explicit prepared-only batch: avoid regenerating any active fish or decorations.
+if(process.argv.includes('--shrimp')){await (await import('./shrimp-build.mjs')).buildShrimp();process.exit(0);}
+
 const OUT='design/aqua3d-review',DIR=`${OUT}/models`;
 const requestedKeys=new Set(process.argv.slice(2));
 const expansion4=JSON.parse(await readFile(`${OUT}/expansion4-prompts.json`,'utf8'));

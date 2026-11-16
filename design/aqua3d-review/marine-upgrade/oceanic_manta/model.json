@@ -1,0 +1,188 @@
+{
+  "key": "oceanic_manta",
+  "family": "manta",
+  "file": "public/aqua/models/fish/oceanic_manta.glb",
+  "oldFile": "design/aqua3d-review/marine-upgrade/oceanic_manta/old.glb",
+  "sha256": "614cceae533ec81160a71f1c67f7f731ab6e34580f40bf682b84a55b6506f522",
+  "oldSHA256": "f55649518c6c4c95d6da3b41f352f78517f2776e6b2b3d34e53f9ba92628f3ef",
+  "sourceSHA256": "53bcb16ce36d670831964caade48155a746b70ac7af65154515a68548dd1c338",
+  "triangles": 6984,
+  "bytes": 61212,
+  "bones": [
+    "spine_0",
+    "spine_1",
+    "spine_2",
+    "spine_3",
+    "spine_4",
+    "spine_5",
+    "fin_L",
+    "fin_L_tip",
+    "fin_R",
+    "fin_R_tip"
+  ],
+  "parts": [
+    {
+      "name": "broad-three-dimensional-disc",
+      "role": "body",
+      "paint": "photo",
+      "triangles": 1460
+    },
+    {
+      "name": "curved-top-pectoral-wing--1",
+      "role": "finR",
+      "paint": "photo",
+      "triangles": 664
+    },
+    {
+      "name": "curved-bottom-pectoral-wing--1",
+      "role": "finR",
+      "paint": "underside",
+      "triangles": 664
+    },
+    {
+      "name": "rolled-cephalic-lobe--1",
+      "role": "head",
+      "paint": "photo",
+      "triangles": 304
+    },
+    {
+      "name": "eye-hood--1",
+      "role": "head",
+      "paint": "photo",
+      "triangles": 168
+    },
+    {
+      "name": "eye--1",
+      "role": "head",
+      "paint": "eye",
+      "triangles": 168
+    },
+    {
+      "name": "small-pelvic-fin--1",
+      "role": "tail",
+      "paint": "photo",
+      "triangles": 108
+    },
+    {
+      "name": "ventral-gill--1-0",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "ventral-gill--1-1",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "ventral-gill--1-2",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "ventral-gill--1-3",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "ventral-gill--1-4",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "curved-top-pectoral-wing-1",
+      "role": "finL",
+      "paint": "photo",
+      "triangles": 664
+    },
+    {
+      "name": "curved-bottom-pectoral-wing-1",
+      "role": "finL",
+      "paint": "underside",
+      "triangles": 664
+    },
+    {
+      "name": "rolled-cephalic-lobe-1",
+      "role": "head",
+      "paint": "photo",
+      "triangles": 304
+    },
+    {
+      "name": "eye-hood-1",
+      "role": "head",
+      "paint": "photo",
+      "triangles": 168
+    },
+    {
+      "name": "eye-1",
+      "role": "head",
+      "paint": "eye",
+      "triangles": 168
+    },
+    {
+      "name": "small-pelvic-fin-1",
+      "role": "tail",
+      "paint": "photo",
+      "triangles": 108
+    },
+    {
+      "name": "ventral-gill-1-0",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "ventral-gill-1-1",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "ventral-gill-1-2",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "ventral-gill-1-3",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "ventral-gill-1-4",
+      "role": "body",
+      "paint": "mouth",
+      "triangles": 32
+    },
+    {
+      "name": "wide-terminal-mouth-fleshy-rim",
+      "role": "head",
+      "paint": "photo",
+      "triangles": 384
+    },
+    {
+      "name": "wide-terminal-mouth-recessed-dark-throat",
+      "role": "head",
+      "paint": "mouth",
+      "triangles": 288
+    },
+    {
+      "name": "long-tapered-whip-tail",
+      "role": "tail",
+      "paint": "photo",
+      "triangles": 372
+    },
+    {
+      "name": "small-dorsal-fin",
+      "role": "spine4",
+      "paint": "photo",
+      "triangles": 8
+    }
+  ],
+  "visualApproval": "pending"
+}

@@ -1,0 +1,266 @@
+{
+ "mode": "mammals",
+ "style": "Use case: photorealistic-natural. Asset type: original aquarium animal cutout for a mobile game and 3D modelling reference. Photorealistic natural-history wildlife photograph of a real marine or river mammal, scientifically credible anatomy and proportions, natural small dark eyes, authentic fur or skin microtexture (wet sleek fur lying flat along the body, individual guard hairs only as fine texture), soft even upper-left daylight. Single whole living animal swimming UNDERWATER in a neutral straight horizontal pose, side view, head pointing RIGHT and tail or hind flippers pointing LEFT, belly down, body fully extended, all four limbs or flippers fully visible and not hidden behind the body, 10% empty padding on all sides, square 1024x1024. Genuine transparent alpha background. NOT cartoon, NOT chibi, NOT an illustration, NOT a plush toy or plastic render, no human expression, no smiling mouth, no oversized eyes, no water surface, bubbles, rocks, ice, scenery, ground, shadows, text or watermark. Even soft diffuse light: NO painted specular highlight streaks, wet-glare bands or white shine patches on the back, head or flanks. Natural colouring with the back colour continuing all the way to the top edge of the body. Clean natural silhouette edge with no dark outline stroke or halo. Mouth closed with the mouth line clearly visible, nostrils closed (underwater). Whiskers (vibrissae) visible but short and slightly blurred into the muzzle, never long thin lines standing out from the head. Fore flippers or forelegs drawn relaxed and swept back along the body; hind flippers or hind feet spread behind the body like a tail fin and fully visible. Eye painted naturally — it stays painted on the texture.",
+ "species": [
+  {
+   "key": "spotted_seal",
+   "name": "점박이물범",
+   "grade": "영웅",
+   "cm": 160,
+   "water": "sea",
+   "body": "seal",
+   "widthRatio": 0.28,
+   "life": "바닥 가까이 · 천천히 미끄러지다 뒷지느러미를 좌우로 저어 나간다 · 가끔 숨 쉬러 수면",
+   "hunt": "gulp"
+  },
+  {
+   "key": "fur_seal",
+   "name": "물개",
+   "grade": "영웅",
+   "cm": 150,
+   "water": "sea",
+   "body": "sealion",
+   "widthRatio": 0.24,
+   "life": "중층 · 빠르고 날렵하게 앞지느러미로 날듯이 헤엄친다 · 몸을 비틀며 돈다",
+   "hunt": "charge"
+  },
+  {
+   "key": "steller_sea_lion",
+   "name": "큰바다사자",
+   "grade": "전설",
+   "cm": 280,
+   "water": "sea",
+   "body": "sealion",
+   "widthRatio": 0.27,
+   "life": "중층 · 크고 묵직하게 앞지느러미로 저어 나간다 · 무리 대장처럼 천천히 돈다",
+   "hunt": "charge"
+  },
+  {
+   "key": "japanese_sea_lion",
+   "name": "독도 강치",
+   "grade": "신화",
+   "cm": 230,
+   "water": "sea",
+   "body": "sealion",
+   "widthRatio": 0.25,
+   "life": "중층 · 독도 바위 곁을 유유히 돈다 · 오래 전 동해를 누비던 강치",
+   "hunt": "charge"
+  },
+  {
+   "key": "sea_otter",
+   "name": "해달",
+   "grade": "전설",
+   "cm": 130,
+   "water": "sea",
+   "body": "otter",
+   "widthRatio": 0.26,
+   "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
+   "hunt": "-"
+  },
+  {
+   "key": "otter",
+   "name": "수달",
+   "grade": "희귀",
+   "cm": 110,
+   "water": "fresh",
+   "body": "otter",
+   "widthRatio": 0.18,
+   "life": "바닥 가까이 · 강 바위 사이를 몸을 물결치며 빠르게 누빈다 · 가끔 숨 쉬러 수면",
+   "hunt": "strike"
+  }
+ ],
+ "items": [
+  {
+   "key": "fry_spotted_seal",
+   "family": "spotted_seal",
+   "name": "점박이물범",
+   "grade": "영웅",
+   "kind": "mammal",
+   "body": "seal",
+   "stage": "fry",
+   "youngName": "새끼",
+   "subject": "Newborn pup of the real spotted seal (Phoca largha) as found around Baengnyeongdo, Korea: fluffy white lanugo coat, round chubby body, large dark eyes in natural proportion, short stubby fore flippers, swimming pose underwater."
+  },
+  {
+   "key": "juv_spotted_seal",
+   "family": "spotted_seal",
+   "name": "점박이물범",
+   "grade": "영웅",
+   "kind": "mammal",
+   "body": "seal",
+   "stage": "juv",
+   "youngName": "어린 개체",
+   "subject": "Juvenile spotted seal (Phoca largha) after the white coat moult: silver-grey body with small dark irregular spots, slimmer than the adult, short muzzle, fore flippers small, hind flippers spread back."
+  },
+  {
+   "key": "spotted_seal",
+   "family": "spotted_seal",
+   "name": "점박이물범",
+   "grade": "영웅",
+   "kind": "mammal",
+   "body": "seal",
+   "stage": "adult",
+   "subject": "Fully grown adult spotted seal (Phoca largha): spindle-shaped silver-grey body densely covered with small dark oval spots, rounded head without visible ear flaps (earless true seal), short fore flippers with claws, hind flippers pointing backward and spread like a tail fin."
+  },
+  {
+   "key": "fry_fur_seal",
+   "family": "fur_seal",
+   "name": "물개",
+   "grade": "영웅",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "fry",
+   "youngName": "새끼",
+   "subject": "Newborn pup of the real northern fur seal (Callorhinus ursinus): dense jet-black woolly coat, big round head, tiny external ear flaps, short body, swimming pose underwater."
+  },
+  {
+   "key": "juv_fur_seal",
+   "family": "fur_seal",
+   "name": "물개",
+   "grade": "영웅",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "juv",
+   "youngName": "어린 개체",
+   "subject": "Juvenile northern fur seal (Callorhinus ursinus): dark brown-grey dense fur, slim body, small pointed external ears, long fore flippers, short pointed muzzle."
+  },
+  {
+   "key": "fur_seal",
+   "family": "fur_seal",
+   "name": "물개",
+   "grade": "영웅",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "adult",
+   "subject": "Fully grown adult northern fur seal (Callorhinus ursinus): dense dark brown fur with lighter chest, short pointed snout, small visible external ear flaps (eared seal), very long hairless fore flippers held back like wings, hind flippers long and spread behind."
+  },
+  {
+   "key": "fry_steller_sea_lion",
+   "family": "steller_sea_lion",
+   "name": "큰바다사자",
+   "grade": "전설",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "fry",
+   "youngName": "새끼",
+   "subject": "Newborn pup of the real Steller sea lion (Eumetopias jubatus): dark chocolate-brown woolly coat, large head, small external ears, swimming pose underwater."
+  },
+  {
+   "key": "juv_steller_sea_lion",
+   "family": "steller_sea_lion",
+   "name": "큰바다사자",
+   "grade": "전설",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "juv",
+   "youngName": "어린 개체",
+   "subject": "Juvenile Steller sea lion (Eumetopias jubatus): tawny brown body, slimmer than the adult, small external ears, long fore flippers."
+  },
+  {
+   "key": "steller_sea_lion",
+   "family": "steller_sea_lion",
+   "name": "큰바다사자",
+   "grade": "전설",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "adult",
+   "subject": "Fully grown adult male Steller sea lion (Eumetopias jubatus): massive light tawny-blond body, thick neck with a short mane, broad blunt muzzle, small external ear flaps, very long dark fore flippers held back, hind flippers spread behind."
+  },
+  {
+   "key": "fry_japanese_sea_lion",
+   "family": "japanese_sea_lion",
+   "name": "독도 강치",
+   "grade": "신화",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "fry",
+   "youngName": "새끼",
+   "subject": "Newborn pup of the extinct Japanese sea lion (Zalophus japonicus, called 'gangchi' at Dokdo, Korea), reconstructed from museum specimens: dark brown soft coat, round head, small external ears, swimming pose underwater."
+  },
+  {
+   "key": "juv_japanese_sea_lion",
+   "family": "japanese_sea_lion",
+   "name": "독도 강치",
+   "grade": "신화",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "juv",
+   "youngName": "어린 개체",
+   "subject": "Juvenile Japanese sea lion (Zalophus japonicus), museum-accurate reconstruction: sleek dark brown-grey body, slim, small external ears, long fore flippers."
+  },
+  {
+   "key": "japanese_sea_lion",
+   "family": "japanese_sea_lion",
+   "name": "독도 강치",
+   "grade": "신화",
+   "kind": "mammal",
+   "body": "sealion",
+   "stage": "adult",
+   "subject": "Fully grown adult male Japanese sea lion (Zalophus japonicus), museum-accurate scientific reconstruction of the extinct Dokdo 'gangchi': dark grey-brown sleek body, raised sagittal crest giving a high forehead bump, small external ear flaps, long fore flippers held back, hind flippers spread behind. Dignified, natural, not mystical."
+  },
+  {
+   "key": "fry_sea_otter",
+   "family": "sea_otter",
+   "name": "해달",
+   "grade": "전설",
+   "kind": "mammal",
+   "body": "otter",
+   "stage": "fry",
+   "youngName": "새끼",
+   "subject": "Newborn pup of the real sea otter (Enhydra lutris): very fluffy light golden-brown natal coat, round buoyant body, tiny paws, small round head, swimming pose underwater (belly down)."
+  },
+  {
+   "key": "juv_sea_otter",
+   "family": "sea_otter",
+   "name": "해달",
+   "grade": "전설",
+   "kind": "mammal",
+   "body": "otter",
+   "stage": "juv",
+   "youngName": "어린 개체",
+   "subject": "Juvenile sea otter (Enhydra lutris): dense dark brown fur with paler grey-cream head, slim body, short flattened tail, webbed hind feet like flippers, small forepaws."
+  },
+  {
+   "key": "sea_otter",
+   "family": "sea_otter",
+   "name": "해달",
+   "grade": "전설",
+   "kind": "mammal",
+   "body": "otter",
+   "stage": "adult",
+   "subject": "Fully grown adult sea otter (Enhydra lutris): very dense dark brown fur, pale grizzled cream-grey head and neck, small rounded ears, blunt muzzle, short flattened tail, large webbed flipper-like hind feet spread behind, small forepaws tucked against the chest."
+  },
+  {
+   "key": "fry_otter",
+   "family": "otter",
+   "name": "수달",
+   "grade": "희귀",
+   "kind": "mammal",
+   "body": "otter",
+   "stage": "fry",
+   "youngName": "새끼",
+   "subject": "Young cub of the real Eurasian otter (Lutra lutra, Korean natural monument 330): soft grey-brown fluffy fur, short rounded body, small round head, short tail, swimming pose underwater."
+  },
+  {
+   "key": "juv_otter",
+   "family": "otter",
+   "name": "수달",
+   "grade": "희귀",
+   "kind": "mammal",
+   "body": "otter",
+   "stage": "juv",
+   "youngName": "어린 개체",
+   "subject": "Juvenile Eurasian otter (Lutra lutra): sleek brown fur with paler cream throat, long slender body, long thick tapering tail, short legs with webbed feet."
+  },
+  {
+   "key": "otter",
+   "family": "otter",
+   "name": "수달",
+   "grade": "희귀",
+   "kind": "mammal",
+   "body": "otter",
+   "stage": "adult",
+   "subject": "Fully grown adult Eurasian otter (Lutra lutra): long streamlined body with sleek dark brown fur, pale cream throat and chest, flat broad head, small rounded ears, long thick muscular tail tapering to a point, short legs with webbed feet spread, swimming pose underwater."
+  }
+ ]
+}

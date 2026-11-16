@@ -8,15 +8,16 @@ import * as T from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
-import { anatomy, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
+import { breathOf, cephArmData, cephGlsl, octopusLike } from "./cephalopod.ts";
+import { MAMMAL, RIBBON_FIN, RIGID, SHARKS, anatomy, verticalWave, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
 import { topViewWidths } from "./topview.ts";
 import { invertebrateMotion } from "./invertebrates.ts";
 import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
 import {createFishFace} from './faces.ts';
-import {fishRevisionQuery} from './model-revisions.ts';
-export const FISH_GLB: ReadonlySet<string> = new Set(["bitterling", "fry_bitterling", "juv_bitterling", "hatchetfish", "fry_hatchetfish", "juv_hatchetfish", "gourami", "fry_gourami", "juv_gourami", "boxfish", "fry_boxfish", "juv_boxfish", "butterflyfish", "fry_butterflyfish", "juv_butterflyfish", "mudskipper", "fry_mudskipper", "juv_mudskipper", "sleeper", "fry_sleeper", "juv_sleeper", "gudgeon", "fry_gudgeon", "juv_gudgeon", "scorpionfish", "fry_scorpionfish", "juv_scorpionfish", "halfbeak", "fry_halfbeak", "juv_halfbeak", "pleco", "fry_pleco", "juv_pleco", "shiri", "fry_shiri", "juv_shiri", "blue_tang", "fry_blue_tang", "juv_blue_tang", "filefish", "fry_filefish", "juv_filefish", "oscar", "fry_oscar", "juv_oscar", "largemouth_bass", "fry_largemouth_bass", "juv_largemouth_bass", "rainbow_trout", "fry_rainbow_trout", "juv_rainbow_trout", "skygazer", "fry_skygazer", "juv_skygazer", "cod", "fry_cod", "juv_cod", "spanish_mackerel", "fry_spanish_mackerel", "juv_spanish_mackerel", "seahorse", "fry_seahorse", "juv_seahorse", "viperfish", "fry_viperfish", "juv_viperfish", "goosefish", "fry_goosefish", "juv_goosefish", "grouper", "fry_grouper", "juv_grouper", "dolphinfish", "fry_dolphinfish", "juv_dolphinfish", "redtail_catfish", "fry_redtail_catfish", "juv_redtail_catfish", "sturgeon", "fry_sturgeon", "juv_sturgeon", "ricefish", "fry_ricefish", "juv_ricefish", "zebra_danio", "fry_zebra_danio", "juv_zebra_danio", "corydoras", "fry_corydoras", "juv_corydoras", "platy", "fry_platy", "juv_platy", "lanternfish", "fry_lanternfish", "juv_lanternfish", "molly", "fry_molly", "juv_molly", "anchovy", "fry_anchovy", "juv_anchovy", "dark_chub", "fry_dark_chub", "juv_dark_chub", "goby", "fry_goby", "juv_goby", "loach", "fry_loach", "juv_loach", "bluegill", "fry_bluegill", "juv_bluegill", "saury", "fry_saury", "juv_saury", "blobfish", "fry_blobfish", "juv_blobfish", "lionfish", "fry_lionfish", "juv_lionfish", "piranha", "fry_piranha", "juv_piranha", "char", "fry_char", "juv_char", "parrotfish", "fry_parrotfish", "juv_parrotfish", "moray", "fry_moray", "juv_moray", "barracuda", "fry_barracuda", "juv_barracuda", "grass_carp", "fry_grass_carp", "juv_grass_carp", "skate", "fry_skate", "juv_skate", "electric_eel", "fry_electric_eel", "juv_electric_eel", "frilled_shark", "fry_frilled_shark", "juv_frilled_shark", "arapaima", "fry_arapaima", "juv_arapaima", "sunfish", "fry_sunfish", "juv_sunfish", "marlin", "fry_marlin", "juv_marlin", "swordfish", "fry_swordfish", "juv_swordfish", "crucian", "fry_crucian", "juv_crucian", "pale_chub", "fry_pale_chub", "juv_pale_chub", "chinese_minnow", "fry_chinese_minnow", "juv_chinese_minnow", "smelt", "fry_smelt", "juv_smelt", "bullhead", "fry_bullhead", "juv_bullhead", "common_carp", "fry_common_carp", "juv_common_carp", "masu_salmon", "fry_masu_salmon", "juv_masu_salmon", "snakehead", "fry_snakehead", "juv_snakehead", "mandarin_fish", "fry_mandarin_fish", "juv_mandarin_fish", "perch_kkeokji", "fry_perch_kkeokji", "juv_perch_kkeokji", "eel", "fry_eel", "juv_eel", "lenok", "fry_lenok", "juv_lenok", "mackerel", "fry_mackerel", "juv_mackerel", "rockfish_bollak", "fry_rockfish_bollak", "juv_rockfish_bollak", "black_seabream", "fry_black_seabream", "juv_black_seabream", "hairtail", "fry_hairtail", "juv_hairtail", "barred_knifejaw", "fry_barred_knifejaw", "juv_barred_knifejaw", "cutlassfish_pollock", "fry_cutlassfish_pollock", "juv_cutlassfish_pollock", "sailfin_sandfish", "fry_sailfin_sandfish", "juv_sailfin_sandfish", "puffer", "fry_puffer", "juv_puffer", "starfish", "fry_starfish", "juv_starfish", "squid", "fry_squid", "juv_squid", "octopus", "fry_octopus", "juv_octopus", "gulper_eel", "fry_gulper_eel", "juv_gulper_eel", "anglerfish", "fry_anglerfish", "juv_anglerfish", "oarfish", "fry_oarfish", "juv_oarfish", "coelacanth", "fry_coelacanth", "juv_coelacanth", "giant_squid", "fry_giant_squid", "juv_giant_squid", "kraken", "fry_kraken", "juv_kraken", "nurse_shark", "fry_nurse_shark", "juv_nurse_shark", "leopard_shark", "fry_leopard_shark", "juv_leopard_shark", "blue_shark", "fry_blue_shark", "juv_blue_shark", "hammerhead", "fry_hammerhead", "juv_hammerhead", "great_white", "fry_great_white", "juv_great_white", "megamouth", "fry_megamouth", "juv_megamouth", "flounder", "fry_flounder", "juv_flounder", "rockfish", "fry_rockfish", "juv_rockfish", "sea_bream", "fry_sea_bream", "juv_sea_bream", "sea_bass", "fry_sea_bass", "juv_sea_bass", "salmon", "fry_salmon", "juv_salmon", "yellowtail", "fry_yellowtail", "juv_yellowtail", "croaker", "fry_croaker", "juv_croaker", "striped_jack", "fry_striped_jack", "juv_striped_jack", "catfish", "fry_catfish", "juv_catfish", "sweetfish", "fry_sweetfish", "juv_sweetfish", "jellyfish", "fry_jellyfish", "juv_jellyfish", "altum_angel", "aurora_ray", "azure_dragonfish", "black_ray", "blackice_clown", "blue_discus", "bluefin_tuna", "cardinal_tetra", "cobra_guppy", "comet_gold", "crown_betta", "diamond_tetra", "fry_angel", "fry_arowana", "fry_astral", "fry_betta", "fry_bluefin", "fry_clown", "fry_discus", "fry_goldfish", "fry_guppy", "fry_koi", "fry_manta", "fry_ray", "fry_rising", "fry_tetra", "fry_whale_shark", "fullred_guppy", "galaxy_fish", "genesis_fish", "glowlight_tetra", "golden_arowana", "golden_dragonfish", "halfmoon_betta", "imugi_fish", "juv_angel", "juv_arowana", "juv_astral", "juv_betta", "juv_bluefin", "juv_clown", "juv_discus", "juv_goldfish", "juv_guppy", "juv_koi", "juv_manta", "juv_ray", "juv_rising", "juv_tetra", "juv_whale_shark", "kohaku_koi", "koi_betta", "leopard_discus", "marble_angel", "moon_jelly", "mosaic_guppy", "motoro_ray", "neon_tetra", "oceanic_manta", "ocellaris_clown", "ogon_koi", "oranda_gold", "pearl_carp", "pearl_ray", "percula_clown", "pigeon_discus", "platinum_angel", "platinum_arowana", "polka_ray", "ranchu_gold", "red_arowana", "ryukin_gold", "sanke_koi", "showa_koi", "silver_angel", "silver_arowana", "snowflake_clown", "turquoise_discus", "tuxedo_guppy", "veil_betta", "whale_shark"]);
+import {bossRevisionQuery, fishRevisionQuery} from './model-revisions.ts';
+export const FISH_GLB: ReadonlySet<string> = new Set(["fry_orca", "juv_orca", "orca", "fry_cherry_shrimp", "juv_cherry_shrimp", "cherry_shrimp", "fry_fleshy_prawn", "juv_fleshy_prawn", "fleshy_prawn", "fry_dokdo_shrimp", "juv_dokdo_shrimp", "dokdo_shrimp", "fry_spotted_seal", "juv_spotted_seal", "spotted_seal", "fry_fur_seal", "juv_fur_seal", "fur_seal", "fry_steller_sea_lion", "juv_steller_sea_lion", "steller_sea_lion", "fry_japanese_sea_lion", "juv_japanese_sea_lion", "japanese_sea_lion", "fry_sea_otter", "juv_sea_otter", "sea_otter", "fry_otter", "juv_otter", "otter", "bitterling", "fry_bitterling", "juv_bitterling", "hatchetfish", "fry_hatchetfish", "juv_hatchetfish", "gourami", "fry_gourami", "juv_gourami", "boxfish", "fry_boxfish", "juv_boxfish", "butterflyfish", "fry_butterflyfish", "juv_butterflyfish", "mudskipper", "fry_mudskipper", "juv_mudskipper", "sleeper", "fry_sleeper", "juv_sleeper", "gudgeon", "fry_gudgeon", "juv_gudgeon", "scorpionfish", "fry_scorpionfish", "juv_scorpionfish", "halfbeak", "fry_halfbeak", "juv_halfbeak", "pleco", "fry_pleco", "juv_pleco", "shiri", "fry_shiri", "juv_shiri", "blue_tang", "fry_blue_tang", "juv_blue_tang", "filefish", "fry_filefish", "juv_filefish", "oscar", "fry_oscar", "juv_oscar", "largemouth_bass", "fry_largemouth_bass", "juv_largemouth_bass", "rainbow_trout", "fry_rainbow_trout", "juv_rainbow_trout", "skygazer", "fry_skygazer", "juv_skygazer", "cod", "fry_cod", "juv_cod", "spanish_mackerel", "fry_spanish_mackerel", "juv_spanish_mackerel", "seahorse", "fry_seahorse", "juv_seahorse", "viperfish", "fry_viperfish", "juv_viperfish", "goosefish", "fry_goosefish", "juv_goosefish", "grouper", "fry_grouper", "juv_grouper", "dolphinfish", "fry_dolphinfish", "juv_dolphinfish", "redtail_catfish", "fry_redtail_catfish", "juv_redtail_catfish", "sturgeon", "fry_sturgeon", "juv_sturgeon", "ricefish", "fry_ricefish", "juv_ricefish", "zebra_danio", "fry_zebra_danio", "juv_zebra_danio", "corydoras", "fry_corydoras", "juv_corydoras", "platy", "fry_platy", "juv_platy", "lanternfish", "fry_lanternfish", "juv_lanternfish", "molly", "fry_molly", "juv_molly", "anchovy", "fry_anchovy", "juv_anchovy", "dark_chub", "fry_dark_chub", "juv_dark_chub", "goby", "fry_goby", "juv_goby", "loach", "fry_loach", "juv_loach", "bluegill", "fry_bluegill", "juv_bluegill", "saury", "fry_saury", "juv_saury", "blobfish", "fry_blobfish", "juv_blobfish", "lionfish", "fry_lionfish", "juv_lionfish", "piranha", "fry_piranha", "juv_piranha", "char", "fry_char", "juv_char", "parrotfish", "fry_parrotfish", "juv_parrotfish", "moray", "fry_moray", "juv_moray", "barracuda", "fry_barracuda", "juv_barracuda", "grass_carp", "fry_grass_carp", "juv_grass_carp", "skate", "fry_skate", "juv_skate", "electric_eel", "fry_electric_eel", "juv_electric_eel", "frilled_shark", "fry_frilled_shark", "juv_frilled_shark", "arapaima", "fry_arapaima", "juv_arapaima", "sunfish", "fry_sunfish", "juv_sunfish", "marlin", "fry_marlin", "juv_marlin", "swordfish", "fry_swordfish", "juv_swordfish", "crucian", "fry_crucian", "juv_crucian", "pale_chub", "fry_pale_chub", "juv_pale_chub", "chinese_minnow", "fry_chinese_minnow", "juv_chinese_minnow", "smelt", "fry_smelt", "juv_smelt", "bullhead", "fry_bullhead", "juv_bullhead", "common_carp", "fry_common_carp", "juv_common_carp", "masu_salmon", "fry_masu_salmon", "juv_masu_salmon", "snakehead", "fry_snakehead", "juv_snakehead", "mandarin_fish", "fry_mandarin_fish", "juv_mandarin_fish", "perch_kkeokji", "fry_perch_kkeokji", "juv_perch_kkeokji", "eel", "fry_eel", "juv_eel", "lenok", "fry_lenok", "juv_lenok", "mackerel", "fry_mackerel", "juv_mackerel", "rockfish_bollak", "fry_rockfish_bollak", "juv_rockfish_bollak", "black_seabream", "fry_black_seabream", "juv_black_seabream", "hairtail", "fry_hairtail", "juv_hairtail", "barred_knifejaw", "fry_barred_knifejaw", "juv_barred_knifejaw", "cutlassfish_pollock", "fry_cutlassfish_pollock", "juv_cutlassfish_pollock", "sailfin_sandfish", "fry_sailfin_sandfish", "juv_sailfin_sandfish", "puffer", "fry_puffer", "juv_puffer", "starfish", "fry_starfish", "juv_starfish", "squid", "fry_squid", "juv_squid", "octopus", "fry_octopus", "juv_octopus", "gulper_eel", "fry_gulper_eel", "juv_gulper_eel", "anglerfish", "fry_anglerfish", "juv_anglerfish", "oarfish", "fry_oarfish", "juv_oarfish", "coelacanth", "fry_coelacanth", "juv_coelacanth", "giant_squid", "fry_giant_squid", "juv_giant_squid", "kraken", "fry_kraken", "juv_kraken", "nurse_shark", "fry_nurse_shark", "juv_nurse_shark", "leopard_shark", "fry_leopard_shark", "juv_leopard_shark", "blue_shark", "fry_blue_shark", "juv_blue_shark", "hammerhead", "fry_hammerhead", "juv_hammerhead", "great_white", "fry_great_white", "juv_great_white", "megamouth", "fry_megamouth", "juv_megamouth", "flounder", "fry_flounder", "juv_flounder", "rockfish", "fry_rockfish", "juv_rockfish", "sea_bream", "fry_sea_bream", "juv_sea_bream", "sea_bass", "fry_sea_bass", "juv_sea_bass", "salmon", "fry_salmon", "juv_salmon", "yellowtail", "fry_yellowtail", "juv_yellowtail", "croaker", "fry_croaker", "juv_croaker", "striped_jack", "fry_striped_jack", "juv_striped_jack", "catfish", "fry_catfish", "juv_catfish", "sweetfish", "fry_sweetfish", "juv_sweetfish", "jellyfish", "fry_jellyfish", "juv_jellyfish", "altum_angel", "aurora_ray", "azure_dragonfish", "black_ray", "blackice_clown", "blue_discus", "bluefin_tuna", "cardinal_tetra", "cobra_guppy", "comet_gold", "crown_betta", "diamond_tetra", "fry_angel", "fry_arowana", "fry_astral", "fry_betta", "fry_bluefin", "fry_clown", "fry_discus", "fry_goldfish", "fry_guppy", "fry_koi", "fry_manta", "fry_ray", "fry_rising", "fry_tetra", "fry_whale_shark", "fullred_guppy", "galaxy_fish", "genesis_fish", "glowlight_tetra", "golden_arowana", "golden_dragonfish", "halfmoon_betta", "imugi_fish", "juv_angel", "juv_arowana", "juv_astral", "juv_betta", "juv_bluefin", "juv_clown", "juv_discus", "juv_goldfish", "juv_guppy", "juv_koi", "juv_manta", "juv_ray", "juv_rising", "juv_tetra", "juv_whale_shark", "kohaku_koi", "koi_betta", "leopard_discus", "marble_angel", "moon_jelly", "mosaic_guppy", "motoro_ray", "neon_tetra", "oceanic_manta", "ocellaris_clown", "ogon_koi", "oranda_gold", "pearl_carp", "pearl_ray", "percula_clown", "pigeon_discus", "platinum_angel", "platinum_arowana", "polka_ray", "ranchu_gold", "red_arowana", "ryukin_gold", "sanke_koi", "showa_koi", "silver_angel", "silver_arowana", "snowflake_clown", "turquoise_discus", "tuxedo_guppy", "veil_betta", "whale_shark"]);
 export const DECOR_GLB: ReadonlySet<string> = new Set(["anubias", "coral", "crystal", "diver", "dragon_palace", "driftwood", "feeder_1", "feeder_2", "feeder_3", "filter_1", "filter_2", "filter_3", "glow_kelp", "hanok", "heart_bubbler", "heater_1", "heater_2", "heater_3", "java_fern", "lava_rock", "mailbox", "mermaid", "moon_stone", "moss_ball", "pearl_clam", "pebbles", "red_rotala", "sand_castle", "star_gate", "stone_arch", "stone_pagoda", "sunken_ship", "treasure", "turtle_ship", "vallisneria", "water_lily", "windmill"]);
 
 type Source = (url: string) => Promise<T.Group>;
@@ -72,17 +73,19 @@ export const flushGlbCache = () => sweep(Date.now(), true);
 /** 수조 · 미리보기 하나가 쥔 몫. load 한 만큼 release 하고, 닫을 때 dispose 가 남은 몫을 모두 놓는다 */
 export class GlbLibrary {
   private held = new Map<string, number>();
-  load(kind: "fish" | "decor", key: string): Promise<T.Group | null> {
+  /** boss — 주인 전용 모델(public/aqua/models/boss/). 물고기처럼 다루되 위에서 본 몸 다듬기(topview)는 안 한다(네 방향 그림으로 지은 입체다) */
+  load(kind: "fish" | "decor" | "boss", key: string): Promise<T.Group | null> {
     const id = `${kind}/${key}`;
     let e = entries.get(id);
     if (!e) {
       const entry: Entry = { scene: null, refs: 0, idleSince: 0, promise: Promise.resolve(null) };
-      entry.promise = source(asset(`/aqua/models/${id}.glb`)+(kind==='fish'?fishRevisionQuery(key):'')).then((scene) => {
+      entry.promise = source(asset(`/aqua/models/${id}.glb`)+(kind==='fish'?fishRevisionQuery(key):kind==='boss'?bossRevisionQuery(key):'')).then((scene) => {
         // 받는 사이 지워졌다(아무도 안 쓴 채 오래) — 바로 돌려준다
         if (entries.get(id) !== entry) { disposeGlbScene(scene); return null; }
         // 물속 빛 — 물고기는 가장자리 테까지, 장식은 일렁이는 빛만. 원본 재질에 한 번만 단다(복제본이 나눠 쓴다)
-        waterLitTree(scene, kind === "fish");
+        waterLitTree(scene, kind !== "decor");
         if (kind === "fish") prepareFishSource(scene, key);
+        else if (kind === "boss") prepareFishSource(scene, "");
         else { prepareDecorSource(scene); prepareDecorBounds(scene); }
         entry.scene = scene;
         return scene;
@@ -95,7 +98,7 @@ export class GlbLibrary {
     return e.promise;
   }
   /** 이 key 를 쓰던 물고기 · 장식이 떠났다 */
-  release(kind: "fish" | "decor", key: string) {
+  release(kind: "fish" | "decor" | "boss", key: string) {
     const id = `${kind}/${key}`, n = this.held.get(id) ?? 0;
     if (n <= 0) return;
     if (n === 1) this.held.delete(id); else this.held.set(id, n - 1);
@@ -155,7 +158,7 @@ export function prepareFishSource(scene: T.Object3D, key = "") {
 }
 
 /** 위에서 본 윤곽을 방추형으로 고칠 물고기 — 납작하게 누운 것(광어 · 가오리 · 만타) · 리본(뱀장어 · 갈치 · 산갈치) · 해파리 · 불가사리 · 두족류 · 부푼 복어 · 둥근 난주 · 머리 혹 오란다 · 상상의 물고기는 그대로 */
-const NOT_FUSIFORM = /loach|pleco|electric_eel|moray|seahorse|sunfish|boxfish|goosefish|skate|frilled_shark|blobfish|flounder|ray|manta|jelly|starfish|octopus|squid|kraken|eel|oarfish|hairtail|imugi|puffer|ranchu|oranda|dragonfish|galaxy|genesis|astral|rising/;
+const NOT_FUSIFORM = /orca|shrimp|prawn|seal|sea_lion|otter|loach|pleco|electric_eel|moray|seahorse|sunfish|boxfish|goosefish|skate|frilled_shark|blobfish|flounder|ray|manta|jelly|starfish|octopus|squid|kraken|eel|oarfish|hairtail|imugi|puffer|ranchu|oranda|dragonfish|galaxy|genesis|astral|rising/;
 export const fusiform = (key: string) => !!key && !NOT_FUSIFORM.test(key);
 /** 형상 하나의 옆 폭을 고친다(topview.ts) — 원본 정점 단위로 쓴다(압축본은 int16 · 배율이 역바인드 행렬에). 법선도 같은 비율로(옆으로 줄이면 법선은 옆으로 더 눕는다) */
 /** 물고기 텍스처를 작게(64²) 그려 밝기를 읽는다 — 등에 찍을 높이를 고를 때(topview.ts). 못 읽으면(그림이 아직 · 캔버스 없음 · 시험) undefined */
@@ -324,6 +327,35 @@ function patchFinMaterial(material: T.Material, slot: number) {
   material.customProgramCacheKey = () => `${previousKey.call(material)}|${FIN_KEY}|${slot}`;
   material.needsUpdate = true;
 }
+/* ── 두족류 팔(2026-11-13, lib/aqua3d/cephalopod) — 팔마다 따로 굽고 말고 뻗는다. 정점 자료는 형상마다 한 번, 재질은 key 마다 한 번 ── */
+const ARM_KEY = "aqua-arm-v1";
+type ArmInfo = { hub: readonly [number, number]; sdir: number; crown: number };
+function ensureArmAttribute(mesh: T.SkinnedMesh, key: string): ArmInfo | null {
+  const g = mesh.geometry;
+  if (g.userData.aquaArm !== undefined) return g.userData.aquaArm as ArmInfo | null;
+  const pos = g.attributes.position, uv = g.attributes.uv, n = pos.count;
+  let info: ArmInfo | null = null;
+  if (uv) {
+    const P = new Float32Array(n * 3), U = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) { P[i * 3] = pos.getX(i); P[i * 3 + 1] = pos.getY(i); P[i * 3 + 2] = pos.getZ(i); U[i * 2] = uv.getX(i); U[i * 2 + 1] = uv.getY(i); }
+    const d = cephArmData(key, P, U, n, g.index ? (g.index.array as ArrayLike<number>) : null);
+    if (d) { g.setAttribute("aquaArm", new T.BufferAttribute(d.attr, 4)); info = { hub: d.hub, sdir: d.sdir, crown: d.crown }; }
+  }
+  g.userData.aquaArm = info;
+  return info;
+}
+function patchArmMaterial(material: T.Material, slot: number, info: ArmInfo) {
+  if (!(material instanceof T.MeshStandardMaterial) || material.userData.aquaArm) return;
+  material.userData.aquaArm = slot;
+  const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
+  material.onBeforeCompile = (shader, renderer) => {
+    previous.call(material, shader, renderer);
+    const g = cephGlsl(slot, info.hub, info.sdir, info.crown);
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nattribute vec4 aquaArm;").replace("#include <skinning_pars_vertex>", g.pars).replace("#include <beginnormal_vertex>", g.normal).replace("#include <begin_vertex>", g.vertex);
+  };
+  material.customProgramCacheKey = () => `${previousKey.call(material)}|${ARM_KEY}|${slot}`;
+  material.needsUpdate = true;
+}
 /** 뼈 텍스처의 남는 칸(뼈 수번째 행렬 자리) — 없으면 null(그땐 막이 안 떤다) */
 function finSlot(sk: T.Skeleton) {
   if (!sk.boneTexture) sk.computeBoneTexture(); // 그리기 전에 만든다 — 렌더러가 늦게 만들면 그 전의 쓰기는 배열 밖이라 조용히 버려진다
@@ -378,7 +410,7 @@ type Rig = { bone: T.Object3D; base: T.Quaternion; pos: T.Vector3; scale: T.Vect
 export function fishMotion(inner: T.Group, family: string, key: string): (time: number, effort: number, pose?: SwimPose) => void {
   const a = anatomy(family, key);
   if (a.kind === "star") return invertebrateMotion(inner, family, key);
-  const jelly = a.kind === "jelly", ceph = a.kind === "cephalopod", flat = flatBody(family, key);
+  const jelly = a.kind === "jelly", ceph = a.kind === "cephalopod", flat = flatBody(family, key), vert = verticalWave(family);
   const rig = (name: string): Rig | null => {
     const bone = inner.getObjectByName(name);
     return bone ? { bone, base: bone.quaternion.clone(), pos: bone.position.clone(), scale: bone.scale.clone() } : null;
@@ -400,13 +432,20 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   // 막 흔들림 — 몸통 물고기 · 용만(해파리 갓 · 가오리 날개 · 두족류 팔 · 누운 광어의 가장자리는 이미 뼈로 움직인다)
   let finData: Float32Array | null = null, finAt = -1;
   const sk = body?.skeleton;
-  if (body && sk && (a.kind === "fish" || a.kind === "dragon") && !flat) {
+  if (body && sk && (a.kind === "fish" || a.kind === "dragon") && !flat && !MAMMAL.test(family)) { // 포유류는 털가죽 · 두꺼운 지느러미발이라 막 떨림이 없다
     inner.updateMatrixWorld(true);
     if (ensureFinAttribute(body)) {
       finAt = finSlot(sk);
       if (finAt >= 0) { for (const m of materialsOf(body)) patchFinMaterial(m, sk.bones.length); finData = sk.boneMatrices as Float32Array; }
     }
   }
+  // 두족류 팔 — 팔마다 따로 움직이는 정점 변형(뼈 사슬은 몸통 전체의 방향 · 외투막만)
+  let armData: Float32Array | null = null, armAt = -1;
+  if (ceph && body && sk) {
+    const info = ensureArmAttribute(body, key);
+    if (info) { armAt = finSlot(sk); if (armAt >= 0) { for (const m of materialsOf(body)) patchArmMaterial(m, sk.bones.length, info); armData = sk.boneMatrices as Float32Array; } }
+  }
+  const armOct = octopusLike(key), breathPh = (Math.sin(key.length * 12.9898 + (inner.id % 97) * 78.233) * 43758.5453) % 1 * 6.283;
   const lure = body && family === "anglerfish" ? attachLure(inner, body) : null;
   const face = createFishFace(inner, family, key);
 
@@ -416,6 +455,22 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   let lastT = -1, bodyLength = 0;
   // 두족류: 외투막 앞 마디(spine_3) 자리를 제자리에 묶는다 — 뼈 사슬의 뿌리(spine_0)가 팔 끝이라 팔을 흔들면 외투막이 통째로 옆으로 밀린다
   const offsets = spine.map((r) => (r ? { x: r.pos.x, z: r.pos.z } : { x: 0, z: 0 }));
+  const vlift = new Float32Array(6);
+  // 굳은 가슴지느러미(상어 · 다랑어 · 새치, bendProfile.pect) — 몸 기준 세 축(앞 X · 위 Y · 옆 Z)을 지느러미 뼈마다 그 뼈의 쉬는 자세 좌표로 바꿔 둔다.
+  // 몸 X 축으로 + 돌리면 왼쪽(+Z) 끝이 내려가고 오른쪽(−Z) 끝이 오른다(같은 각 = 몸을 기울이기, 반대 각 = 둘 다 오르내리기), Z 축 + 는 앞쪽을 들기, Y 축은 앞뒤로 접기
+  const stiff = wave.pect === "stiff" || wave.pect === "fold";
+  const finAxes = fins.map((r) => {
+    if (!r || !stiff) return null;
+    inner.updateMatrixWorld(true);
+    const rel = inner.getWorldQuaternion(new T.Quaternion()).invert().multiply(r.bone.getWorldQuaternion(new T.Quaternion())).invert();
+    return { x: X.clone().applyQuaternion(rel), y: Y.clone().applyQuaternion(rel), z: Z.clone().applyQuaternion(rel) };
+  });
+  const q3 = new T.Quaternion();
+  let pitchS = 0, turnS = 0, lastY = 0, rollS = 0;
+  // 해달(2026-11-13) — 쉬는 동안 수면에서 배를 위로 하고 떠 있다(몸 축으로 뒤집는다). 뿌리 뼈 좌표의 몸 축(모델 X)
+  const otterRoll = family === "sea_otter" && spine[0] ? (() => { inner.updateMatrixWorld(true); const rel = inner.getWorldQuaternion(new T.Quaternion()).invert().multiply(spine[0]!.bone.getWorldQuaternion(new T.Quaternion())).invert(); return X.clone().applyQuaternion(rel); })() : null;
+  // 귀상어 — 헤엄치며 머리를 좌우로 천천히 휘저어 바닥을 살핀다(머리 마디만, 몸은 그대로)
+  const sweepPh = family === "hammerhead" ? (inner.id % 17) * 0.7 : -1;
   return (time, effort, pose) => {
     // Respiration uses elapsed water time, not the locomotion beat (resting fish still ventilate).
     face?.animate(WATER_LIGHT.aquaTime.value || time);
@@ -440,41 +495,103 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       const v = holder.position.distanceTo(lastP) / dt / Math.max(1e-6, bodyLength);
       if (v < 20) speed = v; // 순간이동(처음 · 수조 바뀜)은 빼고
     }
-    if (holder) lastP.copy(holder.position);
+    if (stiff && holder && dt > 0 && dt < 0.25) {
+      if (!bodyLength) bodyLength = 2 * (body ? body.getWorldScale(scaleW).x : holder.scale.x);
+      // 오르내리는 기울기 — 몸이 실제로 움직인 방향(위아래 ÷ 옆)에서. 천천히 따른다(지느러미가 떨지 않게)
+      const vx = holder.position.x - lastP.x, vz = holder.position.z - lastP.z, vy = holder.position.y - lastY, h = Math.hypot(vx, vz);
+      // 거의 제자리(옆으로 몸길이의 0.12 배/초 아래)면 위아래 들썩임만 남아 atan2 가 ±90° 로 튄다 — 그때는 0 쪽으로 줄인다
+      const still = Math.min(1, h / dt / Math.max(1e-6, (bodyLength || 2) * 0.12)), target = h + Math.abs(vy) > 1e-5 ? Math.atan2(vy, h) * still : 0, k = 1 - Math.exp(-dt / 0.35);
+      pitchS += (target - pitchS) * k; turnS += ((pose?.turn ?? 0) - turnS) * k;
+    }
+    if (holder) { lastP.copy(holder.position); lastY = holder.position.y; }
     sp.turn = pose?.turn; sp.effort = pose?.effort; sp.amp = pose?.amp; sp.pulse = pose?.pulse; sp.hover = pose?.hover; sp.ground = pose?.ground; sp.feed = pose?.feed; sp.speed = speed;
     stepSwim(clock, a, wave, t, dt, sp);
     const phase = clock.beat;
-    swimAngles(wave, phase, sp, angles, !flat);
+    swimAngles(wave, phase, sp, angles, !flat && !vert);
     if (wave.kind !== "ray") {
       // 가슴지느러미 — 떠 있으면 작게 빨리 젓고(노 젓기), 급히 돌거나 먹이에 몰리면 활짝
       const g = finGain(clock, sp);
-      for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; angles[6 + s * 2] = sign * Math.sin(clock.fin) * wave.fin * g; angles[7 + s * 2] = sign * Math.sin(clock.fin - 0.7) * wave.fin * 1.3 * g; }
+      for (let s = 0; s < 2; s++) { const sign = s && wave.pect !== "alt" ? 1 : -1; angles[6 + s * 2] = sign * Math.sin(clock.fin) * wave.fin * g; angles[7 + s * 2] = sign * Math.sin(clock.fin - 0.7) * wave.fin * 1.3 * g; }
     }
     if (ceph) {
+      // 두족류의 몸짓(2026-11-13) — 물고기처럼 팔을 꼬리 삼아 흔들던 것을 셋으로 갈랐다
+      //  · 물 뿜기(rev · jet): 외투막을 앞세워 나가는 동안 팔을 한데 모아 곧게 뒤로 늘어뜨린다(물결을 거의 끈다), 외투막은 세게 오므렸다 편다
+      //  · 미끄러진 끝(rev 인데 jet 이 작다): 팔을 위 · 바깥으로 펴 낙하산처럼 내려앉는다
+      //  · 기기(문어 · 크라켄, 팔 쪽이 앞): 팔이 바닥을 짚듯 위아래로 차례로 물결친다(팔 끝에서 뿌리로). 떠 있는 오징어는 팔 끝만 살랑인다
+      const rev = Math.max(0, Math.min(1, pose?.rev ?? 0)), jet = Math.max(0, Math.min(1, pose?.jet ?? 0));
+      const stream = rev * (0.35 + 0.65 * Math.min(1, jet * 3)), flare = rev * (1 - Math.min(1, jet * 4));
+      const crawlFam = family === "octopus" || family === "kraken";
+      const walk = crawlFam ? (1 - rev) * (0.15 + 0.85 * Math.max(0, Math.min(1, ((sp.amp ?? 1) - 0.2) / 0.8))) : 0; // 옮겨 가는 동안(amp) 크게, 쉬는 동안엔 살짝
+      const wt = WATER_LIGHT.aquaTime.value || time;
       // angles 는 마디의 절대 방향 — 이웃 마디와의 차이로 돌리고, 외투막 앞 마디가 제자리에 오게 뿌리를 옮긴다
-      let px = 0, pz = 0, rx = 0, rz = 0;
+      // 팔 하나하나는 셰이더(armData)가 굽힌다 — 뼈 사슬로 팔 전체를 한 꼬리처럼 흔들던 몫은 문어형에서 크게 줄인다
+      const boneArm = armData ? (armOct ? 0.25 : 0.6) : 1;
+      for (let i = 0; i < 3; i++) angles[i] *= (1 - 0.85 * stream) * boneArm;
+      if (armData) {
+        if (body && body.skeleton.boneMatrices !== armData) { armAt = finSlot(body.skeleton); armData = armAt >= 0 ? (body.skeleton.boneMatrices as Float32Array) : null; }
+        if (armData) {
+          // 기어가기 몫 — 문어형은 옮겨 가는 동안(amp), 오징어형은 지느러미로 떠 있는 동안 팔 끝만 살랑(작게)
+          armData[armAt] = wt; armData[armAt + 1] = armOct ? walk : 0.25 * (1 - rev); armData[armAt + 2] = stream; armData[armAt + 3] = flare;
+          armData[armAt + 4] = armOct ? 1 : 0.55;
+        }
+      }
+      // 위아래(Z) — 팔(0 ~ 2)만: 기기 물결 · 내려앉을 때 펴기 · 떠 있을 때 팔 끝 살랑임. 옆 물결(angles)과 같이 '마디의 절대 방향'이라
+      // 이웃 마디와의 차이로 돌리고, 사슬 뿌리(spine_0)가 팔 끝이라 외투막이 따라 들리지 않게 뿌리 높이도 옮긴다(아래 py)
       for (let i = 0; i < 6; i++) {
-        turn(spine[i], Y, angles[i] - (i ? angles[i - 1] : 0));
+        const arm = i < 3 ? 1 - i / 3 : 0;
+        vlift[i] = arm * (armData && armOct ? 0.35 : 1) * (walk * 0.26 * Math.sin(wt * 2.4 - i * 1.15) + flare * 0.32 + (crawlFam ? 0 : (1 - rev) * 0.08 * Math.sin(wt * 1.3 - i * 0.9)));
+      }
+      let px = 0, pz = 0, rx = 0, rz = 0, py = 0;
+      for (let i = 0; i < 6; i++) {
+        turn(spine[i], Y, angles[i] - (i ? angles[i - 1] : 0), Z, vlift[i] - (i ? vlift[i - 1] : 0));
         if (i >= 1 && i <= 3) {
-          const o = offsets[i], f = angles[i - 1], c = Math.cos(f), s = Math.sin(f);
-          px += o.x * c + o.z * s; pz += -o.x * s + o.z * c; rx += o.x; rz += o.z;
+          const o = offsets[i], f = angles[i - 1], c = Math.cos(f), s = Math.sin(f), v = vlift[i - 1];
+          px += (o.x * c + o.z * s) * Math.cos(v); pz += -o.x * s + o.z * c; rx += o.x; rz += o.z; py += o.x * Math.sin(v);
         }
       }
       const root = spine[0];
-      if (root) root.bone.position.set(root.pos.x + rx - px, root.pos.y, root.pos.z + rz - pz);
+      if (root) root.bone.position.set(root.pos.x + rx - px, root.pos.y - py, root.pos.z + rz - pz);
       // 물 뿜기 — 외투막이 천천히 부풀었다 빠르게 오므리며 길어진다(코드 모델 invertebrateMotion 과 같은 뜻)
       const mantle = spine[3];
-      if (mantle) { const j = Math.max(0, Math.sin(phase * 0.5)) ** 3; mantle.bone.scale.set(mantle.scale.x * (1 + 0.05 * j), mantle.scale.y * (1 - 0.08 * j), mantle.scale.z * (1 - 0.08 * j)); }
-    } else if (flat) {
+      if (mantle) {
+        // 뿜을 땐 빠르고 세게(물을 내뿜는 한 번 한 번이 보이게), 평소엔 숨 쉬듯 천천히
+        const jj = jet > 0.02 ? Math.max(0, Math.sin(wt * 9)) ** 2 * (0.4 + 0.6 * jet) : 0, j = breathOf(wt, breathPh) * (1 - Math.min(1, jet * 4)); // 숨(외투막 환기) — 헤엄 박자와 따로, 2.6초에 한 번(실제 문어 · 오징어는 2 ~ 3초)
+        mantle.bone.scale.set(mantle.scale.x * (1 + 0.05 * j + 0.1 * jj), mantle.scale.y * (1 - 0.08 * j - 0.18 * jj), mantle.scale.z * (1 - 0.08 * j - 0.18 * jj));
+      }
+    } else if (flat || vert) {
+      // 누운 광어 · 수달 · 해달 — 물결은 Z 축(위아래), 도는 C 자는 Y 축
       // 누운 몸 — 물결은 Z 축(위아래), 도는 C 자는 Y 축(모래 평면)
       spine.forEach((r, i) => turn(r, Z, angles[i], Y, turnCurl(wave, sp, i)));
+      if (otterRoll && spine[0]) {
+        // 쉬는 동안(amp 가 낮다) 0.8초에 걸쳐 뒤집고, 다시 헤엄치면 바로 선다
+        const target = Math.max(0, Math.min(1, 1 - ((sp.amp ?? 1) - 0.25) / 0.4)), k = dt > 0 && dt < 0.5 ? 1 - Math.exp(-dt / 0.8) : 0;
+        rollS += (target - rollS) * k;
+        if (rollS > 0.001) spine[0].bone.quaternion.multiply(q3.setFromAxisAngle(otterRoll, Math.PI * rollS * rollS * (3 - 2 * rollS)));
+      }
     } else {
+      if (sweepPh >= 0) { const sw = 0.13 * Math.sin((WATER_LIGHT.aquaTime.value || time) * 0.8 + sweepPh); angles[0] += sw; angles[1] -= sw * 0.6; }
       spine.forEach((r, i) => turn(r, Y, angles[i], i === 0 ? Z : undefined, i === 0 ? hoverPitch(clock, sp) : 0));
     }
-    fins.forEach((r, i) => turn(r, X, angles[6 + i]));
+    if (stiff) {
+      // 굳은 날개 — 꼬리 박자에 맞춰 젓지 않는다. 펴 둔 채(상어는 조금 아래로) 오를 땐 앞쪽을 들고 내려갈 땐 숙이고, 돌 땐 안쪽 지느러미를 내려 몸을 기울인다.
+      // 바닥에 앉은 상어(수염상어)는 지느러미를 모래에 짚는다. 다랑어 · 새치는 빨리 갈수록 몸 옆에 접어 붙이고, 급히 돌 땐 다시 편다
+      const ground = Math.max(0, Math.min(1, sp.ground ?? 0)), shark = SHARKS.test(family);
+      const turnNow = sp.turn ?? turnS, bank = Math.max(-0.38, Math.min(0.38, -turnS * 0.32));
+      const attack = Math.max(-0.4, Math.min(0.4, pitchS * 0.9)) * (1 - ground);
+      const fold = wave.pect === "fold" ? Math.max(0, Math.min(1, ((speed ?? 0.5) - 0.55) / 0.8)) * (1 - Math.min(1, Math.abs(turnNow) / 0.8)) * 0.9 : 0;
+      const droop = (shark ? -0.1 : 0) - 0.22 * ground, jiggle = 0.018 * Math.sin(clock.beat - 2.2) * (sp.amp ?? 1);
+      for (let s = 0; s < 2; s++) {
+        const side = s ? 1 : -1, root = fins[s * 2], tip = fins[s * 2 + 1], ax = finAxes[s * 2], tx = finAxes[s * 2 + 1];
+        if (root && ax) {
+          root.bone.quaternion.copy(root.base).multiply(q.setFromAxisAngle(ax.x, side * (droop + jiggle) + bank)).multiply(q2.setFromAxisAngle(ax.z, attack)).multiply(q3.setFromAxisAngle(ax.y, side * fold));
+        }
+        // 끝은 뿌리를 조금 더 따라 휜다(굳은 날개라 조금만)
+        if (tip && tx) tip.bone.quaternion.copy(tip.base).multiply(q.setFromAxisAngle(tx.x, side * 0.25 * (droop + jiggle) + 0.2 * bank));
+      }
+    } else fins.forEach((r, i) => turn(r, X, angles[6 + i]));
     if (finData && body) {
       if (body.skeleton.boneMatrices !== finData) { finAt = finSlot(body.skeleton); finData = finAt >= 0 ? (body.skeleton.boneMatrices as Float32Array) : null; }
-      if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp); }
+      if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp) * (RIBBON_FIN.test(family) ? 2.2 : RIGID.test(family) ? 1.8 : 1); } // 몸이 단단한 종은 지느러미 막을 크게 떨어 나아간다 // 전기뱀장어 · 산갈치 · 갈치는 긴 지느러미 물결로 나간다
     }
     if (lure) lure.scale.setScalar((lure.userData.base as number) * (1 + 0.12 * Math.sin(clock.bob * 3.1)));
   };

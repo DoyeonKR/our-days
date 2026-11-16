@@ -15,8 +15,6 @@ import { decorOf } from "@/lib/aquarium";
 import type { IslandState } from "@/lib/island";
 import { GAME_NAME, GAME_ORDER, seasonBoard, seasonDecorFor, titleText, type TierReward } from "@/lib/season";
 import { claimSeason } from "@/lib/seasonclaim";
-import { syncAdvTally } from "@/lib/seasonsync";
-import { readAdvTally } from "@/lib/seasontally";
 
 function rewardName(r: TierReward, month: string): string {
   if (r === "decor") return `수조 장식 · ${decorOf(seasonDecorFor(month))?.name ?? "장식"}`;
@@ -35,13 +33,9 @@ export default function SeasonSheet({ coupleId, myUserId, state, onClose }: {
   const [busy, setBusy] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const uid = myUserId;
-  const b = seasonBoard(state, now, uid ? { uid, tally: readAdvTally(uid, now) } : undefined);
+  const b = seasonBoard(state, now);
   const mm = Number(b.month.slice(5, 7));
 
-  // 열 때 — 이 기기에서 센 모험 수가 섬에 아직 없으면 올린다(이미 있으면 아무것도 안 한다)
-  useEffect(() => {
-    void syncAdvTally(coupleId, uid);
-  }, [coupleId, uid]);
   useEffect(() => {
     const iv = setInterval(() => setNow(gameNow()), 30_000);
     return () => clearInterval(iv);
@@ -52,8 +46,6 @@ export default function SeasonSheet({ coupleId, myUserId, state, onClose }: {
     setBusy(tier);
     setMsg(null);
     try {
-      // 이 기기에서 센 모험 수를 먼저 섬에 올린다 — 카드는 그 몫을 겹쳐 '받기'를 보이는데 받기 판정은 섬 상태만 본다
-      await syncAdvTally(coupleId, uid);
       let lost: { mark: string; note: string } | null = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         const cached = attempt === 0 ? islandSnapshot(coupleId).row : null;
@@ -143,7 +135,7 @@ export default function SeasonSheet({ coupleId, myUserId, state, onClose }: {
           </div>
         </section>
       )}
-      <p className="season-note">모험 미션은 각자 모험 탭에서 센 수를 더해요. 보상은 하트가 아니라 꾸미기예요.</p>
+      <p className="season-note">보상은 하트가 아니라 꾸미기예요.</p>
     </Sheet>
   );
 }

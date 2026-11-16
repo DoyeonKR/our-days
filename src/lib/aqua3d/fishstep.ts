@@ -1,10 +1,10 @@
 /** 수조 한 프레임의 물고기 자리(2026-11-11) — scene.ts 의 draw 가 부르던 길 → 늘리기 → 겹침 밀기 → 모래에 앉히기를 한 함수로 뺐다.
  *  화면과 테스트(motion.test · aquamotion.test)가 같은 식을 쓰게 하려고(예전엔 테스트가 화면 식을 흉내 내다 깊이 · 높이 변환이 어긋난 채 통과했다).
  *  three 를 쓰지 않는다. 결과는 buffers 에 쓴다(할당 없음). 같은 입력 = 같은 자리(겹침 밀기 보정값만 프레임마다 이어진다). */
-import { denAssign, denCourse, habitKey, habitOf, hyp2, hyp3, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
+import { denAssign, denCourse, haulAssign, haulBlend, habitKey, habitOf, hyp2, hyp3, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
 import { anatomy, bendProfile } from "./anatomy.ts";
 import { starCourse } from "./invertebrates.ts";
-import { WORLD, floorPose, schoolCourse, separate, type SeparateOptions } from "./world.ts";
+import { WORLD, floorPose, resolveContacts, schoolCourse, separate, tallY, type SeparateOptions } from "./world.ts";
 const SEP: SeparateOptions = {};
 import { tunnelSpan } from "./tunnel.ts";
 
@@ -20,7 +20,9 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   /** 경기장 고리(habits.lap — 고래상어) — 몸이 보는 쪽으로 유리를 지킨다(아래 3) */
   lap: boolean;
   /** 굴에 산다(habits.den — 곰치) */
-  den: boolean };
+  den: boolean;
+  /** 바위 위에서 쉰다(habits.haul — 해양 포유류) · 지금 쉬는 정도(0~1, 겹침 밀기를 그만큼 덜 받는다) */
+  haul: boolean; rest: number };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
@@ -33,6 +35,7 @@ const swimStateOf = (m: StepFish): SwimState => {
     disc: m.family === "starfish",
     lap: !!h.lap,
     den: !!h.den,
+    haul: !!h.haul, rest: 0,
   };
 };
 export type StepWorld = {
@@ -43,6 +46,8 @@ export type StepWorld = {
 export type StepBuffers = {
   positions: Float32Array; heading: Float32Array; lengths: Float32Array; pinned: Float32Array; offsets: Float32Array; rolls: Float32Array;
   courses: Course[]; count: number;
+  /** 모래사장(8단계부터, habitat.shoreX) — 높이 y 의 물가 가로 위치(월드). 물고기는 그 안쪽에서만 헤엄친다 */ shore?: (y: number) => number;
+  /** 모래사장 쉼터(kind "beach" — x 월드 · h 길 좌표) — 있으면 포유류는 바위 대신 여기서 쉰다 */ beach?: Obstacle;
 };
 const FP = { pitch: 0, roll: 0, slope: 0, ground: 0 };
 /** turn(몸을 C 자로 굽히고 기울이는 값)을 고르는 시간 상수(초) — 길의 turn 은 장애물로 휜 길 점의 두 번 차분이라, 장애물 가장자리에서 한 프레임에
@@ -50,6 +55,8 @@ const FP = { pitch: 0, roll: 0, slope: 0, ground: 0 };
 export const TURN_TAU = 0.2;
 /** 화면 빠르기를 고르는 시간 상수(초) — 겹침 밀기 · 모래 앉히기가 자리를 조금씩 흔들어 프레임마다 잰 빠르기가 떨린다 */
 export const SPEED_TAU = 0.25;
+/** 몸끼리 · 바위와 닿아 밀어내는 빠르기 상한(몸길이/초) — 한 프레임 순간 이동을 막는다 */
+export const CONTACT_MAX_SPEED = 4;
 /** 꼬리 한 번에 나아가는 거리(몸길이) 위 · 아래 박자(Hz) — 화면에서 또렷이 보이는 만큼만 빠르게, 떠 있어도 꼬리가 아예 서지는 않게 */
 export const BEAT_MAX_HZ = 4.5, BEAT_IDLE_HZ = 0.35;
 const wrapA = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
@@ -79,8 +86,28 @@ function denPlan(swimmers: Iterable<[number, StepFish]>, obstacles: readonly Obs
   if (key !== DEN_KEY || obstacles !== DEN_OBS) { DEN_KEY = key; DEN_OBS = obstacles; DEN_MAP = denAssign(DEN_FISH, obstacles); }
   return DEN_MAP;
 }
+// 포유류 쉼터 나누기(2026-11-14) — 곰치 굴과 같은 방식(포유류 목록이나 장애물이 바뀔 때만 다시 정한다)
+const HAUL_FISH: { id: number; length: number }[] = [];
+let HAUL_SCALE = 1, HAUL_KEY = "", HAUL_OBS: readonly Obstacle[] | undefined, HAUL_MAP: ReturnType<typeof haulAssign> = new Map();
+function haulPlan(swimmers: Iterable<[number, StepFish]>, obstacles: readonly Obstacle[], scale: number, beach?: Obstacle) {
+  if (scale !== HAUL_SCALE) { HAUL_SCALE = scale; HAUL_KEY = ""; }
+  HAUL_FISH.length = 0;
+  for (const [id, m] of swimmers) if ((m.swim ??= swimStateOf(m)).haul) HAUL_FISH.push({ id, length: m.length });
+  if (!HAUL_FISH.length) { HAUL_KEY = ""; return HAUL_MAP; }
+  // 모래사장 단계 — 모두 모래사장에서 쉰다(id 순으로 앞뒤 자리를 나눈다)
+  if (beach) { const map: ReturnType<typeof haulAssign> = new Map(); [...HAUL_FISH].sort((a, b) => a.id - b.id).forEach((f, i) => map.set(f.id, { rock: beach, share: i })); HAUL_KEY = ""; return map; }
+  const key = HAUL_FISH.map((f) => `${f.id}:${f.length}`).join(",");
+  if (key !== HAUL_KEY || obstacles !== HAUL_OBS) { HAUL_KEY = key; HAUL_OBS = obstacles; HAUL_MAP = haulAssign(HAUL_FISH, obstacles, HAUL_SCALE); }
+  return HAUL_MAP;
+}
 // 겹침 밀기에 넘기는 둥근 판 표시 — 프레임마다 새로 안 만든다(늘어날 때만)
 let DISC = new Float32Array(64);
+// 몸끼리 닿지 않게(resolveContacts) — 밀리는 정도. 굴 속 곰치는 안 밀리고 · 바위 위에서 쉬는 포유류 · 바닥에 붙은 몸은 덜 밀린다
+let MASS = new Float32Array(64);
+const massAt = (n: number) => { if (MASS.length <= n) MASS = new Float32Array(Math.max(n + 1, MASS.length * 2)); return MASS; };
+let CPREV = new Float32Array(192);
+const contactPrev = (n: number) => { if (CPREV.length < n) CPREV = new Float32Array(Math.max(n, CPREV.length * 2)); return CPREV; };
+const CONTACT = { heading: new Float32Array(0) as ArrayLike<number>, mass: MASS as ArrayLike<number>, pinned: undefined as ArrayLike<number> | undefined, disc: undefined as ArrayLike<number> | undefined, scale: 1, deep: 1, top: 4.7, rocks: undefined as readonly Obstacle[] | undefined, tall: 1 };
 const discAt = (n: number) => { if (DISC.length <= n) { const d = new Float32Array(DISC.length * 2); d.set(DISC); DISC = d; } return DISC; };
 // 길 옵션 — 프레임마다 · 물고기마다 새 객체를 안 만든다(2026-11-12)
 const OPTS = { obstacles: undefined as readonly Obstacle[] | undefined, feed: null as Feed | null, deep: 1, tall: 1, hall: null as Hall | null, leaderLength: 0 as number | undefined, out: undefined as Course | undefined };
@@ -94,13 +121,19 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
   let n = 0;
   const fishes = STEP_FISH;
   const dens = denPlan(swimmers, w.obstacles);
+  const hauls = haulPlan(swimmers, w.obstacles, wide, b.beach);
   // 1) 이번 프레임 길 — 모두의 자리를 먼저 채운다
   for (const [id, m] of swimmers) {
     const sc = schools.get(id), c = m.course, prevTurn = c.turn;
     // 길 — 장식 · 바위 · 터널 · 돔을 피하고(obstacles · hall) 먹이에 모인다(feed). 무리는 대장 몸으로 길을 계산해야 같은 길을 따라간다
     if (m.family === 'starfish') { const s = starCourse(id, elapsed, m.length, wide, { obstacles: w.obstacles, deep, tall, hall }); c.x = s.x; c.y = s.y; c.z = s.z; c.dx = s.dx; c.dy = s.dy; c.dz = s.dz; c.effort = s.effort; c.turn = 0; c.amp = 1; c.pulse = 0; c.ground = 1; c.puff = -1; c.hover = 0; c.feed = 0; }
     else if ((m.swim ??= swimStateOf(m)).den) { const d = dens?.get(id); denCourse(id, elapsed, m.length, wide, WORLD.floor, { obstacles: w.obstacles, deep, ...(d ? { rock: d.rock, share: d.share } : {}) }, c); }
-    else { opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts); }
+    else {
+      opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts);
+      // 해양 포유류 — 헤엄 길을 바위 쉼터와 섞는다(90% 는 바위 위)
+      const sw = m.swim!;
+      if (sw.haul) { const a = hauls.get(id); sw.rest = haulBlend(id, elapsed, m.length, wide, WORLD.floor, { rock: a?.rock ?? null, share: a?.share ?? 0, deep, tall }, c); }
+    }
     // 위로 늘리기 — 바닥에 붙은 만큼(ground)은 모래 높이만 따르고 몸 높이(hug)는 안 늘린다(2026-11-11 — 6단계에서 바닥 물고기가 몸 높이의 1.5배 떠 있었다). 헤엄치는 물고기는 그대로 tallY
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }
     if (deep !== 1) { c.z *= deep; c.dz *= deep; }
@@ -141,6 +174,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     SEP.n = n; SEP.pinned = b.pinned; SEP.scale = wide; SEP.deep = deep; SEP.heading = b.heading; SEP.disc = DISC; separate(b.positions, b.lengths, off, dt, SEP);
     // 굴에 사는 물고기(곰치)는 겹침 밀기로 굴 밖에 끌려 나오지 않는다 — 비키는 건 다른 물고기 몫
     for (let k = 0; k < n; k++) if (habitOf(habitKey(fishes[k].family, fishes[k].key)).den) off[k * 3] = off[k * 3 + 1] = off[k * 3 + 2] = 0;
+    // 바위 위에서 쉬는 포유류도 — 쉬는 만큼 밀리지 않는다(바위에서 밀려 떨어지지 않게)
+    for (let k = 0; k < n; k++) { const st = fishes[k].swim!; if (st.haul && st.rest > 0) { const keep = 1 - st.rest; off[k * 3] *= keep; off[k * 3 + 1] *= keep; off[k * 3 + 2] *= keep; } }
   }
   // 3) 모래에 앉히기 · 터널 · 돔 밖에 두기
   const hallTop = hall ? WORLD.floor + hall.h * tall : 0;
@@ -161,6 +196,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (mx > 0) x = Math.max(-mx, Math.min(mx, x));
       if (mz > 0) z = Math.max(-mz, Math.min(mz, z));
     }
+    // 모래사장 경사 — 물가(shore) 안쪽에서만. 머리(몸 반)까지 모래에 안 닿게, 쉬러 올라가는 포유류는 쉬는 만큼 풀어 준다
+    if (b.shore) { const lim = b.shore(y - L * 0.2) - L * 0.45, give = fishes[k].swim!.haul ? fishes[k].swim!.rest : 0; if (x > lim) x = lim + (x - lim) * give; }
     FP.roll = 0;
     // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
     if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * hyp2(c.dx, c.dz); FP.roll *= c.ground; }
@@ -178,6 +215,26 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     st.x = x; st.y = y; st.z = z; st.ready = true;
     if (!st.own && !first) c.effort = beatEffort(st, L, c.effort, c.ground);
     m.phase += dt * c.effort;
+  }
+  // 5) 몸끼리 닿지 않게 — 마지막 자리에서 겹친 만큼 밀어낸다(물리 엔진의 접촉처럼, 2026-11-14)
+  if (n > 0) {
+    const M = massAt(n);
+    for (let k = 0; k < n; k++) { const st = fishes[k].swim!; M[k] = st.den ? 0 : st.haul && st.rest > 0.5 ? 0.15 : 1 - 0.6 * Math.min(1, b.pinned[k]); }
+    CONTACT.heading = b.heading; CONTACT.mass = M; CONTACT.pinned = b.pinned; CONTACT.disc = DISC; CONTACT.scale = wide; CONTACT.deep = deep; CONTACT.top = tallY(4.7, tall); CONTACT.rocks = w.obstacles; CONTACT.tall = tall;
+    // __noContacts — 테스트가 밀어내기 없는 기준을 재는 스위치(contacts.test)
+    if (!(globalThis as { __noContacts?: boolean }).__noContacts) {
+      // 밀어낸 만큼을 겹침 밀기 보정값(offsets)에도 남긴다 — 다음 프레임이 원래 길에서 다시 시작하면 매 프레임 파고들었다 튕겨 나와 한 칸에 몸길이 반씩 튀었다
+      const P = b.positions, before = contactPrev(n * 3);
+      before.set(P.subarray(0, n * 3));
+      resolveContacts(P, b.lengths, n, CONTACT);
+      // 한 프레임에 밀어내는 거리는 몸길이 × CONTACT_MAX_SPEED 배/초까지(2026-11-15) — 바위 옆구리에 파고든 몸을 한 번에 바위 위로 밀어 올려 해달 · 물개가 몸길이의 13 ~ 16배/초로 튀었다.
+      //   남은 겹침은 다음 프레임들이 나눠 민다(겹침 보정값에 남는다). 멈춘 그리기(dt 0)는 그대로 다 민다
+      if (dt > 0) for (let k = 0; k < n; k++) {
+        const ox = P[k * 3] - before[k * 3], oy = P[k * 3 + 1] - before[k * 3 + 1], oz = P[k * 3 + 2] - before[k * 3 + 2], d = hyp3(ox, oy, oz), lim = Math.max(0.01, b.lengths[k] * CONTACT_MAX_SPEED * dt);
+        if (d > lim) { const f = lim / d; P[k * 3] = before[k * 3] + ox * f; P[k * 3 + 1] = before[k * 3 + 1] + oy * f; P[k * 3 + 2] = before[k * 3 + 2] + oz * f; }
+      }
+      if (off) for (let k = 0; k < n * 3; k++) off[k] += (P[k] - before[k]) * 0.9;
+    }
   }
   fishes.length = 0;
   return n;

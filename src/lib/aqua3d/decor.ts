@@ -6,6 +6,20 @@ import { addDecorDetails, shellGeometry, roofGeometry } from "./decor-details.ts
 type V = readonly [number, number, number];
 /** effects: 몸과 따로 도는 효과(거품) — 제작 모델로 갈아 끼운 뒤에도 남아 계속 돈다 */
 export type DecorModel = { root: T.Group; animate: (time: number) => void; effects: (time: number) => void };
+/** 해초류 꾸미기(2026-11-14) [사용자: "해초류는 꾸미기로 추가"] — 미역 · 다시마 · 파래. 키 SEAWEEDS 는 aquarium.ts 의 장식 표와 같다 */
+export const SEAWEEDS = ["sea_mustard", "dasima", "sea_lettuce"] as const;
+/** 해초 잎 한 장 — 바닥에서 솟은 긴 띠. len 길이 · width 폭 · waves 굽이 수 · frill 가장자리 물결(미역의 주름) · taper 끝으로 좁아지는 몫 */
+function ribbonGeometry(len: number, width: number, waves: number, frill: number, taper: number, seed: number): T.BufferGeometry {
+  const rows = 28, cols = 4, q = cols + 1, p: number[] = [], uv: number[] = [], index: number[] = [];
+  for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
+    const t = j / rows, sx = i / cols * 2 - 1, w = width * (0.35 + 0.65 * Math.sin(Math.PI * Math.min(1, t * 1.6 + 0.08)) ** 0.5) * (1 - taper * t * t);
+    const bend = 0.22 * len * t * t * Math.sin(seed), wave = 0.06 * len * Math.sin(t * waves * Math.PI + seed) * t;
+    const edge = frill * Math.abs(sx) ** 1.5 * Math.sin(t * 46 + sx * 3 + seed) * w;
+    p.push(sx * w + wave, t * len, bend + edge); uv.push(i / cols, t);
+    if (j < rows && i < cols) { const k = j * q + i; index.push(k, k + 1, k + q, k + 1, k + q + 1, k + q); }
+  }
+  const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(p, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2)); g.setIndex(index); g.computeVertexNormals(); return g;
+}
 
 export function makeDecor(kit: ModelKit, key: string): DecorModel {
   const root = new T.Group(); root.name = key;
@@ -50,6 +64,14 @@ export function makeDecor(kit: ModelKit, key: string): DecorModel {
     else {box(0x2a414d,[0,.25,0],[.36,.5,.38]);const m=cyl(key==="feeder_1"?0x8b7060:0xc9d9da,[0,.7,0],[.42,.52,.42]);m.rotation.z=Math.PI/2;ring(0x4a626d,[.28,.7,0],.25).rotation.y=Math.PI/2;}
   }else if(key==="moss_ball"){for(let i=0;i<3;i++)ball(0x4b7431,[i*.26-.26,.22+i*.03,Math.sin(i)*.12],[.25,.24,.25]);
   }else if(["vallisneria","java_fern","anubias","red_rotala","glow_kelp"].includes(key)){tree(key==="red_rotala"?0xb65e50:key==="glow_kelp"?0x45b5ba:0x4b854e,key==="vallisneria"?7:5,key==="anubias"||key==="java_fern");
+  }else if((SEAWEEDS as readonly string[]).includes(key)){
+    // 해초 — 돌(뿌리 자리)에 붙어 솟은 잎 다발이 물살에 흔들린다. 미역은 주름진 긴 잎, 다시마는 넓고 긴 띠, 파래는 짧고 가는 잎이 수북하다
+    const kind=key==="sea_mustard"?{c:0x5d6b2c,n:6,len:1.5,w:.13,waves:2.2,frill:.55,taper:.35}:key==="dasima"?{c:0x4f4726,n:4,len:1.9,w:.2,waves:1.4,frill:.12,taper:.25}:{c:0x5fb33c,n:14,len:.62,w:.07,waves:3,frill:.35,taper:.6};
+    rock(0x5f5b50,[0,.08,0],[.24,.12,.2],3);
+    const leaf=new T.MeshStandardMaterial({color:kind.c,roughness:.62,side:T.DoubleSide});
+    for(let i=0;i<kind.n;i++){const a=i*2.399,r=key==="sea_lettuce"?.08+.12*((i*7)%5)/5:.06,g=new T.Group();g.position.set(Math.cos(a)*r,.14,Math.sin(a)*r);g.rotation.y=a*1.7;
+      const h=kind.len*(.75+.35*((i*5)%4)/3),m=new T.Mesh(ribbonGeometry(h,kind.w,kind.waves,kind.frill,kind.taper,a),leaf);m.rotation.z=(Math.sin(a)*.22);g.add(m);root.add(g);
+      moving.push({node:g,phase:a,axis:i%2?"x":"z",amount:key==="sea_lettuce"?.06:.13});}
   }else if(key==="water_lily"){
     tree(0x458054,3,true);for(let i=0;i<9;i++){const a=i*Math.PI*2/9,m=ball(0xe7a5ad,[Math.cos(a)*.19,1.12,Math.sin(a)*.19],[.13,.07,.27]);m.rotation.y=a;}
     ball(0xe0c25c,[0,1.15,0],[.12,.1,.12]);

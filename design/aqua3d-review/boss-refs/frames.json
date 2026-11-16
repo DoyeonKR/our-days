@@ -1,0 +1,150 @@
+{
+  "boss_sanho": {
+    "sheet": "design/aqua3d-review/boss-refs/boss_sanho-sheet.png",
+    "sheetSize": [
+      2172,
+      724
+    ],
+    "sheetSHA256": "60640d2c13263b282a48acdbbe9fa4dfe50dea2bcedbe976f73885cec23479b0",
+    "views": {
+      "side": {
+        "file": "design/aqua3d-review/boss-refs/boss_sanho-side.png",
+        "sourceBounds": {
+          "left": 19,
+          "right": 545,
+          "top": 200,
+          "bottom": 508
+        },
+        "center": [
+          282,
+          379
+        ],
+        "sourcePixelsPerUnit": 263.5,
+        "bodyCoreRadius": 0.3641064117257916,
+        "registeredPixelsPerUnit": 410
+      },
+      "front": {
+        "file": "design/aqua3d-review/boss-refs/boss_sanho-front.png",
+        "sourceBounds": {
+          "left": 569,
+          "right": 1080,
+          "top": 201,
+          "bottom": 506
+        },
+        "center": [
+          824.5,
+          378
+        ],
+        "sourcePixelsPerUnit": 263.5,
+        "bodyCoreRadius": 0.3983605111572729,
+        "registeredPixelsPerUnit": 410
+      },
+      "top": {
+        "file": "design/aqua3d-review/boss-refs/boss_sanho-top.png",
+        "sourceBounds": {
+          "left": 1114,
+          "right": 1604,
+          "top": 112,
+          "bottom": 609
+        },
+        "center": [
+          1359,
+          353
+        ],
+        "sourcePixelsPerUnit": 245.5,
+        "bodyCoreRadius": 0.5777108062309063,
+        "registeredPixelsPerUnit": 410
+      },
+      "back": {
+        "file": "design/aqua3d-review/boss-refs/boss_sanho-back.png",
+        "sourceBounds": {
+          "left": 1645,
+          "right": 2152,
+          "top": 207,
+          "bottom": 501
+        },
+        "center": [
+          1898.5,
+          378
+        ],
+        "sourcePixelsPerUnit": 263.5,
+        "bodyCoreRadius": 0.3816090824481885,
+        "registeredPixelsPerUnit": 410
+      }
+    }
+  },
+  "boss_geomeun": {
+    "sheet": "design/aqua3d-review/boss-refs/boss_geomeun-sheet.png",
+    "sheetSize": [
+      2172,
+      724
+    ],
+    "sheetSHA256": "9fc3bd5033004afd3a1062ce2a2ad16345ec3d0a11cd36afb6e3a8c5a95501da",
+    "views": {
+      "side": {
+        "file": "design/aqua3d-review/boss-refs/boss_geomeun-side.png",
+        "sourceBounds": {
+          "left": 52,
+          "right": 701,
+          "top": 227,
+          "bottom": 496
+        },
+        "center": [
+          376.5,
+          366
+        ],
+        "sourcePixelsPerUnit": 325,
+        "bodyCoreRadius": 0.31384615384615383,
+        "registeredPixelsPerUnit": 410
+      },
+      "front": {
+        "file": "design/aqua3d-review/boss-refs/boss_geomeun-front.png",
+        "sourceBounds": {
+          "left": 746,
+          "right": 1084,
+          "top": 188,
+          "bottom": 521
+        },
+        "center": [
+          915,
+          375
+        ],
+        "sourcePixelsPerUnit": 325,
+        "bodyCoreRadius": 0.3214892108623798,
+        "registeredPixelsPerUnit": 410
+      },
+      "top": {
+        "file": "design/aqua3d-review/boss-refs/boss_geomeun-top.png",
+        "sourceBounds": {
+          "left": 1122,
+          "right": 1746,
+          "top": 253,
+          "bottom": 486
+        },
+        "center": [
+          1434,
+          370
+        ],
+        "sourcePixelsPerUnit": 312.5,
+        "bodyCoreRadius": 0.2481727783203125,
+        "registeredPixelsPerUnit": 410
+      },
+      "back": {
+        "file": "design/aqua3d-review/boss-refs/boss_geomeun-back.png",
+        "sourceBounds": {
+          "left": 1794,
+          "right": 2134,
+          "top": 185,
+          "bottom": 540
+        },
+        "center": [
+          1964,
+          374
+        ],
+        "sourcePixelsPerUnit": 325,
+        "bodyCoreRadius": 0.3227630615234375,
+        "registeredPixelsPerUnit": 410
+      }
+    }
+  }
+}

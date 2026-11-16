@@ -44,7 +44,7 @@ test("곧게 위아래를 봐도 기울기는 약 50° 까지 · 옆 방향이 �
 test("수조가 쓰는 곳 — 옆모습 · 기울기 · 몸 둘레 빛 · 가까이 따라가기", () => {
   const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
   // 물고기마다 쪽을 기억하는 넷째 인자(owner) · 다섯째 인자(이번 프레임 초 — 넘어가기를 시간으로 끝낸다)는 있어도 없어도 된다
-  assert.match(scene, /if\(so>0\)\{faceSide\(direction,viewH,so(,[\w.]+){0,2}\);limitPitch\(direction,viewH\);\}/);
+  assert.match(scene, /if\(so>0\)\{faceSide\(direction,viewH,so[^;]*\);limitPitch\(direction,viewH\);\}/);
   assert.match(scene, /calmSpecular\(inner\);fishShading\(inner\);/);
   assert.match(scene, /Math\.max\(3\.6,focusLen\*3\.4\)/);
   const post = readFileSync(join(process.cwd(), "src/lib/aqua3d/post.ts"), "utf8");

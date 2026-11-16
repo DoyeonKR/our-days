@@ -8,28 +8,25 @@
  *   n      — 함께 세는 수(낚아 올림 · 토벌 · 바나나킥 · 알 · 물갈이 · 손님 · 먹이 · 합치기 판 · 수확 · 진화)와
  *            이번 달 최고값(합치기 한 판 점수 · 단계)
  *   kinds  — 이번 달 낚은 서로 다른 물고기 계열(상한 KINDS_MAX — 목표만큼만 있으면 된다)
- *   adv    — 모험은 사람마다 따로 저장된다(adventure_saves · 내 행만 보인다) — 사람마다 이번 달 수를 적고 더한다.
- *            쓰기는 '더하기'가 아니라 '큰 값으로'(이 기기에 센 값 — seasonsync) 라 다시 보내도 두 번 세지 않는다.
+ *   (모험은 2026-11-15 앱에서 걷었다 — 모험 미션도 뺐다. 옛 기록의 adv 칸은 읽지 않고 그대로 흘려보낸다)
  *   got    — 이번 달 받은 단계(1 · 2 · 3) — 한 커플이 한 달에 한 번씩
  *   titles — 다 채운 달의 칭호(최근 TITLES_MAX 개)
  *
- * ⚠ 이 파일은 가볍게 — 런타임 import 는 lib/kst 하나다(게임 허브 · 홈 · 모험이 부른다, firstload.test).
+ * ⚠ 이 파일은 가볍게 — 런타임 import 는 lib/kst 하나다(게임 허브 · 홈이 부른다, firstload.test).
  *   엔진(island · fishing · aquarium · merge)은 이 파일을 불러 자기 동작이 끝난 상태에 수를 더한다. 거꾸로 부르지 않는다.
  * ⚠ 쓰기는 저장된 그대로의 값에서 바꿀 칸만 고친다 — 다음 버전이 더한 칸을 이 번들이 지우지 않게(fishlooks 의 writeLooks 와 같은 규칙). */
 import { kstDate } from "./kst.ts";
 
-export type SeasonGame = "fish" | "aqua" | "merge" | "adv" | "island";
+export type SeasonGame = "fish" | "aqua" | "merge" | "island";
 /** 함께 세는 수 */
 export type CountStat = "landed" | "boss" | "kick" | "hatch" | "water" | "guest" | "feed" | "mergeGames" | "harvest" | "evolve";
 /** 이번 달 최고값 */
 export type MaxStat = "mergeScore" | "mergeTop";
-/** 사람마다 세는 모험 수 */
-export type AdvStat = "advBoss" | "advCatch" | "advWin";
-export type SeasonStat = CountStat | MaxStat | AdvStat | "kinds";
+export type SeasonStat = CountStat | MaxStat | "kinds";
 
 export type Mission = { id: string; game: SeasonGame; stat: SeasonStat; goal: number; label: string };
 
-export const GAME_NAME: Readonly<Record<SeasonGame, string>> = { fish: "낚시", aqua: "수조", merge: "합치기", adv: "모험", island: "섬" };
+export const GAME_NAME: Readonly<Record<SeasonGame, string>> = { fish: "낚시", aqua: "수조", merge: "합치기", island: "섬" };
 
 /** 미션 풀 — 달마다 게임별 몫(SEASON_QUOTA)만큼 뽑는다. 줄을 더해도 이미 뽑힌 달의 다른 미션이 흔들리지 않게 미션마다 따로 해시로 줄 세운다. */
 export const MISSION_POOL: readonly Mission[] = [
@@ -44,15 +41,12 @@ export const MISSION_POOL: readonly Mission[] = [
   { id: "merge_score", game: "merge", stat: "mergeScore", goal: 20000, label: "합치기 한 판 2만 점 넘기기" },
   { id: "merge_top", game: "merge", stat: "mergeTop", goal: 8, label: "합치기 8단계 재료 만들기" },
   { id: "merge_games", game: "merge", stat: "mergeGames", goal: 5, label: "합치기 5판 끝내기" },
-  { id: "adv_boss", game: "adv", stat: "advBoss", goal: 1, label: "모험 대장 관문 1번 이기기" },
-  { id: "adv_catch", game: "adv", stat: "advCatch", goal: 5, label: "모험 생물 5마리 잡기" },
-  { id: "adv_win", game: "adv", stat: "advWin", goal: 10, label: "모험 승부 10번 이기기" },
   { id: "island_harvest", game: "island", stat: "harvest", goal: 30, label: "섬 밭 30번 수확하기" },
   { id: "island_evolve", game: "island", stat: "evolve", goal: 1, label: "펫 1번 진화시키기" },
 ];
-/** 게임마다 몇 개 — 합이 12. 섬은 풀이 둘이라 늘 둘 다 */
-export const SEASON_QUOTA: Readonly<Record<SeasonGame, number>> = { fish: 3, aqua: 3, merge: 2, adv: 2, island: 2 };
-export const GAME_ORDER: readonly SeasonGame[] = ["fish", "aqua", "merge", "adv", "island"];
+/** 게임마다 몇 개 — 합이 12. 섬은 풀이 둘이라 늘 둘 다. 낚시는 넷 다(모험 몫 둘을 낚시 · 합치기로 — 2026-11-15 모험을 걷었다) */
+export const SEASON_QUOTA: Readonly<Record<SeasonGame, number>> = { fish: 4, aqua: 3, merge: 3, island: 2 };
+export const GAME_ORDER: readonly SeasonGame[] = ["fish", "aqua", "merge", "island"];
 /** 단계 — 미션을 이만큼 채우면 그 단계 보상(1: 수조 장식 · 2: 시즌 찌 · 3: 펫 칭호). 하트는 없다(§10.25 경제 표를 건드리지 않는다) */
 export const TIERS: readonly number[] = [4, 8, 12];
 export type TierReward = "decor" | "bobber" | "title";
@@ -64,7 +58,6 @@ export const SEASON_BOBBER = "bob_season";
 
 export const KINDS_MAX = 30;
 export const TITLES_MAX = 12;
-const ADV_KEYS_MAX = 4;
 const STAT_CAP = 1e9;
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
@@ -113,7 +106,6 @@ export type SeasonView = {
   month: string;
   n: Partial<Record<CountStat | MaxStat, number>>;
   kinds: string[];
-  adv: Record<string, Partial<Record<AdvStat, number>>>;
   got: number[];
   titles: SeasonTitle[];
 };
@@ -140,19 +132,12 @@ export function activeMonth(st: object, now: number): string {
 export function seasonOf(st: object, month: string): SeasonView {
   const raw = rawOf(st);
   const titles = readTitles(raw.titles);
-  if (storedMonth(raw) !== month) return { month, n: {}, kinds: [], adv: {}, got: [], titles };
+  if (storedMonth(raw) !== month) return { month, n: {}, kinds: [], got: [], titles };
   const n: SeasonView["n"] = {};
   if (isObj(raw.n)) for (const [k, v] of Object.entries(raw.n)) if (num(v) > 0) n[k as CountStat] = num(v);
   const kinds = Array.isArray(raw.kinds) ? [...new Set(raw.kinds.filter((x): x is string => typeof x === "string"))].slice(0, KINDS_MAX) : [];
-  const adv: SeasonView["adv"] = {};
-  if (isObj(raw.adv)) {
-    for (const [uid, v] of Object.entries(raw.adv)) {
-      if (!isObj(v)) continue;
-      adv[uid] = { advBoss: num(v.advBoss), advCatch: num(v.advCatch), advWin: num(v.advWin) };
-    }
-  }
   const got = Array.isArray(raw.got) ? [...new Set(raw.got.filter((x): x is number => typeof x === "number" && x >= 1 && x <= TIERS.length))] : [];
-  return { month, n, kinds, adv, got, titles };
+  return { month, n, kinds, got, titles };
 }
 
 /** 쓰기 대상 — at 의 달과 저장된 달 중 늦은 쪽. 새 달이면 진행 칸을 비운다(칭호 · 모르는 칸은 남긴다) */
@@ -160,7 +145,7 @@ function target(st: object, at: number | string): { raw: Record<string, unknown>
   const raw = rawOf(st), stored = storedMonth(raw), m = monthAt(at);
   if (!isMonth(m)) return { raw: { ...raw }, month: stored };
   if (stored && stored >= m) return { raw: { ...raw }, month: stored };
-  return { raw: { ...raw, m, n: {}, kinds: [], adv: {}, got: [] }, month: m };
+  return { raw: { ...raw, m, n: {}, kinds: [], got: [] }, month: m };
 }
 const put = <S extends object>(st: S, raw: Record<string, unknown>): S => ({ ...st, season: raw }) as S;
 
@@ -189,34 +174,9 @@ export function seasonAdd<S extends object>(st: S, at: number | string, add: Par
   return put(st, { ...raw, m: month, n, kinds });
 }
 
-/** 모험 — 이 사람의 이번 달 수를 '큰 값으로' 적는다(seasonsync 가 이 기기에서 센 값). 다시 보내도 두 번 세지 않는다. 순수. */
-export type AdvTally = { m: string } & Partial<Record<AdvStat, number>>;
-export function seasonAdvMerge<S extends object>(st: S, uid: string, tally: AdvTally): S {
-  if (!uid || !isMonth(tally.m)) return st;
-  const { raw, month } = target(st, tally.m);
-  if (month !== tally.m) return st; // 이미 지난 달의 수 — 버린다
-  const adv0 = isObj(raw.adv) ? raw.adv : {};
-  if (!(uid in adv0) && Object.keys(adv0).length >= ADV_KEYS_MAX) return st;
-  const mine0 = isObj(adv0[uid]) ? adv0[uid] : {};
-  const mine: Record<string, unknown> = { ...mine0 };
-  let changed = storedMonth(rawOf(st)) !== month;
-  for (const k of ["advBoss", "advCatch", "advWin"] as const) {
-    const v = num(tally[k]);
-    if (v > num(mine0[k])) { mine[k] = v; changed = true; }
-  }
-  if (!changed) return st;
-  return put(st, { ...raw, m: month, adv: { ...adv0, [uid]: mine } });
-}
-
-/** 미션 하나의 지금 값 — local: 이 기기가 센 내 모험 수(아직 섬에 못 올렸어도 바로 보이게, 큰 값으로) */
-export function missionValue(v: SeasonView, ms: Mission, local?: { uid: string; tally: AdvTally | null }): number {
+/** 미션 하나의 지금 값 */
+export function missionValue(v: SeasonView, ms: Mission): number {
   if (ms.stat === "kinds") return v.kinds.length;
-  if (ms.stat === "advBoss" || ms.stat === "advCatch" || ms.stat === "advWin") {
-    const k = ms.stat;
-    const adv = { ...v.adv };
-    if (local?.tally && local.tally.m === v.month) adv[local.uid] = { ...adv[local.uid], [k]: Math.max(adv[local.uid]?.[k] ?? 0, num(local.tally[k])) };
-    return Object.values(adv).reduce((a, x) => a + (x[k] ?? 0), 0);
-  }
   return v.n[ms.stat] ?? 0;
 }
 
@@ -229,11 +189,11 @@ export type SeasonBoard = {
   titles: SeasonTitle[];
 };
 /** 허브 카드 · 시트가 그리는 값 — 섬 상태와 시각만 본다(가벼운 계산, 엔진을 부르지 않는다) */
-export function seasonBoard(st: object, now: number, local?: { uid: string; tally: AdvTally | null }): SeasonBoard {
+export function seasonBoard(st: object, now: number): SeasonBoard {
   const month = activeMonth(st, now);
   const v = seasonOf(st, month);
   const rows = missionsFor(month).map((m) => {
-    const value = missionValue(v, m, local);
+    const value = missionValue(v, m);
     return { m, value, done: value >= m.goal };
   });
   const done = rows.filter((r) => r.done).length;

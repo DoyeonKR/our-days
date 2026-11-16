@@ -4932,8 +4932,8 @@
       "family": "whale_shark",
       "form": "adult",
       "file": "public/aqua/models/fish/whale_shark.glb",
-      "triangles": 1866,
-      "bytes": 27812,
+      "triangles": 6404,
+      "bytes": 86236,
       "bones": [
         "spine_0",
         "spine_1",
@@ -4955,55 +4955,62 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3e565397dfebe369b03f1494ca3eb749e93863d5d30c66ff699003d7af12cd4c",
-      "approval": "user_approved_2026-11-05",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
       },
       "validation": {
-        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "validator": "Khronos glTF-Validator",
         "errors": 0,
-        "warnings": 0,
-        "messages": [
-          {
-            "code": "UNSUPPORTED_EXTENSION",
-            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
-            "severity": 2,
-            "pointer": "/extensionsUsed/0"
-          }
-        ]
+        "warnings": 0
       },
       "weightedBones": [
-        "fin_L",
-        "fin_L_tip",
-        "fin_R",
-        "fin_R_tip",
         "spine_0",
         "spine_1",
         "spine_2",
         "spine_3",
         "spine_4",
-        "spine_5"
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
       ],
       "deformationValidation": {
-        "sampledPoses": 3,
         "allVerticesFinite": true,
-        "maximumDisplacement": 0.23570745167136062
+        "testedPoses": 5,
+        "maxRestError": 3.404582458466086e-8,
+        "maxDisplacement": 0.2549870388100192,
+        "maxRadius": 1.05613337657441,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          1254.8297103217337,
+          478.0635217688978,
+          280.05801583174616,
+          441.6208128519356,
+          288.77409076690674,
+          447.65384760499,
+          55.499473652103916,
+          82.50052625546232,
+          55.499473652103916,
+          82.50052625546232
+        ]
       },
-      "sha256": "1f392414cd4857a302131247ad138851628ab46d596e95e82b2ba9a41aacee8a",
-      "compression": {
-        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
-        "tool": "design/aqua3d-review/glb-compress.mjs",
-        "settings": {
-          "textureSize": 512,
-          "webpQuality": 82,
-          "positionBits": 14,
-          "normalBits": 8,
-          "uvBits": 12
-        },
-        "uncompressedBytes": 134416,
-        "uncompressedSha256": "40612dc024051935ada30b7a8b8f7c11b192471b450ef160c94f71110fc244d8"
-      }
+      "sha256": "c45f42015733e05f0c8d06ca102d3cae709a4a48973cadea82834160df16c09a",
+      "visualApproval": "pending",
+      "remodel": "design/aqua3d-review/marine-upgrade/whale_shark/model.json"
     },
     "fry_whale_shark": {
       "kind": "fish",
@@ -5166,8 +5173,8 @@
       "family": "manta",
       "form": "adult",
       "file": "public/aqua/models/fish/oceanic_manta.glb",
-      "triangles": 1988,
-      "bytes": 32876,
+      "triangles": 6984,
+      "bytes": 61212,
       "bones": [
         "spine_0",
         "spine_1",
@@ -5189,55 +5196,62 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "53bcb16ce36d670831964caade48155a746b70ac7af65154515a68548dd1c338",
-      "approval": "user_approved_2026-11-05",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
       },
       "validation": {
-        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "validator": "Khronos glTF-Validator",
         "errors": 0,
-        "warnings": 0,
-        "messages": [
-          {
-            "code": "UNSUPPORTED_EXTENSION",
-            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
-            "severity": 2,
-            "pointer": "/extensionsUsed/0"
-          }
-        ]
+        "warnings": 0
       },
       "weightedBones": [
-        "fin_L",
-        "fin_L_tip",
-        "fin_R",
-        "fin_R_tip",
         "spine_0",
         "spine_1",
         "spine_2",
         "spine_3",
         "spine_4",
-        "spine_5"
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
       ],
       "deformationValidation": {
-        "sampledPoses": 3,
         "allVerticesFinite": true,
-        "maximumDisplacement": 0.34522665738032204
+        "testedPoses": 5,
+        "maxRestError": 9.061916685985495e-8,
+        "maxDisplacement": 0.4702913531110368,
+        "maxRadius": 1.1942391171869624,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          1374.9509436488152,
+          282.8631271086633,
+          192.17549397051334,
+          187.11589171737432,
+          253.5199197269976,
+          113.3746243128553,
+          288.13275500014424,
+          445.86724622920156,
+          288.13275500014424,
+          445.86724622920156
+        ]
       },
-      "sha256": "f55649518c6c4c95d6da3b41f352f78517f2776e6b2b3d34e53f9ba92628f3ef",
-      "compression": {
-        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
-        "tool": "design/aqua3d-review/glb-compress.mjs",
-        "settings": {
-          "textureSize": 512,
-          "webpQuality": 82,
-          "positionBits": 14,
-          "normalBits": 8,
-          "uvBits": 12
-        },
-        "uncompressedBytes": 147068,
-        "uncompressedSha256": "1bd3d801bc92baf09fc89dbc21c7546d961323b2afeb7f88cf381d2abaf9c710"
-      }
+      "sha256": "614cceae533ec81160a71f1c67f7f731ab6e34580f40bf682b84a55b6506f522",
+      "visualApproval": "pending",
+      "remodel": "design/aqua3d-review/marine-upgrade/oceanic_manta/model.json"
     },
     "fry_manta": {
       "kind": "fish",
@@ -5478,8 +5492,8 @@
       "family": "rising",
       "form": "adult",
       "file": "public/aqua/models/fish/imugi_fish.glb",
-      "triangles": 3319,
-      "bytes": 44144,
+      "triangles": 6368,
+      "bytes": 100080,
       "bones": [
         "spine_0",
         "spine_1",
@@ -5501,55 +5515,62 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b2de868b62dc693461335833321d8f94b8a41c2da9810f1cbab2aaee395fb30c",
-      "approval": "user_approved_2026-11-05",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
       },
       "validation": {
-        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "validator": "Khronos glTF-Validator",
         "errors": 0,
-        "warnings": 0,
-        "messages": [
-          {
-            "code": "UNSUPPORTED_EXTENSION",
-            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
-            "severity": 2,
-            "pointer": "/extensionsUsed/0"
-          }
-        ]
+        "warnings": 0
       },
       "weightedBones": [
-        "fin_L",
-        "fin_L_tip",
-        "fin_R",
-        "fin_R_tip",
         "spine_0",
         "spine_1",
         "spine_2",
         "spine_3",
         "spine_4",
-        "spine_5"
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
       ],
       "deformationValidation": {
-        "sampledPoses": 3,
         "allVerticesFinite": true,
-        "maximumDisplacement": 0.22526715681529488
+        "testedPoses": 5,
+        "maxRestError": 5.360165933125077e-8,
+        "maxDisplacement": 0.21151794413323174,
+        "maxRadius": 1.0205201418545098,
+        "weightedBones": [
+          "spine_0",
+          "spine_1",
+          "spine_2",
+          "spine_3",
+          "spine_4",
+          "spine_5",
+          "fin_L",
+          "fin_L_tip",
+          "fin_R",
+          "fin_R_tip"
+        ],
+        "jointWeightTotals": [
+          2190.156847510487,
+          273.703808888793,
+          305.73575960006565,
+          329.540324319154,
+          322.0975810326636,
+          208.76568362303078,
+          9.446158558130264,
+          6.553841456770897,
+          9.446158558130264,
+          6.553841456770897
+        ]
       },
-      "sha256": "b7433c2baabe4bba8854fb51a3df51a42bc923411c50e5d3f79af71492de753e",
-      "compression": {
-        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
-        "tool": "design/aqua3d-review/glb-compress.mjs",
-        "settings": {
-          "textureSize": 512,
-          "webpQuality": 82,
-          "positionBits": 14,
-          "normalBits": 8,
-          "uvBits": 12
-        },
-        "uncompressedBytes": 218232,
-        "uncompressedSha256": "cb2ac8fc3e1daac078cdf24a5f30d76d4e0a88017482f8aed00f585a3684bdb5"
-      }
+      "sha256": "75bd0d776b1b1c79852a6809e5f20989c067abe57cb149525d91b2d87c378774",
+      "visualApproval": "pending",
+      "remodel": "design/aqua3d-review/imugi-v2/model.json"
     },
     "azure_dragonfish": {
       "kind": "fish",
@@ -41092,6 +41113,2606 @@
       },
       "sha256": "5ed7b3bf4a6fb426ef8c44b942279f7096c61d0673418f053e65881e885c58f4",
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_spotted_seal": {
+      "kind": "fish",
+      "family": "spotted_seal",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_spotted_seal.glb",
+      "triangles": 2800,
+      "bytes": 53448,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "034406ac4ac3b70ecfb57963c15e1e1c1baf6129415bd7387e69003d7896f9b9",
+      "sha256": "c828e1336d1fc5f7954dfabed5a5bfca46a76972eb1dbb995ee06b1594269252",
+      "authoringProfile": {
+        "key": "spotted_seal",
+        "name": "점박이물범",
+        "grade": "영웅",
+        "cm": 160,
+        "water": "sea",
+        "body": "seal",
+        "widthRatio": 0.28,
+        "life": "바닥 가까이 · 천천히 미끄러지다 뒷지느러미를 좌우로 저어 나간다 · 가끔 숨 쉬러 수면",
+        "hunt": "gulp"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_spotted_seal": {
+      "kind": "fish",
+      "family": "spotted_seal",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_spotted_seal.glb",
+      "triangles": 2924,
+      "bytes": 61764,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0e0f07d800170267f6a9ee86d23d81244f04781bbc1d38c72e41a23928e5a42e",
+      "sha256": "b53158ce7368eb1e11ebbc0e9812bce5690c5e2eee4f550667239da58fd685c2",
+      "authoringProfile": {
+        "key": "spotted_seal",
+        "name": "점박이물범",
+        "grade": "영웅",
+        "cm": 160,
+        "water": "sea",
+        "body": "seal",
+        "widthRatio": 0.28,
+        "life": "바닥 가까이 · 천천히 미끄러지다 뒷지느러미를 좌우로 저어 나간다 · 가끔 숨 쉬러 수면",
+        "hunt": "gulp"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "spotted_seal": {
+      "kind": "fish",
+      "family": "spotted_seal",
+      "form": "adult",
+      "file": "public/aqua/models/fish/spotted_seal.glb",
+      "triangles": 2784,
+      "bytes": 61184,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "01737bb9cc1dc536e4d65033f50a0720d104de762918928cfa52e4f8ddc67a9d",
+      "sha256": "e39b32845c6d026504e27a61a845ec926fea8db79106f48846a1fee5c0265e89",
+      "authoringProfile": {
+        "key": "spotted_seal",
+        "name": "점박이물범",
+        "grade": "영웅",
+        "cm": 160,
+        "water": "sea",
+        "body": "seal",
+        "widthRatio": 0.28,
+        "life": "바닥 가까이 · 천천히 미끄러지다 뒷지느러미를 좌우로 저어 나간다 · 가끔 숨 쉬러 수면",
+        "hunt": "gulp"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_fur_seal": {
+      "kind": "fish",
+      "family": "fur_seal",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_fur_seal.glb",
+      "triangles": 2728,
+      "bytes": 54468,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "d3c4a518540f1a54819e11e3e876ada6d8a94e6a0aae20d443ea73d6f1148ee3",
+      "sha256": "1a442b2b648b39508d46d8a50de65584648166f698dc2673be95185ae171112d",
+      "authoringProfile": {
+        "key": "fur_seal",
+        "name": "물개",
+        "grade": "영웅",
+        "cm": 150,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.24,
+        "life": "중층 · 빠르고 날렵하게 앞지느러미로 날듯이 헤엄친다 · 몸을 비틀며 돈다",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_fur_seal": {
+      "kind": "fish",
+      "family": "fur_seal",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_fur_seal.glb",
+      "triangles": 2756,
+      "bytes": 55384,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "94d969f0a0514b57102a5c7faf903ac095c4479451bf5fbaf05fb5779c7d38c8",
+      "sha256": "4f7fe5a1fb596c0c1fc431a5d275e5372dd027986768b6e914c5df86110b8177",
+      "authoringProfile": {
+        "key": "fur_seal",
+        "name": "물개",
+        "grade": "영웅",
+        "cm": 150,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.24,
+        "life": "중층 · 빠르고 날렵하게 앞지느러미로 날듯이 헤엄친다 · 몸을 비틀며 돈다",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fur_seal": {
+      "kind": "fish",
+      "family": "fur_seal",
+      "form": "adult",
+      "file": "public/aqua/models/fish/fur_seal.glb",
+      "triangles": 2764,
+      "bytes": 57676,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "af738988edbf9455274738494d51a9bffc6a065b35bac471b23e14f3cf221a43",
+      "sha256": "185ecd63178ecf5190cc548e90ec15a019cd26f8c66946abed838f96003f5117",
+      "authoringProfile": {
+        "key": "fur_seal",
+        "name": "물개",
+        "grade": "영웅",
+        "cm": 150,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.24,
+        "life": "중층 · 빠르고 날렵하게 앞지느러미로 날듯이 헤엄친다 · 몸을 비틀며 돈다",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_steller_sea_lion": {
+      "kind": "fish",
+      "family": "steller_sea_lion",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_steller_sea_lion.glb",
+      "triangles": 2752,
+      "bytes": 56452,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "a400dcd59d21309b110fadff13dceacb058ced63d5d29711d3748e1415c0f999",
+      "sha256": "f8179fe04a91eec932c6f38614a79f957f43b52e5b0af126da10a4c74dcf1ae2",
+      "authoringProfile": {
+        "key": "steller_sea_lion",
+        "name": "큰바다사자",
+        "grade": "전설",
+        "cm": 280,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.27,
+        "life": "중층 · 크고 묵직하게 앞지느러미로 저어 나간다 · 무리 대장처럼 천천히 돈다",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_steller_sea_lion": {
+      "kind": "fish",
+      "family": "steller_sea_lion",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_steller_sea_lion.glb",
+      "triangles": 2764,
+      "bytes": 58192,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "9fbdcd70b60e7cbc320fcbfb96300608aeb969b98e347824e79f92c0bfa48327",
+      "sha256": "d54b107219b96d8cf46a30a1704a8112531dd9a8ddb312f14d0d763da35f2ed4",
+      "authoringProfile": {
+        "key": "steller_sea_lion",
+        "name": "큰바다사자",
+        "grade": "전설",
+        "cm": 280,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.27,
+        "life": "중층 · 크고 묵직하게 앞지느러미로 저어 나간다 · 무리 대장처럼 천천히 돈다",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "steller_sea_lion": {
+      "kind": "fish",
+      "family": "steller_sea_lion",
+      "form": "adult",
+      "file": "public/aqua/models/fish/steller_sea_lion.glb",
+      "triangles": 2736,
+      "bytes": 63776,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "47ae0114d38fc066f447ae13e2fce9fc030ddce062db1b17506da1783ee8c4db",
+      "sha256": "f87b60ca9f2d104aa65b2db83f72c173c8d582eb75abe5af2f76c3f9fc608195",
+      "authoringProfile": {
+        "key": "steller_sea_lion",
+        "name": "큰바다사자",
+        "grade": "전설",
+        "cm": 280,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.27,
+        "life": "중층 · 크고 묵직하게 앞지느러미로 저어 나간다 · 무리 대장처럼 천천히 돈다",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_japanese_sea_lion": {
+      "kind": "fish",
+      "family": "japanese_sea_lion",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_japanese_sea_lion.glb",
+      "triangles": 2740,
+      "bytes": 56480,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "969e13df5e130cf5788ae3dacb988e03b5a8118981d4e1b46fb51f829ff40f82",
+      "sha256": "eef92c3f670a4f0ded55c04c71d94a6fbe8d0e52785b041e9e1cc593a3df3de2",
+      "authoringProfile": {
+        "key": "japanese_sea_lion",
+        "name": "독도 강치",
+        "grade": "신화",
+        "cm": 230,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.25,
+        "life": "중층 · 독도 바위 곁을 유유히 돈다 · 오래 전 동해를 누비던 강치",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_japanese_sea_lion": {
+      "kind": "fish",
+      "family": "japanese_sea_lion",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_japanese_sea_lion.glb",
+      "triangles": 2748,
+      "bytes": 55744,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "935153d7be828522737f8d97f52799306ff091199ee18e6eb1bac8e7c0c72768",
+      "sha256": "a1454c82204ed589e4723b26de4ec6e4e9f6e86dbd991a0d050f705a25f9ef13",
+      "authoringProfile": {
+        "key": "japanese_sea_lion",
+        "name": "독도 강치",
+        "grade": "신화",
+        "cm": 230,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.25,
+        "life": "중층 · 독도 바위 곁을 유유히 돈다 · 오래 전 동해를 누비던 강치",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "japanese_sea_lion": {
+      "kind": "fish",
+      "family": "japanese_sea_lion",
+      "form": "adult",
+      "file": "public/aqua/models/fish/japanese_sea_lion.glb",
+      "triangles": 2752,
+      "bytes": 55136,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "ea35320730f9f06b763e8959249925322615e6c7a5caea1bc85806a8b2dabfea",
+      "sha256": "ad5e44b0016fbf0e558e927baaae5d82786c34fe9e0963a94484647da5c88dd7",
+      "authoringProfile": {
+        "key": "japanese_sea_lion",
+        "name": "독도 강치",
+        "grade": "신화",
+        "cm": 230,
+        "water": "sea",
+        "body": "sealion",
+        "widthRatio": 0.25,
+        "life": "중층 · 독도 바위 곁을 유유히 돈다 · 오래 전 동해를 누비던 강치",
+        "hunt": "charge"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_sea_otter": {
+      "kind": "fish",
+      "family": "sea_otter",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_sea_otter.glb",
+      "triangles": 2808,
+      "bytes": 61004,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "74c635d544d96df8fcbacc2b56bb63f917e46c9479e4520cf20cc5433f1b489b",
+      "sha256": "983c226b8a339dd9d9a6847473915ab0ae2aedde1714f5ab80db147f736b5763",
+      "authoringProfile": {
+        "key": "sea_otter",
+        "name": "해달",
+        "grade": "전설",
+        "cm": 130,
+        "water": "sea",
+        "body": "otter",
+        "widthRatio": 0.26,
+        "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24812474455382802
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_sea_otter": {
+      "kind": "fish",
+      "family": "sea_otter",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_sea_otter.glb",
+      "triangles": 2928,
+      "bytes": 60380,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "4b6eaf769d847239f04036855397654abe623f7633324481a5ef5ec2fbe33e29",
+      "sha256": "62417a0bda85f2b070ba255442c92cf6190bd943872ac751d39471caff0e9a4c",
+      "authoringProfile": {
+        "key": "sea_otter",
+        "name": "해달",
+        "grade": "전설",
+        "cm": 130,
+        "water": "sea",
+        "body": "otter",
+        "widthRatio": 0.26,
+        "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24812474455382802
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "sea_otter": {
+      "kind": "fish",
+      "family": "sea_otter",
+      "form": "adult",
+      "file": "public/aqua/models/fish/sea_otter.glb",
+      "triangles": 2930,
+      "bytes": 61656,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "5f2329fc5ef00cfec2063a761ac3ef5fbb0b4bf48b6af1b256e05f51dbaff72d",
+      "sha256": "fde7ebd7da798fedc0859645ea7a48ad9ff3a6fb0f36a90ccedfca979d49a0ef",
+      "authoringProfile": {
+        "key": "sea_otter",
+        "name": "해달",
+        "grade": "전설",
+        "cm": 130,
+        "water": "sea",
+        "body": "otter",
+        "widthRatio": 0.26,
+        "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24812474455382802
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_otter": {
+      "kind": "fish",
+      "family": "otter",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_otter.glb",
+      "triangles": 2772,
+      "bytes": 55800,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "be4cc17b751dd31873ca024b0412623e63a37c8ad4365030e3b8949c5b14279b",
+      "sha256": "0b44aa44ef3338af00ad50519c40011e08404acee1fc8f67369be1b38c1fb945",
+      "authoringProfile": {
+        "key": "otter",
+        "name": "수달",
+        "grade": "희귀",
+        "cm": 110,
+        "water": "fresh",
+        "body": "otter",
+        "widthRatio": 0.18,
+        "life": "바닥 가까이 · 강 바위 사이를 몸을 물결치며 빠르게 누빈다 · 가끔 숨 쉬러 수면",
+        "hunt": "strike"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23370647968030767
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_otter": {
+      "kind": "fish",
+      "family": "otter",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_otter.glb",
+      "triangles": 2904,
+      "bytes": 58308,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "91bc95accd956c677a9f03af80d1998edca5d9f4e750c938818262a3b750a11a",
+      "sha256": "37d609359971a06e22c5cbc27b3f48591240179bfd6b50c9724c30bf3a58728b",
+      "authoringProfile": {
+        "key": "otter",
+        "name": "수달",
+        "grade": "희귀",
+        "cm": 110,
+        "water": "fresh",
+        "body": "otter",
+        "widthRatio": 0.18,
+        "life": "바닥 가까이 · 강 바위 사이를 몸을 물결치며 빠르게 누빈다 · 가끔 숨 쉬러 수면",
+        "hunt": "strike"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23369723995158176
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "otter": {
+      "kind": "fish",
+      "family": "otter",
+      "form": "adult",
+      "file": "public/aqua/models/fish/otter.glb",
+      "triangles": 2808,
+      "bytes": 53220,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "4983d27081ee274c7ef6fc2f7d40804d344e6732c4af239eed6e8ebccb8d011d",
+      "sha256": "e2681cba355242809e9dac60198ed6936625641517315ee7ccc2a836d0b7fe34",
+      "authoringProfile": {
+        "key": "otter",
+        "name": "수달",
+        "grade": "희귀",
+        "cm": 110,
+        "water": "fresh",
+        "body": "otter",
+        "widthRatio": 0.18,
+        "life": "바닥 가까이 · 강 바위 사이를 몸을 물결치며 빠르게 누빈다 · 가끔 숨 쉬러 수면",
+        "hunt": "strike"
+      },
+      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-15",
+      "approval": "user_approved_2026-11-13",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23369118261458424
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_cherry_shrimp": {
+      "kind": "fish",
+      "family": "cherry_shrimp",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_cherry_shrimp.glb",
+      "triangles": 2508,
+      "bytes": 41476,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "d44a99dcc3658322e16898cb19d7a745aaeff341af027de30d902b80383ca249",
+      "sha256": "3cccc6c679c004f80bad9d8dd01513ca0478e4b7a56eb1acb202c65b335a4531",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19357442843785042
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_cherry_shrimp": {
+      "kind": "fish",
+      "family": "cherry_shrimp",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_cherry_shrimp.glb",
+      "triangles": 2508,
+      "bytes": 48556,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "59bd7ea4ebfa07a324c3ed8ac7219d3131fbcb90544d8f6e06ce1f8c4ae981bc",
+      "sha256": "9dfd15d344f023a9dc1b1bbdeb7e25bc294dd9b63e8c324c811eaff7cf43f369",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19528863406994199
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "cherry_shrimp": {
+      "kind": "fish",
+      "family": "cherry_shrimp",
+      "form": "adult",
+      "file": "public/aqua/models/fish/cherry_shrimp.glb",
+      "triangles": 2508,
+      "bytes": 52988,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "20869b16e6a53d5c835b648ccdaefaa3ffeef88c686151bca9503099339d4a9e",
+      "sha256": "f31c6c20c8963e2555f3a46dc323f2da253e8c0731c90135fbf49cc278fc3cfe",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_fleshy_prawn": {
+      "kind": "fish",
+      "family": "fleshy_prawn",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_fleshy_prawn.glb",
+      "triangles": 2544,
+      "bytes": 40056,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "2635f09fe509f82e79ce1c8f711fe89dfed399d8744582f0ae2899516333191f",
+      "sha256": "4d85b0c68e851ed06d716e9d8d3dbeb4c9109d17980d54772fb76062a863c6d6",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "fleshy_prawn",
+        "name": "대하",
+        "scientificName": "Fenneropenaeus chinensis",
+        "cm": 25,
+        "widthRatio": 0.18,
+        "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.1860724191648985
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_fleshy_prawn": {
+      "kind": "fish",
+      "family": "fleshy_prawn",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_fleshy_prawn.glb",
+      "triangles": 2544,
+      "bytes": 40852,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "1582f8ce14c93f304cac4072cbb68a20e5d4d64a0d494ec87a5e6d058f2c3cba",
+      "sha256": "0ebe32cf775c85fac39cc4040705bb4deb5bf9ad8d60e76896ea3b112329c502",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "fleshy_prawn",
+        "name": "대하",
+        "scientificName": "Fenneropenaeus chinensis",
+        "cm": 25,
+        "widthRatio": 0.18,
+        "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.18613637189186358
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fleshy_prawn": {
+      "kind": "fish",
+      "family": "fleshy_prawn",
+      "form": "adult",
+      "file": "public/aqua/models/fish/fleshy_prawn.glb",
+      "triangles": 2544,
+      "bytes": 42540,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "f0fe917ab2856bbb257b00d20f788782688061c9fdd2f7a049e7bd2123d93c41",
+      "sha256": "7a096177883989c56a0176ecf7dfed519e61be21675a3ff6f890b3ecc8ad0a9c",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "fleshy_prawn",
+        "name": "대하",
+        "scientificName": "Fenneropenaeus chinensis",
+        "cm": 25,
+        "widthRatio": 0.18,
+        "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.1861788865082032
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "fry_dokdo_shrimp": {
+      "kind": "fish",
+      "family": "dokdo_shrimp",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_dokdo_shrimp.glb",
+      "triangles": 2652,
+      "bytes": 40376,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "4e1355c988ef47d10a11f48f2cb55a0af325c8296afacd4882840add3d397bca",
+      "sha256": "9939d15bafe1b2379c946a03d08777b6cfdd763b27a992ee85e0ed1a101f0943",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "dokdo_shrimp",
+        "name": "독도새우",
+        "scientificName": "Pandalus hypsinotus",
+        "cm": 22,
+        "widthRatio": 0.2,
+        "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.17962486141368605
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_dokdo_shrimp": {
+      "kind": "fish",
+      "family": "dokdo_shrimp",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_dokdo_shrimp.glb",
+      "triangles": 2652,
+      "bytes": 43468,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "ed5baadc56cc3d49d1f7fee0126d005ca6d8cd15823c4aa33c5f6fc5693efc6c",
+      "sha256": "b6ac725a1a9d5fe58b75e382191611000abf5c276cc15371c9915a4f16866e0f",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "dokdo_shrimp",
+        "name": "독도새우",
+        "scientificName": "Pandalus hypsinotus",
+        "cm": 22,
+        "widthRatio": 0.2,
+        "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.17846452904839435
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "dokdo_shrimp": {
+      "kind": "fish",
+      "family": "dokdo_shrimp",
+      "form": "adult",
+      "file": "public/aqua/models/fish/dokdo_shrimp.glb",
+      "triangles": 2652,
+      "bytes": 43392,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shrimp",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "8880138431a7aae040f2989553d54a342ffb0e59d11d9ae42cd3691492c777a2",
+      "sha256": "e750a601b081e05b6da2fd150d637e8cea747b2a685ddc7ad6e081d7692fd7f8",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "dokdo_shrimp",
+        "name": "독도새우",
+        "scientificName": "Pandalus hypsinotus",
+        "cm": 22,
+        "widthRatio": 0.2,
+        "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
+      },
+      "visualApproval": "pending",
+      "approval": "user_approved_2026-11-14",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.17763971017168792
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "orca": {
+      "kind": "fish",
+      "family": "orca",
+      "form": "adult",
+      "file": "public/aqua/models/fish/orca.glb",
+      "triangles": 2900,
+      "bytes": 33884,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "meshSource": "Tripo (user-supplied) → orca-color/paint.mjs → orca-build.mjs",
+      "meshSourceSHA256": "3da734f55ecbaf2b43f4c8223f223e99fbd58921c636930e3856cfc8e761b2bc",
+      "simplifyError": 0.0014208635548129678,
+      "approval": "user_approved_2026-11-14",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      }
+    },
+    "fry_orca": {
+      "kind": "fish",
+      "family": "orca",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_orca.glb",
+      "triangles": 2900,
+      "bytes": 33884,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "meshSource": "Tripo (user-supplied) → orca-color/paint.mjs → orca-build.mjs",
+      "meshSourceSHA256": "3da734f55ecbaf2b43f4c8223f223e99fbd58921c636930e3856cfc8e761b2bc",
+      "simplifyError": 0.0014208635548129678,
+      "approval": "user_approved_2026-11-14",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "note": "다 큰 개체 모델 · 그림을 그대로 쓴다(새끼 · 어린 그림 대기 — ART-GUIDE F)"
+    },
+    "juv_orca": {
+      "kind": "fish",
+      "family": "orca",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_orca.glb",
+      "triangles": 2900,
+      "bytes": 33884,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
+      "meshSource": "Tripo (user-supplied) → orca-color/paint.mjs → orca-build.mjs",
+      "meshSourceSHA256": "3da734f55ecbaf2b43f4c8223f223e99fbd58921c636930e3856cfc8e761b2bc",
+      "simplifyError": 0.0014208635548129678,
+      "approval": "user_approved_2026-11-14",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "note": "다 큰 개체 모델 · 그림을 그대로 쓴다(새끼 · 어린 그림 대기 — ART-GUIDE F)"
     }
   },
   "structuralValidation": "passed",

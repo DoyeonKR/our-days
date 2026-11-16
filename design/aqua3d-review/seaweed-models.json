@@ -1,0 +1,116 @@
+{
+  "models": {
+    "sea_lettuce": {
+      "kind": "decor",
+      "file": "public/aqua/models/decor-new/sea_lettuce.glb",
+      "triangles": 4804,
+      "bytes": 97596,
+      "bones": [],
+      "materials": 1,
+      "textureSize": [
+        512,
+        512
+      ],
+      "animations": 0,
+      "movingNodes": [
+        "moving_frond_0",
+        "moving_frond_1",
+        "moving_frond_2",
+        "moving_frond_3",
+        "moving_frond_4",
+        "moving_frond_5"
+      ],
+      "sourceSHA256": "883f361e721c60bbe934c1c99231f232d1b57e33b7c67b59cc9fe7c05143aed4",
+      "sha256": "d4e7c68c08c822cb5f7fd4675027139b55a49e8cdef742059fa41aa677ce9c91",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 5000,
+        "bytes": 800000
+      },
+      "origin": "bottom center",
+      "scientificName": "Ulva",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "sea_mustard": {
+      "kind": "decor",
+      "file": "public/aqua/models/decor-new/sea_mustard.glb",
+      "triangles": 3556,
+      "bytes": 72292,
+      "bones": [],
+      "materials": 1,
+      "textureSize": [
+        512,
+        512
+      ],
+      "animations": 0,
+      "movingNodes": [
+        "moving_frond_0",
+        "moving_frond_1",
+        "moving_frond_2",
+        "moving_sporophyll_0",
+        "moving_sporophyll_1",
+        "moving_sporophyll_2"
+      ],
+      "sourceSHA256": "ca5562455b7f765d94f881ca46ef7cd6d67f6d03192b183053911c6348fe883d",
+      "sha256": "0f786a37cb5e35fe5ad61cc2b29938f204061277d192a5264bef5cd4fd003783",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 5000,
+        "bytes": 800000
+      },
+      "origin": "bottom center",
+      "scientificName": "Undaria pinnatifida",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "dasima": {
+      "kind": "decor",
+      "file": "public/aqua/models/decor-new/dasima.glb",
+      "triangles": 2884,
+      "bytes": 58744,
+      "bones": [],
+      "materials": 1,
+      "textureSize": [
+        512,
+        512
+      ],
+      "animations": 0,
+      "movingNodes": [
+        "moving_frond_0",
+        "moving_frond_1",
+        "moving_frond_2",
+        "moving_frond_3"
+      ],
+      "sourceSHA256": "e77f5d728a6138e9899157febee640e2f2ed1a2ca5dee68e3af02328892ca28e",
+      "sha256": "dfde76422e29b141d11f75a3139ace439e5f928a05616d33e7a33a7857edc583",
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 5000,
+        "bytes": 800000
+      },
+      "origin": "bottom center",
+      "scientificName": "Saccharina japonica",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    }
+  }
+}

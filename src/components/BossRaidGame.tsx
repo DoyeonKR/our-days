@@ -18,7 +18,7 @@ const buzz = (p: number | number[]) => navigator.vibrate?.(p);
 const READY_MS = 1600;
 
 /** bg — 그 낚시터 그림(어둡게 깔아 물속 무대로). 없으면 짙은 물빛만 */
-export type RaidSetup = { name: string; species: string; seed: number; tune: RaidTune; hp: number; chunk: number; wound: number; duo: boolean; triesLeft: number; bg?: string };
+export type RaidSetup = { name: string; species: string; /** 그릴 그림(주인 전용 그림이 있으면) */ art?: string; seed: number; tune: RaidTune; hp: number; chunk: number; wound: number; duo: boolean; triesLeft: number; bg?: string };
 /** 크게 외치는 한마디(막았다 · 완벽 · 한 번 더 · 분노 · 토벌) */
 type Call = { id: number; text: string; tone: "good" | "gold" | "bad" | "rage" | "kill" };
 
@@ -94,13 +94,13 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
     const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     box.current?.focus({ preventScroll: true });
     let alive = true;
-    void Promise.all([new Promise((go) => setTimeout(go, READY_MS)), Promise.race([preloadFishArt([setup.species]), new Promise((go) => setTimeout(go, 3000))])]).then(() => {
+    void Promise.all([new Promise((go) => setTimeout(go, READY_MS)), Promise.race([preloadFishArt([setup.art ?? setup.species]), new Promise((go) => setTimeout(go, 3000))])]).then(() => {
       if (!alive || sent.current) return; // 안내 화면에서 이미 나갔다
       readyRef.current = true;
       setReady(true);
     });
     return () => { alive = false; if (before?.isConnected) before.focus({ preventScroll: true }); };
-  }, [setup.species]);
+  }, [setup.art, setup.species]);
 
   useEffect(() => {
     if (!ready) return;
@@ -218,7 +218,7 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
           <div className={`boss-raid-boss ${lunge} ${r.stagger > 0 ? "is-dazed" : ""} ${r.end === "kill" ? "is-down" : ""} ${a?.kind === "heavy" ? "is-charge" : ""} ${r.phase > 0 ? `is-rage${r.phase}` : ""} ${a && a.dir === 0 ? "is-flip" : ""}`} style={{ ["--k" as string]: String(1 - k) }}>
             <i className="aura" aria-hidden />
             <i className="shadow" aria-hidden />
-            <span className="body"><FishArt artKey={setup.species} sync /></span>
+            <span className="body"><FishArt artKey={setup.art ?? setup.species} sync /></span>
             {r.stagger > 0 && !r.end && <i className="stars" aria-hidden><b>★</b><b>★</b><b>★</b></i>}
           </div>
           {r.stagger > 0 && !r.end && <i className="boss-raid-staggerbar" aria-hidden><i style={{ width: `${Math.min(100, (r.stagger / Math.max(0.1, staggerMax.current)) * 100)}%` }} /></i>}

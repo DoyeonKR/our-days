@@ -1,0 +1,23 @@
+{
+  "visualApproval": "pending",
+  "activation": "not enabled",
+  "committed": false,
+  "gameCodeModifiedByThisTask": false,
+  "boss_sanho": {
+    "constructed": "Four-view 256x128x128 visual hull, marching cubes, Taubin smoothing and meshoptimizer body; closed-volume paddles, branches, curved sea-fan webs and barnacles merged into one skinned mesh.",
+    "rig": "Carapace, plastron and coral are rigid on spine_3. Neck uses spine_0..2. Front flippers use fin chains; rear paddles and tail use spine_4..5.",
+    "remainingVisualLimit": "Sea-fan web and branching coral are simplified within 5000 triangles; fine porous lattice and subtle neck-to-shell texture transitions remain less detailed than the illustration."
+  },
+  "boss_geomeun": {
+    "constructed": "Four-view visual-hull fusiform body, closed-volume pectorals, dorsal/anal fins, yellow finlets, caudal keels and tapered crescent lobes. Scars are texture only; no fishing line.",
+    "rig": "Spine weights follow body X. Caudal lobes are rigid on spine_5. Dorsal/anal fins use spine_2..3; pectorals use fin chains.",
+    "remainingVisualLimit": "The front-to-side projection transition around the gill and nose is still visible at close range; fine fin rays and gill folds are mainly texture detail."
+  },
+  "comparison": {
+    "baselineTurtle": "Actual makeDetailedTurtle code snapshot, green_sea_turtle without boss look; original geometry and texture mapping, neutral review lighting.",
+    "baselineTuna": "public/aqua/models/fish/bluefin_tuna.glb",
+    "views": ["top", "front", "side", "oblique"],
+    "camera": "Orthographic, normalized X length 2; same PBR lights and exposure for baseline and boss.",
+    "approvalNote": "Structural validation is not visual approval. No numerical self-rating or automatic pass for likeness."
+  }
+}

@@ -323,7 +323,7 @@ test("화면 — 행운 덤은 eff 한 곳 · 낚시터 고르기에 별 · 배�
   assert.match(game, /<i className=\{`fish-sky t-\$\{look \?\? moment\.time\}/, "배경은 하늘빛을 갈아 끼운다(겹쳐 얹지 않는다)");
   assert.match(game, /when: moment, avoid/, "뽑기의 때는 진짜 시간 그대로");
   assert.doesNotMatch(game, /\.bosses\[/, "주인 기록은 bossRecOf 로만(각성한 주인은 fishPlus 에 있다)");
-  assert.match(game, /masterySaleBonus\(st, fish\.at\)/, "팔기 버튼 값 = 실제 받는 값");
+  assert.match(game, /sellPrice\(st, fish\)/, "팔기 버튼 값 = 실제 받는 값(숙련 덤이 든 sellPrice)");
   assert.match(strip("src/components/FishCollect.tsx"), /<FishMastery \{\.\.\.p\} \/>/);
   const css = readFileSync(join(process.cwd(), "src/styles/games.css"), "utf8");
   assert.match(css, /\.fish-sky\.t-dusk/); assert.match(css, /\.fish-sky\.t-night/);

@@ -2,6 +2,8 @@
 /** 장비 탭 '미끼 만들기'(2026-11-12) — 남는 쓰레기 · 섬 작물 · 작은 물고기 · 하트로 특수 미끼를 만든다. 판정 · 차감은 전부 lib/fishcraft(화면은 그리기만).
  *  만든 미끼는 낚시 준비 시트의 미끼 칸에서 고른다(FishingGame). 그림은 이모지 대신 벡터(README §10.8 — 픽셀 서체에 없는 글자가 네모로 나온다). */
 import type { ReactNode } from "react";
+import { asset } from "@/lib/base";
+import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { CRAFT_BAITS, CRAFT_RECIPES, craftBait, craftBaitOf, craftNeeds, craftStock, craftTier, craftWhy, spareFry, type CraftKey } from "@/lib/fishcraft";
 import { GRADES, fishName, syncAqua } from "@/lib/aquarium";
 import { ActionButton } from "@/components/AppButtons";
@@ -18,6 +20,11 @@ const CRAFT_ART: Record<CraftKey, ReactNode> = {
   craft_sticky: <><path {...line} fill="#86efac" d="M8 28c0-9 7-15 16-15s16 6 16 15c0 6-5 9-9 9l-1 7-3-6-3 5-1-6c-9 0-15-3-15-9z" /><circle cx="19" cy="25" r="2.2" fill="#f0fdf4" /></>,
 };
 export function CraftBaitIcon({ k, label }: { k: string; label?: string }) {
+  // 그림이 오면 그림을 먼저(scripts/fishing-art.mjs 의 CRAFT_ART), 없으면 아래 벡터
+  if (FISHING_IMAGE_KEYS.has(k)) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={asset(`/fishing/${k}.webp`)} alt={label ?? ""} aria-hidden={label ? undefined : true} className="aqua-img fish-gear-img" draggable={false} decoding="async" />;
+  }
   const art = CRAFT_ART[k as CraftKey];
   return <svg viewBox="0 0 48 48" className="fish-icon-svg" role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>{art}</svg>;
 }

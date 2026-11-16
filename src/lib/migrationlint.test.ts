@@ -20,7 +20,7 @@ const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
 const schema = read(join(root, "supabase/schema.sql"));
 
 /** schema.sql 에 원문이 없는 옛 파일 — 늘리지 않는다(새 파일은 반드시 schema.sql 끝에 붙인다).
- *  · 날씨 5개: 다른 앱이 운영에 직접 적용한 버전의 자리표시(SQL 은 주석뿐, §7)
+ *  · 날씨 6개: 다른 앱이 운영에 직접 적용한 버전의 자리표시(SQL 은 주석뿐, §7)
  *  · release_hardening · island_stale_no_retry: schema.sql 본문에 같은 정의를 녹여 넣어 원문 그대로는 없다 */
 const LEGACY_NOT_IN_SCHEMA = new Set([
   "20260825000000_release_hardening.sql",
@@ -30,6 +30,7 @@ const LEGACY_NOT_IN_SCHEMA = new Set([
   "20260928223926_weather_events_summary.sql",
   "20261101144520_weather_push_persona_and_alerts.sql",
   "20261101145042_weather_push_persona_community.sql",
+  "20261114010339_weather_events_add_weather_fail.sql",
 ]);
 const STRICT_FROM = "20261106";
 
@@ -71,7 +72,7 @@ test("④ 2026-11-06 번호부터 새 정책은 to authenticated(로그인 안 �
 });
 
 test("⑤ 2026-11-06 번호부터 한 트랜잭션(begin; … commit;) — 중간에 실패하면 통째로 되돌아간다", () => {
-  for (const f of files.filter((x) => x >= STRICT_FROM)) {
+  for (const f of files.filter((x) => x >= STRICT_FROM && !LEGACY_NOT_IN_SCHEMA.has(x))) {
     const code = noComments(read(join(dir, f)));
     assert.match(code, /^begin;$/m, `${f}: begin; 이 없다`);
     assert.match(code.trimEnd(), /commit;$/, `${f}: commit; 으로 끝나지 않는다`);

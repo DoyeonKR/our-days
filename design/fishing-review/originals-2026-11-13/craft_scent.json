@@ -1,0 +1,8 @@
+{
+  "key": "craft_scent",
+  "name": "향 미끼",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A soft pink fishing bait dough ball with three wavy pink scent wisps rising from it, sweet and fragrant look.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "14a0f70e65dbc6a0ccc1ff65aea46bce75a3f2bc8ca33141598feb218048ace9"
+}

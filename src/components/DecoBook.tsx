@@ -294,9 +294,10 @@ export default function DecoBook({
       // tmp → 실제 row 로 정합. 행을 돌려받았으면 그 한 줄로, 못 받았으면(중복 등) 목록을 다시 받는다
       if (row) setReactions((cur) => [...cur.filter((r) => r.id !== tmpId && r.id !== row.id), row]);
       else setReactions(await listReactions(coupleId));
-      // 상대 일기에 반응했을 때만 상대에게 푸시
+      // 상대 일기에 반응했을 때만 상대에게 푸시 — 이번에 새로 저장된 반응일 때만(row). 이미 있던 반응(409)에 다시 보내면
+      // 같은 알림이 누를 때마다 나갔다(2026-11-13 — 목록이 잘려 이미 단 반응이 안 보이던 때)
       const entry = entries.find((en) => en.id === entryId);
-      if (entry && entry.created_by !== uid) {
+      if (row && entry && entry.created_by !== uid) {
         sendEventPush(coupleId, "interact", `${emoji} 내 일기에 반응이 달렸어요`, entry.title?.trim() || "일기장을 확인해 보세요", undefined, entryId);
       }
     } catch (e) {

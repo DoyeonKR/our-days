@@ -26,13 +26,16 @@ test("신규 bootstrap은 옛 게임 표 정리 migration 을 원문 그대로 �
   assert.ok(bootstrap.includes(migration), "schema.sql 끝의 복사본이 migration 과 달라졌어요. 둘을 함께 갱신해 주세요.");
 });
 
+const ADV_FILE = "20261114040000_drop_adventure.sql";
+
 test("지우는 표는 옛 게임 표 여덟 개뿐이다 — 다른 표가 끼면 되돌릴 수 없는 사고다", () => {
   const dropped = [...code.matchAll(/drop\s+table\s+if\s+exists\s+public\.(\w+)/gi)].map((m) => m[1]);
   assert.deepEqual([...dropped].sort(), [...OLD_GAME_TABLES].sort());
   assert.doesNotMatch(code, /\bcascade\b/i, "cascade 는 모르는 의존까지 같이 지운다 — 멈추게 둔다");
   assert.doesNotMatch(code, /\btruncate\b/i);
   // 표를 지우는 migration 은 이것 하나 — 다른 migration 에 drop table 이 생기면 여기서 알아챈다
-  for (const f of readdirSync(dir).filter((n) => n.endsWith(".sql") && n !== FILE)) {
+  // 2026-11-15 모험 정리(20261114040000_drop_adventure)는 아래 따로 잠근다 — 모험 표 넷만 · 백업 먼저
+  for (const f of readdirSync(dir).filter((n) => n.endsWith(".sql") && n !== FILE && n !== ADV_FILE)) {
     const other = readFileSync(new URL(f, dir), "utf8").replace(/--[^\n]*/g, "");
     assert.doesNotMatch(other, /\bdrop\s+table\b/i, `${f} 가 표를 지운다`);
   }
@@ -74,4 +77,16 @@ test("계정 내보내기 목록에 지운 표가 없다 — 남아 있으면 �
   for (const t of OLD_GAME_TABLES) {
     assert.ok(!(ACCOUNT_EXPORT_TABLES as readonly string[]).includes(t), `${t} 가 아직 내보내기 목록에 있다`);
   }
+});
+
+test("모험 정리 migration — 모험 표 넷만 지우고, 지우기 전에 같은 트랜잭션에서 백업한다(2026-11-15)", () => {
+  const adv = readFileSync(new URL(ADV_FILE, dir), "utf8").replace(/--[^\n]*/g, "");
+  const dropped = [...adv.matchAll(/drop\s+table\s+if\s+exists\s+public\.(\w+)/gi)].map((m) => m[1]).sort();
+  assert.deepEqual(dropped, ["adventure_matches", "adventure_ratings", "adventure_saves", "adventure_teams"]);
+  assert.doesNotMatch(adv, /\bcascade\b/i);
+  assert.doesNotMatch(adv, /\btruncate\b|\bdelete\s+from\b/i);
+  const backup = adv.indexOf("insert into private.adventure_backup");
+  assert.ok(backup >= 0 && backup < adv.search(/drop\s+table/i), "백업이 먼저");
+  assert.match(adv, /^\s*begin;/);
+  assert.match(adv, /commit;\s*$/);
 });

@@ -1186,3 +1186,16 @@ test("★ 세트 업적은 소급 해금된다 — 업적 정의보다 먼저 �
   const reward = ACHIEVEMENTS.find((a) => a.key === "set_forest")!.reward;
   assert.ok(after.coins >= coins0 - decorPrice(decorDef("tulip")) + reward, "소급 보상이 지급되지 않았다");
 });
+
+// 비료 · 골드비료 10개씩(2026-11-15)
+import { buyFertilizer as buyFert10, TUNING as TUNING10 } from "./island.ts";
+test("fertilizer and gold fertilizer can be bought ten at a time", () => {
+  const base = fresh(); base.coins = TUNING10.farm.goldFertilizer * 10; base.farm.fert = 1; base.farm.gold = 2;
+  const a = buyFert10(JSON.parse(JSON.stringify(base)), true, 10);
+  assert.equal(a.farm.gold, 12); assert.equal(a.coins, 0);
+  const b = buyFert10(JSON.parse(JSON.stringify(base)), false, 10);
+  assert.equal(b.farm.fert, 11); assert.equal(b.coins, TUNING10.farm.goldFertilizer * 10 - TUNING10.farm.fertilizer * 10);
+  // 모자라면 아무것도 안 산다(일부만 사지 않는다)
+  const poor = fresh(); poor.coins = TUNING10.farm.goldFertilizer * 9;
+  assert.equal(buyFert10(poor, true, 10), poor);
+});

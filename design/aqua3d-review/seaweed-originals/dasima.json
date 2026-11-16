@@ -1,0 +1,9 @@
+{
+  "key": "dasima",
+  "scientificName": "Saccharina japonica",
+  "description": "Korean kelp (dasima, Saccharina japonica): a few long wide smooth dark olive-brown strap-shaped blades with slightly wavy edges and broad central fascia, rising from a rock holdfast. Blades unbranched, NO pinnate sea-mustard lobes.",
+  "kind": "decor",
+  "prompt": "Photorealistic aquarium decoration product photography, physically realistic ceramic, stone, metal or plant textures, soft upper-left light, clean readable silhouette. Single object in slight front three-quarter view, base at the bottom, 10% empty padding all around. True transparent background (PNG alpha). No surrounding water, sand, fish or scenery, no cast shadow, text, border or watermark. 1024x1024. Fantasy decorations should still look like real crafted objects, never cartoon illustrations.\nSubject: Korean kelp (dasima, Saccharina japonica): a few long wide smooth dark olive-brown strap-shaped blades with slightly wavy edges and broad central fascia, rising from a rock holdfast. Blades unbranched, NO pinnate sea-mustard lobes. Show the entire naturally arranged plant and attached small grey rock, base at bottom, realistic botanical macro texture. Actual alpha transparency, no checkerboard painted into the picture.",
+  "tool": "built-in image_gen",
+  "sha256": "c22439ab396a85f9c91aa6b81f01955ed9847957dbcddf2c6333640691a583c3"
+}

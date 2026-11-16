@@ -1,7 +1,7 @@
 /* 낚시의 바깥 세계 (2026-11-03) — [사용자: 주인 물고기 · 둘이 하는 주간 원정 · 크기 기록 · 시간대와 날씨 "이거 추가하자"]
  * 순수 표와 계산만 둔다. 저장은 fishing.ts 가 섬 상태 s.fishing 의 옵셔널 칸에 한다(DB 변경 없음).
  *  · 크기 — 같은 물고기도 길이가 다르다. 사람별 · 계열별 최고 기록이 남아 상대와 겨룬다. 랭킹 점수엔 안 넣는다(서버 공식 · 옛 앱이 같이 바뀐다).
- *  · 때 손님 — 이 시간 · 이 날씨에만 무는 물고기. 해파리는 이때가 아니면 아예 안 오고(낚시터 pool 에 없다, 치어부터 잡힌다), 나머지는 다 큰 모습만 이때 온다. 새 종은 그림 · 모델이 먼저다(design/FISHING-TIMED-ART.md).
+ *  · 때 손님 — 이 시간 · 이 날씨에만 무는 물고기. 해파리는 이때가 아니면 아예 안 오고(낚시터 pool 에 없다, 치어부터 잡힌다), 나머지는 다 큰 모습만 이때 온다. 새 종은 그림 · 모델이 먼저다(옛 때 손님 지침서(git 이력)).
  *  · 주인 — 낚시터마다 하나. 줄이 끊겨도 깎인 체력이 남아 며칠에 걸쳐 잡는다. 둘이 같이 깎는다.
  *  · 원정 — 한 주의 목표를 둘이 합쳐 채운다. 다 채운 순간 하트가 들어온다(받기 버튼을 놓쳐 잃는 일이 없게).
  *  ⚠ fishing.ts 와 물리는 값은 타입으로만 부른다 — 이 파일이 fishing.ts 를 값으로 부르면 순환이다. */
@@ -75,7 +75,7 @@ export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: N
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 /** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
  *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
-export const TIMED_ONLY: ReadonlySet<string> = new Set(["jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel"]);
+export const TIMED_ONLY: ReadonlySet<string> = new Set(["jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
 export const TIMED_FISH: readonly TimedFish[] = [
   { species: "sweetfish", spot: "seomjin", time: "dawn" },
   { species: "crucian", spot: "dumulmeori", time: "dawn" },
@@ -107,6 +107,12 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "lionfish", spot: "reef", wx: "rain", side: true },
   { species: "blue_tang", spot: "reef", time: "day", side: true },
   { species: "grouper", spot: "ocean", time: "dusk", side: true },
+  // 해양 포유류(2026-11-13) — 울릉도 앞바다에 귀한 계열이 많아(미끼 1% 규칙 합) 셋은 때 손님으로: 해 질 녘엔 해달이 떠서 쉬고, 밤엔 독도 강치가 돌아오고, 눈 오는 날엔 큰바다사자가 내려온다
+  { species: "sea_otter", spot: "ocean", time: "dusk", side: true },
+  { species: "japanese_sea_lion", spot: "ocean", time: "night", side: true },
+  { species: "steller_sea_lion", spot: "ocean", wx: "snow", side: true },
+  // 범고래(2026-11-14) — 울릉도 앞바다 비 오는 날의 곁 칸 손님
+  { species: "orca", spot: "ocean", wx: "rain", side: true },
   { species: "sunfish", spot: "starsea", time: "day", side: true },
   { species: "butterflyfish", spot: "reef", time: "dawn", side: true },
   { species: "boxfish", spot: "reef", wx: "clear", side: true },
@@ -155,7 +161,10 @@ export const finalAllowed = (species: string, spot: string, m: FishMoment | unde
 /* ── 주인 ───────────────────────────────────────────── */
 
 /** repeat — 다시 잡을 때 보상 비율(없으면 BOSS_REPEAT_SHARE). 각성한 주인(숙련도 ★5)만 0 을 쓴다 */
-export type FishBoss = { key: string; spot: string; name: string; family: string; species: string; level: number; difficulty: number; chunk: number; cm: number; coins: number; story: string; repeat?: number };
+export type FishBoss = { key: string; spot: string; name: string; family: string; species: string; level: number; difficulty: number; chunk: number; cm: number; coins: number; story: string; repeat?: number;
+  /** 주인 전용 그림(2026-11-15) — public/aqua/fish/<art>.webp. 없으면 그 종 그림 */ art?: string };
+/** 주인을 그릴 그림 key — 전용 그림이 있으면 그것, 없으면 종 그림(수조에 들어가는 물고기는 여전히 종 그림이다) */
+export const bossArt = (b: Pick<FishBoss, "art" | "species">) => b.art ?? b.species;
 /** 낚시터의 주인 — 레벨은 그 낚시터를 좀 다닌 뒤 열리게 잡았다. chunk 는 한 판을 끝까지 끌어왔을 때 깎이는 체력이다 — 그래서 끝까지 끌어와도 대개 한 판엔 안 잡힌다.
  * ⚠ 감기는 속도를 줄여 오래 걸리게 하면 안 된다 — 물고기가 차고 나가는 힘에 밀려 어느 값부터 아예 못 잡는 절벽이 된다(실측: 0.6배 평균 30판, 0.4배 80판 넘게도 못 잡음). */
 export const BOSSES: readonly FishBoss[] = [
@@ -169,8 +178,8 @@ export const BOSSES: readonly FishBoss[] = [
   { key: "eoreum", spot: "hwacheon", name: "얼음 밑 산천어", family: "masu_salmon", species: "masu_salmon", level: 10, difficulty: 3.2, chunk: 0.16, cm: 60, coins: 4500, story: "화천천 얼음 구멍 밑을 천천히 지나가는 그림자. 겨울마다 조금씩 더 커진다고 한다." },
   { key: "baetmeori", spot: "harbor", name: "뱃머리 영감", family: "striped_jack", species: "striped_jack", level: 11, difficulty: 3.4, chunk: 0.155, cm: 190, coins: 5000, story: "통영 방파제 밑을 수십 년 지킨 줄전갱이. 낚싯줄 냄새를 어부보다 잘 맡는다." },
   { key: "dodam", spot: "sanriver", name: "도담 가물치", family: "snakehead", species: "snakehead", level: 12, difficulty: 3.6, chunk: 0.15, cm: 130, coins: 6000, story: "남한강 물풀 밑에서 숨을 쉬러 올라온다. 입을 열면 찌가 통째로 사라진다." },
-  { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다." },
-  { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다." },
+  { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다.", art: "boss_sanho" },
+  { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다.", art: "boss_geomeun" },
   { key: "munji", spot: "palace", name: "용궁 문지기", family: "rising", species: "golden_dragonfish", level: 27, difficulty: 5.6, chunk: 0.13, cm: 620, coins: 20000, story: "용궁 대문을 천 년 지켰다. 지나가려면 먼저 이겨야 한다." },
   { key: "byeol", spot: "starsea", name: "별을 삼킨 자", family: "astral", species: "genesis_fish", level: 34, difficulty: 6.6, chunk: 0.12, cm: 900, coins: 40000, story: "밤하늘의 별 하나가 사라진 날, 이 물고기가 처음 보였다." },
   { key: "simyeon", spot: "abyss", name: "심연의 크라켄", family: "kraken", species: "kraken", level: 38, difficulty: 7.2, chunk: 0.11, cm: 1800, coins: 60000, story: "울릉분지 바닥에 산다는 전설. 줄이 내려간 만큼 무언가 끌어당긴다." },

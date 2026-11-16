@@ -16,12 +16,14 @@
  *    루어 · 뜰채 · 심해의 규칙은 fishingmodes.ts, 집어등은 fishinglight.ts.
  *  · 꽝 [사용자: "일정 확률로 바다 쓰레기(꽝)도 낚을 수 있는 재미 포인트 … 쓰레기의 종류는 여러개"] — 끌어올리기 전까진 물고기와 똑같다. 낚시터마다 다른 쓰레기가 있고 수집함에 남는다.
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
+import { ACTIVE_SHRIMP, withShrimp } from "./shrimp.ts";
 import type { IslandState } from "./island.ts";
 import type { SpecialCard } from "./fishplus.ts";
 import { josa } from "./josa.ts";
 import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
 import { awakeBlock, bossRecOf, isAwakeKey, masterySaleBonus, noteMastery, withAwakeRec } from "./fishmastery.ts";
+import { noteRequest, type RequestHit } from "./fishrequest.ts";
 import { tideEffect } from "./fishtide.ts";
 import { BOSS_TAKEN, TIMED_CHANCE, TIMED_SIDE_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
@@ -42,9 +44,9 @@ export const FREE_WORMS = 20;
 /** 민물 · 바다 — 강과 늪엔 민물고기만, 바다엔 바닷물고기만 산다[사용자: "강이나 특정 습지 이런대는 민물고기만 나오도록하고 바다에는 바닷물고기 … 꼭 한국의 특정지역"]. */
 export type FishWater = "river" | "lake" | "valley" | "wetland" | "hall" | "sea";
 export const WATER_NAME: Readonly<Record<FishWater, string>> = { river: "강", lake: "호수", valley: "계곡", wetland: "늪", hall: "열대관", sea: "바다" };
-export const FRESH_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "sweetfish", "goldfish", "betta", "catfish", "angel", "discus", "koi", "ray", "arowana", "salmon", "crucian", "pale_chub", "chinese_minnow", "smelt", "bullhead", "common_carp", "masu_salmon", "snakehead", "mandarin_fish", "perch_kkeokji", "eel", "lenok", "bitterling", "shiri", "sturgeon", "loach", "dark_chub", "sleeper", "gudgeon", "skygazer", "rainbow_trout", "grass_carp", "bluegill", "largemouth_bass", "char", "ricefish", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel"]);
+export const FRESH_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "sweetfish", "goldfish", "betta", "catfish", "angel", "discus", "koi", "ray", "arowana", "salmon", "crucian", "pale_chub", "chinese_minnow", "smelt", "bullhead", "common_carp", "masu_salmon", "snakehead", "mandarin_fish", "perch_kkeokji", "eel", "lenok", "bitterling", "shiri", "sturgeon", "loach", "dark_chub", "sleeper", "gudgeon", "skygazer", "rainbow_trout", "grass_carp", "bluegill", "largemouth_bass", "char", "ricefish", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel", "otter", ...ACTIVE_SHRIMP.filter((f) => f.fresh).map((f) => f.key)]);
 /** 관상어 — 한국 강 · 늪에 사는 물고기가 아니다. 어울리는 곳(청계천 관상어 거리 · 국립생태원 열대관)에만 둔다[사용자: "관상어는 빼고 … 맞지 않다면 적절한 곳에 배치해"]. */
-export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "goldfish", "betta", "angel", "discus", "ray", "arowana", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel"]);
+export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "goldfish", "betta", "angel", "discus", "ray", "arowana", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel", ...ACTIVE_SHRIMP.filter((f) => f.ornamental).map((f) => f.key)]);
 /** common — 이 낚시터에서 '흔한 물고기'로 치는 미끼 단계(없으면 이 낚시터의 가장 싼 미끼 단계). 미끼 1% 규칙은 이 단계 위의 계열에만 걸린다.
  *  열대관처럼 그 낚시터의 대표 물고기(엔젤피시)가 한 단계 위 미끼부터 무는 곳에만 쓴다. */
 export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[]; art?: string; common?: number; push?: number };
@@ -54,25 +56,27 @@ export const spotArtKey = (s: Pick<FishSpot, "key" | "art">) => s.art ?? `spot_$
  *  ⚠ pool 순서가 무게다 — rollCatch 는 흔한 계열에 (1 + lift × pool 안 자리)를 곱한다. 새 흔한 계열은 **원래 흔한 계열 바로 뒤(귀한 계열 앞)에 작은 무게로** 넣는다.
  *  2026-11-13 4차 54계열을 귀한 계열 뒤(끝)에 붙였더니 가장 큰 덤을 받아 대표 물고기를 밀어냈다(우포늪 붕어 37% → 13%, 생태원 테트라 · 베타 · 구피 26% → 8%).
  *  원래 흔한 계열은 4차 전 자리 그대로고 새 계열 몫은 합쳐 10~15%(행운 5) — fishingbatch4.test 가 4차 전 몫의 80% 를 잠근다. 귀한 계열의 자리는 확률과 무관하다(1% 띠는 계열마다 따로 쌓인다). */
-export const SPOTS: readonly FishSpot[] = [
+const BASE_SPOTS: readonly FishSpot[] = [
   { key: "brook", name: "서울 청계천", water: "river", minLevel: 1, push: 0, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
   { key: "dumulmeori", name: "양평 두물머리", water: "river", minLevel: 2, push: 0.5, pool: [["pale_chub", 40], ["crucian", 34], ["bullhead", 24], ["bitterling", 4.5], ["gudgeon", 4], ["common_carp", 10], ["grass_carp", 10]] },
   { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, push: 1, pool: [["crucian", 40], ["pale_chub", 26], ["bullhead", 22], ["bitterling", 2.5], ["loach", 2], ["ricefish", 2], ["bluegill", 1.5], ["catfish", 40], ["common_carp", 20], ["koi", 15], ["snakehead", 12]] },
   { key: "soyang", name: "춘천 소양호", water: "lake", minLevel: 4, push: 1.25, pool: [["smelt", 42], ["crucian", 30], ["pale_chub", 24], ["bluegill", 7], ["common_carp", 15], ["mandarin_fish", 10], ["skygazer", 10], ["largemouth_bass", 10], ["char", 8]] },
-  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, push: 1, pool: [["sweetfish", 42], ["pale_chub", 28], ["bullhead", 22], ["dark_chub", 3], ["gudgeon", 2.5], ["sleeper", 2.5], ["salmon", 15], ["mandarin_fish", 10], ["eel", 8], ["shiri", 10]], art: "spot_seomjin" },
+  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, push: 1, pool: [["sweetfish", 42], ["pale_chub", 28], ["bullhead", 22], ["dark_chub", 3], ["gudgeon", 2.5], ["sleeper", 2.5], ["salmon", 15], ["mandarin_fish", 10], ["eel", 8], ["shiri", 10], ["otter", 8]], art: "spot_seomjin" },
   { key: "bonghwa", name: "봉화 계곡", water: "valley", minLevel: 6, push: 1.75, pool: [["chinese_minnow", 42], ["pale_chub", 30], ["bullhead", 20], ["dark_chub", 6.5], ["masu_salmon", 15], ["perch_kkeokji", 20], ["lenok", 6], ["shiri", 10], ["rainbow_trout", 10]] },
   { key: "jungle", name: "서천 국립생태원", water: "hall", minLevel: 7, push: 1.75, common: 1, pool: [["angel", 36], ["tetra", 30], ["betta", 24], ["guppy", 20], ["molly", 1.5], ["platy", 1], ["zebra_danio", 1], ["corydoras", 1], ["gourami", 1], ["pleco", 0.8], ["discus", 30], ["ray", 20], ["arowana", 10], ["oscar", 10], ["piranha", 10], ["redtail_catfish", 8]] },
   { key: "hwacheon", name: "화천 화천천", water: "river", minLevel: 8, push: 2.25, pool: [["smelt", 40], ["chinese_minnow", 30], ["pale_chub", 24], ["masu_salmon", 60], ["lenok", 4], ["rainbow_trout", 12], ["char", 8]] },
   { key: "harbor", name: "통영 항구", water: "sea", minLevel: 9, push: 1.75, common: 1, pool: [["mackerel", 40], ["rockfish_bollak", 30], ["flounder", 40], ["rockfish", 30], ["black_seabream", 20], ["sea_bream", 20], ["starfish", 15], ["anchovy", 1.5], ["scorpionfish", 1.5], ["filefish", 4], ["spanish_mackerel", 3.5], ["sea_bass", 18], ["squid", 10], ["croaker", 10], ["yellowtail", 8], ["octopus", 6], ["striped_jack", 5], ["puffer", 3]] },
   { key: "sanriver", name: "단양 남한강", water: "river", minLevel: 10, push: 2.75, pool: [["bullhead", 36], ["pale_chub", 30], ["crucian", 26], ["sleeper", 7], ["common_carp", 35], ["mandarin_fish", 30], ["snakehead", 12], ["perch_kkeokji", 8], ["eel", 6], ["skygazer", 10], ["sturgeon", 6]] },
   { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, push: 1.75, pool: [["clown", 40], ["black_seabream", 30], ["starfish", 24], ["hairtail", 15], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["barred_knifejaw", 10], ["octopus", 8], ["manta", 15], ["parrotfish", 10], ["moray", 8], ["seahorse", 8]] },
-  { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, push: 3, pool: [["sailfin_sandfish", 40], ["rockfish", 30], ["flounder", 24], ["cod", 4], ["spanish_mackerel", 3.5], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15], ["skate", 10]] },
-  { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, push: 1.25, pool: [["rising", 40], ["striped_jack", 32], ["oarfish", 26], ["marlin", 4.5], ["swordfish", 4], ["megamouth", 15], ["whale_shark", 20]] },
-  { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, push: 1.5, pool: [["rising", 38], ["anglerfish", 32], ["hammerhead", 26], ["astral", 70]] },
+  { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, push: 3, pool: [["sailfin_sandfish", 40], ["rockfish", 30], ["flounder", 24], ["cod", 4], ["spanish_mackerel", 3.5], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15], ["skate", 10], ["spotted_seal", 10], ["fur_seal", 8]] },
+  { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, push: 1.25, pool: [["bluefin", 40], ["yellowtail", 34], ["blue_shark", 24], ["rising", 40], ["striped_jack", 32], ["oarfish", 26], ["marlin", 4.5], ["swordfish", 4], ["megamouth", 15], ["whale_shark", 20]] },
+  { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, push: 1.5, pool: [["octopus", 40], ["blue_shark", 32], ["yellowtail", 26], ["rising", 38], ["anglerfish", 32], ["hammerhead", 26], ["astral", 70]] },
   // 심해는 맨 끝 낚시터인데 기본 계열이 영웅(떡밥)이라 한 번당 용궁사(전설 · 발광 미끼)보다 덜 벌었다(33 대 50).
   // 2026-11-11 떡밥 값을 내려 시작 미끼로 57. 물고기 구성은 그대로 — 미끼 1% 규칙(사용자 결정)을 지킨다.
   { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["viperfish", 7], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3], ["frilled_shark", 8]] },
 ];
+/** 낚시터 — 켜진 새우(shrimp.ts)는 정해진 계열 바로 뒤에 끼운다(꺼져 있으면 BASE 그대로) */
+export const SPOTS: readonly FishSpot[] = ACTIVE_SHRIMP.length ? BASE_SPOTS.map((x) => ({ ...x, pool: withShrimp(x.key, x.pool) })) : BASE_SPOTS;
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
 /** 지금 낚시터 — 고른 곳, 없으면 미끼가 있는 곳 중 가장 깊은 곳. 배경과 연출이 이 한 함수를 본다(둘이 갈리면 수평선이 어긋난다). */
 export function currentSpot(f: Pick<FishingState, "level" | "baits" | "wormDay">, pick: string | null, today: string): FishSpot {
@@ -108,9 +112,9 @@ export const BAITS: readonly FishBait[] = [
   { key: "bait_shrimp", name: "민물새우", maxGrade: 2, uses: 15, price: 180, desc: "엔젤피시 · 흰동가리가 물어요" },
   { key: "bait_squid", name: "오징어살", maxGrade: 3, uses: 20, price: 320, desc: "디스커스 · 비단잉어가 물어요" },
   { key: "bait_paste", name: "황금 떡밥", maxGrade: 4, uses: 25, price: 600, desc: "참다랑어 · 아로와나가 물어요" },
-  { key: "bait_glow", name: "심해 발광 미끼", maxGrade: 5, uses: 30, price: 2400, desc: "고래상어 · 등용어가 물어요" },
-  { key: "bait_pearl", name: "용궁 진주 미끼", maxGrade: 6, uses: 35, price: 4200, desc: "별무리어가 물어요" },
-  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 5200, desc: "태초 등급까지 물어요" },
+  { key: "bait_glow", name: "심해 발광 미끼", maxGrade: 5, uses: 30, price: 1200, desc: "고래상어 · 등용어가 물어요" },
+  { key: "bait_pearl", name: "용궁 진주 미끼", maxGrade: 6, uses: 35, price: 1750, desc: "별무리어가 물어요" },
+  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 2400, desc: "태초 등급까지 물어요" },
 ];
 export const baitIndex = (key: string) => BAITS.findIndex((x) => x.key === key);
 
@@ -121,7 +125,7 @@ export type FishMethod = { key: MethodKey; name: string; minLevel: number; baitC
 export const METHODS: readonly FishMethod[] = [
   { key: "float", name: "찌낚시", minLevel: 1, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 1, how: "입질에 챔질하고, 누르고 떼며 줄을 감아요", good: "기본" },
   { key: "lure", name: "루어", minLevel: 2, baitCost: 1, adult: 2.4, lift: 0, capture: 0, junk: 0.6, how: "박자 맞춰 유인하고, 물고기 반대쪽으로 끌어요", good: "다 큰 물고기가 잘 와요" },
-  { key: "scoop", name: "뜰채", minLevel: 3, baitCost: 1, adult: 0, lift: 0, capture: 0.12, junk: 1, how: "떠오른 그림자를 앞서 겨눠 건지고, 기울지 않게 들어 올려요", good: "고를 수 있고 잘 담겨요" },
+  { key: "scoop", name: "뜰채", minLevel: 3, baitCost: 1, adult: 0, lift: 0, capture: 0.12, junk: 1, how: "그물을 끌고 다니며 달아나는 물고기를 구석으로 몰아 건져요", good: "고를 수 있고 잘 담겨요 · 타이밍 대신 몰이" },
   { key: "deep", name: "심해", minLevel: 5, baitCost: 2, adult: 1.4, lift: 0.9, capture: -0.04, junk: 1.5, how: "릴을 빙글빙글 돌려 끌어올려요. 미끼를 2개 써요", good: "귀한 물고기가 와요" },
   // 집어등(2026-11-12) [사용자 승인: "밤에만 열리는 다섯 번째 방식입니다. 불빛으로 물고기를 모았다가 터지는 순간 낚아 올립니다"].
   // lift · adult 는 찌와 같다 — 귀한 등급을 더 부르지 않는다(미끼 1% 규칙). 밤 물고기 쪽으로 기우는 건 같은 단계 안에서만(rollCatch 의 lightRepick).
@@ -148,7 +152,7 @@ export const NIGHT_FAMILIES: ReadonlySet<string> = new Set(["squid", "hairtail",
 export const LIGHT_NIGHT_WEIGHT = 6;
 const LIGHT_SEED = 0x3c6ef372;
 
-export type FishJunk = { key: string; name: string; line: string; coins: number; spot?: string };
+export type FishJunk = { key: string; name: string; line: string; coins: number; spot?: string; /** 이 깊이(m)보다 얕은 곳에선 안 걸린다(심해 탐사선 부품 — 2026-11-14) */ minDepth?: number };
 /** 꽝 — 흔한 쓰레기 + 낚시터마다 거기서만 나오는 것. 하트는 분리수거 값만큼 조금. line 은 건져 올렸을 때의 한 줄. */
 export const JUNKS: readonly FishJunk[] = [
   { key: "junk_can", name: "찌그러진 깡통", line: "한 모금 남아 있어요. 마시지는 마세요", coins: 2 },
@@ -173,7 +177,7 @@ export const JUNKS: readonly FishJunk[] = [
   { key: "junk_pole", name: "등산 스틱", line: "계곡 바위에 걸려 있던 걸까요", coins: 3, spot: "bonghwa" },
   { key: "junk_stool", name: "얼음낚시 의자", line: "주인은 추워서 먼저 들어갔나 봐요", coins: 4, spot: "hwacheon" },
   { key: "junk_helmet", name: "패러글라이딩 헬멧", line: "하늘에서 떨어졌나 봐요. 주인은 무사해요", coins: 6, spot: "sanriver" },
-  { key: "junk_probe", name: "심해 탐사선 부품", line: "깊이 2천 미터의 물건치고는 멀쩡해요", coins: 20, spot: "abyss" },
+  { key: "junk_probe", name: "심해 탐사선 부품", line: "깊이 2천 미터의 물건치고는 멀쩡해요", coins: 20, spot: "abyss", minDepth: 1000 },
 ];
 export const junkOf = (key: string | undefined) => JUNKS.find((x) => x.key === key);
 const JUNK_SEED = 0x2f6e2b1;
@@ -327,6 +331,11 @@ export const familyBaitTier = (key: string) => {
 const baitTierOf = (pool: readonly (readonly [string, number])[]) => Math.min(...pool.map(([k]) => familyBaitTier(k)));
 /** 미끼 한 단계의 값 — 보통의 행운 · 거리(배율 1.3)에서 한 단계 약 1% */
 export const BAIT_STEP = 0.008;
+/** 귀한 몫에 붙는 덤(행운 · 던지기 · 방식)의 상한 — 1 이면 많아야 2배(2026-11-14) */
+export const RARE_LIFT_CAP = 1;
+/** 전설 이상 계열의 몫은 그 절반 — 가장 좋은 미끼 · 가장 깊은 낚시터에서도 전설 이상 5% 안팎(2026-11-14) */
+export const LEGEND_BAND = 0.5;
+const LEGEND_GRADE = 5;
 
 /** 이 낚시터에서 무언가 물기 시작하는 가장 싼 미끼 */
 export const spotMinBait = (spot: FishSpot) => {
@@ -341,7 +350,41 @@ export const junksAt = (spotKey: string) => JUNKS.filter((x) => !x.spot || x.spo
 
 /** avoid — 방금 같은 계열이 연달아 나왔으면 그 계열을 흔한 물고기 뽑기에서 한 번 뺀다(50번에 같은 물고기만 이어지지 않게) */
 /** size — 대물 뽑기 문턱에 더하는 값(만든 '빛 미끼' — fishcraft.ts). 길이 뽑기는 별도 주사위라 계열 · 등급 · 단계 뽑기는 그대로다. 없으면 0 */
-export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number };
+export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number; /** 수심(0 표층 · 1 중층 · 2 바닥) — 그 수심에 사는 계열 쪽으로 같은 미끼 단계 안에서만 다시 고른다 */ depth?: FishDepth; /** 어군에 맞혔다 — 맞춘 수심 쪽으로 더 세게 */ school?: boolean; /** 미끼가 멈춘 깊이(m) — 그보다 깊은 곳에만 있는 쓰레기(minDepth)는 안 걸린다 */ depthM?: number };
+/** 수심 맞추기(2026-11-13) [사용자: "거리말고 수심도 조절할 수 있는 기믹"] — 찌가 내려앉으면 미끼가 표층 → 중층 → 바닥으로 가라앉고, 눌러서 멈춘 수심에 사는 물고기가 더 잘 문다.
+ *  사는 수심은 수조의 습성(aqua3d/habits — 바닥에 붙는 종 · 높이)과 같은 갈래다(fishingdepth.test 가 견준다). 목록에 없는 계열은 중층 */
+export type FishDepth = 0 | 1 | 2;
+export const DEPTH_NAMES = ["표층", "중층", "바닥"] as const;
+export const SURFACE_FAMILIES: ReadonlySet<string> = new Set(["guppy", "ricefish", "pale_chub", "zebra_danio", "molly", "anchovy", "saury", "sweetfish", "gourami", "betta", "halfbeak", "skygazer", "snakehead", "salmon", "koi", "sea_otter", "dolphinfish", "arowana", "blue_shark", "sunfish", "marlin", "manta", "swordfish", "astral"]);
+export const BOTTOM_FAMILIES: ReadonlySet<string> = new Set(["corydoras", "lanternfish", "goby", "loach", "hatchetfish", "bullhead", "mudskipper", "sleeper", "gudgeon", "scorpionfish", "pleco", "catfish", "flounder", "shiri", "rockfish", "sailfin_sandfish", "starfish", "cod", "mandarin_fish", "blobfish", "perch_kkeokji", "cutlassfish_pollock", "nurse_shark", "moray", "leopard_shark", "skate", "croaker", "eel", "ray", "viperfish", "octopus", "goosefish", "gulper_eel", "electric_eel", "redtail_catfish", "sturgeon", "frilled_shark", "anglerfish", "oarfish", "coelacanth", "megamouth", "giant_squid", "kraken", ...ACTIVE_SHRIMP.map((f) => f.key)]);
+export const familyDepth = (family: string): FishDepth => (SURFACE_FAMILIES.has(family) ? 0 : BOTTOM_FAMILIES.has(family) ? 2 : 1);
+/** 맞춘 수심의 계열이 받는 무게 배수 · 다른 수심 계열의 배수 — 같은 미끼 단계 안에서만(단계의 몫 = 미끼 1% 규칙은 그대로).
+ *  [사용자 2026-11-13: "수심 마다 잡히는 물고기도 달라져야해"] 다른 수심의 물고기는 4분의 1 로 줄인다. 어군에 맞히면 맞춘 수심이 더 세다 */
+export const DEPTH_WEIGHT = 4;
+export const DEPTH_OTHER = 0.25;
+export const DEPTH_SCHOOL = 7;
+/** 낚시터의 물 깊이(m) — 실제 그곳에 견준 값. 미끼는 이 깊이(바닥)보다 깊이 못 내려간다 */
+export const SPOT_DEPTH: Readonly<Record<string, number>> = {
+  brook: 1.5, dumulmeori: 6, pond: 3, soyang: 30, seomjin: 5, bonghwa: 2.5, jungle: 4, hwacheon: 4, harbor: 15, sanriver: 10, reef: 25, ocean: 80, palace: 60, starsea: 120, abyss: 1500,
+};
+export const spotDepth = (spot: Pick<FishSpot, "key">) => SPOT_DEPTH[spot.key] ?? 10;
+/** 봉돌 — 무거울수록 깊이 내려간다(장비 탭에서 하트로, 저장은 섬 최상위 fishPlus.sinker). 심해 방식은 무거운 채비라 3배까지 */
+export const SINKERS = [
+  { key: "sinker_0", name: "가벼운 봉돌", reach: 3, price: 0 },
+  { key: "sinker_1", name: "납 봉돌", reach: 8, price: 800 },
+  { key: "sinker_2", name: "쇠 봉돌", reach: 20, price: 2500 },
+  { key: "sinker_3", name: "황동 봉돌", reach: 50, price: 7000 },
+  { key: "sinker_4", name: "심해 봉돌", reach: 150, price: 18000 },
+  { key: "sinker_5", name: "해구 봉돌", reach: 2000, price: 45000 },
+] as const;
+/** 이번 판에 내려갈 수 있는 가장 깊은 곳(m) — 봉돌 · 방식 · 낚시터 바닥 중 얕은 쪽 */
+export const sinkReach = (sinker: number, method: MethodKey, spot: Pick<FishSpot, "key">) =>
+  Math.min(spotDepth(spot), SINKERS[Math.max(0, Math.min(SINKERS.length - 1, sinker))].reach * (method === "deep" ? 3 : 1));
+/** 그 깊이(m)가 이 낚시터의 어느 수심인가 — 물 깊이의 3분의 1 씩 */
+export const zoneAt = (meters: number, spot: Pick<FishSpot, "key">): FishDepth => depthOf(Math.max(0, meters) / spotDepth(spot));
+const DEPTH_SEED = 0x2c1b3c6d;
+/** 가라앉는 정도(0 ~ 1) → 수심 */
+export const depthOf = (sink: number): FishDepth => (sink < 1 / 3 ? 0 : sink < 2 / 3 ? 1 : 2);
 /** 같은 계열이 이만큼 연달아 나오면 다음 한 번은 다른 계열이 나온다 */
 export const STREAK_MAX = 5;
 const TIMED_SEED = 0x51ed27f;
@@ -392,10 +435,16 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const needOf = (k: string) => (opts.bait === undefined ? 0 : familyBaitTier(k));
   const v0 = r();
   let cum = 0, family = "";
-  for (const [k] of usable) {
+  // 2026-11-14 다시 맞춤 [사용자: "상위 미끼나 상위 낚시터에서 전설 낚을 확률이 너무 높아"] — 예전엔 귀한 계열 '하나하나'가 단계마다 약 1% 씩 받아,
+  // 전설 계열이 많은 낚시터(울릉분지 심해 · 울릉도 · 통영)에선 그 1% 가 계열 수만큼 쌓였고 행운 · 던지기 · 심해 덤이 3배 가까이 곱해졌다(심해 별가루 전설 32%).
+  // 이제 단계의 몫은 **등급 칸 하나**가 받고(같은 미끼 단계의 귀한 계열들이 pool 무게로 나눠 갖는다), 덤 배수는 2배까지(RARE_LIFT_CAP).
+  const bands = new Map<number, number>();
+  for (const [k, w] of usable) { const need = needOf(k); if (need > baseTier) bands.set(need, (bands.get(need) ?? 0) + w); }
+  const rareMul = 1 + Math.min(RARE_LIFT_CAP, lift);
+  for (const [k, w] of usable) {
     const need = needOf(k);
     if (need <= baseTier) continue;
-    cum += BAIT_STEP * (1 + lift) * (tier - need + 1);
+    cum += BAIT_STEP * rareMul * (tier - need + 1) * (w / (bands.get(need) ?? w)) * (gradeNo(familyOf(k)?.finals[0].grade ?? GRADES[0]) >= LEGEND_GRADE ? LEGEND_BAND : 1);
     if (v0 < cum) { family = k; break; }
   }
   if (!family) {
@@ -405,8 +454,10 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
     // 기본 계열끼리는 뒤쪽일수록 무게를 더 받는다
     family = pickWeighted(base.map(([k, w]) => [k, w * (1 + lift * spot.pool.findIndex((x) => x[0] === k))] as const), Math.min(0.999999, (v0 - cum) / Math.max(0.0001, 1 - cum)));
     if (how.night) family = lightRepick(family, base, needOf, lift, spot, seed);
-  } else if (how.night) {
-    family = lightRepick(family, usable.filter(([k]) => needOf(k) > baseTier), needOf, lift, spot, seed);
+    if (opts.depth !== undefined) family = depthRepick(family, base, needOf, lift, spot, seed, opts.depth, opts.school);
+  } else {
+    if (how.night) family = lightRepick(family, usable.filter(([k]) => needOf(k) > baseTier), needOf, lift, spot, seed);
+    if (opts.depth !== undefined) family = depthRepick(family, usable.filter(([k]) => needOf(k) > baseTier), needOf, lift, spot, seed, opts.depth, opts.school);
   }
   const fam = familyOf(family);
   if (!fam) throw new Error(`없는 계열: ${family}`);
@@ -422,7 +473,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   if (opts.junk) {
     const j = rng((seed ^ JUNK_SEED) >>> 0);
     if (j() < junkChance(luck, how.key)) {
-      const at = junksAt(spot.key);
+      const at = junksAt(spot.key).filter((x) => !x.minDepth || (opts.depthM ?? 0) >= x.minDepth);
       // 물고기 흉내 — 그림자 크기 · 난이도는 물고기 그대로라 끌어올리기 전엔 모른다. 낚시터 전용 쓰레기는 무게 4
       return { ...real, cm: undefined, junk: pickWeighted(at.map((x) => [x.key, x.spot ? 4 : 1] as const), j()) };
     }
@@ -439,6 +490,16 @@ function lightRepick(picked: string, from: readonly (readonly [string, number])[
   if (same.length < 2) return picked;
   const r = rng((seed ^ LIGHT_SEED) >>> 0);
   return pickWeighted(same.map(([k, w]) => [k, w * (1 + lift * Math.max(0, spot.pool.findIndex((x) => x[0] === k))) * (NIGHT_FAMILIES.has(k) ? LIGHT_NIGHT_WEIGHT : 1)] as const), r());
+}
+
+/** 수심 맞추기 — 이미 뽑힌 계열과 **같은 미끼 단계**의 계열 사이에서만 그 수심에 사는 쪽으로 다시 고른다(집어등과 같은 방식).
+ *  뽑기 줄은 따로(DEPTH_SEED) — 수심을 안 주면 한 판도 달라지지 않고, 줘도 다른 뽑기(단계 · 크기 · 쓰레기) 순서는 그대로다 */
+function depthRepick(picked: string, from: readonly (readonly [string, number])[], needOf: (k: string) => number, lift: number, spot: FishSpot, seed: number, depth: FishDepth, school = false): string {
+  const tier = needOf(picked);
+  const same = from.filter(([k]) => needOf(k) === tier);
+  if (same.length < 2 || !same.some(([k]) => familyDepth(k) === depth)) return picked;
+  const r = rng((seed ^ DEPTH_SEED) >>> 0);
+  return pickWeighted(same.map(([k, w]) => [k, w * (1 + lift * Math.max(0, spot.pool.findIndex((x) => x[0] === k))) * (familyDepth(k) === depth ? (school ? DEPTH_SCHOOL : DEPTH_WEIGHT) : DEPTH_OTHER)] as const), r());
 }
 
 export const catchArt = (c: Pick<FishCatch, "family" | "stage" | "species">) => fishArtKey(c);
@@ -482,6 +543,7 @@ export function castBlock(f: Pick<FishingState, "baits" | "wormDay" | "level">, 
   if (f.level < how.minLevel) return `${josa(how.name, "은/는")} 낚시 Lv.${how.minLevel}부터 할 수 있어요`;
   if (how.night && spot.water !== "sea") return `${LIGHT_BLOCK} · 바다 낚시터를 골라 주세요`;
   if (how.night && !night) return `${LIGHT_BLOCK} · 저녁 7시부터 새벽 5시까지`;
+  if (method === "deep" && spotDepth(spot) < DEEP_MIN_WATER) return `${josa(spot.name, "은/는")} 물이 ${spotDepth(spot)}m 라 심해 낚시를 못 해요 · ${DEEP_MIN_WATER}m 넘게 깊은 낚시터를 골라 주세요`;
   if (!poolFor(spot, bait.maxGrade).length) return `${josa(spot.name, "은/는")} ${spotMinBait(spot).name}부터 물어요`;
   const have = baitStock(f, baitKey, today);
   if (have < how.baitCost) return have > 0 ? `${josa(how.name, "은/는")} 미끼가 ${how.baitCost}개 필요해요` : `${josa(bait.name, "이/가")} 다 떨어졌어요`;
@@ -857,7 +919,9 @@ export function storeBlock(st: Pick<IslandState, "aquarium">, c: Pick<FishCatch,
   return storeReason(aquaOf(st), c.family, { grade: c.grade, crown: !!c.boss });
 }
 
-export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk" | "netted" | "special"; coins: number; levelUp: number; firstJunk?: boolean; special?: SpecialCard; sizeNote?: SizeNote; sizeCoins?: number; exped?: ExpedKey[]; expedCoins?: number; grown?: AquaNews[] } | { ok: false; reason: string };
+export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk" | "netted" | "special"; coins: number; levelUp: number; firstJunk?: boolean; special?: SpecialCard; sizeNote?: SizeNote; sizeCoins?: number; exped?: ExpedKey[]; expedCoins?: number; grown?: AquaNews[];
+  /** 오늘의 의뢰를 채웠다(fishrequest.ts) — 하트는 state.coins 에 이미 더했다 */
+  request?: RequestHit } | { ok: false; reason: string };
 /** 누가 낚았나 — 크기 기록 · 원정 기여. 빠지면 '나'(혼자 하는 섬 · 옛 호출) */
 export type CatchWho = { who: string; couple: boolean };
 const NOBODY: CatchWho = { who: "me", couple: false };
@@ -926,7 +990,12 @@ function withGrown(r: FishResult, who: string, now: number): FishResult {
 }
 
 /** 끌어올린 물고기를 그 낚시터 숙련도에 센다 — 담기 · 그물 · 빠져나감 · 팔기 모두(f.landed 와 같은 기준). 결과의 state 에만 얹는다(다른 값은 그대로) */
-const mastered = (r: FishResult, c: FishCatch): FishResult => (r.ok ? { ...r, state: noteMastery(r.state, c) } : r);
+// 오늘의 의뢰도 여기서 센다(2026-11-13) — 끌어올린 물고기 하나에 한 번, 같은 기준
+const mastered = (r: FishResult, c: FishCatch, day: string): FishResult => {
+  if (!r.ok) return r;
+  const q = noteRequest(noteMastery(r.state, c), c, day);
+  return q.hit ? { ...r, state: q.state, request: q.hit } : { ...r, state: q.state };
+};
 
 /** 수조에 담아 보기 — roll(0~1) 이 확률 밑이면 수조로, 아니면 빠져나간다(하트 절반). 담으면 잡을 때 값(판매가)을 물고기에 남긴다 — 보내 주기의 기준. */
 export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: number, now: number, today: string, by: CatchWho = NOBODY): FishResult {
@@ -934,11 +1003,11 @@ export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: nu
   const block = storeBlock(st, c);
   if (block) return { ok: false, reason: block };
   const win = roll < chance;
-  const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
-  if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+  const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(catchValue(c) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
+  if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
   // 이야기의 첫 줄(2026-11-13) — 어느 낚시터에서 누가 잡았나. 혼자 하는 섬은 사람이 하나라 '누가'를 안 남긴다
   const added = addFish(st, c.family, c.stage, c.species, now, bossOf(c.boss)?.name, c.cm, coinValue(c.difficulty), { ...(c.at ? { spot: c.at } : {}), ...(by.couple ? { by: by.who } : {}) });
-  return mastered(withGrown({ ok: true, state: { ...added, coins: added.coins + g.expedCoins, fishing: { ...g.f, stored: g.f.stored + 1, dayStored: g.f.dayStored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+  return mastered(withGrown({ ok: true, state: { ...added, coins: added.coins + g.expedCoins, fishing: { ...g.f, stored: g.f.stored + 1, dayStored: g.f.dayStored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
 }
 
 /** 대기 그물에 두기 — 수조가 찼을 때만. 담기와 같은 확률 판정을 거치고, 잡을 때 값을 그물에 남긴다(24시간 뒤엔 그 값에 저절로 팔린다). */
@@ -946,11 +1015,11 @@ export function tryNet(st: IslandState, c: FishCatch, chance: number, roll: numb
   if (c.junk) return { ok: false, reason: "쓰레기는 그물에 둘 수 없어요" };
   if (storeBlock(st, c) !== TANK_FULL) return { ok: false, reason: "수조가 가득 찼을 때만 그물에 둬요" };
   const win = roll < chance;
-  const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
-  if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+  const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(catchValue(c) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
+  if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
   const kept = keepInNet(st, { family: c.family, stage: c.stage, ...(c.species ? { species: c.species } : {}), difficulty: c.difficulty, value: coinValue(c.difficulty), ...(c.cm ? { cm: c.cm } : {}), ...(c.boss ? { crown: bossOf(c.boss)?.name } : {}), ...(c.at ? { spot: c.at } : {}), ...(by.couple ? { by: by.who } : {}) }, now);
   if (!kept.ok) return { ok: false, reason: kept.reason };
-  return mastered(withGrown({ ok: true, state: { ...kept.state, coins: kept.state.coins + g.expedCoins, fishing: g.f }, outcome: "netted", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+  return mastered(withGrown({ ok: true, state: { ...kept.state, coins: kept.state.coins + g.expedCoins, fishing: g.f }, outcome: "netted", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
 }
 
 /** 보내 주기 + 낚시 경험치 — 수조에서 자란 몫만큼(바로 보내면 0 — 잡아서 담고 보내며 경험치를 두 번 받는 길을 막는다) */
@@ -968,9 +1037,9 @@ export function releaseToSea(st: IslandState, id: number, now: number): { ok: tr
 /** 수조가 찼을 때 — 한 마리를 보내고 담는다. 담기에 실패하면 보내지 않는다(빈손으로 둘 다 잃으면 안 된다). */
 export function tryStoreSwap(st: IslandState, c: FishCatch, releaseId: number, chance: number, roll: number, now: number, today: string, by: CatchWho = NOBODY): FishResult {
   if (roll >= chance) {
-    const g = gain(fishingOf(st), xpValue(c.difficulty), Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
+    const g = gain(fishingOf(st), xpValue(c.difficulty), Math.round(catchValue(c) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
     // 담기에 성공하는 길은 아래 tryStore 가 센다 — 여기(빠져나감)만 따로 센다(두 번 세지 않게)
-    return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+    return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
   }
   const freed = releaseToSea(st, releaseId, now);
   if (!freed.ok) return { ok: false, reason: freed.reason };
@@ -986,12 +1055,17 @@ export function claimFishGoal(st: IslandState, id: string, today: string): GearR
 }
 
 /** 팔 때 받는 하트 — 그 낚시터 숙련도 ★4 면 +5%. 화면의 '팔기' 값도 이걸 본다(둘이 갈리면 버튼과 받은 하트가 다르다) */
-export const sellPrice = (st: Pick<IslandState, "fishPlus">, c: Pick<FishCatch, "difficulty" | "at">) => Math.round(coinValue(c.difficulty) * (1 + masterySaleBonus(st, c.at)));
+/** 깊은 바다 물고기 값(2026-11-14) — 전설이 드물어진 뒤에도 뒤 낚시터일수록 더 벌게(울릉도 1 → 용궁사 1.15 → 거진항 1.3 → 심해 1.45). 파는 값 · 담을 때 받는 절반에 붙는다 */
+export const SPOT_VALUE: Readonly<Record<string, number>> = { palace: 1.15, starsea: 1.3, abyss: 1.45 };
+export const spotValue = (at: string | undefined) => (at ? SPOT_VALUE[at] ?? 1 : 1);
+/** 한 마리의 값 — 등급 · 단계 값 × 낚시터 값 */
+export const catchValue = (c: Pick<FishCatch, "difficulty" | "at">) => coinValue(c.difficulty) * spotValue(c.at);
+export const sellPrice = (st: Pick<IslandState, "fishPlus">, c: Pick<FishCatch, "difficulty" | "at">) => Math.round(catchValue(c) * (1 + masterySaleBonus(st, c.at)));
 /** 수조에 안 담고 팔기 — 하트 전부 */
 export function sellCatch(st: IslandState, c: FishCatch, today: string, by: CatchWho = NOBODY): FishResult {
   if (c.junk) return { ok: false, reason: "쓰레기는 팔 수 없어요" };
   const g = gain(fishingOf(st), xpValue(c.difficulty), sellPrice(st, c), today, catchArt(c), gradeNo(c.grade), c, by);
-  return mastered({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "sold", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, c);
+  return mastered({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "sold", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, c, today);
 }
 
 /** 쓰레기를 치운다 — 수집함에 하나 더, 분리수거 값 약간, 경험치 약간 */
@@ -1138,6 +1212,44 @@ export function spendPoint(st: IslandState, stat: FishStat): GearResult {
   if (f.points <= 0) return { ok: false, reason: "쓸 수 있는 점수가 없어요" };
   if (f.stats[stat] >= STAT_CAP) return { ok: false, reason: "이 능력치는 가득 찼어요" };
   return { ok: true, state: { ...st, fishing: { ...f, points: f.points - 1, stats: { ...f.stats, [stat]: f.stats[stat] + 1 } } } };
+}
+
+/** 지금 봉돌 단계 — 섬 최상위 fishPlus(옛 앱이 흘린다) */
+export const sinkerOf = (st: Pick<IslandState, "fishPlus">) => { const v = Number((st.fishPlus as Record<string, unknown> | undefined)?.sinker ?? 0); return Number.isFinite(v) ? Math.max(0, Math.min(SINKERS.length - 1, Math.floor(v))) : 0; };
+/** 심해 릴(2026-11-14) — 장비 탭에서 하트로(저장은 섬 최상위 fishPlus.reel — 옛 앱이 흘린다). 심해 낚시의 감는 빠르기 +12% · 초록 칸 +0.04 씩(fishingmodes.deepTune) */
+export const REELS = [
+  { key: "reel_0", name: "기본 릴", price: 0 },
+  { key: "reel_1", name: "스피닝 릴", price: 1500 },
+  { key: "reel_2", name: "베이트 릴", price: 5000 },
+  { key: "reel_3", name: "전동 릴", price: 14000 },
+  { key: "reel_4", name: "심해 전동 릴", price: 36000 },
+] as const;
+export const reelOf = (st: Pick<IslandState, "fishPlus">) => { const v = Number((st.fishPlus as Record<string, unknown> | undefined)?.reel ?? 0); return Number.isFinite(v) ? Math.max(0, Math.min(REELS.length - 1, Math.floor(v))) : 0; };
+export function buyReel(st: IslandState): GearResult {
+  const cur = reelOf(st), next = REELS[cur + 1];
+  if (!next) return { ok: false, reason: "가장 좋은 릴이에요" };
+  if (st.coins < next.price) return { ok: false, reason: "하트가 모자라요" };
+  return { ok: true, state: { ...st, coins: st.coins - next.price, fishPlus: { ...(st.fishPlus ?? {}), reel: cur + 1 } } };
+}
+/** 심해 낚시는 물이 이만큼(m) 깊은 낚시터에서만 — 1.5m 개울에서 120m 수심계로 '심해'를 낚던 것(2026-11-14) */
+export const DEEP_MIN_WATER = 10;
+/** 가장 깊이에서 낚은 기록(fishPlus.deepest) — 심해 방식으로 끌어올린 판만 */
+export type DeepRecord = { m: number; family: string; key: string; at: number };
+export const deepestOf = (st: Pick<IslandState, "fishPlus">): DeepRecord | null => {
+  const d = (st.fishPlus as Record<string, unknown> | undefined)?.deepest as DeepRecord | undefined;
+  return d && Number.isFinite(d.m) && typeof d.family === "string" ? d : null;
+};
+/** 기록을 넘으면 새로 남긴다(같거나 얕으면 그대로) */
+export function noteDeepest(st: IslandState, rec: DeepRecord): { state: IslandState; record: boolean } {
+  const cur = deepestOf(st);
+  if (cur && cur.m >= rec.m) return { state: st, record: false };
+  return { state: { ...st, fishPlus: { ...(st.fishPlus ?? {}), deepest: rec } }, record: true };
+}
+export function buySinker(st: IslandState): GearResult {
+  const cur = sinkerOf(st), next = SINKERS[cur + 1];
+  if (!next) return { ok: false, reason: "가장 무거운 봉돌이에요" };
+  if (st.coins < next.price) return { ok: false, reason: "하트가 모자라요" };
+  return { ok: true, state: { ...st, coins: st.coins - next.price, fishPlus: { ...(st.fishPlus ?? {}), sinker: cur + 1 } } };
 }
 
 function buyTier(st: IslandState, kind: "rod" | "net"): GearResult {

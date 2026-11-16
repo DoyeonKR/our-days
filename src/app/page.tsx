@@ -95,10 +95,6 @@ const TodayLog = dynamic(loadTodayLog, {
 const GameArcade = dynamic(() => import("@/components/GameArcade"), {
   loading: tabLoading,
 });
-// 모험(2026-11-07) — 생물을 잡고 키워 싸우는 게임. 탭을 처음 열 때 받는다.
-const AdventureTab = dynamic(() => import("@/components/adventure/AdventureTab"), {
-  loading: tabLoading,
-});
 // 홈의 살아있는 펫 — 섬 아트가 무거워 지연 로드(연동된 커플만 렌더). 로드 전 스켈레톤.
 const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
@@ -183,7 +179,8 @@ const LS = {
 /** 오프라인 PWA 대비로 유휴 시간에 데우는 탭 · 설정 조각 — 위 dynamic() 과 같은 load… 를 쓴다(같은 조각 파일). */
 const WARM_TABS = [loadTodayLog, loadCalendar, loadDecoBook, loadPhotoAlbum, loadBucketList, loadHabitBoard, loadPushSettings, loadNotifySettings, loadDiagnostics, loadCoupleSync, loadAccountSection];
 
-const VIEWS = ["home", "diary", "records", "plan", "adventure", "game"] as const;
+// 모험 탭은 2026-11-15 걷었다(하지 않는 기능이 용량만 차지했다) — 옛 주소 · 저장된 탭 값 "adventure" 는 VIEWS 에 없어 홈으로 간다
+const VIEWS = ["home", "diary", "records", "plan", "game"] as const;
 type View = (typeof VIEWS)[number];
 type RecordView = "log" | "diary" | "photos" | "memories";
 
@@ -1704,12 +1701,6 @@ export default function Home() {
                 />
               </div>
             )}
-          </div>
-        )}
-
-        {visited.has("adventure") && (
-          <div hidden={view !== "adventure"}>
-            <AdventureTab myUserId={myUserId} coupleId={coupleId} partnerName={partnerName} />
           </div>
         )}
 

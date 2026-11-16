@@ -3,6 +3,10 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { AnimalModel, ModelKit } from "./models.ts";
 import type { SwimPose } from "./anatomy.ts";
 import { WATER_LIGHT, waterLit } from "./waterlight.ts";
+import { coralCrownGeometry, type BossLook } from "./bosslook.ts";
+import { asset } from "../base.ts";
+/** 산호 여왕의 등 산호 재질 — 정점 색 하나(수조마다 다시 만들 것 없이 나눠 쓴다) */
+let coralMaterial: T.MeshStandardMaterial | null = null;
 
 type Seed = readonly [number, number];
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -186,7 +190,7 @@ function flipper(side: number, rear: boolean) {
   return g;
 }
 
-export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): AnimalModel {
+export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle", look?: BossLook | null): AnimalModel {
   const root = new T.Group(); root.name = key;
   const skinMap = surfaceOf(kit, "skin");
   // 등딱지는 처음엔 단색 — 사진이 오면 사진, 못 받으면(아래 animate) 그때 그린 무늬
@@ -201,14 +205,30 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
   const shellUv = body.geometry.attributes.uv as T.BufferAttribute;
   const projectedUv = new Float32Array(shellUv.array.length);
   const points = body.geometry.attributes.position;
+  const sh = look?.shell;
   for (let i = 0; i < points.count; i++) {
     const x = points.getX(i), z = points.getZ(i);
     const young = key !== "green_sea_turtle";
+    if (sh) { projectedUv[i * 2] = (sh.c[0] + x / .95 * sh.ax[0] + z / .65 * sh.side[0]) / 512; projectedUv[i * 2 + 1] = (sh.c[1] + x / .95 * sh.ax[1] + z / .65 * sh.side[1]) / 512; continue; }
     projectedUv[i * 2] = ((young ? 246 : 238) + x / .95 * (young ? 98 : 113) + z / .65 * 17) / 512;
     projectedUv[i * 2 + 1] = ((young ? 236 : 225) - x / .95 * (young ? 13 : 22) + z / .65 * (young ? 55 : 64)) / 512;
   }
   let photo = false;
-  kit.referenceTexture(key, texture => {
+  // 주인(산호 여왕) — 등딱지엔 주인 그림을, 등 위엔 3D 산호를(bosslook.ts). 그림은 이 거북 재질의 것이라 거북이 떠날 때 같이 지운다
+  if (sh && look && typeof document !== "undefined") {
+    new T.TextureLoader().load(asset(`/aqua/fish/${look.art}.webp`), texture => {
+      texture.colorSpace = T.SRGBColorSpace; texture.flipY = false; photo = true;
+      shell.map = texture; shell.color.set(0xffffff); shell.bumpMap = null;
+      shellUv.copyArray(projectedUv); shellUv.needsUpdate = true; shell.needsUpdate = true;
+    });
+  }
+  if (look?.coral) {
+    coralMaterial ??= new T.MeshStandardMaterial({ vertexColors: true, roughness: .78, metalness: 0, side: T.DoubleSide });
+    const coral = new T.Mesh(coralCrownGeometry(), coralMaterial); coral.name = "coral-crown";
+    // 나눠 쓰는 형상 · 재질 — 거북이 떠날 때 지우지 않는다
+    coral.userData.glbShared = true; root.add(coral);
+  }
+  if (!sh) kit.referenceTexture(key, texture => {
     photo = true;
     shell.map = texture; shell.color.set(0xffffff);
     // The photographic map has its own details; the sculpted geometry supplies relief.
@@ -298,4 +318,45 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
       if ((frame + li) % 3 === 0) limb.geometry.computeVertexNormals();
     });
   } };
+}
+
+/** 거북 GLB(주인 모델 — 산호 여왕, 2026-11-15)의 헤엄 — 코드 거북(makeDetailedTurtle)과 같은 박자 · 세기 규칙을 뼈로.
+ *  앞지느러미(fin_*)는 두 쪽이 함께 위아래로 크게 젓고(끝은 늦게 따라온다) 앞뒤로 조금 쓸고, 목(spine_0..2)은 살짝 두리번, 꼬리 · 뒷지느러미(spine_4..5)는 조금.
+ *  등딱지(spine_3, 산호 포함)는 굳은 채 — 물고기 몸 물결(fishMotion)을 쓰면 등딱지가 휘었다.
+ *  뼈마다 몸 기준 세 축(앞 X · 위 Y · 옆 Z)을 그 뼈의 쉬는 자세 좌표로 바꿔 둔다(fishMotion 의 굳은 지느러미와 같은 방법 — 뼈 방향이 파일마다 달라도 같은 몸짓) */
+export function turtleGlbMotion(inner: T.Group): (time: number, effort: number, pose?: SwimPose) => void {
+  inner.updateMatrixWorld(true);
+  const innerQ = inner.getWorldQuaternion(new T.Quaternion()).invert();
+  const X = new T.Vector3(1, 0, 0), Y = new T.Vector3(0, 1, 0);
+  const rig = (name: string) => {
+    const bone = inner.getObjectByName(name);
+    if (!bone) return null;
+    const rel = innerQ.clone().multiply(bone.getWorldQuaternion(new T.Quaternion())).invert();
+    return { bone, base: bone.quaternion.clone(), x: X.clone().applyQuaternion(rel), y: Y.clone().applyQuaternion(rel) };
+  };
+  const neck = [rig("spine_0"), rig("spine_1"), rig("spine_2")], tail = [rig("spine_4"), rig("spine_5")];
+  const fins = [rig("fin_L"), rig("fin_L_tip"), rig("fin_R"), rig("fin_R_tip")];
+  const q = new T.Quaternion(), q2 = new T.Quaternion();
+  let stroke = 0, lastTime = 0, lastClock = -1, power = -1, frame = 0;
+  return (time, effort, pose) => {
+    frame++;
+    const rate = 2.1 * Math.max(.2, effort);
+    const grounded = clamp01(pose?.ground ?? 0), hover = clamp01(pose?.hover ?? 0) * (1 - grounded);
+    const target = Math.max(.04, Math.min(1, pose?.amp ?? 1) * (1 - .85 * grounded) * (1 - .55 * hover));
+    const clock = WATER_LIGHT.aquaTime.value, dt = pose?.dt ?? (lastClock >= 0 ? clock - lastClock : 0);
+    lastClock = clock;
+    if (power < 0) power = target; else if (dt > 0 && dt < 1) power += (target - power) * (1 - Math.exp(-dt / .8));
+    const step = time - lastTime;
+    if (frame === 1) stroke = time * rate; else if (step >= 0 && step < 10) stroke += step * rate * (.25 + .75 * power);
+    lastTime = time;
+    const p = stroke, k = power;
+    neck.forEach((r, i) => { if (r) r.bone.quaternion.copy(r.base).multiply(q.setFromAxisAngle(r.y, Math.sin(p * .45) * .02 * (i + 1) / 2)); });
+    tail.forEach((r, i) => { if (r) r.bone.quaternion.copy(r.base).multiply(q.setFromAxisAngle(r.y, Math.sin(p - 1 - i * .4) * .07 * (.3 + .7 * k))); });
+    for (let s = 0; s < 2; s++) {
+      // 왼쪽(fin_L) 끝이 +Z 쪽 — 몸 X 축으로 + 돌리면 +Z 끝이 내려간다. 두 쪽이 같이 내리치게 쪽마다 부호를 바꾼다
+      const side = s ? -1 : 1, root = fins[s * 2], tip = fins[s * 2 + 1];
+      if (root) root.bone.quaternion.copy(root.base).multiply(q.setFromAxisAngle(root.x, side * Math.sin(p) * .55 * k)).multiply(q2.setFromAxisAngle(root.y, side * Math.cos(p + .5) * .18 * k));
+      if (tip) tip.bone.quaternion.copy(tip.base).multiply(q.setFromAxisAngle(tip.x, side * Math.sin(p - .7) * .3 * k));
+    }
+  };
 }

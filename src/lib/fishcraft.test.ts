@@ -114,13 +114,13 @@ test("던질 때 — 만든 미끼 횟수만 줄고 산 미끼 · 공짜 지렁�
   assert.equal(fishingOf(a.state).wormDay, fishingOf(s).wormDay, "공짜 지렁이 채운 날을 건드리지 않는다(채우지 않은 채 날짜만 넘기면 지렁이를 잃는다)");
   assert.equal(fishingOf(a.state).bestCast, 22.5);
   assert.equal(fishingOf(a.state).dayCast, 22.5);
-  const d = spendCraft(a.state, brook, "deep", "craft_scent", DAY);
+  const d = spendCraft(a.state, spot("harbor"), "deep", "craft_scent", DAY);
   assert.ok(d.ok);
   if (d.ok) assert.equal(craftLeft(d.state, "craft_scent"), 7, "심해는 미끼 2개");
   // 하나 남았을 때 심해는 못 던지고, 다 쓰면 칸이 빠진다
   let x: IslandState = s;
   for (let i = 0; i < 9; i++) { const r = spendCraft(x, brook, "float", "craft_scent", DAY); assert.ok(r.ok); if (r.ok) x = r.state; }
-  assert.match(castBlockCraft(x, fishingOf(x), brook, "deep", "craft_scent", DAY) ?? "", /2개/);
+  assert.match(castBlockCraft(x, fishingOf(x), spot("harbor"), "deep", "craft_scent", DAY) ?? "", /2개/);
   const last = spendCraft(x, brook, "float", "craft_scent", DAY);
   assert.ok(last.ok);
   if (!last.ok) return;

@@ -138,6 +138,7 @@ import {
   TOOLS,
   runHeroSkill,
   careStatus,
+  sellBarn,
   gearDef,
   type CareKey,
   type GearSlot,
@@ -1920,6 +1921,27 @@ export default function IslandGame({
                             {won(TUNING.farm.goldFertilizer)}<Coin /> · 보유 {s.farm.gold}
                           </span>
                         </button>
+                        {/* 10개씩(2026-11-15) — 값은 열 배 그대로 */}
+                        <button
+                          onClick={() => act((x) => buyFertilizer(x, false, 10))}
+                          disabled={busy || s.coins < TUNING.farm.fertilizer * 10}
+                          className="tap rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-35"
+                        >
+                          비료 10개
+                          <span className="block font-normal text-white/55">
+                            {won(TUNING.farm.fertilizer * 10)}<Coin />
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => act((x) => buyFertilizer(x, true, 10))}
+                          disabled={busy || s.coins < TUNING.farm.goldFertilizer * 10}
+                          className="tap rounded-xl bg-yellow-300/10 py-2.5 text-xs font-bold text-yellow-200 ring-1 ring-yellow-200/30 disabled:opacity-35"
+                        >
+                          골드비료 10개
+                          <span className="block font-normal text-yellow-100/70">
+                            {won(TUNING.farm.goldFertilizer * 10)}<Coin />
+                          </span>
+                        </button>
                       </div>
                       <p className="px-1 text-xs text-white/50">골드비료 — 품질 +{TUNING.farm.quality.fertGold} · ★5 해금</p>
                       {/* 농기구 창고 — 도구 5종 × 3단계(스프링클러 · 온실 · 비료 살포기 · 퇴비통 · 파종기) */}
@@ -2022,7 +2044,7 @@ export default function IslandGame({
               />
             )}
             {craftView === "pantry" && (
-              <PantryView s={s} busy={busy} onUse={(key, use) => act((x) => pantryAction(x, key, use, gameNow()))} />
+              <PantryView s={s} busy={busy} onUse={(key, use) => act((x) => pantryAction(x, key, use, gameNow()))} onSellBarn={(key, qty) => act((x) => sellBarn(x, key, qty, gameNow()))} />
             )}
             {craftView === "orders" && (
               <OrderBoard s={s} now={now} busy={busy} onFulfill={(id) => act((x) => fulfillOrder(x, id, gameNow()))} />

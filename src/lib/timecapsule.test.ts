@@ -34,7 +34,7 @@ import { deletionImpact } from "./solospace.ts";
 const root = join(import.meta.dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n");
 const noComments = (s: string) => s.replace(/--[^\n]*/g, "");
-const MIG = "supabase/migrations/20261107110000_time_capsule.sql";
+const MIG = "supabase/migrations/20261114060000_time_capsule.sql";
 const migration = read(MIG);
 const code = noComments(migration);
 const stmts = code.split(/;\s*\n/).map((s) => s.trim());

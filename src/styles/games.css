@@ -545,6 +545,9 @@
 
 /* 우리 수조 — 그림은 파일로 들어온다(AquaArt). 여기 배경 · 거품은 파일이 없어도 수조처럼 보이게 하는 바탕. */
 .aqua-shell { background: linear-gradient(180deg, #06263d, #041a2c 55%, #03121f); color: #eaf6ff; }
+/* 게임 창은 위아래로만 스크롤한다(2026-11-15) — overflow-y auto 만 주면 좌우도 auto 가 되어, 판 위에 잠깐 넓은 것이 생기면 창이 옆으로 밀렸다
+   (낚시 화면이 통째로 왼쪽으로 밀리고 수조 카드가 오른쪽으로 삐져나왔다). 스크립트로 밀린 것은 GameWindowGuard 가 되돌린다 */
+.aqua-shell, .merge-shell, .island-shell { overflow-x: clip; overscroll-behavior-x: none; }
 .aqua-shell > div { padding-bottom: calc(var(--game-safe-bottom, 0px) + 24px); }
 /* 사파리 아래 도구 막대 자리 — 고정 창 밖이라 페이지 바탕(밝은 색)이 흰 띠로 비쳤다. 수조 · 낚시가 열린 동안은 바탕도 물빛으로 */
 html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !important; }
@@ -584,7 +587,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-bubble { position: absolute; left: var(--x); bottom: -12px; z-index: 300; width: var(--s); height: var(--s); border-radius: 50%; border: 1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.18); pointer-events: none; animation: aqua-rise var(--t) linear var(--d) infinite; }
 .aqua-empty, .aqua-hint { position: absolute; inset: 0; z-index: 410; display: grid; place-content: center; text-align: center; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); pointer-events: none; }
 .aqua-hint { inset: auto 0 8px; }
-.aqua-meters { display: grid; gap: 6px; margin-top: 10px; }
+.aqua-meters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 10px; }
 .aqua-meter { display: grid; grid-template-columns: 52px 1fr 28px; align-items: center; gap: 8px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
 .aqua-meter i { display: block; height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }
 .aqua-meter b { display: block; height: 100%; border-radius: inherit; background: #38bdf8; }
@@ -963,6 +966,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-meter b { display: block; height: 100%; background: #fb7185; transition: width .12s ease-out; }
 .fish-meter.is-line b { background: #7dd3fc; }
 .fish-meter.is-time b { background: #fde047; transition: none; }
+.fish-meter.is-catch b { background: #4ade80; transition: width .08s linear; }
+.fish-meter em svg { display: inline-block; width: 12px; height: 12px; margin-right: 2px; vertical-align: -2px; }
 /* 집어등 놀람 — 차오르면 나쁜 것이라 붉게(남은 줄 · 관심의 파랑 · 초록과 갈리게) */
 .fish-meter.is-scare b { background: #fb7185; }
 .fish-combo { justify-self: center; margin-top: 3px; padding: 2px 11px; border-radius: 999px; background: #fcd34d; color: #422006; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; animation: fish-pop .22s cubic-bezier(.2,1.8,.4,1) both; }
@@ -1033,6 +1038,12 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-dial-state.is-in { stroke: #4ade80; }
 .fish-dial-state.is-fast { stroke: #fb7185; }
 .fish-dial-state.is-slow { stroke: #fbbf24; }
+.fish-dial-dir path { fill: none; stroke: rgba(255,255,255,.28); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fish-dial.is-release .fish-dial-track { stroke: rgba(56,189,248,.75); }
+.fish-dial.is-release .fish-dial-dir path { stroke: #7dd3fc; }
+.fish-dial-tag { position: absolute; left: 50%; top: -14%; transform: translateX(-50%); padding: 0 10px; border-radius: 999px; background: rgba(2,16,28,.78); color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 900; white-space: nowrap; }
+.fish-dial.is-dive .fish-dial-tag { background: #e11d48; }
+.fish-dial.is-release .fish-dial-tag { background: #0284c7; }
 .fish-dial-guide circle { fill: none; stroke: rgba(255,255,255,.35); stroke-width: 1.5; stroke-dasharray: 4 4; }
 .fish-dial-guide path { fill: none; stroke: rgba(255,255,255,.85); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .fish-dial-wound { fill: none; stroke-width: 8; opacity: .9; }
@@ -1062,6 +1073,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 @keyframes fish-dial-warn { from { stroke: #334155; } to { stroke: #fbbf24; } }
 @media (prefers-reduced-motion: reduce) { .fish-sway-safe, .fish-shots i, .fish-lift-arrow { transition: none; } .fish-dial.is-warn .fish-dial-rim { animation: none; stroke: #fbbf24; } .fish-dial-ghost.is-on { display: none; } .fish-dial-track, .fish-dial-state, .fish-dial-arm, .fish-dial-arm-hi { transition: none; } }
 .fish-crown-icon { display: inline-block; flex-shrink: 0; vertical-align: -0.14em; }
+.fish-deepest { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.fish-deepest b { font-weight: 900; }
 .fish-junkbox { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .fish-junkbox li { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px; background: rgba(255,255,255,.06); text-align: center; }
 .fish-junkbox span { display: block; width: 44px; height: 44px; }
@@ -1456,7 +1469,10 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .aqua-danger b { margin-right: 6px; color: #fca5a5; font-weight: 900; }
 .aqua-danger small { display: block; opacity: .85; }
 .aqua-danger.is-hungry { border-color: #f87171; background: rgba(153,27,27,.45); animation: fish-hint-pulse .8s ease-in-out infinite alternate; }
-.aqua-eaten-pics { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.aqua-eaten-pics { display: flex; align-items: center; justify-content: center; gap: 8px; max-width: 100%; }
+/* 잡아먹힌 카드의 두 그림 — 160px 둘이면 카드 안 폭(약 280px)보다 넓어 카드가 오른쪽으로 삐져나왔다(2026-11-15 캡처). 둘 + 화살표가 카드 안에 들어오게 */
+.aqua-eaten-pics .aqua-grown-pic { width: min(116px, 34vw); height: min(116px, 34vw); flex: 0 1 auto; min-width: 0; }
+.aqua-grown > div { max-width: 100%; min-width: 0; }
 .aqua-eaten-pics i { color: #f87171; font-style: normal; font-weight: 900; }
 .aqua-grown.is-eaten .aqua-grown-kicker { color: #fca5a5; }
 .aqua-grown-pic.is-gone { filter: grayscale(.8) brightness(.7); opacity: .75; }
@@ -1555,11 +1571,11 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 
 /* 잡아먹힌 물고기 · 다시 보기(2026-11-12) */
 .aqua-eaten-log { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
-.aqua-eaten-log-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.aqua-eaten-log-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; margin-bottom: 6px; }
 .aqua-eaten-log-head b { font-size: 15px; font-family: var(--font-body); line-height: 24px; }
 .aqua-eaten-log-head small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
-.aqua-eaten-log ul { display: grid; gap: 6px; }
-.aqua-eaten-log li { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.aqua-eaten-log ul { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.aqua-eaten-log li { display: flex; align-items: center; gap: 8px; min-height: 44px; min-width: 0; }
 .aqua-eaten-log li strong { display: block; overflow: hidden; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .aqua-eaten-log-pics { flex: none; display: flex; align-items: center; gap: 2px; }
 .aqua-eaten-log-pics > span { display: block; width: 34px; height: 26px; }
@@ -1764,3 +1780,48 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .merge-tools .merge-tool-weekly span { margin-left: 4px; padding: 0 6px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-size: 12px; line-height: 18px; }
 @media (prefers-reduced-motion: reduce) { .mwk .merge-tile, .mwk .merge-tile.is-merged, .mwk .merge-tile.is-born { transition: none; animation: none; } }
 /* ── 합치기 주간 도전판 끝 ── */
+/* 오늘의 의뢰(2026-11-13) — 낚시터에서 그 물고기를 끌어올리면 저절로 채워진다 */
+.fish-requests ul { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.fish-requests li { display: flex; align-items: center; gap: 10px; }
+.fish-requests li strong { display: block; }
+.fish-requests li small { display: block; opacity: .8; }
+.fish-requests li.is-done { opacity: .6; }
+.fish-request-pic { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--accent, #38bdf8) 14%, transparent); }
+.fish-request-ok { font-weight: 800; color: #16a34a; }
+
+/* 한눈에(2026-11-13) — 장비 단계 표시 · 그다음 단계 한 줄 */
+.fish-step { margin-left: 6px; color: #7dd3fc; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 600; }
+.aqua-note.fish-later { margin-top: 8px; }
+/* 머리 줄 — 제목은 한 줄로 두고 긴 설명은 아랫줄로 내린다(설명이 길면 '미끼' 제목이 한 글자씩 세로로 꺾였다) */
+.aqua-card header { flex-wrap: wrap; row-gap: 2px; }
+.aqua-card header > strong { flex: none; white-space: nowrap; }
+.aqua-card header > small { flex: 1 1 12em; min-width: 0; text-align: right; }
+/* 수심 맞추기(2026-11-13) — 가라앉는 미끼 눈금. 장면 오른쪽 세로 막대: 위 0m · 아래 이번 판 한계, 수심 경계 선 · 어군 띠(노랑) · 지금 깊이 */
+.fish-depth { position: absolute; right: 14px; top: 22%; height: 52%; width: 74px; border-radius: 14px; background: linear-gradient(180deg, rgba(56,189,248,.28), rgba(4,20,36,.78)); border: 1px solid rgba(255,255,255,.2); pointer-events: none; z-index: 5; overflow: visible; }
+.fish-depth-top, .fish-depth-bottom { position: absolute; left: 0; right: 0; text-align: center; color: rgba(220,236,248,.8); font-family: var(--font-micro); font-size: 12px; line-height: 18px; }
+.fish-depth-top { top: -20px; }
+.fish-depth-bottom { bottom: -20px; white-space: nowrap; }
+.fish-depth-line { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(255,255,255,.35); color: rgba(220,236,248,.7); font-style: normal; font-family: var(--font-micro); font-size: 12px; line-height: 18px; text-align: center; }
+.fish-depth-school { position: absolute; left: 4px; right: 4px; border-radius: 8px; background: rgba(253,230,138,.35); border: 1px solid rgba(253,230,138,.8); }
+.fish-depth-now { position: absolute; right: calc(100% + 6px); transform: translateY(-50%); color: #fde68a; font-family: var(--font-micro); font-size: 12px; line-height: 18px; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
+.fish-depth i { position: absolute; left: 4px; right: 4px; height: 3px; margin-top: -1px; border-radius: 2px; background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.9); }
+
+/* 크기 기록 전광판(2026-11-14) — 나 N : M 상대. 앞선 쪽 숫자가 크게 빛나고, 숫자가 바뀌면 튀어 오른다 */
+.fish-score { margin: 4px 0 10px; padding: 12px 12px 10px; border-radius: 18px; background: linear-gradient(135deg, rgba(255,166,203,.16), rgba(10,20,36,.6) 45%, rgba(10,20,36,.6) 55%, rgba(147,205,255,.16)); border: 1px solid rgba(255,255,255,.12); text-align: center; overflow: hidden; position: relative; }
+.fish-score.is-me { border-color: rgba(255,166,203,.55); box-shadow: 0 0 24px rgba(255,166,203,.25) inset; }
+.fish-score.is-partner { border-color: rgba(147,205,255,.55); box-shadow: 0 0 24px rgba(147,205,255,.25) inset; }
+.fish-score-board { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.fish-score-side { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+.fish-score-side small { font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; opacity: .85; }
+.fish-score-side b { display: block; font-size: 52px; line-height: 56px; font-weight: 900; font-variant-numeric: tabular-nums; animation: fish-score-pop .55s cubic-bezier(.2, 1.6, .4, 1) both; }
+.fish-score-side.is-me { color: #ffa6cb; }
+.fish-score-side.is-partner { color: #93cdff; }
+.fish-score.is-me .fish-score-side.is-me b { font-size: 64px; line-height: 64px; text-shadow: 0 0 18px rgba(255,166,203,.85), 0 0 2px #fff; }
+.fish-score.is-partner .fish-score-side.is-partner b { font-size: 64px; line-height: 64px; text-shadow: 0 0 18px rgba(147,205,255,.85), 0 0 2px #fff; }
+.fish-score.is-me .fish-score-side.is-partner, .fish-score.is-partner .fish-score-side.is-me { opacity: .6; }
+.fish-score-vs { font-size: 36px; line-height: 40px; font-weight: 900; color: rgba(255,255,255,.55); }
+.fish-score-bar { height: 8px; margin: 8px 4px 6px; border-radius: 999px; background: #93cdff; overflow: hidden; }
+.fish-score-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ff7fb3, #ffa6cb); border-right: 2px solid #fff; transition: width .8s cubic-bezier(.2, 1, .3, 1); }
+.fish-score p { margin: 0; color: #e8f4ff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
+@keyframes fish-score-pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .fish-score-side b { animation: none; } .fish-score-bar i { transition: none; } }

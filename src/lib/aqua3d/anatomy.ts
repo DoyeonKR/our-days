@@ -69,6 +69,12 @@ const families: Record<string, Partial<Anatomy>> = {
   arowana: { cx: .61, rx: .37, ry: .17, depth: .23, tail: .25, frequency: 3.1 },
   bluefin: { cx: .66, rx: .33, ry: .19, depth: .34, tail: .30, frequency: 7.3, flex: .055 },
   whale_shark: { cx: .65, rx: .34, ry: .19, depth: .33, tail: .29, frequency: 2.4, flex: .055 },
+  // 홍어(2026-11-13) — GLB 는 민물가오리와 같은 납작한 몸 · 같은 뼈(fin_L/R 가 날개)인데 물고기로 잡혀 모래 위에서 뱀처럼 좌우로 꿈틀댔다. 가오리처럼 날개를 친다
+  // 해양 포유류(2026-11-13) — 큰 짐승이라 박자가 느리다
+  spotted_seal: { frequency: 2.2, flex: .1 }, fur_seal: { frequency: 1.8, flex: .1 }, steller_sea_lion: { frequency: 1.5, flex: .1 },
+  japanese_sea_lion: { frequency: 1.6, flex: .1 }, sea_otter: { frequency: 2.4, flex: .12 }, otter: { frequency: 3, flex: .14 },
+  orca: { frequency: 1.2, flex: .08 },
+  skate: { kind: "ray", cx: .66, cy: .52, rx: .30, ry: .30, depth: .12, frequency: 2.0, flex: .12 },
   ray: { kind: "ray", cx: .69, cy: .57, rx: .30, ry: .31, depth: .20, frequency: 2.3, flex: .12 },
   manta: { kind: "ray", cx: .69, cy: .49, rx: .27, ry: .18, depth: .22, frequency: 2.1, flex: .12 },
   rising: { cx: .56, rx: .41, ry: .20, depth: .24, frequency: 2.6, flex: .14 },
@@ -104,6 +110,10 @@ export type BendProfile = {
   fin: number;
   /** 지느러미 박자(꼬리 박자 배수) — 엔젤 · 디스커스는 가슴지느러미로 노 젓듯 더 빨리 부친다 */
   finRate: number;
+  /** 가슴지느러미 쓰는 법(2026-11-13) — 없으면 꼬리 박자에 맞춰 위아래로 젓는다(대부분의 경골어).
+   *  stiff: 상어 · 다랑어 · 새치처럼 굳은 날개 — 젓지 않고 펴 둔 채 오르내릴 때 앞쪽을 들거나 숙이고, 돌 때 안쪽 지느러미를 내려 몸을 기울인다.
+   *  fold: stiff 에 더해 빨리 갈수록 몸 옆 홈에 접어 붙인다(다랑어 · 고등어 · 방어 · 새치). alt: 좌우를 엇갈려 젓는다(실러캔스 — 네발짐승의 걸음처럼) */
+  pect?: "stiff" | "fold" | "alt";
   /** 가오리 날개 폭(rad, 가오리가 아니면 0) */
   wing: number;
   /** 돌 때 몸을 C 자로 굽히는 정도(1 = 보통) */
@@ -114,10 +124,36 @@ export type BendProfile = {
 };
 /** 뱀장어형 — 몸 전체가 고르게 물결친다 */
 const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel|moray|electric_eel|loach|frilled_shark)$/;
-/** 다랑어 · 상어형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
-const THUNNIFORM = /^(bluefin|mackerel|yellowtail|striped_jack|blue_shark|great_white|hammerhead|nurse_shark|leopard_shark|whale_shark|megamouth|marlin|swordfish|barracuda)$/;
+/** 다랑어 · 백상아리형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
+const THUNNIFORM = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|dolphinfish|great_white|marlin|swordfish|barracuda)$/;
+/** 상어(2026-11-13) — 예전엔 모두 다랑어형이었다. 실제로는 백상아리(악상어류)만 꼬리로 치고, 청새리 · 귀상어 · 고래상어 · 넓은주둥이는 몸 뒤쪽 절반이 같이 휘며(전갱이형),
+ *  바닥 상어(수염 · 표범)는 몸 전체가 크게 물결친다(뱀장어에 가깝다). 주름상어는 이미 뱀장어형 */
+const SHARK_CRUISE = /^(blue_shark|hammerhead|whale_shark|megamouth)$/;
+const SHARK_BOTTOM = /^(nurse_shark|leopard_shark)$/;
+/** 상어 — 가슴지느러미가 굳은 날개다(젓지 않는다) */
+export const SHARKS = /^(great_white|blue_shark|hammerhead|whale_shark|megamouth|nurse_shark|leopard_shark|frilled_shark)$/;
+/** 빨리 헤엄칠 때 가슴지느러미를 몸 옆 홈에 접어 붙이는 다랑어 · 새치 */
+const FOLDERS = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|marlin|swordfish)$/;
+const pectOf = (family: string): BendProfile["pect"] => (FOLDERS.test(family) ? "fold" : SHARKS.test(family) || family === "barracuda" || family === "sturgeon" || family === "dolphinfish" ? "stiff" : family === "coelacanth" ? "alt" : undefined);
 /** 가슴지느러미로 노 젓는 넓적한 몸(꼬리는 조금만) */
-const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish)$/;
+/** 2026-11-13 — 파랑비늘돔 · 블루탱 · 흰동가리도 가슴지느러미로 날듯이 젓는다(놀래기형) */
+/** 몸이 단단한 종(복어목 · 해마) — 몸통은 거의 안 휘고 등 · 뒷지느러미(해마는 등지느러미)를 떨어 나아간다. 복어 · 쥐치는 2026-11-13 에 더했다(몸통을 붕어의 0.6배로 흔들었다) */
+export const RIGID = /^(boxfish|sunfish|seahorse|puffer|filefish)$/;
+const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish|parrotfish|blue_tang|clown)$/;
+/** 몸은 곧게 두고 긴 지느러미를 물결쳐 나간다 — 전기뱀장어(배 쪽 뒷지느러미) · 산갈치 · 갈치(등지느러미) */
+/** 해양 포유류(2026-11-13) — 헤엄치는 법이 셋이다(실제 생태 그대로).
+ *  물범(PHOCID): 뒷지느러미를 좌우로 휘저어 나간다 — 몸 뒤쪽이 크게 옆으로 물결, 앞지느러미는 몸에 붙인다(굳은 날개 · 젓지 않는다).
+ *  물개 · 바다사자(OTARIID): 긴 앞지느러미를 날개처럼 크게 위아래로 저어 '날아간다' — 몸은 거의 곧고 뒷지느러미는 끌려온다.
+ *  수달 · 해달(MUSTELID): 몸과 꼬리를 위아래로 물결친다(물고기와 달리 위아래) — verticalWave */
+export const PHOCID = /^(spotted_seal)$/;
+export const OTARIID = /^(fur_seal|steller_sea_lion|japanese_sea_lion)$/;
+export const MUSTELID = /^(sea_otter|otter)$/;
+/** 고래(2026-11-14 범고래) — 꼬리자루와 꼬리지느러미를 위아래로 쳐서 나간다. 앞지느러미는 굳은 키라 젓지 않는다 */
+export const CETACEAN = /^(orca)$/;
+export const MAMMAL = /^(spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca)$/;
+/** 몸 물결이 위아래(Z 축)인 몸 — 수달 · 해달. 누운 광어와 같은 축으로 물결치지만 몸을 눕히지는 않는다 */
+export const verticalWave = (family: string) => MUSTELID.test(family) || CETACEAN.test(family);
+export const RIBBON_FIN = /^(electric_eel|oarfish|hairtail)$/;
 const PROFILES = new Map<string, BendProfile>();
 const CARP_AMP = [0.038, 0.056, 0.074, 0.092, 0.11, 0.128];
 export function bendProfile(family: string, key = family): BendProfile {
@@ -127,13 +163,23 @@ export function bendProfile(family: string, key = family): BendProfile {
   const a = anatomy(family, key);
   let p: BendProfile;
   if (a.kind === "jelly") p = { kind: a.kind, amp: [0.045, 0.057, 0.069, 0.081, 0.093, 0.105], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0, stride: 0.6 };
-  else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3, stride: 1.0 };
+  else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "skate" ? 0.3 : family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3, stride: 1.0 };
+  // 전기뱀장어 · 산갈치 · 갈치(2026-11-13) — 몸은 곧게 두고 긴 지느러미(전기뱀장어는 배 쪽, 산갈치 · 갈치는 등)를 물결쳐 나간다. 예전엔 뱀장어처럼 몸 전체를 흔들었다
+  else if (RIBBON_FIN.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.01, 0.013, 0.018, 0.026], lag: 0.6, fin: a.flex * 0.4, finRate: 1, wing: 0, curl: 0.5, stride: 0.36 };
   else if (a.kind === "dragon" || EEL.test(family)) {
     const expansion = /^(moray|electric_eel|loach|frilled_shark)$/.test(family);
     p = { kind: a.kind, amp: expansion ? [0.035, 0.065, 0.09, 0.115, 0.135, 0.15] : [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: expansion ? 0.95 : 1, fin: family === "moray" ? 0 : a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3, stride: 0.36 };
   }
+  else if (PHOCID.test(family)) p = { kind: a.kind, amp: [0.01, 0.016, 0.03, 0.06, 0.11, 0.17], lag: 0.6, fin: 0.04, finRate: 1, wing: 0, curl: 0.9, stride: 0.75, pect: "stiff" };
+  else if (OTARIID.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.018, 0.028, 0.04], lag: 0.5, fin: 0.55, finRate: 1, wing: 0, curl: 0.8, stride: 0.9 };
+  else if (CETACEAN.test(family)) p = { kind: a.kind, amp: [0.004, 0.006, 0.012, 0.03, 0.07, 0.13], lag: 0.55, fin: 0.03, finRate: 1, wing: 0, curl: 0.7, stride: 0.85, pect: "stiff" };
+  else if (MUSTELID.test(family)) p = { kind: a.kind, amp: [0.02, 0.035, 0.055, 0.08, 0.11, 0.15], lag: 0.8, fin: 0.12, finRate: 1.3, wing: 0, curl: 1.1, stride: 0.55 };
+  else if (SHARK_CRUISE.test(family)) p = { kind: a.kind, amp: [0.01, 0.016, 0.026, 0.048, 0.09, 0.15], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0.8, stride: 0.7 };
+  else if (SHARK_BOTTOM.test(family)) p = { kind: a.kind, amp: [0.02, 0.034, 0.052, 0.078, 0.108, 0.14], lag: 0.78, fin: a.flex, finRate: 1, wing: 0, curl: 1, stride: 0.5 };
+  // 실러캔스 — 몸은 거의 굳힌 채 떠다니며 가슴 · 배지느러미를 좌우 엇갈려 크게 젓는다(꼬리는 급할 때만)
+  else if (family === "coelacanth") p = { kind: a.kind, amp: CARP_AMP.map((v) => v * 0.35), lag: 0.62, fin: 0.3, finRate: 0.7, wing: 0, curl: 0.6, stride: 0.45 };
   else if (THUNNIFORM.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.022, 0.075, 0.15], lag: 0.45, fin: a.flex, finRate: 1, wing: 0, curl: 0.7, stride: 0.8 };
-  else if (ROWER.test(family)) p = { kind: a.kind, amp: /^(boxfish|sunfish|seahorse)$/.test(family) ? [0.003, 0.004, 0.006, 0.012, 0.04, 0.065] : CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: /^(boxfish|sunfish|seahorse)$/.test(family) ? 0.2 : 0.8, stride: 0.6 };
+  else if (ROWER.test(family)) p = { kind: a.kind, amp: RIGID.test(family) ? [0.003, 0.004, 0.006, 0.012, 0.04, 0.065] : CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: RIGID.test(family) ? 0.2 : 0.8, stride: 0.6 };
   // 두족류(2026-11-11) — GLB 는 spine_0 이 팔 끝(+X), spine_3~5 가 외투막(−X)이다(뼈 위치 · 가중치로 쟀다). 붕어 물결을 쓰면 외투막 끝이 꼬리처럼 흔들렸다.
   // ⚠ 두족류의 amp 는 마디마다의 '몸 기준 절대 방향'이다(fishMotion 이 차이로 바꿔 넣고 외투막 앞 마디를 제자리에 묶는다).
   // 오징어 · 대왕오징어는 팔이 앞으로 뻗어 외투막과 갈린다 → 외투막은 거의 0. 문어 · 크라켄은 팔이 외투막 밑까지 늘어져 x 로만 묶여 있다(외투막과 같은 뼈) → 외투막도 조금 흔든다
@@ -143,6 +189,8 @@ export function bendProfile(family: string, key = family): BendProfile {
   }
   // 누운 광어는 몸 가장자리 물결로 기어 · 헤엄쳐 한 번에 덜 나간다
   else p = { kind: a.kind, amp: CARP_AMP, lag: 0.62, fin: a.flex, finRate: 1, wing: 0, curl: 1, stride: flatBody(family, key) ? 0.5 : 0.62 };
+  const pect = pectOf(family);
+  if (pect) p = { ...p, pect };
   PROFILES.set(id, p);
   return p;
 }
@@ -152,7 +200,9 @@ const CURL = [0.08, 0.12, 0.16, 0.19, 0.21, 0.24];
  *  feed: 먹이로 몰려드는 정도(0~1, habits 의 feedW) · speed: 실제로 움직인 빠르기 ÷ 몸길이(1/s) · dt: 이번 프레임 초 */
 export type SwimPose = { turn?: number; amp?: number; pulse?: number; hover?: number; ground?: number; feed?: number; speed?: number; dt?: number;
   /** 길(course)의 effort — 있으면 엔진이 이미 빠르기에 맞춘 박자라(fishstep.beatEffort) stepSwim 이 빠르기로 또 고치지 않는다. 화면이 더한 몫(겁먹어 빨리 · 미끄러지듯 다가가기)은 그대로 들어온다 */
-  effort?: number };
+  effort?: number;
+  /** 두족류(habits.ceph) — 물 뿜기 세기 · 외투막이 앞인 정도(course.jet · course.rev 를 그대로) */
+  jet?: number; rev?: number };
 /** 물속에 떠서 멈춘 정도 — 바닥에 앉아 쉬는 물고기(course.ground)는 노 젓기 · 끄덕임을 안 한다(habits 는 바닥에서 쉬어도 hover 를 준다) */
 export const floating = (pose?: SwimPose) => Math.max(0, Math.min(1, pose?.hover ?? 0)) * (1 - Math.max(0, Math.min(1, pose?.ground ?? 0)));
 /** 넙치처럼 옆으로 누워 사는 몸(2026-11-11) — GLB(어린 · 다 큰 광어)는 xz 평면에 누워 있다(높이 ÷ 길이 0.08). 치어는 아직 서서 헤엄친다(0.29).
@@ -181,7 +231,9 @@ export function swimAngles(p: BendProfile, phase: number, pose: SwimPose | undef
     for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; out[6 + s * 2] = sign * Math.sin(phase) * p.wing; out[7 + s * 2] = sign * Math.sin(phase - 0.65) * p.wing * 0.88; }
   } else {
     const f = phase * p.finRate;
-    for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; out[6 + s * 2] = sign * Math.sin(f) * p.fin; out[7 + s * 2] = sign * Math.sin(f - 0.7) * p.fin * 1.3; }
+    // 굳은 가슴지느러미(상어 · 다랑어 · 새치)는 젓지 않는다 — 코드로 지은 임시 모델도 GLB(fishMotion 의 stiff)처럼 거의 멈춘 채 아주 조금만 떤다
+    const stiff = p.pect === "stiff" || p.pect === "fold";
+    for (let s = 0; s < 2; s++) { const sign = s && p.pect !== "alt" ? 1 : -1; out[6 + s * 2] = stiff ? sign * 0.015 * Math.sin(phase - 2.2) : sign * Math.sin(f) * p.fin; out[7 + s * 2] = stiff ? sign * 0.006 * Math.sin(phase - 2.2) : sign * Math.sin(f - 0.7) * p.fin * 1.3; }
   }
   return out;
 }
@@ -254,7 +306,7 @@ export function jellyPulse(s: number, axis: "x" | "y", out: { x: number; y: numb
   return out;
 }
 /** GLB 를 세우는 각도(Z 축) — 해파리 GLB 는 갓 꼭대기가 +X 를 본다(눕혀 만들었다). +90° 돌리면 +X 가 +Y 로 간다. 나머지는 0 */
-// 해마(2026-11-13) — 모델은 머리 쪽을 +X 로 눕혀 만들었다(FISH-EXPANSION-3-CODEX). 같은 각으로 세우면 머리가 위 · 주둥이가 앞(+X) · 말린 꼬리가 아래
+// 해마(2026-11-13) — 모델은 머리 쪽을 +X 로 눕혀 만들었다(옛 3차 지침서 — git 이력). 같은 각으로 세우면 머리가 위 · 주둥이가 앞(+X) · 말린 꼬리가 아래
 export const glbUpright = (family: string, key = family) => (anatomy(family, key).kind === "jelly" || family === "seahorse" ? Math.PI / 2 : 0);
 /** 몸길이를 잴 축 — 물고기는 머리에서 꼬리(x). 옛 엔진은 max(x, z, 1.25·높이)로 재서 키 큰 종(엔젤 · 디스커스 · 베타 · 문어 · 해파리 등 27종)이
  *  fishLength 의 0.71~0.90 로 작아졌다. 가오리 · 불가사리는 펼친 폭(xz), 해파리는 선 키(y), 두족류는 팔까지 가장 긴 쪽(max). */

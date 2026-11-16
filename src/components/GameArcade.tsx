@@ -28,7 +28,6 @@ import { islandSnapshot, refreshIsland, useIslandStore } from "@/lib/islandstore
 import { gameNow } from "@/lib/islandsync";
 // 시즌 미션(2026-11-13) — 카드는 가벼운 읽기만(lib/season 은 kst 하나만 부른다). 시트 · 보상 코드는 열 때 받는다
 import { TIERS, seasonBoard, titleText } from "@/lib/season";
-import { readAdvTally } from "@/lib/seasontally";
 import {
   islandRating,
   islandSummary,
@@ -177,7 +176,7 @@ export default function GameArcade({
   const partnerMergeBest = mrec ? Object.entries(mrec.best).find(([k]) => k !== myKey)?.[1] : undefined;
 
   /* 이번 시즌 — 이 기기에서 센 내 모험 수(아직 섬에 못 올린 몫)도 바로 보이게 겹쳐 본다 */
-  const season = s && now ? seasonBoard(s, now, myUserId ? { uid: myUserId, tally: readAdvTally(myUserId, now) } : undefined) : null;
+  const season = s && now ? seasonBoard(s, now) : null;
   const seasonReady = season ? season.tiers.some((t) => t.reached && !t.got) : false;
   const seasonNext = season?.tiers.find((t) => !t.reached);
   const petTitle = season?.titles[season.titles.length - 1];

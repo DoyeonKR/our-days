@@ -6,9 +6,6 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { FAMILIES } from "./aquarium.ts";
-import { newSave } from "./adventure.ts";
-import { botTeam, pickTeam, startDuel } from "./adventurepvp.ts";
-import { duelInput, newArena, record, stepArena, think, type LogEntry } from "./arena.ts";
 
 const root = join(import.meta.dirname, "..", "..");
 const raw = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n");
@@ -113,41 +110,8 @@ test("③ 예약 알림 — 한 번에 장부 · 한 사람 20개 · 커플마�
   assert.ok(18_000 + 8_000 < 30_000, "알림 예산 + 영상 정리 예산 < 크론 대기 30초");
 });
 
-/** adventure-battle 의 logTooDense 와 같은 식 — 아래 테스트가 소스에 이 식이 있는지 같이 본다 */
-const SLACK = 300;
-const tooDense = (log: readonly (readonly number[])[]) => log.length > new Set(log.map((e) => e[0])).size * 2 + SLACK;
-
-test("④ 대전 입력 기록 — 한 틱에 몰린 기록은 거절 · 거절한 판엔 기록을 안 남긴다 · 표에 크기 상한", () => {
-  const fn = tsCode("supabase/functions/adventure-battle/index.ts");
-  assert.match(fn, /const LOG_BURST_SLACK = 300;/);
-  assert.match(fn, /return log\.length > ticks\.size \* 2 \+ LOG_BURST_SLACK;/);
-  assert.match(fn, /if \(!validLog\(body\.log\) \|\| logTooDense\(body\.log\)\) \{/);
-  for (const reason of ["too slow", "bad log", "too fast"]) assert.match(fn, new RegExp(`rejectedLog\\("${reason}", body\\.log\\)`), reason);
-  assert.doesNotMatch(fn, /validLog\(body\.log\) \? body\.log : null/, "늦은 판에 기록을 남기던 옛 길");
-  assert.deepEqual(fn.match(/finish\(admin, m, [\w.]+, [\w.]+, body\.log\)/g), ["finish(admin, m, a.b, a.tick, body.log)"], "body.log 를 그대로 남기는 건 받아들인 판 하나뿐");
-  // 엔진 복사본은 건드리지 않았다(지문이 바뀌면 배포된 함수와 갈린다)
-  assert.doesNotMatch(raw("supabase/functions/_shared/adventure/arena.ts"), /logTooDense/);
+test("④ 대전 기록 크기 — 표에 크기 상한(모험은 2026-11-15 걷었다 — 함수 · 엔진 소스도 레포에서 지웠다, migration 은 운영 기록이라 남는다)", () => {
   assert.match(mig, /add constraint adventure_matches_log_size\s+check \(log is null or octet_length\(log::text\) <= 200000\) not valid;/);
-
-  // 공격 모양은 걸리고, 엔진으로 실제로 둔 판은 안 걸린다
-  assert.ok(tooDense(Array.from({ length: 9000 }, () => [10, 1, 0, 0])), "9000칸이 한 틱");
-  const save = newSave("conch_2", 3);
-  const mine = pickTeam(save, [save.party[0].id]);
-  for (const seed of [3, 11, 29]) {
-    const a = newArena(startDuel(mine, botTeam(6, 0, "2026-11-08").team, seed, ["나", "상대"]), null);
-    const rng = { s: seed };
-    const log: LogEntry[] = [];
-    let lastDir = 0;
-    let guard = 0;
-    while (!a.b.over && guard++ < 20_000) {
-      const inp = duelInput(think(a, 0, rng, 1));
-      lastDir = record(log, lastDir, a.tick, inp);
-      stepArena(a, inp);
-    }
-    assert.ok(log.length > 0);
-    assert.equal(tooDense(log), false, `정상 판(시드 ${seed})이 거절된다`);
-    assert.ok(JSON.stringify(log).length < 200_000, "정상 기록은 표 상한 안");
-  }
 });
 
 test("⑤ 섬 저장 — 객체 · 1,000,000 바이트까지(PT422) · 충돌은 그대로 PT409 · 권한 그대로", () => {

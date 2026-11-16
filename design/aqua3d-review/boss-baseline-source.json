@@ -1,0 +1,14 @@
+{
+  "hashes": {
+    "src/lib/aqua3d/turtle.ts": "b392af5aa31a230035e884d48da1bd2254a13fe7eb992d8ff2925e2500361bea",
+    "src/lib/aqua3d/waterlight.ts": "2c17bf54c4cf14b2d827dd9fca3999672a9e680891532598a8c4ae14e1ad46ec",
+    "src/lib/aqua3d/color-quality.ts": "b3a1ce5c9ed1965f70e81fab5f96880abc774d2c9e480f4e435014434eb157f6",
+    "src/lib/aqua3d/bosslook.ts": "43f94bb4e066d6e8596dd6143ca13f3102fa71b8ce6cf6cc2484fc87368f4e6a"
+  },
+  "reviewOnlyTransforms": [
+    "TypeScript type erasure",
+    "Base path mapped to local /public",
+    "Unused boss catalog dependency omitted; makeDetailedTurtle called without boss look",
+    "Water-light shader disabled for neutral PBR comparison; geometry unchanged"
+  ]
+}

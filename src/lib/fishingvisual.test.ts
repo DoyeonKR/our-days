@@ -185,14 +185,12 @@ test("심해 다이얼 — 바늘은 스풀 위, 그라디언트 id 는 useId, C
   assert.match(css, /prefers-reduced-motion: reduce\) \{[^\n]*\.fish-dial\.is-warn \.fish-dial-rim \{ animation: none; stroke: #fbbf24; \}[^\n]*\.fish-dial-ghost\.is-on \{ display: none; \}/);
 });
 
-test("뜰채 — 누르는 동안 그물 크기 조준 원, 떼면 내리치기(취소는 안 친다) · 남은 기회는 뜰채 아이콘 · 들어올리기 그물 표시와 화살표", () => {
+test("뜰채 — 그물 원이 늘 보이고 손가락보다 위에서 따라간다 · 붙잡기 막대는 뜰채 아이콘", () => {
   const game = strip(read("src/components/FishingGame.tsx"));
-  assert.match(game, /fx\?\.aim\(\{ x, y, r: netRadius\(fs\.net\) \}\)/);
-  assert.match(game, /if \(!cancel\) netDown\(at\.x, at\.y\)/);
-  assert.match(game, /onPointerCancel=\{\(e\) => fingerUp\(e\.pointerId, true\)\}/);
-  assert.match(game, /<em>기회<\/em>/);
-  assert.match(game, /<NetMark \/>/);
-  assert.match(game, /fish-lift-arrow is-l \$\{liftS\.tilt > 0\.15 \? "is-on" : ""\}/, "오른쪽으로 기울면 왼쪽으로 끈다");
+  assert.match(game, /fxn\?\.aim\(\{ x: next\.nx, y: next\.ny, r: tune\.netR \}\)/);
+  assert.match(game, /y: Math\.max\(0, Math\.min\(1, y - HERD_LIFT\)\)/, "손가락이 그물을 가리지 않게");
+  assert.match(game, /if \(herdDown\.current\) herdPoint\(x \/ w, y \/ h\)/, "안 눌린 마우스로는 안 따라간다");
+  assert.match(game, /<em><NetMark \/> 붙잡기<\/em>/);
   const fx = strip(read("src/lib/fishingfx.ts"));
   assert.match(fx, /lerp\(1\.15, 1,/, "내리치는 동안 1.15r → 1r");
   assert.match(fx, /\(r \* this\.H\) \/ 1\.25/, "판정과 같은 타원(세로 1.25)");

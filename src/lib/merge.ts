@@ -419,7 +419,7 @@ export function markStoredFinished(json: string | null, id: number, key: "settle
  * 주(KST 월요일 0시 ~ 다음 월요일 0시 전)마다 특별한 판 규칙 하나 — 주 일련번호로 정해져 모두가 같은 주에 같은 규칙을 한다.
  * 보통 판(위의 장르 표준)은 그대로다 — 규칙은 Game.rule 이 있을 때만 켜지는 **별도 옵션**이다(merge.test 가 보통 판을 잠근다).
  * 커플 점수 = 그 주 두 사람 각자의 최고 도전 점수의 합. 서버 표는 merge_weekly_runs(전체 순위 merge_runs 와 따로 —
- * README §14.4.5 '주간 도전판'). ⚠ 규칙 순서 · 상수를 바꾸면 migration 20261107100000_merge_weekly.sql 의 같은 식도 바꾼다(mergeweekly.test). */
+ * README §14.4.5 '주간 도전판'). ⚠ 규칙 순서 · 상수를 바꾸면 migration 20261114050000_merge_weekly.sql 의 같은 식도 바꾼다(mergeweekly.test). */
 export type WeeklyRuleId = "stones" | "moves" | "preset" | "fert" | "big";
 export type WeeklyRule = {
   id: WeeklyRuleId;

@@ -379,8 +379,8 @@ test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 
   assert.match(panel, /모든 물고기/);
 });
 
-test("모든 어종 — 152종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
-  assert.equal(ALL_SPECIES.length, 152);
+test("모든 어종 — 162종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
+  assert.equal(ALL_SPECIES.length, 162);
   for (const k of ["nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"]) {
     assert.ok(speciesOf(k), k);
     assert.ok(SPOTS.some((s) => s.pool.some(([f]) => f === k)), k);
@@ -391,16 +391,19 @@ test("모든 어종 — 152종이 도감에 있고, 낚시터에서 실제로 �
   assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
 });
 
-test("모델 하나 = 물고기 하나 — 384폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
-  assert.equal(ALL_FORMS.length, 384);
-  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 384);
+test("모델 하나 = 물고기 하나 — 414폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
+  assert.equal(ALL_FORMS.length, 414);
+  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 414);
   for (const f of ALL_FORMS) if (f.family !== "sea_turtle") assert.ok(FISH_GLB.has(f.key), f.key);
   const seen = new Set<string>();
   const times = ["dawn", "day", "dusk", "night"] as const, wxs = ["rain", "snow", "clear", null] as const;
-  for (const spot of SPOTS) for (const time of times) for (const wx of wxs) for (let i = 0; i < 2500; i++) {
-    seen.add(catchArt(rollCatch(spot, 40, 1, i * 113 + 7, { bait: BAITS.length - 1, method: "lure", when: { time, wx } })));
-    seen.add(catchArt(rollCatch(spot, 1, 0.4, i * 113 + 7, { bait: BAITS.length - 1, when: { time, wx } })));
-  }
+  // 시간 · 날씨 조합마다 다른 seed — 같은 seed 2,500개를 되풀이하면(때 손님만 달라진다) 드문 계열의 치어를 놓쳤다(2026-11-14 귀한 몫을 다시 맞춘 뒤)
+  let combo = 0;
+  for (const spot of SPOTS) for (const time of times) for (const wx of wxs) { combo++; for (let i = 0; i < 2500; i++) {
+    const seed = i * 113 + 7 + combo * 1_000_003;
+    seen.add(catchArt(rollCatch(spot, 40, 1, seed, { bait: BAITS.length - 1, method: "lure", when: { time, wx } })));
+    seen.add(catchArt(rollCatch(spot, 1, 0.4, seed, { bait: BAITS.length - 1, when: { time, wx } })));
+  } }
   const missing = ALL_FORMS.filter((x) => !seen.has(x.key)).map((x) => x.key);
   assert.deepEqual(missing, [], "낚시로 못 만나는 모습");
 });

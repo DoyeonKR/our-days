@@ -334,7 +334,7 @@ test("캔버스는 멀티샘플 · 깊이 · 스텐실을 안 받는다(장면�
 });
 
 test("되돌려 받은 연결 — 환경광을 다시 굽고 셰이더를 모아 다시 짓는다", () => {
-  const restored = scene.slice(scene.indexOf('"webglcontextrestored"'), scene.indexOf("let start:"));
+  const restored = scene.slice(scene.indexOf('"webglcontextrestored"'), scene.indexOf("const down=("));
   assert.match(restored, /envMap=underwaterEnvironment\(renderer\);scene\.environment=envMap;/);
   assert.match(restored, /compiled=false;schedule\(\);precompile\(\);/);
   assert.match(scene, /\.then\(\(\)=>\{if\(disposed\|\|lost\)return;compiled=true;/);

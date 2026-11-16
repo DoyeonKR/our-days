@@ -136,7 +136,7 @@ test("엔진 계약 — 사진 모드는 시계를 세우고, 사냥 장면 · �
   assert.match(scene, /&&!state\.editing&&!photoOn;/, "schedule 이 사진 모드면 돌지 않는다");
   assert.match(scene, /if\(photoOn\)\{recheck=true;return false;\}/, "안 본 사냥은 끝낼 때");
   assert.match(scene, /if\(photoOn\)return "busy";if\(meal&&meal\.kind==="real"\)return "busy";/, "다시 보기는 바쁨");
-  assert.match(scene, /halo\.visible=!!selected&&!photoOn;/);
+  assert.match(scene, /halo\.visible=!!selected&&state\.editing&&!photoOn;/, "고른 물고기 테두리는 꾸미기에서만(2026-11-13 main) · 사진 모드면 숨긴다");
   assert.match(scene, /photoSaved=\{angle,pitch,pan,yaw:domeYaw\}/);
   assert.match(scene, /angle=photoSaved\.angle;pitch=photoSaved\.pitch;pan=photoSaved\.pan;domeYaw=photoSaved\.yaw;/);
   assert.match(scene, /postNow\.setGrade\(null\)/, "끝내면 필터를 끈다");

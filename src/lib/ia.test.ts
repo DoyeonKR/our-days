@@ -5,10 +5,11 @@ import { readFileSync } from "node:fs";
 const nav = readFileSync(new URL("../components/BottomNav.tsx", import.meta.url), "utf8");
 const page = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-test("정보구조: 하단 내비는 홈·일기·기록·계획·모험·게임 6개 상위 목적지만 둔다(모험 2026-11-07)", () => {
-  for (const key of ["home", "diary", "records", "plan", "adventure", "game"])
+test("정보구조: 하단 내비는 홈·일기·기록·계획·게임 5개 상위 목적지만 둔다(모험은 2026-11-07 생겼다가 2026-11-15 걷었다)", () => {
+  for (const key of ["home", "diary", "records", "plan", "game"])
     assert.match(nav, new RegExp(`k: "${key}"`));
-  assert.equal((nav.match(/\{ k: "/g) ?? []).length, 6);
+  assert.doesNotMatch(nav, /k: "adventure"/);
+  assert.equal((nav.match(/{ k: "/g) ?? []).length, 5);
 });
 
 test("정보구조: 기록과 계획은 하위 세그먼트로 기존 기능을 보존한다", () => {

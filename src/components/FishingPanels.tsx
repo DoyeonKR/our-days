@@ -14,13 +14,14 @@ import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { ALL_FORMS, FAMILIES, bossesBeaten } from "@/lib/aquarium";
 import { BOSS_PHASE_NAME, bossPhase } from "@/lib/fishing";
-import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castMaxMeters, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
+import { BAITS, DEPTH_NAMES, familyDepth, JUNKS, SINKERS, REELS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castMaxMeters, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
-import { BOSS_DUO, bossDuo, type BossHit } from "@/lib/fishingworld";
+import { BOSS_DUO, bossArt, bossDuo, type BossHit } from "@/lib/fishingworld";
 import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, MOON_FISH, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
+import { REQUEST_ALL_BONUS, type FishRequest } from "@/lib/fishrequest";
 
 export function GearPic({ k, label }: { k: string; label: string }) {
   if (FISHING_IMAGE_KEYS.has(k)) {
@@ -35,10 +36,11 @@ function GearList<T extends { key: string; name: string; price: number }>({ titl
 }) {
   return (
     <section className="aqua-card">
-      <header><strong>{title}</strong><small>{desc}</small></header>
+      <header><strong>{title} <span className="fish-step">{cur + 1}/{list.length}단계</span></strong><small>{desc}</small></header>
+      {/* 한눈에(2026-11-13) — 지금 쓰는 것과 다음에 살 것만 줄로, 그 뒤 단계는 이름만 한 줄(잠긴 줄이 버튼처럼 늘어서 있었다) */}
       <ul className="aqua-shop is-flat">
-        {list.map((x, i) => (
-          <li key={x.key} className={i > cur + 1 ? "is-locked" : ""}>
+        {list.map((x, i) => (i < cur || i > cur + 1) ? null : (
+          <li key={x.key}>
             <span className="aqua-shop-pic"><GearPic k={x.key} label={x.name} /></span>
             <span className="min-w-0 flex-1">
               <strong>{x.name}</strong>
@@ -48,20 +50,23 @@ function GearList<T extends { key: string; name: string; price: number }>({ titl
               <ActionButton disabled={busy || coins < x.price} onClick={onBuy}>
                 <span className="aqua-price"><Coin /> {x.price.toLocaleString()}</span>
               </ActionButton>
-            ) : <small>앞 단계 먼저</small>}
+            ) : null}
           </li>
         ))}
       </ul>
+      {cur + 2 < list.length && <p className="aqua-note fish-later">그다음: {list.slice(cur + 2).map((x) => x.name).join(" → ")}</p>}
     </section>
   );
 }
 
-export function FishGear({ fs, coins, busy, today, onBuyRod, onBuyNet, onBuyBait }: {
-  fs: FishingState; coins: number; busy: boolean; today: string; onBuyRod: () => void; onBuyNet: () => void; onBuyBait: (key: string) => void;
+export function FishGear({ fs, coins, busy, today, sinker, onBuyRod, onBuyNet, onBuyBait, onBuySinker, reel, onBuyReel }: {
+  fs: FishingState; coins: number; busy: boolean; today: string; sinker: number; onBuyRod: () => void; onBuyNet: () => void; onBuyBait: (key: string) => void; onBuySinker: () => void; reel: number; onBuyReel: () => void;
 }) {
   return (
     <>
       <GearList title="낚싯대" desc="힘과 줄 다루기가 올라요" list={RODS} cur={fs.rod} coins={coins} busy={busy} stat={(x) => `힘 +${x.power} · 줄 다루기 +${x.line} · 최대 ${Math.round(castMaxMeters(RODS.indexOf(x), fs.stats.power))}m`} onBuy={onBuyRod} />
+      <GearList title="봉돌" desc="무거울수록 미끼가 깊이 내려가요 · 심해 낚시는 3배" list={SINKERS} cur={sinker} coins={coins} busy={busy} stat={(x) => `${x.reach >= 1000 ? "어디든" : `${x.reach}m`}까지`} onBuy={onBuySinker} />
+      <GearList title="심해 릴" desc="심해 낚시에서 더 빨리 감기고 초록 칸이 넓어요" list={REELS} cur={reel} coins={coins} busy={busy} stat={(x) => { const i = REELS.findIndex((r) => r.key === x.key); return i ? `감기 +${i * 12}% · 초록 칸 +${i * 4}` : "기본"; }} onBuy={onBuyReel} />
       <GearList title="뜰채" desc="포획 확률이 올라요 · 뜰채 낚시에서 그물이 넓어져요" list={NETS} cur={fs.net} coins={coins} busy={busy} stat={(x) => `포획 +${x.catch}`} onBuy={onBuyNet} />
       <section className="aqua-card">
         <header><strong>미끼</strong><small>한 번 던질 때마다 1회(심해는 2회) · 비싼 미끼는 귀한 물고기와 도감 · 랭킹을 위한 것이에요</small></header>
@@ -140,7 +145,7 @@ function BossList({ fs, today }: { fs: FishingState; today: string }) {
           const r = fs.bosses[b.key], locked = fs.level < b.level, hp = bossHp(r, today);
           return (
             <li key={b.key} className={locked ? "is-claimed" : ""}>
-              <span className="fish-boss-pic">{locked ? <b aria-hidden>?</b> : <FishArt artKey={b.species} />}</span>
+              <span className="fish-boss-pic">{locked ? <b aria-hidden>?</b> : <FishArt artKey={bossArt(b)} />}</span>
               <span className="min-w-0 flex-1">
                 <strong>{locked ? "???" : b.name}{r?.caught ? ` · ${r.caught}번 잡음` : ""}</strong>
                 {!locked && <i className="fish-goal-bar is-boss" aria-hidden><b style={{ width: `${hp * 100}%` }} /></i>}
@@ -154,6 +159,35 @@ function BossList({ fs, today }: { fs: FishingState; today: string }) {
   );
 }
 
+/** 크기 기록 전광판(2026-11-14) [사용자: "수집 크기기록에 상대방과 나 몇대 몇인지 임펙트 있게 표시해주기"] —
+ *  물고기마다 더 큰 쪽이 1점(같으면 무승부). 표 위에 '나 N : M 상대'를 크게, 앞선 쪽이 빛나고 막대가 그만큼 밀어낸다 */
+export function sizeScore(rows: [string, Record<string, number>][], who: string) {
+  let me = 0, partner = 0, tie = 0;
+  for (const [, row] of rows) {
+    const mine = row[who] ?? 0, other = Math.max(0, ...Object.entries(row).filter(([u]) => u !== who).map(([, v]) => v));
+    if (!mine && !other) continue;
+    if (mine > other) me++; else if (other > mine) partner++; else tie++;
+  }
+  return { me, partner, tie };
+}
+function SizeScore({ rows, who }: { rows: [string, Record<string, number>][]; who: string }) {
+  const { me, partner, tie } = sizeScore(rows, who), total = me + partner;
+  const lead = me === partner ? "tie" : me > partner ? "me" : "partner";
+  const share = total ? me / total : 0.5;
+  const line = lead === "tie" ? "팽팽해요! 한 마리만 더 크게 잡으면 앞서요" : lead === "me" ? `${me - partner}종 차이로 내가 앞서요!` : `${partner - me}종 차이로 상대가 앞서요 — 역전할 차례!`;
+  return (
+    <div className={`fish-score is-${lead}`} role="status" aria-label={`크기 기록 나 ${me} 대 상대 ${partner}${tie ? `, 무승부 ${tie}` : ""}`}>
+      <div className="fish-score-board" aria-hidden>
+        <span className="fish-score-side is-me"><small>나</small><b key={`m${me}`}>{me}</b></span>
+        <span className="fish-score-vs">:</span>
+        <span className="fish-score-side is-partner"><small>상대</small><b key={`p${partner}`}>{partner}</b></span>
+      </div>
+      <div className="fish-score-bar" aria-hidden><i style={{ width: `${Math.round(share * 100)}%` }} /></div>
+      <p aria-hidden>{line}{tie ? ` · 무승부 ${tie}` : ""}</p>
+    </div>
+  );
+}
+
 /** 크기 기록 — 칸을 고정한 표. 나는 분홍 · 상대는 파랑, 그 물고기에서 더 큰 쪽만 칠한다 */
 function SizeList({ fs, who, couple }: { fs: FishingState; who: string; couple: boolean }) {
   const rows = Object.entries(fs.sizes).filter(([k]) => artName(k));
@@ -161,6 +195,7 @@ function SizeList({ fs, who, couple }: { fs: FishingState; who: string; couple: 
   return (
     <section className="aqua-card">
       <header><strong>크기 기록</strong><small>내 기록을 넘기면 하트 · 경험치 1.5배</small></header>
+      {couple && <SizeScore rows={rows} who={who} />}
       {couple && (
         <div className="fish-size-row fish-size-head" aria-hidden>
           <span />
@@ -185,57 +220,99 @@ function SizeList({ fs, who, couple }: { fs: FishingState; who: string; couple: 
   );
 }
 
-export function FishStats({ fs, eff, busy, today, who, exped, couple, cheered, onCheer, onSpend, onClaim }: {
-  fs: FishingState; eff: Record<FishStat, number>; busy: boolean; today: string; who: string; exped: Expedition; couple: boolean; cheered: boolean; onCheer: () => void; onSpend: (k: FishStat) => void; onClaim: (id: string) => void;
+/** 오늘의 의뢰(2026-11-13) — 그 낚시터에서 그 물고기를 끌어올리면 저절로 채워지고 하트가 들어온다(받기 버튼 없음) */
+function RequestCard({ list, done, couple }: { list: readonly FishRequest[]; done: readonly boolean[]; couple: boolean }) {
+  if (!list.length) return null;
+  const n = done.filter(Boolean).length;
+  return (
+    <section className="aqua-card fish-requests">
+      <header><strong>오늘의 의뢰</strong><small>{n}/{list.length} · 셋 다 하면 +{REQUEST_ALL_BONUS.toLocaleString()}{couple ? " · 둘이 함께 채워요" : ""}</small></header>
+      <ul>
+        {list.map((r, i) => (
+          <li key={`${r.spot}:${r.family}`} className={done[i] ? "is-done" : ""}>
+            <span className="fish-request-pic"><FishArt artKey={`fry_${r.family}`} size={44} /></span>
+            <span className="min-w-0 flex-1">
+              <strong>{familyName(r.family)}</strong>
+              <small>{SPOTS.find((s) => s.key === r.spot)?.name ?? r.spot}에서 · 어린 것도 돼요</small>
+            </span>
+            {done[i] ? <small className="fish-request-ok">완료</small> : <span className="aqua-price"><Coin /> {r.coins.toLocaleString()}</span>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** 목표 탭 — 오늘(의뢰 · 오늘의 목표 · 원정) · 낚시 목표(길게 가는 목표) · 주인 */
+export function FishStats({ fs, busy, today, who, exped, couple, cheered, requests, onCheer, onClaim }: {
+  fs: FishingState; busy: boolean; today: string; who: string; exped: Expedition; couple: boolean; cheered: boolean;
+  requests: { list: readonly FishRequest[]; done: readonly boolean[] }; onCheer: () => void; onClaim: (id: string) => void;
 }) {
-  const next = nextGoals(fs);
+  // 한눈에(2026-11-13) [사용자: "버튼 없이 한눈에"] — 칸 버튼 없이 오늘 할 것 → 길게 가는 목표 → 주인 순서로 그대로 펼친다
+  const daily = dailyGoals(fs, today), next = nextGoals(fs);
   return (
     <>
-      <ExpedCard e={exped} who={who} couple={couple} cheered={cheered} onCheer={onCheer} />
-      <BossList fs={fs} today={today} />
+      <RequestCard list={requests.list} done={requests.done} couple={couple} />
       <section className="aqua-card">
         <header><strong>오늘의 목표</strong><small>날마다 새로 시작해요</small></header>
-        <ul className="fish-goals">{dailyGoals(fs, today).map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
+        <ul className="fish-goals">{daily.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
       </section>
+      <ExpedCard e={exped} who={who} couple={couple} cheered={cheered} onCheer={onCheer} />
       <section className="aqua-card">
         <header><strong>낚시 목표</strong><small>{fs.goals.length}/{goalTotal()} 달성</small></header>
         <ul className="fish-goals">{next.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
       </section>
-      <SizeList fs={fs} who={who} couple={couple} />
-      <section className="aqua-card">
-        <header><strong>능력치</strong><small>남은 점수 {fs.points} · 레벨마다 2점</small></header>
-        <ul className="fish-stats">
-          {STAT_KEYS.map((k) => (
-            <li key={k}>
-              <span className="min-w-0 flex-1">
-                <strong>{STAT_INFO[k].name} {fs.stats[k]}{eff[k] !== fs.stats[k] ? ` (장비 포함 ${eff[k]})` : ""}</strong>
-                <small>{STAT_INFO[k].desc}</small>
-              </span>
-              <ActionButton disabled={busy || fs.points <= 0 || fs.stats[k] >= STAT_CAP} aria-label={`${STAT_INFO[k].name} 올리기`} onClick={() => onSpend(k)}>+1</ActionButton>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section className="aqua-card">
-        <header><strong>쓰레기 수집함</strong><small>{JUNKS.filter((j) => (fs.junk[j.key] ?? 0) > 0).length}/{JUNKS.length}종 · 물가를 {Object.values(fs.junk).reduce((n, v) => n + v, 0)}번 치웠어요</small></header>
-        <ul className="fish-junkbox">
-          {JUNKS.map((j) => {
-            const n = fs.junk[j.key] ?? 0;
-            return (
-              <li key={j.key} className={n > 0 ? "" : "is-unseen"}>
-                <span><JunkIcon k={j.key} /></span>
-                <strong>{n > 0 ? j.name : "???"}</strong>
-                <small>{n > 0 ? `${n}개` : j.spot ? SPOTS.find((x) => x.key === j.spot)?.name : "어디서나"}</small>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <BossList fs={fs} today={today} />
     </>
   );
 }
 
-/** 바깥을 눌러 닫기 — 누르기가 바깥에서 시작했을 때만. 시트 안에서 글자를 끌어 선택하다 바깥에서 놓아도 닫히지 않게 */
+/** 능력치(장비 탭) — 레벨마다 2점 */
+export function FishAbility({ fs, eff, busy, onSpend }: { fs: FishingState; eff: Record<FishStat, number>; busy: boolean; onSpend: (k: FishStat) => void }) {
+  return (
+    <section className="aqua-card">
+      <header><strong>능력치</strong><small>남은 점수 {fs.points} · 레벨마다 2점</small></header>
+      <ul className="fish-stats">
+        {STAT_KEYS.map((k) => (
+          <li key={k}>
+            <span className="min-w-0 flex-1">
+              <strong>{STAT_INFO[k].name} {fs.stats[k]}{eff[k] !== fs.stats[k] ? ` (장비 포함 ${eff[k]})` : ""}</strong>
+              <small>{STAT_INFO[k].desc}</small>
+            </span>
+            <ActionButton disabled={busy || fs.points <= 0 || fs.stats[k] >= STAT_CAP} aria-label={`${STAT_INFO[k].name} 올리기`} onClick={() => onSpend(k)}>+1</ActionButton>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** 크기 기록(수집 탭 '기록' 칸) */
+export function FishSizes({ fs, who, couple }: { fs: FishingState; who: string; couple: boolean }) {
+  return <SizeList fs={fs} who={who} couple={couple} />;
+}
+
+/** 쓰레기 수집함(수집 탭) */
+export function FishJunk({ fs }: { fs: FishingState }) {
+  return (
+    <section className="aqua-card">
+      <header><strong>쓰레기 수집함</strong><small>{JUNKS.filter((j) => (fs.junk[j.key] ?? 0) > 0).length}/{JUNKS.length}종 · 물가를 {Object.values(fs.junk).reduce((n, v) => n + v, 0)}번 치웠어요</small></header>
+      <ul className="fish-junkbox">
+        {JUNKS.map((j) => {
+          const n = fs.junk[j.key] ?? 0;
+          return (
+            <li key={j.key} className={n > 0 ? "" : "is-unseen"}>
+              <span><JunkIcon k={j.key} /></span>
+              <strong>{n > 0 ? j.name : "???"}</strong>
+              <small>{n > 0 ? `${n}개` : j.spot ? SPOTS.find((x) => x.key === j.spot)?.name : "어디서나"}</small>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 export function useBackdropClose(onClose: () => void) {
   const downAt = useRef<EventTarget | null>(null);
   return {
@@ -267,7 +344,7 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
   const beaten = bossesBeaten(all);
   return (
     <SheetShell title={`이 낚시터의 주인 · ${boss.name}`} onClose={onClose}>
-      <div className="fish-boss-hero"><FishArt artKey={boss.species} /></div>
+      <div className="fish-boss-hero"><FishArt artKey={bossArt(boss)} /></div>
       <p className="fish-how">{boss.story}</p>
       <p className="aqua-note">{speciesName(boss.species)} · {speciesGrade(boss.species) ?? GRADES[0]} · 길이 {fmtCm(boss.cm)}</p>
       <i className="fish-goal-bar is-boss is-ticked mt-2" aria-hidden><b style={{ width: `${hp * 100}%` }} /><u style={{ left: "33%" }} /><u style={{ left: "66%" }} /></i>
@@ -285,7 +362,7 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
           const where = SPOTS.find((x) => x.key === b.spot)?.name ?? b.spot;
           return (
             <li key={b.key} className={`${b.key === boss.key ? "is-now" : ""} ${got ? "is-got" : ""}`}>
-              <span className="fish-boss-pic">{locked ? <LockMark /> : <FishArt artKey={b.species} />}</span>
+              <span className="fish-boss-pic">{locked ? <LockMark /> : <FishArt artKey={bossArt(b)} />}</span>
               <span className="min-w-0 flex-1">
                 <strong>{locked ? "???" : b.name}{got && <> <CrownIcon /></>}</strong>
                 <small>{where} · {locked ? `낚시 Lv.${b.level}부터` : got ? `${r!.caught}번 잡음` : r ? `체력 ${pctOf(h)}` : "아직 겨루지 않음"}</small>
@@ -389,7 +466,7 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
             {rows.map((r) => (
               <li key={r.family}>
                 <span className="fish-boss-pic"><FishArt artKey={famArt(r.family, seen)} /></span>
-                <span className="min-w-0 flex-1"><strong>{familyName(r.family)}</strong><small>도감 {seenOf(r.family)}/{totalOf(r.family)}칸 · 지금 {r.forms.length}가지 모습이 와요</small></span>
+                <span className="min-w-0 flex-1"><strong>{familyName(r.family)}</strong><small>{DEPTH_NAMES[familyDepth(r.family)]} · 도감 {seenOf(r.family)}/{totalOf(r.family)}칸 · 지금 {r.forms.length}가지 모습이 와요</small></span>
                 <b className="fish-chance">{chanceText(r.chance)}</b>
               </li>
             ))}
@@ -409,7 +486,7 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
                       <span className="fish-boss-pic"><FishArt artKey={famArt(k, seen)} /></span>
                       <span className="min-w-0 flex-1">
                         <strong>{familyName(k)}</strong>
-                        <small>{BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}에만` : ""}</small>
+                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}에만` : ""}</small>
                       </span>
                     </li>
                   ))}

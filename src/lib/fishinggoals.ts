@@ -7,7 +7,7 @@ type Track = { key: string; name: (n: number) => string; steps: readonly (readon
 
 const TRACKS: readonly Track[] = [
   { key: "landed", name: (n) => `물고기 ${n}마리 끌어올리기`, steps: [[10, 100], [50, 300], [200, 800], [1000, 3000]], value: (f) => f.landed },
-  { key: "seen", name: (n) => `서로 다른 물고기 ${n}종 만나기`, steps: [[5, 150], [20, 500], [40, 1500], [60, 5000], [100, 10000], [135, 20000]], value: (f) => f.seen.length },
+  { key: "seen", name: (n) => `서로 다른 물고기 ${n}종 만나기`, steps: [[5, 150], [20, 500], [40, 1500], [60, 5000], [100, 10000], [135, 20000], [200, 30000], [300, 45000], [384, 80000]], value: (f) => f.seen.length },
   { key: "junk", name: (n) => `쓰레기 ${n}종 건지기`, steps: [[5, 120], [15, 1000]], value: (f) => Object.values(f.junk).filter((v) => v > 0).length },
   { key: "cast", name: (n) => `${n}m 던지기`, steps: [[30, 150], [50, 600], [65, 1500], [85, 2000]], value: (f) => Math.floor(f.bestCast) }, // 2026-11-13 85m 를 더했다 — 퍼펙트 바나나킥(castBoost 최대 1.25배)으로 끝이 72 → 90m 가 돼 65m 는 중반에 닿는다. 65 를 80 으로 옮기면 65~79m 를 던지고 아직 안 받은 사람이 번 보상을 잃어 65 는 그대로 두고 퍼펙트로만 닿는 85 를 그 위에
   { key: "level", name: (n) => `낚시 Lv.${n} 되기`, steps: [[5, 200], [15, 800], [30, 2500], [50, 8000]], value: (f) => f.level },

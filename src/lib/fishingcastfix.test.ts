@@ -114,9 +114,9 @@ test("두 번째 손가락은 던지기에 끼어들지 않는다 — 던지기�
   assert.match(game, /onPointerDown=\{\(e\) => \{[\s\S]{0,200}if \(otherFinger\(e\.pointerId\)\) return;[\s\S]{0,300}castPtr\.current = e\.pointerId;/);
   assert.match(game, /onPointerMove=\{\(e\) => \{\s+if \(otherFinger\(e\.pointerId\)\) return;/);
   assert.match(game, /onPointerUp=\{\(e\) => fingerUp\(e\.pointerId\)\}/);
-  // 2026-11-13 — 취소는 cancel 표시를 달고 온다(뜰채 겨누기를 내리치지 않게, fishingvisual.test). 던지기 쪽 규칙은 그대로다
-  assert.match(game, /onPointerCancel=\{\(e\) => fingerUp\(e\.pointerId, true\)\}/);
-  assert.match(game, /function fingerUp\(id: number, cancel = false\) \{\s+if \(otherFinger\(id\)\) return;/);
+  // 2026-11-14 — 뜰채가 떼는 순간 내리치지 않게 되어(몰아서 건지기) 취소 표시가 필요 없다. 던지기 쪽 규칙은 그대로다
+  assert.match(game, /onPointerCancel=\{\(e\) => fingerUp\(e\.pointerId\)\}/);
+  assert.match(game, /function fingerUp\(id: number\) \{\s+if \(otherFinger\(id\)\) return;/);
 });
 
 test("루어 박자는 내려앉은 뒤부터 — 퍼펙트로 오래 날아도 첫 박자를 보지도 못하고 놓치지 않는다 · 나는 동안 탭은 치지 않는다", () => {
@@ -137,7 +137,7 @@ test("루어 박자는 내려앉은 뒤부터 — 퍼펙트로 오래 날아도 
   for (let tt = 0; tt < fly; tt += DT) old = stepLure(old, DT, tune, 3);
   assert.equal(old.beats, 1, "옛 식은 날아가는 동안 박자 하나를 흘렸다");
   const game = src("src/components/FishingGame.tsx");
-  assert.ok(game.includes("startLure(seed, tune, flyMs / 1000)"));
+  assert.ok(game.includes("startLure(seed, tune, flySec)") && game.includes("goLure(delay / 1000)") && game.includes("if (c.boss || c.special) { go(flyMs); return; }")); // 2026-11-13 수심 맞추기 — 가라앉은 뒤엔 0, 바로 가는 판은 나는 시간
   assert.match(game, /if \(!lureLanded\(cur\)\) return;[^\n]*\n\s+const \{ lure, grade \} = tapLure\(cur, tune, fightLevel\(fish\)\);/);
 });
 

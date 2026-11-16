@@ -3,12 +3,15 @@
 /* 게임이 열려 있는 동안 창이 화면 위로 밀리지 않게 지킨다. 그리는 것은 없다.
  * 1) 열 때 문서 스크롤을 0 으로 — scrollLock 이 body 를 스크롤만큼 위로 올려 고정하는데, iOS 에서 fixed 창이 함께 밀리면
  *    (README §10.5 '루트 클립'과 같은 계열) 게임 카드가 탭 아래쪽에 있을수록 머리가 화면 위로 올라간다. 닫으면 제자리로 돌려놓는다.
- * 2) 그래도 창이 밀려 있으면 창의 top 을 고친다. 패딩은 건드리지 않는다(이유는 lib/gamewindow). */
+ * 2) 그래도 창이 밀려 있으면 창의 top 을 고친다. 패딩은 건드리지 않는다(이유는 lib/gamewindow).
+ * 3) 창은 좌우로 스크롤하지 않는다(2026-11-15) [사용자: 캡처 — 낚시 화면이 통째로 왼쪽으로 밀리고 수조 카드가 오른쪽으로 삐져나왔다 "좌우 스크롤이 안되어야해"]
+ *    창은 위아래 스크롤(overflow-y auto)인데 그러면 좌우도 auto 가 되어, 판 위의 무언가가 잠깐 넓어지면 손가락 · 포커스로 옆으로 밀렸다.
+ *    CSS 로 좌우를 막고(games.css 의 overflow-x clip — 위아래가 auto 라 브라우저가 hidden 으로 계산한다, 손가락으로는 안 밀린다), 그래도 스크립트 · 포커스가 옆으로 밀면 여기서 바로 0 으로 되돌린다. */
 import { useEffect, useLayoutEffect } from "react";
 import { shellShift } from "@/lib/gamewindow";
 import { pageScrollTo, pageScrollY } from "@/lib/pageScroll";
 
-const SHELL = ".aqua-shell, .merge-shell, .island-shell, .adv-rt";
+const SHELL = ".aqua-shell, .merge-shell, .island-shell";
 
 export default function GameWindowGuard() {
   useLayoutEffect(() => {
@@ -60,6 +63,12 @@ export default function GameWindowGuard() {
     const locked = new MutationObserver(kick);
     locked.observe(document.body, { attributes: true, attributeFilter: ["style", "class"] });
     locked.observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class"] });
+    // 3) 옆으로 밀린 창은 바로 제자리로 — 스크롤 사건은 거품이 안 올라오니 capture 로 듣는다
+    const onShellScroll = (e: Event) => {
+      const t = e.target;
+      if (t instanceof HTMLElement && t.scrollLeft !== 0 && t.matches(SHELL)) t.scrollLeft = 0;
+    };
+    document.addEventListener("scroll", onShellScroll, { capture: true, passive: true });
     const vv = window.visualViewport;
     const onVis = () => { if (document.visibilityState === "visible") kick(); };
     window.addEventListener("resize", kick);
@@ -75,6 +84,7 @@ export default function GameWindowGuard() {
       window.clearTimeout(timer);
       window.removeEventListener("resize", kick);
       window.removeEventListener("scroll", kick, { capture: true });
+      document.removeEventListener("scroll", onShellScroll, { capture: true });
       vv?.removeEventListener("resize", kick);
       vv?.removeEventListener("scroll", kick);
       document.removeEventListener("visibilitychange", onVis);

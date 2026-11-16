@@ -144,6 +144,12 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   const fl = hyp2(fx, fz) || 1;
   const sp = Math.max(mv, 0.05);
   base.dx = (fx / fl) * sp; base.dz = ((fz / fl) * sp) / D;
+  // 두족류 — 대장은 돌아서지 않고 외투막 쪽으로(길을 거꾸로) 뿜어 나간다. 따라가는 몸도 머리를 고리 접선(대장과 같은 쪽)에 두어 외투막이 앞이 된다
+  //  (가는 쪽을 머리로 두면 팔이 앞인 채 뒤로 날아간다). 예전엔 몸을 180° 돌려 납작한 그림 몸이 잠깐 옆선만 보였다
+  if (base.rev) {
+    const r = base.rev, ax = (base.dx / sp) * (1 - r) + hx * r, az = ((base.dz * D) / sp) * (1 - r) + hz * r, al = hyp2(ax, az);
+    if (al > 0.2) { base.dx = (ax / al) * sp; base.dz = ((az / al) * sp) / D; } else { base.dx = hx * sp; base.dz = (hz * sp) / D; }
+  }
   // 제 빠르기만큼 — 멈춰 떠 있는 정도 · 꼬리 폭 · 박자도 제 것(대장이 쉬면 같이 쉬지만, 제 몫으로 멈출 땐 대장이 헤엄쳐도 혼자 쉰다).
   // 박자는 엔진(fishstep)이 화면 빠르기로 다시 맞춘다 — 여기 값은 엔진 밖에서 길만 부를 때 쓴다
   // 맴도는 동안은 덜 떠 있다(지느러미를 덜 접는다 · 꼬리를 조금 친다). 떠 있는 창에서 같이 쉬는 물고기는 대장처럼 떠 있고, 헤엄치는 물고기는 꼬리를 친다
@@ -364,3 +370,105 @@ export function floorPose(heightAt: (x: number, z: number) => number, x: number,
 
 /** 돌 때 몸을 안쪽으로 기울인다(비행기처럼, 최대 10°). turn 은 course.turn(+Y 축 기준 rad/s) — 엔진은 몸 앞 축(로컬 x)으로 이만큼 돌린다 */
 export const bankAngle = (turn: number) => clamp(-turn * 0.09, -0.1745, 0.1745);
+
+/* ── 몸끼리 닿지 않게(2026-11-14) ─────────────────────────────
+ * [사용자: "물고기 개체끼리 겹치면 안돼 물리엔진처럼"] separate 는 보정값을 천천히 따라가게 해서(떨림 없음) 몇 초씩 몸이 겹친 채였다.
+ * 이제 매 프레임 마지막에 몸통 캡슐(몸 방향 선분 + 반지름)끼리 실제로 겹친 만큼을 밀어낸다 — 위치 기반 물리(PBD)의 접촉 제약과 같은 방식.
+ * 무거운 몸(바닥에 붙음 · 바위 위 쉼)은 덜 밀리고, mass 0(굴 속 곰치)은 안 밀린다. skip(사냥 장면의 둘)은 서로 닿아도 된다.
+ * 몇 번 되풀이해 셋 이상이 엉킨 것도 푼다. 민 자리는 유리 · 모래 · 수면 안. 할당 없음. */
+export type ContactOptions = {
+  /** 몸 방향(x,y,z 차례, 크기 상관없음) */ heading: ArrayLike<number>;
+  /** 밀리는 정도(0 안 밀림 ~ 1) — 없으면 모두 1 */ mass?: ArrayLike<number>;
+  /** 바닥에 붙은 정도(0~1) — 납작한 바닥 물고기는 캡슐이 조금 두껍다 */ pinned?: ArrayLike<number>;
+  /** 1 이면 둥근 판(불가사리) */ disc?: ArrayLike<number>;
+  /** 건너뛸 물고기(1) */ skip?: ArrayLike<number>;
+  scale?: number; deep?: number; top?: number; iters?: number;
+  /** 바위(장애물 중 kind "rock" — 물고기 길 좌표: z · h 는 깊이 · 높이를 늘리기 전) · 늘린 높이. 주면 몸이 바위 안에 못 들어간다(2026-11-14) */
+  rocks?: readonly Obstacle[]; tall?: number;
+};
+/** 바위 하나를 둥근 언덕(가운데 높이 h, 반지름 r)으로 보고, 몸 위 점(px, py, pz)이 그 안이면 빠져나갈 가장 짧은 길 — 위로 올리기 또는 옆으로 밀기.
+ *  out 에 [dx, dy, dz] 를 쓰고 깊이(0 이면 바깥)를 돌려준다 */
+export function rockEscape(px: number, py: number, pz: number, rad: number, rock: { x: number; z: number; r: number; h: number }, out: number[]): number {
+  const dx = px - rock.x, dz = pz - rock.z, d = Math.sqrt(dx * dx + dz * dz), R = rock.r + rad * 0.6;
+  if (d >= R) return 0;
+  const k = Math.min(1, d / Math.max(1e-6, rock.r)), surf = WORLD.floor + rock.h * Math.sqrt(Math.max(0, 1 - k * k));
+  const up = surf + rad - py;
+  if (up <= 1e-3) return 0;
+  const side = R - d;
+  if (side < up && d > 1e-4) { out[0] = (dx / d) * side; out[1] = 0; out[2] = (dz / d) * side; return side; }
+  out[0] = 0; out[1] = up; out[2] = 0; return up;
+}
+const ROCK_OUT = [0, 0, 0], ROCK_W = { x: 0, z: 0, r: 0, h: 0 };
+export function resolveContacts(pos: Float32Array, lengths: ArrayLike<number>, n: number, o: ContactOptions): number {
+  const H = o.heading, S = o.scale ?? 1, D = o.deep ?? 1, top = o.top ?? 4.7, iters = o.iters ?? 4;
+  let moved = 0;
+  for (let it = 0; it < iters; it++) {
+    let any = false;
+    for (let i = 0; i < n; i++) {
+      if (o.skip && o.skip[i]) continue;
+      const Li = lengths[i], wi = o.mass ? o.mass[i] : 1;
+      let ux = H[i * 3], uy = H[i * 3 + 1], uz = H[i * 3 + 2];
+      const ul = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1; ux /= ul; uy /= ul; uz /= ul;
+      const di = o.disc && o.disc[i] ? 1 : 0, ha = di ? 0 : Li * CAP_HALF, ri = di ? Li * DISC_R : Li * (o.pinned && o.pinned[i] > 0.5 ? CAP_R_PIN : CAP_R);
+      for (let j = i + 1; j < n; j++) {
+        if (o.skip && o.skip[j]) continue;
+        const wj = o.mass ? o.mass[j] : 1;
+        if (wi + wj <= 0) continue;
+        const Lj = lengths[j];
+        // 먼 짝은 빨리 거른다(몸 가운데 사이가 두 몸의 반길이 합보다 멀면 닿을 수 없다)
+        const cx = pos[i * 3] - pos[j * 3], cy = pos[i * 3 + 1] - pos[j * 3 + 1], cz = pos[i * 3 + 2] - pos[j * 3 + 2], reach = (Li + Lj) * 0.62;
+        if (cx * cx + cy * cy + cz * cz > reach * reach) continue;
+        let vx = H[j * 3], vy = H[j * 3 + 1], vz = H[j * 3 + 2];
+        const vl = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1; vx /= vl; vy /= vl; vz /= vl;
+        const dj = o.disc && o.disc[j] ? 1 : 0, hb = dj ? 0 : Lj * CAP_HALF, rj = dj ? Lj * DISC_R : Lj * (o.pinned && o.pinned[j] > 0.5 ? CAP_R_PIN : CAP_R);
+        const g = segGap(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2], ux, uy, uz, ha, pos[j * 3], pos[j * 3 + 1], pos[j * 3 + 2], vx, vy, vz, hb);
+        let gx = g.x, gy = g.y, gz = g.z;
+        const d = Math.sqrt(gx * gx + gy * gy + gz * gz), need = ri + rj;
+        if (d >= need) continue;
+        if (d < 1e-5) { gx = 0; gy = 0; gz = 1; } else { gx /= d; gy /= d; gz /= d; }
+        const push = need - d, ki = wi / (wi + wj), kj = wj / (wi + wj);
+        pos[i * 3] += gx * push * ki; pos[i * 3 + 1] += gy * push * ki; pos[i * 3 + 2] += gz * push * ki;
+        pos[j * 3] -= gx * push * kj; pos[j * 3 + 1] -= gy * push * kj; pos[j * 3 + 2] -= gz * push * kj;
+        any = true; moved++;
+      }
+    }
+    // 바위 — 머리 · 가운데 · 꼬리가 바위 언덕 안이면 위로 올리거나 옆으로 민다(굴 속 곰치 · 건너뛸 물고기는 그대로)
+    if (o.rocks && o.rocks.length) {
+      const T = o.tall ?? 1;
+      for (let k = 0; k < n; k++) {
+        if ((o.skip && o.skip[k]) || (o.mass && o.mass[k] <= 0)) continue;
+        const L = lengths[k], ha = o.disc && o.disc[k] ? 0 : L * CAP_HALF, rad = L * (o.disc && o.disc[k] ? DISC_R * 0.3 : CAP_R);
+        let ux = H[k * 3], uy = H[k * 3 + 1], uz = H[k * 3 + 2];
+        const ul = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1; ux /= ul; uy /= ul; uz /= ul;
+        for (const rk of o.rocks) {
+          if (rk.kind !== "rock") continue;
+          ROCK_W.x = rk.x; ROCK_W.z = rk.z * D; ROCK_W.r = rk.r; ROCK_W.h = rk.h * T;
+          // 몸 전체로 한 번에 — 세 점 중 가장 깊이 들어간 만큼 위로 올리거나(몸 가운데가 바위 위쪽에 있으면), 몸 가운데에서 바깥쪽으로 민다
+          let up = 0, side = 0;
+          for (const t of [-1, 0, 1]) {
+            const px = pos[k * 3] + ux * ha * t, py = pos[k * 3 + 1] + uy * ha * t, pz = pos[k * 3 + 2] + uz * ha * t;
+            if (rockEscape(px, py, pz, rad, ROCK_W, ROCK_OUT) <= 0) continue;
+            const dx = px - ROCK_W.x, dz = pz - ROCK_W.z, kk = Math.min(1, Math.sqrt(dx * dx + dz * dz) / ROCK_W.r);
+            up = Math.max(up, WORLD.floor + ROCK_W.h * Math.sqrt(Math.max(0, 1 - kk * kk)) + rad - py);
+            side = Math.max(side, ROCK_W.r + rad * 0.6 - Math.sqrt(dx * dx + dz * dz));
+          }
+          if (up <= 0) continue;
+          const cx = pos[k * 3] - ROCK_W.x, cz = pos[k * 3 + 2] - ROCK_W.z, cd = Math.sqrt(cx * cx + cz * cz);
+          if (cd < ROCK_W.r * 0.75 || up <= side || cd < 1e-4) pos[k * 3 + 1] += up;
+          else { const need = ROCK_W.r + rad * 0.6 + ha * 0.0 - cd; const m = Math.max(side, need); pos[k * 3] += (cx / cd) * m; pos[k * 3 + 2] += (cz / cd) * m; }
+          any = true; moved++;
+        }
+      }
+    }
+    for (let k = 0; k < n; k++) {
+      if (o.skip && o.skip[k]) continue;
+      if (o.mass && o.mass[k] <= 0) continue;
+      const L = lengths[k], mx = 5 * S - L * 0.4, mz = 3 * D - L * 0.25;
+      if (mx > 0) pos[k * 3] = clamp(pos[k * 3], -mx, mx);
+      if (mz > 0) pos[k * 3 + 2] = clamp(pos[k * 3 + 2], -mz, mz);
+      pos[k * 3 + 1] = clamp(pos[k * 3 + 1], WORLD.floor + L * 0.04, top);
+    }
+    if (!any) break;
+  }
+  return moved;
+}

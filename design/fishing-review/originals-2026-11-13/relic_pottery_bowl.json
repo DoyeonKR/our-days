@@ -1,0 +1,8 @@
+{
+  "key": "relic_pottery_bowl",
+  "name": "분청 대접",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A buncheong stoneware bowl: grey clay with quick white slip brush strokes, simple stamped pattern, slightly chipped rim.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "231f34c68362d55e62cd54f119f776c795179599bc7af0675e3f60f5d4fc7444"
+}

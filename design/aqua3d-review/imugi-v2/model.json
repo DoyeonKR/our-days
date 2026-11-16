@@ -1,0 +1,334 @@
+{
+  "key": "imugi_fish",
+  "file": "public/aqua/models/fish/imugi_fish.glb",
+  "oldFile": "design/aqua3d-review/imugi-v2/old.glb",
+  "sha256": "75bd0d776b1b1c79852a6809e5f20989c067abe57cb149525d91b2d87c378774",
+  "oldSHA256": "b7433c2baabe4bba8854fb51a3df51a42bc923411c50e5d3f79af71492de753e",
+  "sourceSHA256": "b2de868b62dc693461335833321d8f94b8a41c2da9810f1cbab2aaee395fb30c",
+  "triangles": 6368,
+  "bytes": 100080,
+  "bones": [
+    "spine_0",
+    "spine_1",
+    "spine_2",
+    "spine_3",
+    "spine_4",
+    "spine_5",
+    "fin_L",
+    "fin_L_tip",
+    "fin_R",
+    "fin_R_tip"
+  ],
+  "parts": [
+    {
+      "name": "continuous-round-serpentine-body",
+      "role": "body",
+      "triangles": 2464,
+      "vertices": 1311
+    },
+    {
+      "name": "sculpted-skull",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "tapered-snout",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "lower-jaw",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "brow--1",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "eye-socket--1",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "eye--1",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "closed-mouth--1",
+      "role": "head",
+      "triangles": 88,
+      "vertices": 46
+    },
+    {
+      "name": "horn-main--1",
+      "role": "head",
+      "triangles": 156,
+      "vertices": 80
+    },
+    {
+      "name": "horn-branch--1",
+      "role": "head",
+      "triangles": 108,
+      "vertices": 56
+    },
+    {
+      "name": "horn-back--1",
+      "role": "head",
+      "triangles": 108,
+      "vertices": 56
+    },
+    {
+      "name": "long-barbel--1",
+      "role": "head",
+      "triangles": 228,
+      "vertices": 116
+    },
+    {
+      "name": "jaw-barbel--1",
+      "role": "head",
+      "triangles": 204,
+      "vertices": 104
+    },
+    {
+      "name": "pectoral--1",
+      "role": "finR",
+      "triangles": 28,
+      "vertices": 16
+    },
+    {
+      "name": "pelvic--1",
+      "role": "body",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "brow-1",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "eye-socket-1",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "eye-1",
+      "role": "head",
+      "triangles": 168,
+      "vertices": 117
+    },
+    {
+      "name": "closed-mouth-1",
+      "role": "head",
+      "triangles": 88,
+      "vertices": 46
+    },
+    {
+      "name": "horn-main-1",
+      "role": "head",
+      "triangles": 156,
+      "vertices": 80
+    },
+    {
+      "name": "horn-branch-1",
+      "role": "head",
+      "triangles": 108,
+      "vertices": 56
+    },
+    {
+      "name": "horn-back-1",
+      "role": "head",
+      "triangles": 108,
+      "vertices": 56
+    },
+    {
+      "name": "long-barbel-1",
+      "role": "head",
+      "triangles": 228,
+      "vertices": 116
+    },
+    {
+      "name": "jaw-barbel-1",
+      "role": "head",
+      "triangles": 204,
+      "vertices": 104
+    },
+    {
+      "name": "pectoral-1",
+      "role": "finL",
+      "triangles": 28,
+      "vertices": 16
+    },
+    {
+      "name": "pelvic-1",
+      "role": "body",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "caudal-fan",
+      "role": "tail",
+      "triangles": 48,
+      "vertices": 26
+    },
+    {
+      "name": "solid-scalloped-dorsal-crest",
+      "role": "body",
+      "triangles": 304,
+      "vertices": 204
+    },
+    {
+      "name": "mane--1-0",
+      "role": "head",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "mane--1-1",
+      "role": "head",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "mane--1-2",
+      "role": "head",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "mane--1-3",
+      "role": "head",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "mane-1-0",
+      "role": "head",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "mane-1-1",
+      "role": "head",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "mane-1-2",
+      "role": "head",
+      "triangles": 20,
+      "vertices": 12
+    },
+    {
+      "name": "mane-1-3",
+      "role": "head",
+      "triangles": 20,
+      "vertices": 12
+    }
+  ],
+  "controlPixels": [
+    [
+      446,
+      207,
+      6,
+      6
+    ],
+    [
+      422,
+      206,
+      14,
+      13
+    ],
+    [
+      388,
+      220,
+      22,
+      18
+    ],
+    [
+      365,
+      244,
+      24,
+      19
+    ],
+    [
+      345,
+      276,
+      23,
+      19
+    ],
+    [
+      314,
+      285,
+      22,
+      18
+    ],
+    [
+      272,
+      272,
+      22,
+      18
+    ],
+    [
+      227,
+      246,
+      23,
+      18
+    ],
+    [
+      183,
+      218,
+      22,
+      17
+    ],
+    [
+      143,
+      205,
+      19,
+      15
+    ],
+    [
+      111,
+      213,
+      16,
+      13
+    ],
+    [
+      92,
+      236,
+      13,
+      11
+    ],
+    [
+      93,
+      263,
+      10,
+      9
+    ],
+    [
+      111,
+      283,
+      6,
+      6
+    ],
+    [
+      131,
+      299,
+      2.5,
+      3
+    ]
+  ],
+  "visualApproval": "pending",
+  "method": "Original closed-volume curved centerline with cylindrical original-image texture bake, solid horns, barbels, mane, fins and tail; no external asset"
+}

@@ -15,7 +15,7 @@ const noComments = (s: string) => s.replace(/--[^\n]*/g, "");
 const jsx = (s: string) =>
   s.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/[^\n]*/g, "$1");
 
-const MIG = "supabase/migrations/20261107120000_habits.sql";
+const MIG = "supabase/migrations/20261114070000_habits.sql";
 const mig = noComments(read(MIG));
 
 test("migration — 두 표 · 서버 CHECK 가 앱 상수와 같다", () => {
