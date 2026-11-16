@@ -1616,3 +1616,32 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
   /* 충격파는 움직임으로만 보이는 연출 — 애니메이션을 끄면 다 펼쳐진 고리 · 빛살이 지워지지 않고 남는다 */
   .boss-raid-burst { display: none; }
 }
+
+/* ── 합치기 주간 도전판 (2026-11-13) — components/MergeWeekly. 글자는 12/18 · 15/24 짝만, 움직임 줄이기는 아래 ── */
+.merge-board.is-n5 { --g: 6px; }
+.merge-board.is-n5 .merge-cell, .merge-board.is-n5 .merge-tile, .merge-board.is-n5 .merge-burst { width: calc((100% - 6 * var(--g)) / 5); height: calc((100% - 6 * var(--g)) / 5); border-radius: 10px; }
+.merge-tile.is-stone { background: linear-gradient(160deg, #8d8a84, #5b5852); color: #f4f1ea; box-shadow: inset 0 -3px 0 rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.3); }
+.mwk-stone { display: block; width: 72%; height: 62%; border-radius: 46% 54% 40% 60% / 55% 45% 55% 45%; background: radial-gradient(circle at 35% 30%, #d3cfc6, #7a766e 60%, #4d4a44); box-shadow: inset -3px -4px 0 rgba(0,0,0,.22); }
+.mwk-head { position: sticky; top: 56px; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin: 0 -16px; padding: 8px 16px; background: color-mix(in oklab, var(--bg-1) 94%, transparent); }
+.mwk-title { font-size: 15px; line-height: 24px; font-weight: 900; text-align: center; }
+.mwk-days { color: var(--muted); font-size: 12px; line-height: 18px; font-weight: 700; white-space: nowrap; }
+.mwk-reward { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 8px 0; padding: 6px 10px; border-radius: 12px; background: color-mix(in oklab, #ffd35c 22%, var(--card)); color: var(--ink); font-size: 12px; line-height: 18px; font-weight: 800; }
+.mwk-card { --mwk-accent: #9be15d; margin-top: 8px; padding: 14px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); box-shadow: inset 4px 0 0 var(--mwk-accent); }
+.mwk-card.is-stones { --mwk-accent: #a8a39a; }
+.mwk-card.is-moves { --mwk-accent: #ff8a65; }
+.mwk-card.is-preset { --mwk-accent: #9d7bff; }
+.mwk-card.is-fert { --mwk-accent: #f5c542; }
+.mwk-card.is-big { --mwk-accent: #5fd38a; }
+.mwk-card small { display: block; color: var(--muted); font-size: 12px; line-height: 18px; font-weight: 700; }
+.mwk-card strong { display: block; margin-top: 2px; color: var(--ink); font-size: 15px; line-height: 24px; font-weight: 900; }
+.mwk-card p { margin-top: 4px; color: var(--ink); font-size: 15px; line-height: 24px; }
+.mwk-score { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
+.mwk-score div { min-width: 0; padding: 8px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); text-align: center; }
+.mwk-score dt { overflow: hidden; color: var(--muted); font-size: 12px; line-height: 18px; white-space: nowrap; text-overflow: ellipsis; }
+.mwk-score dd { color: var(--ink); font-size: 15px; line-height: 24px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.mwk-score .is-total { border-color: var(--rose-deep); background: color-mix(in oklab, var(--rose-deep) 12%, var(--card)); }
+.mwk-go { min-height: 48px; margin-top: 4px; }
+.mwk-result-back { display: block; width: 100%; min-height: 40px; margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 18px; font-weight: 700; }
+.merge-tools .merge-tool-weekly span { margin-left: 4px; padding: 0 6px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-size: 12px; line-height: 18px; }
+@media (prefers-reduced-motion: reduce) { .mwk .merge-tile, .mwk .merge-tile.is-merged, .mwk .merge-tile.is-born { transition: none; animation: none; } }
+/* ── 합치기 주간 도전판 끝 ── */

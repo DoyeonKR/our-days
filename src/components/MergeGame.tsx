@@ -15,6 +15,7 @@ import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
+import MergeWeekly, { useWeeklyReward } from "@/components/MergeWeekly";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 import { sendMergeOvertakePush } from "@/lib/notify";
@@ -154,7 +155,7 @@ export default function MergeGame({
   const seen = useMemo<ReadonlySet<string>>(() => (islandRow ? seenFormsOf(islandRow.state) : new Set()), [islandRow]);
   /** ⚠ '섬 없음'은 서버가 정말 없다고 답했을 때만 — 오프라인은 섬 없음이 아니다 */
   const hasIsland = !(island.loaded && !islandRow);
-  const [view, setView] = useState<"game" | "shop">("game");
+  const [view, setView] = useState<"game" | "shop" | "weekly">("game");
   const [shopBusy, setShopBusy] = useState(false);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
   useBackClose(onClose);
@@ -206,6 +207,14 @@ export default function MergeGame({
     setNickEdit(false);
   };
   const [boardErr, setBoardErr] = useState(false);
+  /** 주간 도전판에서 정한 닉네임도 같은 자리(전체 공개 순위판 공용) */
+  const setNickFromWeekly = (v: string) => {
+    writeNick(v);
+    setNick(v);
+    setNickDraft(v);
+  };
+  /** 끝난 주의 도전 보상 — 게임을 열면 한 번 본다(주간 도전 탭을 안 열어도 받는다) */
+  const weeklyPaid = useWeeklyReward(coupleId, islandRow);
   /** 끝난 판의 결과 화면 — boom(축포 · 판이 사라짐) → board(순위판). 닫으면 이미 준비된 새 판이 보인다. */
   const [result, setResult] = useState<{
     fid: number;
@@ -577,6 +586,13 @@ export default function MergeGame({
 
   if (!saved) return <Shell onClose={onClose}><p className="p-6 text-center text-sm text-muted">불러오는 중…</p></Shell>;
   const g = saved.game;
+  if (view === "weekly") {
+    return (
+      <Shell onClose={onClose} glow={sparkColor(Math.max(record?.top[who] ?? 0, 1))}>
+        <MergeWeekly coupleId={coupleId} partnerName={partnerName} nick={nick} onNick={setNickFromWeekly} worn={worn} reward={weeklyPaid} onBack={() => setView("game")} />
+      </Shell>
+    );
+  }
   if (view === "shop") {
     const ownedCount = owned.size;
     return (
@@ -659,6 +675,7 @@ export default function MergeGame({
         </div>
         <div className="merge-tools">
           <ActionButton onClick={() => { setShopMsg(null); setView("shop"); }} className="merge-tool-shop">스킨 상점<span><Coin /> {coins.toLocaleString()}</span></ActionButton>
+          <ActionButton onClick={() => setView("weekly")} className="merge-tool-weekly">주간 도전{weeklyPaid && <span>+{weeklyPaid.coins}</span>}</ActionButton>
           <ActionButton onClick={() => void restart()}>새 게임</ActionButton>
         </div>
 
