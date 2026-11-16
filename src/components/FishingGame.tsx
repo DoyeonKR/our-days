@@ -2231,7 +2231,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       {tab === "rank" && <FishRank myName={myName} onContest={() => { setTab("more"); setMsg(null); }} />}
 
       {trophy && <TrophySheet card={trophy} onClose={() => setTrophy(null)} />}
-      {tankOpen && <AquariumGame coupleId={coupleId} myUserId={myUserId} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}
+      {tankOpen && <AquariumGame coupleId={coupleId} myUserId={myUserId} myName={myName} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}
     </div>,
   );
 }

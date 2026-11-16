@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { CloseButton } from "@/components/AppButtons";
 import type { TankHandle, TankView } from "@/lib/aqua3d/scene";
-import { fishArtKey } from "@/lib/aquarium";
+import { fishArtKey, fishName } from "@/lib/aquarium";
 import { isFishModelApproved } from "@/lib/aqua3d/quality";
 import { DOME_TIER, TUNNEL_TIER } from "@/lib/aqua3d/tiers";
 import { useBackClose } from "@/lib/useBackClose";
+
+/** 사진 도구는 누를 때 받는다(공유 · 카드 그리기) — 수조 화면 첫 조각을 키우지 않게 */
+const AquaPhoto = dynamic(() => import("@/components/AquaPhoto"), { ssr: false });
 
 /** 연결이 끊긴 뒤 저절로 다시 여는 횟수 — 넘으면 '다시 시도' 화면 */
 const AUTO_RECOVER = 3;
@@ -15,13 +19,15 @@ const AUTO_RECOVER = 3;
 const MEAL_SEEN_KEY = "ourdays:aqua:mealSeen";
 const storedMealSeen = () => { try { return Number(localStorage.getItem(MEAL_SEEN_KEY)) || 0; } catch { return 0; } };
 
-export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX, replaySignal, onReplay, replaying, replayNote }: { view: TankView;
+export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX, replaySignal, onReplay, replaying, replayNote, people, onPhoto }: { view: TankView;
   onFish: (id: number) => void; onDecor: (id: number) => void; onPlace: (x: number, y: number) => void;
   feedSignal?: number; feedX?: number;
   /** 다시 보기 — 누를 때마다 k 가 바뀐다. n = 잡아먹기 소식 번호. onReplay 가 결과(busy · reduced …)를 듣는다 */
   replaySignal?: { n: number; k: number } | null; onReplay?: (result: string) => void;
   /** 다시 보기가 도는 중 — '그만 보기' 버튼을 보인다 · 다시 보기 결과 안내(수조 위에 잠깐) */
   replaying?: boolean; replayNote?: string | null;
+  /** 사진 카드에 적을 두 사람 이름(2026-11-13 사진 모드) · 사진 모드가 열리고 닫힐 때 — 화면이 소식 카드 줄을 멈춘다 */
+  people?: readonly string[]; onPhoto?: (on: boolean) => void;
 }) {
   // 10단계(터널) · 11단계(돔)는 안에서 보는 것이 기본 — '밖에서 보기'로 바꿀 수 있다(꾸미는 동안은 밖). 기준값은 tunnel.ts 한곳
   const [outside, setOutside] = useState(false);
@@ -42,6 +48,27 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   const shell = useRef<HTMLDivElement>(null);
   // 끊긴 뒤 저절로 다시 연 횟수 — 수조를 새로 열면(다시 시도) 0
   const recovered = useRef(0);
+  // 사진 모드(2026-11-13) — 수조 시계를 세우고 머리 단추 · 안내를 걷는다. 들어올 때의 전체 보기 · 카메라는 끝낼 때 그대로(scene.photoEnd)
+  const [photo, setPhoto] = useState<{ tank: TankHandle; host: HTMLDivElement | null } | null>(null);
+  const [photoNote, setPhotoNote] = useState<string | null>(null);
+  const camListeners = useRef(new Set<() => void>());
+  const subscribeCam = useCallback((fn: () => void) => { camListeners.current.add(fn); return () => { camListeners.current.delete(fn); }; }, []);
+  const latestOnPhoto = useRef(onPhoto);
+  useEffect(() => { latestOnPhoto.current = onPhoto; }, [onPhoto]);
+  const exitPhoto = useCallback(() => { controller.current?.photoEnd(); setPhoto(null); latestOnPhoto.current?.(false); }, []);
+  const enterPhoto = () => {
+    const tank = controller.current;
+    if (!tank || photo) return;
+    const res = tank.photoStart();
+    if (res === "ok") { setPhotoNote(null); setPhoto({ tank, host: host.current }); onPhoto?.(true); return; }
+    setPhotoNote(res === "busy" ? "사냥 장면이 끝나면 찍을 수 있어요" : "수조가 아직 준비 중이에요");
+  };
+  useEffect(() => { if (!photoNote) return; const t = window.setTimeout(() => setPhotoNote(null), 3500); return () => window.clearTimeout(t); }, [photoNote]);
+  // 수조를 다시 짓거나(연결 끊김 · 다시 시도) 꾸미기 · 다시 보기가 시작되면 사진 모드를 끝낸다 — 새 수조엔 사진 모드가 없다
+  useEffect(() => { if (photo && (error || !ready || given.editing || replaying)) exitPhoto(); }, [photo, error, ready, given.editing, replaying, exitPhoto]);
+  useEffect(() => () => { latestOnPhoto.current?.(false); }, []);
+  useBackClose(exitPhoto, !!photo);
+  const fishNames = useMemo(() => new Map(given.aquarium.fish.map((f) => [f.id, fishName(f)] as const)), [given.aquarium.fish]);
   useEffect(() => {
     const sync = () => { if (!document.fullscreenElement) setFull(false); };
     document.addEventListener("fullscreenchange", sync);
@@ -98,6 +125,7 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
           ready: () => { if (!cancelled) setReady(true); },
           lost: () => { lostAt = Date.now(); recover(); },
           restored: () => { lostAt = 0; window.clearTimeout(timer); },
+          photoCam: () => { for (const fn of camListeners.current) fn(); },
           meal: (n) => { mealSeenRef.current = Math.max(mealSeenRef.current, n); try { localStorage.setItem(MEAL_SEEN_KEY, String(n)); } catch { /* ref 가 기억한다 */ } },
         });
       } catch {
@@ -106,20 +134,25 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
     }).catch(() => { if (!cancelled) setError("3D 그래픽을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요."); });
     return () => { cancelled = true; window.clearTimeout(timer); document.removeEventListener("visibilitychange", recover); controller.current?.dispose(); controller.current = null; };
   }, [attempt]);
-  return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full ? "is-full" : ""}`}>
+  const photoView = view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "dome" : "tunnel") : "outside";
+  const chrome = !photo;
+  return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full || photo ? "is-full" : ""} ${photo ? "is-photo" : ""}`}>
     <div ref={host} className="aqua-webgl" />
-    <CloseButton onClose={toggleFull} label={full ? "닫기" : "전체 보기"} className="aqua-full-btn" />
+    {photo && <AquaPhoto tank={photo.tank} host={photo.host} view={photoView} fishNames={fishNames} people={people ?? []} subscribe={subscribeCam} onExit={exitPhoto} />}
+    {chrome && <CloseButton onClose={toggleFull} label={full ? "닫기" : "전체 보기"} className="aqua-full-btn" />}
+    {chrome && ready && !error && !view.editing && !replaying && <CloseButton onClose={enterPhoto} label="사진" ariaLabel="수조 사진 찍기" className="aqua-photo-btn" />}
+    {photoNote && <p className="aqua-replay-note" role="status">{photoNote}</p>}
     {replaying && ready && !error && <CloseButton onClose={() => { if (!controller.current?.stopReplay()) onReplay?.("stopped"); }} label="그만 보기" ariaLabel="다시 보기 그만 보기" className="aqua-replay-stop" />}
     {replayNote && <p className="aqua-replay-note" role="status">{replayNote}</p>}
-    {canTunnel && ready && !error && <CloseButton onClose={() => setOutside((o) => !o)} label={outside ? inside : "밖에서 보기"} className="aqua-tunnel-btn" />}
+    {chrome && canTunnel && ready && !error && <CloseButton onClose={() => setOutside((o) => !o)} label={outside ? inside : "밖에서 보기"} className="aqua-tunnel-btn" />}
     {!ready && !error && <p className="aqua-empty" role="status">입체 수조를 준비하고 있어요…</p>}
     {error && <div className="aqua-3d-error" role="alert"><p>{error}</p><button type="button" className="tap aqua-btn" onClick={() => { recovered.current = 0; setError(null); setReady(false); setAttempt(n=>n+1); }}>다시 시도</button></div>}
-    {ready && !error && view.aquarium.fish.length===0 && !view.editing && <p className="aqua-empty">낚시로 만난 물고기를<br/>입체 수조에서 키워 보세요</p>}
-    {ready && !error && pendingCount > 0 && !view.editing && <div className="aqua-3d-quality-note" role="status">
+    {chrome && ready && !error && view.aquarium.fish.length===0 && !view.editing && <p className="aqua-empty">낚시로 만난 물고기를<br/>입체 수조에서 키워 보세요</p>}
+    {chrome && ready && !error && pendingCount > 0 && !view.editing && <div className="aqua-3d-quality-note" role="status">
       <strong>물고기 {pendingCount}마리 · 3D 모델 준비 중</strong>
       <span>원본과의 유사도 검수를 통과한 모델만 표시해요.<br/>보유 물고기는 그대로이며 아래 목록에서 확인할 수 있어요.</span>
     </div>}
     {view.editing && !error && <p className="aqua-hint">{view.preview ? "미리보기 · 아래에서 회전·크기를 조절하고 확정하세요" : view.placing ? "바닥을 눌러 장식을 미리 놓아 보세요" : "장식을 눌러 선택하세요"}</p>}
-    {!view.editing && ready && !error && !replaying && <span className="aqua-3d-guide" aria-hidden>{view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "끌어서 한 바퀴 둘러보기 · 물고기를 누르면 그쪽을 봐요" : "끌어서 둘러보기 · 물고기를 누르면 올려다봐요") : "좌우로 드래그해 둘러보기"}</span>}
+    {chrome && !view.editing && ready && !error && !replaying && <span className="aqua-3d-guide" aria-hidden>{view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "끌어서 한 바퀴 둘러보기 · 물고기를 누르면 그쪽을 봐요" : "끌어서 둘러보기 · 물고기를 누르면 올려다봐요") : "좌우로 드래그해 둘러보기"}</span>}
   </div>;
 }

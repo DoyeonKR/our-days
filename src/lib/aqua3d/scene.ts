@@ -28,6 +28,7 @@ import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
 import {modelTextureQuality} from './color-quality.ts';
 import { FOOD_LIFE, makeFood } from "./food.ts";
 import { makeMotes, type Motes } from "./murk.ts";
+import { captureRatio, clampPhotoCam, photoDistance, photoGrade, pinchZoom, type PhotoCam, type PhotoView } from "./photo.ts";
 
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null;
   /** 이 기기에서 이미 본 사냥 장면의 소식 번호 — 화면이 기억해 넘긴다(장면은 저장소를 안 만진다) */ mealSeen?: number;
@@ -39,13 +40,27 @@ export type TankEvents = { fish: (id: number) => void; decor: (id: number) => vo
   /** 첫 장면을 그렸다 */
   ready?: () => void;
   /** 사냥 장면을 다시 그리기 시작했다 — 그 소식 번호(화면이 이 기기에 기억한다) */
-  meal?: (n: number) => void };
+  meal?: (n: number) => void;
+  /** 사진 모드에서 끌기 · 집기로 카메라가 바뀌었다(2026-11-13) — 화면이 확대 막대 · 이름표를 맞춘다 */
+  photoCam?: (cam: PhotoCam) => void };
 /** 먹이 — 언제(수조 시계, 초) 어디(가로 x)에 줬나 */
 export type FeedEvent = { t: number; x: number };
 /** 물고기가 비켜 가야 할 장식 — 바닥의 원(가로 x · 깊이 z · 반지름) + 높이(낮은 장식은 넘어간다) */
 export type Obstacle = CourseObstacle;
 export type TankHandle = { update: (next: TankView) => void; feed: (atX?: number) => void; replay: (n: number) => "ok" | "busy" | "missing" | "reduced" | "skipped";
-  /** 다시 보기를 그만 본다 — 멈춘 것이 있으면 true(실제 사냥 장면은 안 멈춘다) */ stopReplay: () => boolean; dispose: () => void };
+  /** 다시 보기를 그만 본다 — 멈춘 것이 있으면 true(실제 사냥 장면은 안 멈춘다) */ stopReplay: () => boolean; dispose: () => void;
+  /** 사진 모드(2026-11-13) — 수조 시계를 세우고(물고기 · 장면이 그 자리에 멈춘다) 끌기 · 집기가 카메라만 움직인다. 사냥 장면 중이면 busy */
+  photoStart: () => "ok" | "busy" | "skipped";
+  /** 사진 모드를 끝낸다 — 들어올 때의 카메라(돌린 각 · 기울기 · 옆 이동 · 돔 둘러보기)로 되돌리고 필터를 끄고 시계를 다시 돌린다 */
+  photoEnd: () => void;
+  /** 사진 카메라를 바꾸고(범위 안으로) 지금 값을 돌려준다. 인자 없으면 읽기만 */
+  photoCamera: (next?: Partial<PhotoCam>) => PhotoCam;
+  /** 사진 필터(photo.ts PHOTO_FILTERS id) */
+  photoFilter: (id: string) => void;
+  /** 화면에 보이는 물고기 자리(캔버스 0~1 · 가까울수록 작은 depth) — 이름표 자리를 잡는다. 임시 사냥꾼 · 유령은 뺀다 */
+  photoPoints: () => { id: number; x: number; y: number; depth: number }[];
+  /** 지금 장면을 캔버스의 최대 2배로 한 장 그려 2D 캔버스로 돌려준다(그리자마자 같은 일 안에서 옮긴다 — preserveDrawingBuffer 없이). 못 찍으면 null */
+  photoCapture: () => HTMLCanvasElement | null };
 
 /** 낚시터 주인의 왕관 — 금빛 고리 + 뾰족한 다섯 개 */
 /** 주인의 왕관(2026-11-10) — 금 띠 하나에 원뿔 다섯이던 것을 위아래 테 · 바깥으로 벌어진 뾰족 끝 · 끝마다 진주 · 띠에 박힌 보석으로. 재질은 넷뿐(그리기 호출이 크게 안 는다). */
@@ -142,6 +157,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
   let foodTimer=0,motes:Motes|null=null;
+  /** 사진 모드(2026-11-13) — 켜져 있으면 시계가 서고(schedule) 끌기가 사진 카메라를 움직인다. 들어올 때의 카메라를 기억해 끝낼 때 그대로 돌려놓는다 */
+  let photoOn=false,photoZoom=1,photoSaved:{angle:number;pitch:number;pan:number;yaw:number}|null=null;
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
   try {
   renderer.setPixelRatio(pacer.ratio());
@@ -451,6 +468,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
    *  장면 없이 그 번호로 끝났다고 알린다(그 카드가 바로 뜬다). 물고기를 더했으면 true */
   function huntNews():boolean{
     if(meal)return false;
+    // 사진 모드 동안은 시계가 서 있어 장면이 시작도 끝도 못 한다 — 끝낼 때 다시 본다(recheck)
+    if(photoOn){recheck=true;return false;}
     const plan=huntPlan(state.aquarium.news??[],mealSeen),last=plan.play;if(!last)return false;
     mealSeen=last.n;events.meal?.(mealSeen);
     // 움직임 줄이기(2026-11-12) — 수조 시계가 서 있어(draw(0) 만) 장면이 시작도 끝도 안 했다: 유령이 멈춘 채 남고 카메라가 사냥 장면에 묶이고 다음 사냥도 막혔다.
@@ -535,7 +554,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(nextIn!==inTunnel){inTunnel=nextIn;camera.fov=inTunnel?72:44;camera.updateProjectionMatrix();angle=0;pitch=0;}
     inDome=inTunnel&&!!dome;dome?.setInside(inDome);
     // 터널 · 돔 안에선 위아래 끌기도 고개 돌리기다 — 캔버스의 pan-y(globals.css)면 브라우저가 세로 끌기를 페이지 스크롤로 가져가며 pointercancel 을 쏴서 위아래로 못 둘러봤다(2026-11-11)
-    canvas.style.touchAction=inTunnel?"none":"";
+    canvas.style.touchAction=inTunnel||photoOn?"none":"";
     {const fov=inDome?DOME_FOV:inTunnel?72:44;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}}
     if(moved||topologyChanged)refreshObstacles();
     const rescaled=habitatTier!==tierBefore||wide!==wideBefore;
@@ -578,6 +597,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 모델을 기다리는 동안(t0 < 0)은 장면이 아직 아니다 — 먹이를 코앞에서 따라가지 않는다
     const sel=state.editing?undefined:(meal&&meal.t0>=0?swimmers.get(meal.style==="gulp"&&meal.bitesDone>0?meal.predId:meal.ghostId):undefined)??swimmers.get(state.selectedFish??-1);
     const placeCamera=()=>{
+    // 사진 모드의 확대 — 터널 · 돔 안은 시야각으로(걷는 자리 · 고개는 그대로). 밖은 아래에서 거리로(밖의 거리는 시야각에서 다시 재므로 시야각을 바꾸면 상쇄된다)
+    {const base=inDome?DOME_FOV:inTunnel?72:44,fov=photoOn&&inTunnel?base*photoZoom:base;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}}
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
     const half=Math.tan(camera.fov*Math.PI/360),fitW=5*wide/(half*camera.aspect)+3,fitH=5.9*tall/half+3;
     const fit=Math.max(fitW,fitH),camD=clamp(fit/tankDisplay(habitatTier,wide),19,70),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);
@@ -608,7 +629,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     mealK=dt>0?mealK+((shotAng!==null?1:0)-mealK)*Math.min(1,dt*1.6):shotAng!==null?1:0;
     if(shotAng!==null){mealAng=dt>0?mealAng+(shotAng-mealAng)*Math.min(1,dt*2):shotAng;mealElev=dt>0?mealElev+(shotElev-mealElev)*Math.min(1,dt*2):shotElev;}
     const camA=angle+(mealAng-angle)*mealK;
-    const near=Math.min(camD*.65,Math.max(3.6,focusLen*3.4)),dist=camD+(near-camD)*focusK;
+    const near=Math.min(camD*.65,Math.max(3.6,focusLen*3.4));let dist=camD+(near-camD)*focusK;
+    // 사진 모드 확대(밖) — 앞유리 안으로는 못 들어간다(photo.ts photoDistance). 안개도 이 거리를 따라간다
+    if(photoOn&&!inTunnel)dist=photoDistance({dist,zoom:photoZoom,angle:camA,deep,following:focusK>.5});
     lookAt.set(camX,tallY(-.1,tall),0).lerp(focusLook,focusK);
     if(scene.fog instanceof T.Fog){scene.fog.near=dist-2;scene.fog.far=dist+9;}
     const scale=dist/camD;
@@ -825,7 +848,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const d of decorations.values())d.animate(elapsed);
     habitat?.animate(elapsed);tunnel?.animate(elapsed);dome?.animate(elapsed);shoal?.animate(elapsed);giants?.animate(elapsed);
     const selected=state.editing?decorations.get(state.preview?.id??state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
-    halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar(shownLength(selected as Swimmer)*.65);}}
+    halo.visible=!!selected&&!photoOn;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar(shownLength(selected as Swimmer)*.65);}}
     scene.updateMatrixWorld();
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let k=0;k<b.originals.length;k++)b.mesh.setMatrixAt(k,b.originals[k].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;
       // 움직이지 않는 묶음은 올릴 때 경계 구를 다시 재고 화면 밖이면 안 그린다(형상의 경계 구엔 물풀 흔들림 몫이 이미 들어 있다 — glb.ts) · 움직이는 묶음은 그대로 늘 그린다
@@ -873,7 +896,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(batchesDirty){batchesDirty=false;rebuildBatches();}
     void postNow.compile(scene,camera).catch(()=>{}).then(()=>{if(disposed||lost)return;compiled=true;schedule();if(!active)draw(0);});
   }
-  function schedule(){const run=!disposed&&!lost&&sized&&compiled&&visible&&!document.hidden&&!reduced.matches&&!state.editing;
+  function schedule(){const run=!disposed&&!lost&&sized&&compiled&&visible&&!document.hidden&&!reduced.matches&&!state.editing&&!photoOn;
     host.dataset.paused=String(!run);if(active===run)return;active=run;cancelAnimationFrame(frame);previous=0;lastRaf=0;if(run)frame=requestAnimationFrame(tick);
     else requestFlush();
   }
@@ -895,10 +918,28 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     envMap=underwaterEnvironment(renderer);scene.environment=envMap;
     compiled=false;schedule();precompile();events.restored?.();});
   let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
-  const down=(e:PointerEvent)=>{if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};canvas.setPointerCapture(e.pointerId);};
-  const move=(e:PointerEvent)=>{if(!start)return;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*.02,-(wide-1)*3,(wide-1)*3);pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
-  const cancel=()=>{start=null;};
-  const end=(e:PointerEvent)=>{if(!start)return;const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;if(moved>8)return;
+  // 사진 모드 — 한 손가락은 돌리기 · 기울이기(돔은 둘러보기), 두 손가락은 집어 확대. 물고기를 눌러도 고르지 않는다
+  const fingers=new Map<number,{x:number;y:number}>();let pinch:{gap:number;zoom:number}|null=null;
+  const gapOf=()=>{const [a,b]=[...fingers.values()];return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0;};
+  const photoView=():PhotoView=>inDome?"dome":inTunnel?"tunnel":"outside";
+  const photoNow=():PhotoCam=>({angle,pitch,zoom:photoZoom,yaw:domeYaw});
+  function setPhotoCam(next:Partial<PhotoCam>,tell=false):PhotoCam{
+    const c=clampPhotoCam({...photoNow(),...next},photoView());angle=c.angle;pitch=c.pitch;photoZoom=c.zoom;domeYaw=c.yaw;
+    if(!active)draw(0);if(tell)events.photoCam?.(c);return c;}
+  const photoDown=(e:PointerEvent)=>{fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{canvas.setPointerCapture(e.pointerId);}catch{/* 이미 놓은 손가락 */}
+    if(fingers.size===2){start=null;pinch={gap:gapOf(),zoom:photoZoom};}else if(fingers.size===1)start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};};
+  const photoMove=(e:PointerEvent)=>{if(!fingers.has(e.pointerId))return;fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pinch&&fingers.size>=2){setPhotoCam({zoom:pinchZoom(pinch.zoom,pinch.gap,gapOf())},true);return;}
+    if(!start)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;
+    if(inDome)setPhotoCam({yaw:start.yaw+dx*.006,pitch:start.pitch+dy*.001},true);
+    else{pan=clamp(start.pan-dx*.02,-(wide-1)*3,(wide-1)*3);setPhotoCam({angle:start.angle+dx*.003,pitch:start.pitch+dy*.001},true);}};
+  const photoUp=(e:PointerEvent)=>{fingers.delete(e.pointerId);if(fingers.size<2)pinch=null;
+    // 두 손가락에서 하나를 떼면 남은 손가락으로 이어서 돌린다(튀지 않게 지금 자리에서 새로 잰다)
+    const rest=[...fingers.values()][0];start=rest?{x:rest.x,y:rest.y,angle,pitch,pan,yaw:domeYaw}:null;};
+  const down=(e:PointerEvent)=>{if(photoOn){photoDown(e);return;}if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};canvas.setPointerCapture(e.pointerId);};
+  const move=(e:PointerEvent)=>{if(photoOn){photoMove(e);return;}if(!start)return;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*.02,-(wide-1)*3,(wide-1)*3);pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
+  const cancel=(e:PointerEvent)=>{if(photoOn){photoUp(e);return;}start=null;};
+  const end=(e:PointerEvent)=>{if(photoOn){photoUp(e);return;}if(!start)return;const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;if(moved>8)return;
     const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
     if(state.editing&&state.placing){const floorHit=habitat?ray.intersectObject(habitat.floor)[0]:null;const point=floorHit?.point??ray.ray.intersectPlane(floorPlane,hitPoint);if(point){const p=worldToDecor(point.x,point.z/deep,wide);events.place(p.x,p.y);}return;}
     const owner=(o:T.Object3D|null)=>{while(o&&!o.userData.type)o=o.parent;return o;};
@@ -919,7 +960,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     update,
     /** 잡아먹기 소식 n 을 사냥꾼 시점으로 다시 본다. 사냥꾼이 수조를 떠났으면 잠깐 불러온다(장면이 끝나면 빠진다). 저장 · 본 소식 번호는 안 건드린다 */
     replay(n:number):"ok"|"busy"|"missing"|"reduced"|"skipped"{
-      if(disposed)return "skipped";if(meal&&meal.kind==="real")return "busy";if(reduced.matches)return "reduced";
+      if(disposed)return "skipped";if(photoOn)return "busy";if(meal&&meal.kind==="real")return "busy";if(reduced.matches)return "reduced";
       const a=state.aquarium,item=(a.news??[]).find(x=>x.n===n&&x.ate);if(!item||!item.ate)return "missing";
       // 내 다시 보기가 나오는 중이면 조용히 끝내고 새로 연다(끝 알림을 쏘면 화면이 다시 보기가 끝난 줄 알고 카드 줄을 연다)
       if(meal)finishMeal(true);
@@ -938,6 +979,46 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     feed(atX){if(disposed)return;motion.feed={t:elapsed,x:clamp(atX??0,-4.5*wide,4.5*wide)};
       // 멈춰 있으면(움직임 줄이기 · 숨김) 먹이를 한 장면으로 그리고, 먹이 창이 지나면 한 번 더 그려 거둔다(food.ts 가 벽시계로 잰다)
       if(!active){draw(0);window.clearTimeout(foodTimer);foodTimer=window.setTimeout(()=>{if(!disposed&&!active)draw(0);},FOOD_LIFE*1000+60);}},
+    photoStart(){
+      if(disposed||lost||!compiled)return "skipped";if(photoOn)return "ok";if(meal)return "busy";
+      photoSaved={angle,pitch,pan,yaw:domeYaw};photoOn=true;photoZoom=1;start=null;fingers.clear();pinch=null;
+      canvas.style.touchAction="none";schedule();draw(0);return "ok";},
+    photoEnd(){
+      if(!photoOn)return;photoOn=false;fingers.clear();pinch=null;start=null;
+      if(photoSaved){angle=photoSaved.angle;pitch=photoSaved.pitch;pan=photoSaved.pan;domeYaw=photoSaved.yaw;}photoSaved=null;photoZoom=1;
+      postNow.setGrade(null);canvas.style.touchAction=inTunnel?"none":"";
+      // 시계를 다시 돌린다 — previous 를 0 으로 두고 시작해(schedule) 멈춘 동안의 시간이 한 프레임에 몰리지 않는다
+      if(!disposed){schedule();if(!active)draw(0);}},
+    photoCamera(next){return next&&photoOn?setPhotoCam(next):photoNow();},
+    photoFilter(id){if(disposed)return;postNow.setGrade(photoOn?photoGrade(id):null);if(!active)draw(0);},
+    photoPoints(){
+      const out:{id:number;x:number;y:number;depth:number}[]=[];if(disposed||!photoOn)return out;
+      for(const[id,m]of swimmers){if(id<=0||!m.root.visible)continue;
+        projected.copy(m.root.position);projected.y+=shownLength(m)*.12;projected.project(camera);
+        if(projected.z>1||projected.z<-1)continue;const x=(projected.x+1)/2,y=(1-projected.y)/2;if(x<0||x>1||y<0||y>1)continue;
+        out.push({id,x,y,depth:camera.position.distanceTo(m.root.position)});}
+      return out;},
+    photoCapture(){
+      if(!photoOn||disposed||lost||!sized||!compiled)return null;
+      const gl=renderer.getContext();if(gl.isContextLost())return null;
+      const r=host.getBoundingClientRect(),cur=renderer.getPixelRatio();
+      const dims=gl.getParameter(gl.MAX_VIEWPORT_DIMS) as Int32Array|null;
+      const maxSize=Math.min(renderer.capabilities.maxTextureSize,Number(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE))||4096,dims?Math.min(dims[0],dims[1]):4096);
+      const want=captureRatio({cssW:r.width,cssH:r.height,ratio:cur,maxSize});
+      // 한 일 안에서: 배율 올리기 → 그리기 → 2D 캔버스로 옮기기. 기다리면(await) 브라우저가 그림판을 비워 빈 사진이 된다
+      const shoot=(ratio:number):HTMLCanvasElement|null=>{
+        renderer.setPixelRatio(ratio);syncPointScale();draw(0);
+        if(gl.isContextLost())return null;
+        const w=gl.drawingBufferWidth,h=gl.drawingBufferHeight;if(!w||!h)return null;
+        const out=document.createElement("canvas");out.width=w;out.height=h;const ctx=out.getContext("2d");if(!ctx)return null;
+        ctx.drawImage(canvas,0,0,w,h);return out;};
+      try{
+        let shot:HTMLCanvasElement|null=null;
+        try{shot=shoot(want);}catch{shot=null;}
+        // 큰 그림이 안 되면(메모리 · 드라이버) 지금 배율로 한 번 더
+        if(!shot&&want>cur){try{shot=shoot(cur);}catch{shot=null;}}
+        return shot;
+      }finally{if(!disposed&&!gl.isContextLost()){renderer.setPixelRatio(cur);syncPointScale();draw(0);}}},
     dispose,
   };
   } catch (e) { dispose(); throw e; }

@@ -92,7 +92,8 @@ test("화면 — 요청은 수조가 준비될 때까지 들고 · 다시 보기
   assert.match(tank, /mealSeenRef\.current = Math\.max\(mealSeenRef\.current, n\)/);
   assert.doesNotMatch(tank, /const \[mealSeen\] = useState/);
   const game = read("src/components/AquariumGame.tsx");
-  assert.match(game, /\{news\[0\] && !replaying && <GrownCard key=\{news\[0\]\.n\} g=\{news\[0\]\} waits=\{tab === "tank" && eatenCardWaits\(news\[0\]\.n, news\.filter\(\(x\) => x\.ate\)\.map\(\(x\) => x\.n\), mealDone\)\}/);
+  // 사진 모드(2026-11-13)도 카드 줄을 멈춘다 — photo.test
+  assert.match(game, /\{news\[0\] && !replaying && (?:!photoOpen && )?<GrownCard key=\{news\[0\]\.n\} g=\{news\[0\]\} waits=\{tab === "tank" && eatenCardWaits\(news\[0\]\.n, news\.filter\(\(x\) => x\.ate\)\.map\(\(x\) => x\.n\), mealDone\)\}/);
   assert.match(game, /if \(d\.replay\) setReplaying\(false\);\s*else setMealDone/, "다시 보기 끝은 카드를 풀지 않고 줄만 다시 연다");
   const start = game.slice(game.indexOf("const startReplay"), game.indexOf("const onReplay"));
   for (const s of ['setTab("tank")', "setEditing(false)", "setReplaying(true)", "showStage()"]) assert.ok(start.includes(s), s);

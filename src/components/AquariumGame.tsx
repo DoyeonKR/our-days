@@ -51,10 +51,12 @@ function dexHint(family: string, stage: 0 | 1 | 2, index: number): string {
   return spots.length ? `${spots[0]}${spots.length > 1 ? ` 외 ${spots.length - 1}곳` : ""}에서 잡혀요` : "때 손님 · 주인으로 와요";
 }
 
-export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland, onFish, onFeedFx }: {
+export default function AquariumGame({ coupleId, myUserId, myName = "", partnerName = "", onClose, onOpenIsland, onFish, onFeedFx }: {
   coupleId: string | null;
   /** 누가 보는가 — 소식 · 둘이 돌봄을 사람마다 센다. 빠지면 로그인 정보에서 찾는다(혼자 섬은 "me") */
   myUserId?: string | null;
+  /** 수조 사진 카드에 적을 이름(2026-11-13) — 모르면 빈 값(카드엔 날짜만) */
+  myName?: string; partnerName?: string;
   onClose: () => void;
   onOpenIsland: () => void;
   onFish: () => void;
@@ -70,6 +72,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const [replay, setReplay] = useState<{ n: number; k: number } | null>(null);
   const [replayNote, setReplayNote] = useState<string | null>(null);
   const [replaying, setReplaying] = useState(false);
+  // 사진 모드가 열린 동안(2026-11-13) — 수조 시계가 서 있어 소식 카드 · 사냥 장면을 띄우지 않는다
+  const [photoOpen, setPhotoOpen] = useState(false);
   const [mealDone, setMealDone] = useState<number[]>([]);
   const replayK = useRef(0);
   const [authId, setAuthId] = useState<string | null>(null);
@@ -348,7 +352,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           <div ref={stageRef} className="aqua-stage">
             <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
               onFish={id => setSelFish(selFish === id ? null : id)}
-              onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} replaying={replaying} replayNote={replayNote} />
+              onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} replaying={replaying} replayNote={replayNote}
+              people={[myName, partnerName]} onPhoto={setPhotoOpen} />
           </div>
 
           {a.fish.length === 0 ? (
@@ -660,7 +665,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
       )}
       </div>
 
-      {news[0] && !replaying && <GrownCard key={news[0].n} g={news[0]} waits={tab === "tank" && eatenCardWaits(news[0].n, news.filter((x) => x.ate).map((x) => x.n), mealDone)} onNext={() => setLocalSeen(news[0].n)} onReplay={() => { setLocalSeen(news[0].n); startReplay(news[0].n); }} />}
+      {news[0] && !replaying && !photoOpen && <GrownCard key={news[0].n} g={news[0]} waits={tab === "tank" && eatenCardWaits(news[0].n, news.filter((x) => x.ate).map((x) => x.n), mealDone)} onNext={() => setLocalSeen(news[0].n)} onReplay={() => { setLocalSeen(news[0].n); startReplay(news[0].n); }} />}
       {inspect && <DecorPreview artKey={inspect} onClose={() => setInspect(null)} />}
     </div>,
   );
