@@ -1488,7 +1488,7 @@ export default function Home() {
               <div hidden={recordView !== "memories"}>
                 <section className="mx-auto max-w-md px-5 pb-28 pt-5">
                   {coupleId ? (
-                    <MemoriesRecap coupleId={coupleId} members={coupleMembers} myUserId={myUserId} />
+                    <MemoriesRecap coupleId={coupleId} members={coupleMembers} myUserId={myUserId} onRoute={goRoute} />
                   ) : (
                     <>
                       <h1 className="sr-only">추억</h1>

@@ -172,7 +172,9 @@ test("7 사진 보기는 원본을 미리 받아 두고 탭 안에서 바로 공
   assert.match(viewer, /m\.set\(p\.path, photoFile\(p, blob\)\);/, "보기를 열 때 미리 받지 않는다");
   assert.match(viewer, /onClick=\{\(\) => share\(photo\)\}/);
   const card = code("src/lib/recapcard.ts");
-  assert.match(card, /await webShareOrDownload\(file, "우리의 한 달"\)/);
+  // 2026-11-13 올해의 우리 카드가 같은 길을 쓰면서 제목을 받는다(월간 카드는 기본값 "우리의 한 달" 그대로)
+  assert.match(card, /title = "우리의 한 달"/);
+  assert.match(card, /await webShareOrDownload\(file, title\)/);
   assert.match(card, /if \(how === "cancelled"\) throw new DOMException\("취소됨", "AbortError"\);/, "닫은 것을 오류로 띄운다");
   assert.doesNotMatch(card, /await nav\.share\(/);
 });

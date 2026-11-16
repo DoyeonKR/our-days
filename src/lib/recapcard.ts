@@ -107,10 +107,10 @@ export async function renderRecapCard(recap: MonthlyRecap, photoUrls: string[]):
  *  [2026-11-11] 카드는 탭 뒤에 사진을 받고 그려서 만든다 — iOS 는 그 await 들 뒤의 공유를 NotAllowedError 로 거절했고
  *  예전엔 그게 '카드를 만들지 못했어요'가 됐다. 이제 거절되면 내려받기로 넘어간다(webShareOrDownload).
  *  사용자가 시트를 닫은 것은 예전처럼 AbortError 로 던진다(부르는 쪽이 아무 말도 안 하게). */
-export async function shareOrDownload(blob: Blob, name: string): Promise<"shared" | "saved"> {
-  if (await shareFileInApp(blob, name, "우리의 한 달")) return "shared";
+export async function shareOrDownload(blob: Blob, name: string, title = "우리의 한 달"): Promise<"shared" | "saved"> {
+  if (await shareFileInApp(blob, name, title)) return "shared";
   const file = new File([blob], name, { type: blob.type || "image/png" });
-  const how = await webShareOrDownload(file, "우리의 한 달");
+  const how = await webShareOrDownload(file, title);
   if (how === "cancelled") throw new DOMException("취소됨", "AbortError");
   return how;
 }
