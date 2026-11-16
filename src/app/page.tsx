@@ -1626,7 +1626,7 @@ export default function Home() {
 
         {visited.has("adventure") && (
           <div hidden={view !== "adventure"}>
-            <AdventureTab myUserId={myUserId} />
+            <AdventureTab myUserId={myUserId} coupleId={coupleId} />
           </div>
         )}
 

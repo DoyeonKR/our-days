@@ -26,6 +26,9 @@ import { ISLAND_CARD_ART, fishingCardArt, tankCardArt } from "@/lib/cardart";
 import { islandSnapshot, refreshIsland, useIslandStore } from "@/lib/islandstore";
 // 섬 화면과 같은 시각(서버 시각에 맞춘 지금) — 기기 시계면 홈은 "수확 N칸", 섬은 아직이라고 했다(2026-11-11 2차)
 import { gameNow } from "@/lib/islandsync";
+// 시즌 미션(2026-11-13) — 카드는 가벼운 읽기만(lib/season 은 kst 하나만 부른다). 시트 · 보상 코드는 열 때 받는다
+import { TIERS, seasonBoard, titleText } from "@/lib/season";
+import { readAdvTally } from "@/lib/seasontally";
 import {
   islandRating,
   islandSummary,
@@ -52,6 +55,7 @@ const IslandGame = dynamic(() => import("@/components/IslandGame"), { ssr: false
 const MergeGame = dynamic(() => import("@/components/MergeGame"), { ssr: false, loading: GameOpening });
 const AquariumGame = dynamic(() => import("@/components/AquariumGame"), { ssr: false, loading: GameOpening });
 const FishingGame = dynamic(() => import("@/components/FishingGame"), { ssr: false, loading: GameOpening });
+const SeasonSheet = dynamic(() => import("@/components/SeasonSheet"), { ssr: false });
 
 export default function GameArcade({
   coupleId,
@@ -79,6 +83,7 @@ export default function GameArcade({
   openFishReq?: number;
 }) {
   const [open, setOpen] = useState<"island" | "merge" | "aquarium" | "fishing" | null>(null);
+  const [seasonOpen, setSeasonOpen] = useState(false);
   // 공유 섬 저장소 — 섬 · 홈 펫과 같은 구독 · 같은 캐시. 게임 창이 저장하면 그 응답이 바로 카드에 온다.
   const { row } = useIslandStore(coupleId);
   const [now, setNow] = useState(0);
@@ -171,6 +176,12 @@ export default function GameArcade({
   const tankKey = `tank_${Math.min(aqua?.tank ?? 1, TANK_ART_COUNT)}`; // 배경 그림은 9장 — 10 · 11단계는 9 를 쓴다
   const partnerMergeBest = mrec ? Object.entries(mrec.best).find(([k]) => k !== myKey)?.[1] : undefined;
 
+  /* 이번 시즌 — 이 기기에서 센 내 모험 수(아직 섬에 못 올린 몫)도 바로 보이게 겹쳐 본다 */
+  const season = s && now ? seasonBoard(s, now, myUserId ? { uid: myUserId, tally: readAdvTally(myUserId, now) } : undefined) : null;
+  const seasonReady = season ? season.tiers.some((t) => t.reached && !t.got) : false;
+  const seasonNext = season?.tiers.find((t) => !t.reached);
+  const petTitle = season?.titles[season.titles.length - 1];
+
   /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음).
      아이콘은 섬의 '지금 할 일' 칩과 같은 도트(TodoIcon) — 키도 같은 이름을 쓴다. */
   const todos: { key: string; label: string }[] = [];
@@ -198,6 +209,24 @@ export default function GameArcade({
           <Chip label="섬 평점" value={tier ? <><MicroIcon k={`tier_${tier.key}`} size={12} className="mr-1" />{tier.label}</> : "-"} />
           <Chip label="합치기 최고" title={myMergeBest > 0 ? `${won(myMergeBest)}점` : undefined} value={myMergeBest > 0 ? wonShort(myMergeBest) : "-"} />
         </div>
+      )}
+
+      {/* 이번 시즌 — 한 달 동안 둘이 채우는 미션 12개(lib/season). 누르면 미션 · 보상 시트 */}
+      {season && (
+        <button type="button" onClick={() => setSeasonOpen(true)} className={`tap season-card block w-full text-left ${seasonReady ? "is-ready" : ""}`}>
+          <span className="season-card-head">
+            <strong>이번 시즌</strong>
+            <span>{Number(season.month.slice(5, 7))}월 · {season.daysLeft > 0 ? `${season.daysLeft}일 남았어요` : "진행 중"}</span>
+          </span>
+          <span className="season-track" role="progressbar" aria-label="이번 시즌 미션" aria-valuemin={0} aria-valuemax={season.rows.length} aria-valuenow={season.done}>
+            <b style={{ width: `${(season.done / Math.max(1, season.rows.length)) * 100}%` }} />
+            {TIERS.slice(0, -1).map((n) => <i key={n} style={{ left: `${(n / TIERS[TIERS.length - 1]) * 100}%` }} aria-hidden />)}
+          </span>
+          <span className="season-card-foot">
+            <span>미션 {season.done}/{season.rows.length}</span>
+            {seasonReady ? <span className="season-ready-chip">받을 보상이 있어요</span> : seasonNext ? <span>{seasonNext.need - season.done}개 더 채우면 보상</span> : <span>이번 시즌 완주</span>}
+          </span>
+        </button>
       )}
 
       {/* 카드는 '읽는 표'가 아니라 '들어가고 싶은 그림'이다 [사용자: "너무 카드 형태가 예전스타일이야"] — 게임 그림을 깔고,
@@ -243,6 +272,7 @@ export default function GameArcade({
               ? `${s.pet.name} · ${petForm(s.pet.form).name} Lv.${sum.pet.level}`
               : "펫을 키우고 정원 · 섬을 가꿔요"}
           </span>
+          {petTitle && <span className="season-title-chip is-card">{titleText(petTitle.m)}</span>}
           {sum && (
             <span className="game-card-bars">
               <Bar label="포만" v={sum.pet.stats.hunger} c="#fb923c" />
@@ -312,6 +342,7 @@ export default function GameArcade({
       {open === "fishing" && (
         <FishingGame coupleId={coupleId} myUserId={myUserId} myName={myName} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />
       )}
+      {seasonOpen && s && <SeasonSheet coupleId={coupleId} myUserId={myUserId} state={s} onClose={() => setSeasonOpen(false)} />}
       {open === "merge" && (
         <MergeGame coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onClose={() => setOpen(null)} />
       )}

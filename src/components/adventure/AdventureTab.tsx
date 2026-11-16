@@ -24,6 +24,8 @@ import { CloseButton } from "@/components/AppButtons";
 import { BallIcon, HpBar, SHAPE_LABEL, XpBar, moveTags } from "@/components/adventure/advui";
 import { enterBattleFullscreen } from "@/lib/battlefull";
 import { josa } from "@/lib/josa";
+// 시즌 미션 — 이 기기 수는 판이 끝난 그 틱에 동기로(가볍다: season · islandsync 만). 섬에 올리는 코드는 동적으로
+import { bumpAdvTally } from "@/lib/seasontally";
 import type { FieldState } from "@/lib/adventurefield";
 
 const { loadAdventure, saveAdventure, StaleSave } = advStore;
@@ -40,7 +42,8 @@ const SaveBackups = dynamic(() => import("@/components/adventure/SaveBackups"), 
 
 type Sub = "map" | "team" | "duel" | "dex" | "shop";
 
-export default function AdventureTab({ myUserId: signedIn }: { myUserId: string | null }) {
+/** coupleId — 시즌 미션(게임 탭)의 모험 수를 올릴 섬. 없으면 혼자 하는 섬(lib/seasonsync) */
+export default function AdventureTab({ myUserId: signedIn, coupleId = null }: { myUserId: string | null; coupleId?: string | null }) {
   // 서버 설정이 없는 로컬 모드(개발 · 체험)에선 이 기기에만 저장한다
   const myUserId = signedIn ?? (isSupabaseConfigured ? null : "local");
   const [save, setSave] = useState<AdvSave | null>(null);
@@ -280,6 +283,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     if (settled.current?.b === b) return settled.current.out;
     const out = finishBattle(s, b, bag, today);
     settled.current = { b, out };
+    noteSeason(b);
     // 싸우는 중 표시를 지운다(최상위 칸은 합쳐 쓰므로 null 로)
     commit(store.clearFight(out.save));
     // 판이 끝난 저장은 바로 서버까지
@@ -288,6 +292,17 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       void saving.current.then(() => store.flushAdventure(uid)).catch((e) => void onStale(e));
     }
     return out;
+  }
+
+  /** 시즌 미션(2026-11-13) — 이긴 판 · 대장 관문 · 잡은 생물을 이 기기에 먼저 세고 섬에 올린다(한 판에 한 번 — settle 의 settled 가 막는다).
+   *  수는 먼저 이 기기에 동기로 적고(오프라인에서 올리는 코드 조각을 못 받아도 남는다), 섬은 모험 저장과 다른 행이라 따로 올린다 —
+   *  실패해도 다음 판 · 시즌 시트를 열 때 큰 값으로 다시 올린다. 이 탭의 첫 로드에 섬 쪽 코드가 안 실리게 올리기만 동적 import */
+  function noteSeason(b: Battle) {
+    if (!myUserId || (b.over !== "win" && b.over !== "caught")) return;
+    const uid = myUserId;
+    const add = b.over === "caught" ? { advCatch: 1 } : { advWin: 1, ...(b.boss ? { advBoss: 1 } : {}) };
+    const tally = bumpAdvTally(uid, add);
+    void import("@/lib/seasonsync").then((m) => m.syncAdvTally(coupleId, uid, tally)).catch(() => undefined);
   }
 
   function endBattle(b: Battle, bag: Bag) {

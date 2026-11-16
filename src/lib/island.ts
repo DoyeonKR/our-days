@@ -10,6 +10,7 @@ import { UPPERS, mythicBeastOf } from "./uppers.ts";
 import type { MergeRecord } from "./merge.ts";
 import type { AquaState } from "./aquarium.ts";
 import type { FishingState } from "./fishing.ts";
+import { seasonAdd } from "./season.ts";
 
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -1641,6 +1642,8 @@ export type IslandState = {
   /** 저장 표식 링(최근 SAVE_MARKS) — 응답을 잃은 저장이 들어갔는지 다시 받은 상태로 가린다. 엔진은 안 읽는다.
    *  옵셔널 = 무마이그레이션. 쓰기는 couple.ts 의 saveIsland 한 곳(lib/islandsync 의 withSaveMark). */
   _saves?: string[];
+  /** 시즌 미션(2026-11-13) — 이번 달 함께 센 수 · 받은 단계. 옵셔널 = 무마이그레이션. 읽기 · 쓰기는 lib/season 한 곳 */
+  season?: Record<string, unknown>;
   log: string[];
 };
 
@@ -2224,7 +2227,8 @@ export function evolve(s0: IslandState, now: number): IslandState {
   pushLog(s, `${from.emoji}→${nf.emoji} ${nf.name}(으)로 진화했어요! 🎉`);
   if (nf.stage >= 4) unlockAch(s, `pet_${next}`);
   refreshEvolveFlag(s);
-  return s;
+  // 시즌 미션 — 진화 한 번
+  return seasonAdd(s, now, { evolve: 1 });
 }
 /** 히어로 개명 — 하트를 써서 언제든 이름을 바꾼다.
  *  [사용자 요청 2026-09-01 "히어로 이름 변경할 수 있게, 상시는 말고 하트 소비해서 2000 정도"]
@@ -2809,7 +2813,8 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
   pushLog(s, `${c.emoji} ${c.name} 수확! ${stars} +${coins}💗${tags ? ` — ${tags}` : ""}${regrowTag}${replanted ? " · 🌱 다시 심음" : ""}`);
   questProgress(s, "harvest", 1, now);
   if (star >= 5) unlockAch(s, "star5");
-  return s;
+  // 시즌 미션 — 수확 한 번(모두 수확은 칸마다 이 길을 지난다)
+  return seasonAdd(s, now, { harvest: 1 });
 }
 /** 밭 확장(+2칸). target — 누른 순간 보던 넓힌 뒤 칸 수. 이미 그만큼이면 아무 일도 안 한다(다시 놓아도 또 넓히지 않게). */
 export function expandPlots(s0: IslandState, target?: number): IslandState {
