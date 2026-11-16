@@ -9,6 +9,7 @@ import { DECOR_IMAGE_KEYS, FISH_IMAGE_KEYS } from "@/lib/aquaimages";
 import { decorOf } from "@/lib/aquarium";
 import { useState, type CSSProperties } from "react";
 import { aquaSwimSheet, AQUA_SWIM_SHEETS } from "@/lib/aquamotion";
+import type { Morph } from "@/lib/aquamorph";
 
 function hue(key: string): number {
   let h = 0;
@@ -48,7 +49,9 @@ export function preloadFishArt(keys: readonly string[]): Promise<void> {
   return Promise.all(jobs).then(() => {});
 }
 
-export function FishArt({ artKey, size, animate = false, sync = false }: { artKey: string; size?: number; animate?: boolean; sync?: boolean }) {
+/** morph — 색 변이 품종(2026-11-13). 그림 파일은 그대로 두고 CSS filter 로 색을 바꾼다(games.css 의 .aqua-morph-*, DOM 이라 캔버스 규칙과 무관) */
+export function FishArt({ artKey, size, animate = false, sync = false, morph = null }: { artKey: string; size?: number; animate?: boolean; sync?: boolean; morph?: Morph | null }) {
+  if (morph) return <span className={`aqua-morph aqua-morph-${morph}`} style={size ? { width: size, height: size } : undefined}><FishArt artKey={artKey} size={size} animate={animate} sync={sync} /></span>;
   if (animate && aquaSwimSheet(artKey)) return <SwimArt key={artKey} artKey={artKey} size={size} />;
   const style = size ? undefined : { width: "100%", height: "100%", objectFit: "contain" as const };
   if (FISH_IMAGE_KEYS.has(artKey)) {

@@ -14,6 +14,8 @@
  *  · 결과가 양쪽 기기에서 같아야 하므로 뽑기는 물고기 id 로만 정한다(Math.random 금지).
  * ⚠ 섬 엔진은 타입만 부른다 — 값으로 부르면 이 파일을 쓰는 화면이 섬 엔진까지 싣는다. */
 import { mealPairs, nextMealTime, pickMeal } from "./predation.ts";
+import { adoptMorphs, morphOf as bookMorph, noteMorph, readMorphBook, rollMorph, type Morph, type MorphBook } from "./aquamorph.ts";
+import { checkFishName, lifeLeave, lifeLog, lifeName, lifeSettle, lifeTime, readLife, type AquaLife, type LifeEntry, type LifeRef } from "./aqualife.ts";
 import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
 import { kstDate } from "./kst.ts";
@@ -339,7 +341,9 @@ export type AquaNews = { n: number; id: number; family: string; stage: 0 | 1 | 2
   /** 잡아먹기(2026-11-11, lib/predation) — id · family · stage · species 는 사냥꾼, ate 는 먹힌 물고기 */
   ate?: { id: number; family: string; stage: 0 | 1 | 2; species?: string } };
 /** 대기 그물의 한 마리 — 수조가 찼을 때 24시간 붙잡아 둔다. value 는 잡을 때 판매가(지나면 그 값에 저절로 팔린다). */
-export type NetFish = { family: string; stage: 0 | 1 | 2; species?: string; difficulty: number; value: number; at: number; cm?: number; crown?: string };
+export type NetFish = { family: string; stage: 0 | 1 | 2; species?: string; difficulty: number; value: number; at: number; cm?: number; crown?: string;
+  /** 어느 낚시터에서 누가 잡았나(2026-11-13 개체 이야기) — 옵셔널: 옛 그물 · 옛 앱은 없다 */
+  spot?: string; by?: string };
 export type AquaReqKind = "adult" | "decor" | "beauty";
 /** 오늘의 손님 의뢰 — 그날 처음 본 기기가 정해 저장한다(섬 주문 게시판과 같은 방식). */
 export type AquaReq = { day: string; kind: AquaReqKind; key: string; n?: number; reward: number; done?: boolean };
@@ -384,6 +388,12 @@ export type AquaState = {
   /** 짝이 있는 동안 잘 돌본 시간 · 낳은 알 수 */
   breedH?: number;
   eggN?: number;
+  /* ── 2026-11-13 — 저장은 섬 맨 위 칸 s.aquaMorph · s.aquaLife 에 따로 한다(aquaPlus 도 옛 앱이 다시 짓는다 — stow 참고).
+   *    aquaOf 가 늘 채운다. 옵셔널인 건 테스트 · 옛 저장분처럼 aquaOf 를 안 거친 상태 때문이다(없으면 적지 않는다). */
+  /** 색 변이 품종(lib/aquamorph) */
+  morph?: MorphBook;
+  /** 개체 이야기 · 이름 · 추모 칸(lib/aqualife) */
+  life?: AquaLife;
 };
 /** 맨 위 칸(s.aquaPlus)에 저장하는 칸들 */
 const PLUS_KEYS = ["badH", "news", "newsN", "newsSeen", "care", "duoDay", "released", "net", "combos", "req", "food", "junkUsed", "breedH", "eggN"] as const;
@@ -391,7 +401,7 @@ export type AquaPlus = Partial<Pick<AquaState, (typeof PLUS_KEYS)[number]>>;
 /** 섬 상태 + 수조의 맨 위 칸. 섬 타입(island.ts)은 건드리지 않는다 — 옛 저장분의 bubble 칸처럼 ...st 로 흘러간다.
  *  aquaTankTop: 7단계 위 수조. ⚠ aquaPlus 안에만 두면 2026-11-06 까지 배포된 앱(7ab54e1)이 aquaPlus 를 자기 칸 목록으로 다시 지어
  *  tankTop 을 버린다 — 하트는 그대로 쓰였는데 수조가 6단계로 내려앉는다. 섬 최상위 칸은 옛 앱도 ...st 로 그대로 흘려보낸다. */
-export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number };
+export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number; aquaMorph?: unknown; aquaLife?: unknown };
 
 export const GROW_JUVENILE = 0.4;
 export const HUNGER_HOURS = 24;
@@ -460,7 +470,7 @@ function readPlus(p: unknown): AquaPlus {
   return out;
 }
 
-type AquaSource = { aquarium?: AquaState | null; aquaPlus?: unknown; aquaTankTop?: unknown; aquaTankMax?: unknown };
+type AquaSource = { aquarium?: AquaState | null; aquaPlus?: unknown; aquaTankTop?: unknown; aquaTankMax?: unknown; aquaMorph?: unknown; aquaLife?: unknown };
 /** 저장된 수조 단계 — 세 자리 중 가장 높은 값(하트로 산 단계는 어느 앱이 저장해도 내려가지 않는다) */
 const tankTier = (st: AquaSource) => Math.min(TANKS.length, Math.max(1,
   Math.floor(num(st.aquarium?.tank, 1)),
@@ -475,19 +485,24 @@ export function aquaOf(st: AquaSource, now = 0): AquaState {
   const fish: AquaFish[] = [], placed: PlacedDecor[] = [], alien = { fish: [] as unknown[], placed: [] as unknown[] };
   for (const f of rawFish) { const ok = readFish(f); if (ok) fish.push(ok); else alien.fish.push(f); }
   for (const p of rawPlaced) { const ok = readPlaced(p); if (ok) placed.push(ok); else alien.placed.push(p); }
+  const plus = readPlus(st.aquaPlus);
+  const nextId = Math.max(1, Math.floor(num(a?.nextId, 1)));
   return {
     tank: tankTier(st),
     wide: Math.min(WIDE_STEPS.length, Math.max(0, Math.floor(num(a?.wide, 0)))),
     hunger: Math.max(0, Math.min(100, num(a?.hunger, 100))),
     water: Math.max(0, Math.min(100, num(a?.water, 100))),
     at: num(a?.at, now),
-    nextId: Math.max(1, Math.floor(num(a?.nextId, 1))),
+    nextId,
     fish,
     placed,
     bag: numRecord(a?.bag),
     dex: Array.isArray(a?.dex) ? a.dex.filter((x): x is string => typeof x === "string") : [],
     ...(alien.fish.length || alien.placed.length ? { alien } : {}),
-    ...readPlus(st.aquaPlus),
+    ...plus,
+    // 맨 위 칸 — 없으면 '지금부터' 로 시작한다(지난 소식 · 이 기능 전에 깬 치어를 거슬러 적지 않는다)
+    morph: readMorphBook(st.aquaMorph, nextId),
+    life: readLife(st.aquaLife, plus.newsN ?? 0),
   };
 }
 
@@ -506,7 +521,10 @@ export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   if (a.tank > TANK_CORE_MAX) (plus as Record<string, unknown>).tankTop = a.tank;
   // 최상위 칸이 진짜 자리 — 옛 앱이 aquaPlus 를 다시 지어도 남는다(tankTop 은 지금 앱끼리의 사본)
   // 10단계 위는 aquaTankMax 에도 — 지금 배포된 앱은 9 로 깎아 aquaTankTop 에 다시 쓰지만 이 칸은 모르고 흘린다(...st)
-  const out: Island = { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}), ...(a.tank > TANK_TOP_LEGACY ? { aquaTankMax: a.tank } : {}) };
+  // 변이 · 이야기도 맨 위 칸 — aquaPlus 에 두면 옛 앱이 PLUS_KEYS 로 다시 지으며 버린다(aquacare.test 가 aquaPlus 의 새 칸을 막는다).
+  //   since · n 은 읽을 때마다 '지금'으로 시작하므로 한 번은 저장돼야 옛 앱이 낳은 치어 · 옛 소식을 이어 받는다 — 비어도 쓴다
+  const out: Island = { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}), ...(a.tank > TANK_TOP_LEGACY ? { aquaTankMax: a.tank } : {}),
+    ...(a.morph ? { aquaMorph: a.morph } : {}), ...(a.life ? { aquaLife: a.life } : {}) };
   // 시즌 미션 — 알에서 깬 치어(eggN 은 늘기만 한다). 정산(syncAqua)도 여기를 지나므로 저장된 값과 견주면 한 번만 센다
   const eggs0 = num(((st as Island).aquaPlus as { eggN?: unknown } | undefined)?.eggN, 0);
   const hatched = Math.floor((a.eggN ?? 0) - eggs0);
@@ -658,10 +676,61 @@ export function nextForm(fam: AquaFamily, cq: number): { sp: AquaSpecies; care: 
 export type AquaEvolved = { id: number; family: string; stage: 1 | 2; species?: string };
 
 const NEWS_MAX = 12;
-function pushNews(a: AquaState, item: Omit<AquaNews, "n">): AquaState {
+/** 소식을 남기는 자리가 곧 이야기를 남기는 자리다(2026-11-13) — 시각은 그 사건의 정산 시각(a.at, 쪼개 정산해도 같다) */
+type NewsExtra = { parents?: LifeRef[]; morph?: Morph | null; preyMorph?: Morph | null };
+function pushNews(a: AquaState, item: Omit<AquaNews, "n">, extra: NewsExtra = {}): AquaState {
   const n = (a.newsN ?? 0) + 1;
-  return { ...a, newsN: n, news: [...(a.news ?? []), { n, ...item }].slice(-NEWS_MAX) };
+  const out: AquaState = { ...a, newsN: n, news: [...(a.news ?? []), { n, ...item }].slice(-NEWS_MAX) };
+  return out.life ? { ...out, life: newsToLife(out.life, { n, ...item }, a.at, false, extra) } : out;
 }
+const ref = (f: Pick<AquaNews, "id" | "family" | "stage" | "species">): LifeRef => ({ id: f.id, key: fishArtKey(f) });
+/** 소식 하나 → 이야기. approx = 옛 앱이 남긴 소식을 뒤늦게 옮긴다(때를 모른다) */
+function newsToLife(life: AquaLife, x: AquaNews, t: number, approx: boolean, extra: NewsExtra = {}): AquaLife {
+  const a = approx ? { a: 1 as const } : {};
+  let out = life;
+  if (x.ate) {
+    out = lifeLog(out, x.id, { k: "ate", t, prey: ref(x.ate), ...a });
+    out = lifeLeave(out, ref(x.ate), "eaten", t, { by: ref(x), morph: extra.preyMorph, approx });
+  } else if (x.egg) {
+    if (!out.log[String(x.id)]?.length) out = lifeLog(out, x.id, { k: "hatched", t, key: fishArtKey(x), ...(extra.parents?.length ? { p: extra.parents } : {}), ...(extra.morph ? { m: extra.morph } : {}), ...a });
+  } else if (x.stage === 1 || x.stage === 2) {
+    out = lifeLog(out, x.id, { k: "grew", t, key: fishArtKey(x), stage: x.stage, ...a });
+  }
+  return { ...out, n: Math.max(out.n, x.n) };
+}
+/** 이 번들이 모르는 계열 물고기의 id — 살아 있다(추모 칸으로 보내지 않는다). 값이 이상하면 건너뛴다 */
+const alienIds = (a: Pick<AquaState, "alien">): Set<number> =>
+  new Set((a.alien?.fish ?? []).map((f) => (isObj(f) ? num(f.id, NaN) : NaN)).filter(Number.isFinite));
+/** 정산 앞 — 옛 앱이 남긴 소식을 옮기고, 옛 앱이 뺀 물고기는 추모 칸으로, 이야기 없는 물고기엔 첫 줄을. 때는 t0(저장된 정산 시각 — 두 기기 · 미리보기가 같다) */
+function settleLife(a: AquaState, t0: number): AquaState {
+  if (!a.life) return a;
+  let life = a.life;
+  // 잡아먹힌 물고기의 변이도 추모 칸으로(아직 by 에 남아 있다 — adoptMorphs 가 덜어 내기 전)
+  for (const x of [...(a.news ?? [])].sort((p, q) => p.n - q.n)) if (x.n > life.n) life = newsToLife(life, x, t0, true, { preyMorph: x.ate ? a.morph?.by[String(x.ate.id)] : undefined });
+  // 떠난 물고기의 변이는 추모 칸이 들고 간다(adoptMorphs 가 by 를 덜어 내기 전에). 이 번들이 모르는 계열(alien)은 살아 있다
+  const alive = new Set([...a.fish.map((f) => f.id), ...alienIds(a)]);
+  for (const id of Object.keys(life.log).map(Number)) {
+    const m = a.morph?.by[String(id)];
+    if (!alive.has(id) && m) {
+      const last = [...(life.log[String(id)] ?? [])].reverse().find((e): e is LifeEntry & { key: string } => "key" in e);
+      if (last) life = lifeLeave(life, { id, key: last.key }, "gone", t0, { morph: m, approx: true });
+    }
+  }
+  const keep = alienIds(a);
+  life = lifeSettle(life, a.fish.map((f) => ({ id: f.id, key: fishArtKey(f) })), keep, t0);
+  return { ...a, life };
+}
+/** 정산 뒤 — 옛 앱이 낳은 치어의 변이를 적고(같은 주사위) 떠난 물고기의 칸은 지운다 */
+function settleMorph(a: AquaState): AquaState {
+  if (!a.morph) return a;
+  const living = new Set([...a.fish.map((f) => f.id), ...alienIds(a)]);
+  const morph = adoptMorphs(a.morph, a.fish, living);
+  return morph === a.morph ? a : { ...a, morph };
+}
+/** 이 물고기의 색 변이 — 화면 · 3D · 추모 칸이 같은 값을 본다 */
+export const fishMorph = (a: Pick<AquaState, "morph">, f: Pick<AquaFish, "id" | "family" | "bred">): Morph | null => bookMorph(a.morph, f);
+/** 물고기를 부르는 이름 — 지어 준 이름이 있으면 그것 */
+export const fishNick = (a: Pick<AquaState, "life">, id: number): string | undefined => a.life?.names[String(id)] || undefined;
 const addDex = (dex: readonly string[], key: string) => (dex.includes(key) ? [...dex] : [...dex, key]);
 
 /** 짝이 있는 계열(다 큰 물고기 둘 이상) — 알을 낳을 수 있다 */
@@ -757,7 +826,17 @@ function layEgg(a: AquaState): AquaState {
   const avg = parents.reduce((n, f) => n + (f.adultCm ?? base), 0) / parents.length;
   const adultCm = Math.round(Math.min(base * 1.6, avg * 1.15) * 10) / 10;
   const fry: AquaFish = { id: a.nextId, family, stage: 0, growH: 0, goodH: 0, totalH: 0, adultCm, bred: true, caughtStage: 0, catchV: 0 };
-  return pushNews({ ...a, nextId: a.nextId + 1, fish: [...a.fish, fry], dex: addDex(a.dex, `fry_${family}`), breedH: 0, eggN: (a.eggN ?? 0) + 1 }, { id: fry.id, family, stage: 0, egg: true });
+  // 엄마 · 아빠 한 쌍 — id 순으로 줄 세워 치어 id 로 고른다(변이 물려받기 · 이야기의 'A × B' 가 같은 쌍을 본다, 2026-11-13)
+  const sorted = [...parents].sort((p, q) => p.id - q.id), h = hash(fry.id, `pair:${family}`);
+  const i = h % sorted.length, j = (i + 1 + ((h >>> 8) % Math.max(1, sorted.length - 1))) % sorted.length;
+  const pair = sorted.length > 1 ? [sorted[i], sorted[j]] : sorted;
+  let next: AquaState = { ...a, nextId: a.nextId + 1, fish: [...a.fish, fry], dex: addDex(a.dex, `fry_${family}`), breedH: 0, eggN: (a.eggN ?? 0) + 1 };
+  let morph: Morph | null = null;
+  if (next.morph) {
+    morph = rollMorph(fry.id, family, pair.map((p) => bookMorph(next.morph, p)));
+    if (morph) next = { ...next, morph: noteMorph(next.morph!, fry, morph) };
+  }
+  return pushNews(next, { id: fry.id, family, stage: 0, egg: true }, { parents: pair.map((p) => ({ id: p.id, key: fishArtKey(p) })), morph });
 }
 
 /** 지연 정산 — 지난 시간만큼 배고픔 · 물 · 성장 · 정성 · 알을 굴린다. 순수 · 쪼개 정산해도 결과가 같다(aquarium.test).
@@ -795,7 +874,7 @@ function eatOnce(a: AquaState, d: number): AquaState {
   return pushNews({ ...a, fish: a.fish.filter((f) => f.id !== prey.id) }, {
     id: pred.id, family: pred.family, stage: pred.stage, ...(pred.species ? { species: pred.species } : {}),
     ate: { id: prey.id, family: prey.family, stage: prey.stage, ...(prey.species ? { species: prey.species } : {}) },
-  });
+  }, { preyMorph: bookMorph(a.morph, prey) });
 }
 /** 지금 수조에서 상성이 안 맞는 짝 — 화면이 미리 알린다(배를 채워 두면 안 먹힌다) */
 export function aquaDangers(a: Pick<AquaState, "fish">): { pred: AquaFish; prey: AquaFish }[] {
@@ -830,11 +909,14 @@ const withSeason = (r: AquaResult, now: number, stat: CountStat): AquaResult => 
 /** 정산 — 시간 · 그물 기한 · 오늘의 의뢰까지. 모든 동작이 이걸 먼저 부른다.
  *  dirty = 저장해야 할 변화(자람 · 알 · 그물 판매 · 새 의뢰 · 시계 보정)가 있나 — 화면이 보기만 하다가도 한 번 저장한다. */
 export function syncAqua(st: IslandState, now: number): { state: Island; a: AquaState; evolved: AquaEvolved[]; dirty: boolean; netSold: number; netCoins: number } {
-  const a0 = aquaOf(st as Island, now);
-  const skew = a0.at > now + SKEW_MS;
+  const raw0 = aquaOf(st as Island, now);
+  const skew = raw0.at > now + SKEW_MS;
+  // 이야기 맞추기(2026-11-13) — 옛 앱이 남긴 소식 · 뺀 물고기를 정산 앞에(정산이 소식 번호를 넘겨 버리기 전에). 때는 저장된 정산 시각.
+  //   저장할 변화로 치지 않는다(dirty 아님) — 같은 저장값이면 몇 번을 다시 해도 같은 결과라, 다음 저장 때 같이 들어간다
+  const a0 = settleLife(raw0, Math.min(raw0.at, now));
   const eggs0 = a0.eggN ?? 0;
   const t = tickAqua(a0, now, st.fishing?.seen ?? []);
-  let a = t.a;
+  let a = settleMorph(t.a);
   // 그물에서 기한이 지난 물고기는 잡을 때 값에 팔린다 — 누가 언제 열든 같은 값이다
   let netCoins = 0, netSold = 0;
   if (a.net?.length) {
@@ -873,7 +955,9 @@ export function storeReason(a: AquaState, family: string, opt: { grade?: Grade; 
 /** 낚시로 잡은 물고기를 수조에 넣는다(2026-11-02 — [사용자: "낚시에 성공한 물고기들만 수조에 보관"]). 치어 가게는 없어졌다.
  *  자리 · 수조 크기 판정은 부르는 쪽(lib/fishing 의 storeBlock)이 먼저 한다. 어린 물고기는 그만큼 자란 채로, 다 큰 물고기는 도감에 바로 오른다.
  *  catchV = 그 자리에서 팔았으면 받았을 하트(보내 주기의 기준). 빠지면 그 모습의 판매가로 어림한다. */
-export function addFish(st: IslandState, key: string, stage: 0 | 1 | 2, species: string | undefined, now: number, crown?: string, cm?: number, catchV?: number): Island {
+/** origin — 어디서 · 누가 · 언제 잡았나(이야기의 첫 줄, 2026-11-13). net = 대기 그물에서 옮겼다(at 은 잡은 때) */
+export type FishOrigin = { spot?: string; by?: string; at?: number; net?: boolean };
+export function addFish(st: IslandState, key: string, stage: 0 | 1 | 2, species: string | undefined, now: number, crown?: string, cm?: number, catchV?: number, origin: FishOrigin = {}): Island {
   const fam = familyOf(key);
   if (!fam) return st;
   const { s, a } = begin(st, now);
@@ -882,8 +966,10 @@ export function addFish(st: IslandState, key: string, stage: 0 | 1 | 2, species:
   const sp = stage === 2 ? speciesOf(species) : undefined;
   const value = catchV ?? saleValue(GRADES.indexOf((sp ?? fam.finals[0]).grade) + stage * 0.5);
   const form = stage === 2 && species ? species : `${stage === 0 ? "fry" : "juv"}_${key}`;
+  const caught: LifeEntry = { k: "caught", t: Number.isFinite(origin.at) ? Math.min(now, origin.at!) : now, key: form, ...(origin.spot ? { spot: origin.spot } : {}), ...(origin.by ? { by: origin.by } : {}), ...(origin.net ? { net: 1 as const } : {}) };
   return stow(s, {
     ...a,
+    ...(a.life ? { life: lifeLog(a.life, a.nextId, caught) } : {}),
     // 빈 수조에 첫 물고기가 들어오면 새 물로 시작한다(비어 있던 동안 더러워진 물로 벌받지 않게)
     ...(first ? { hunger: 100, water: 100, badH: 0 } : {}),
     nextId: a.nextId + 1,
@@ -1084,7 +1170,8 @@ export function releaseFish(st: IslandState, id: number, now: number): AquaResul
   const f = a.fish.find((q) => q.id === id);
   if (!f) return { ok: false, reason: "이미 떠난 물고기예요" };
   const reward = releaseReward(f);
-  return put(s, { ...a, fish: a.fish.filter((q) => q.id !== id), released: { ...a.released, [f.family]: (a.released?.[f.family] ?? 0) + 1 } }, s.coins + reward, `${josa(fishName(f), "을/를")} 바다로 보내 줬어요${reward ? ` — 하트 +${reward.toLocaleString()}` : ""}`);
+  const life = a.life ? lifeLeave(a.life, { id: f.id, key: fishArtKey(f) }, "released", now, { morph: fishMorph(a, f) }) : undefined;
+  return put(s, { ...a, ...(life ? { life } : {}), fish: a.fish.filter((q) => q.id !== id), released: { ...a.released, [f.family]: (a.released?.[f.family] ?? 0) + 1 } }, s.coins + reward, `${josa(fishName(f), "을/를")} 바다로 보내 줬어요${reward ? ` — 하트 +${reward.toLocaleString()}` : ""}`);
 }
 
 /* ── 대기 그물(2026-11-05) ─────────────────────────────
@@ -1104,7 +1191,7 @@ export function netToTank(st: IslandState, index: number, now: number): AquaResu
   const why = storeReason(a, n.family, { grade, crown: !!n.crown });
   if (why) return { ok: false, reason: why === TANK_FULL_REASON ? "수조가 가득 찼어요 — 한 마리를 보내 주면 옮길 수 있어요" : why };
   const rest = (a.net ?? []).filter((_, i) => i !== index);
-  const moved = addFish(stow(s, { ...a, net: rest }), n.family, n.stage, n.species, now, n.crown, n.cm, n.value);
+  const moved = addFish(stow(s, { ...a, net: rest }), n.family, n.stage, n.species, now, n.crown, n.cm, n.value, { spot: n.spot, by: n.by, at: n.at, net: true });
   return { ok: true, state: moved, note: `${josa(fishName(n), "을/를")} 수조로 옮겼어요` };
 }
 export function sellNet(st: IslandState, index: number, now: number): AquaResult {
@@ -1168,4 +1255,29 @@ export function claimRequest(st: IslandState, now: number): AquaResult {
   if (a.req.done) return { ok: false, reason: "오늘 손님은 이미 다녀갔어요" };
   if (!requestMet(a)) return { ok: false, reason: "아직 부탁을 들어주지 못했어요" };
   return withSeason(put(s, { ...a, req: { ...a.req, done: true } }, s.coins + a.req.reward, `손님이 기뻐해요 — 하트 +${a.req.reward}`), now, "guest");
+}
+
+/* ── 이름 짓기(2026-11-13 개체 이야기) ─────────────────────
+ * 둘이 함께 짓는다(누가 지었는지 이야기에 남는다). 빈 이름 = 지우기. 10글자 · 주소 금지 · NFC(aqualife.checkFishName).
+ * 이름을 여러 번 바꿔도 이야기에는 마지막 한 줄만 — 이름 줄이 쌓여 진짜 이야기를 밀어내지 않게. 하트 · 경험치는 없다. */
+export function nameFish(st: IslandState, id: number, raw: string, now: number, who?: string): AquaResult {
+  const c = checkFishName(raw);
+  if (!c.ok) return { ok: false, reason: c.reason };
+  const { s, a } = begin(st, now);
+  const f = a.fish.find((q) => q.id === id);
+  if (!f) return { ok: false, reason: "이미 떠난 물고기예요" };
+  if (!a.life) return { ok: false, reason: "이름을 지을 수 없어요" };
+  const was = a.life.names[String(id)] ?? "";
+  if (was === c.name) return { ok: false, reason: c.name ? "지금 이름과 같아요" : "아직 이름이 없어요" };
+  let life = lifeName(a.life, id, c.name);
+  const k = String(id), list = (life.log[k] ?? []).filter((e, i) => i === 0 || e.k !== "named");
+  life = { ...life, log: { ...life.log, [k]: list } };
+  if (c.name) life = lifeLog(life, id, { k: "named", t: now, name: c.name, ...(who ? { by: who } : {}) });
+  return put(s, { ...a, life }, s.coins, c.name ? `${fishName(f)} — 이제 이름은 '${c.name}'${josa(c.name, "이에요/예요").slice(c.name.length)}` : "이름을 지웠어요");
+}
+/** 지금 수조에 머문 날(처음 적힌 때부터) — 기록 전부터 있던 물고기는 approx */
+export function fishAge(a: Pick<AquaState, "life">, id: number, now: number): { days: number; approx: boolean } | null {
+  const e = a.life?.log[String(id)]?.[0];
+  if (!e) return null;
+  return { days: Math.max(1, Math.floor((lifeTime(now) - e.t) / 86_400_000) + 1), approx: e.a === 1 };
 }

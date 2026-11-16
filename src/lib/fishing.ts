@@ -936,7 +936,8 @@ export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: nu
   const win = roll < chance;
   const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
   if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
-  const added = addFish(st, c.family, c.stage, c.species, now, bossOf(c.boss)?.name, c.cm, coinValue(c.difficulty));
+  // 이야기의 첫 줄(2026-11-13) — 어느 낚시터에서 누가 잡았나. 혼자 하는 섬은 사람이 하나라 '누가'를 안 남긴다
+  const added = addFish(st, c.family, c.stage, c.species, now, bossOf(c.boss)?.name, c.cm, coinValue(c.difficulty), { ...(c.at ? { spot: c.at } : {}), ...(by.couple ? { by: by.who } : {}) });
   return mastered(withGrown({ ok: true, state: { ...added, coins: added.coins + g.expedCoins, fishing: { ...g.f, stored: g.f.stored + 1, dayStored: g.f.dayStored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
 }
 
@@ -947,7 +948,7 @@ export function tryNet(st: IslandState, c: FishCatch, chance: number, roll: numb
   const win = roll < chance;
   const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
   if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
-  const kept = keepInNet(st, { family: c.family, stage: c.stage, ...(c.species ? { species: c.species } : {}), difficulty: c.difficulty, value: coinValue(c.difficulty), ...(c.cm ? { cm: c.cm } : {}), ...(c.boss ? { crown: bossOf(c.boss)?.name } : {}) }, now);
+  const kept = keepInNet(st, { family: c.family, stage: c.stage, ...(c.species ? { species: c.species } : {}), difficulty: c.difficulty, value: coinValue(c.difficulty), ...(c.cm ? { cm: c.cm } : {}), ...(c.boss ? { crown: bossOf(c.boss)?.name } : {}), ...(c.at ? { spot: c.at } : {}), ...(by.couple ? { by: by.who } : {}) }, now);
   if (!kept.ok) return { ok: false, reason: kept.reason };
   return mastered(withGrown({ ok: true, state: { ...kept.state, coins: kept.state.coins + g.expedCoins, fishing: g.f }, outcome: "netted", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
 }

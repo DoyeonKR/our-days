@@ -621,7 +621,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-preview-dialog p { margin: 12px 0 6px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
 .aqua-model-viewer { width: 100%; aspect-ratio: 1; max-height: 48dvh; margin-top: 12px; }
 .aqua-model-viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; border-radius: 16px; }
-.aqua-list { display: grid; gap: 4px; }
+.aqua-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .aqua-list button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 8px; border-radius: 10px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; text-align: left; }
 .aqua-list button.is-on { background: rgba(125,211,252,.16); }
 .aqua-list small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; white-space: nowrap; }
@@ -1676,3 +1676,49 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .season-title-chip { display: inline-flex; align-items: center; padding: 0 9px; border-radius: 999px; background: #e6f6f1; color: #14564a; font-size: 12px; line-height: 18px; font-weight: 800; }
 .season-title-chip.is-card { background: rgba(255, 255, 255, .94); color: #14564a; }
 @media (prefers-reduced-motion: reduce) { .season-track b, .season-bar b { transition: none; } }
+/* ── 색 변이 품종 · 개체 이야기(2026-11-13) — 그림은 그대로, 색만 CSS filter(DOM 이라 캔버스 규칙과 무관). 오로라도 움직이지 않는 filter */
+.aqua-morph { display: block; width: 100%; height: 100%; }
+.aqua-morph-albino { filter: grayscale(.85) brightness(1.35) sepia(.18) hue-rotate(-28deg) saturate(1.6); }
+.aqua-morph-golden { filter: grayscale(1) sepia(1) saturate(2.6) brightness(1.12) hue-rotate(-6deg); }
+.aqua-morph-melanistic { filter: brightness(.42) contrast(1.25) saturate(.55); }
+.aqua-morph-aurora { filter: hue-rotate(150deg) saturate(1.7) brightness(1.08) drop-shadow(0 0 3px rgba(167, 139, 250, .8)); }
+.aqua-morph-tag { display: inline-block; flex: none; margin-left: 4px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; white-space: nowrap; vertical-align: middle; }
+.aqua-morph-tag.is-albino { background: #fde2e7; color: #7a2236; }
+.aqua-morph-tag.is-golden { background: #fbd34d; color: #5a3b00; }
+.aqua-morph-tag.is-melanistic { background: #1f2430; color: #e5e7eb; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+.aqua-morph-tag.is-aurora { background: linear-gradient(90deg, #a78bfa, #67e8f9, #86efac); color: #1e1b4b; }
+.aqua-fish-nick { font-size: 15px; font-family: var(--font-body); line-height: 24px; color: #fde68a; }
+.aqua-fish-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.aqua-fish-meta .aqua-morph-tag { margin-left: 0; }
+.aqua-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.aqua-name label { display: flex; flex: 1 1 180px; min-width: 0; align-items: center; gap: 8px; padding: 4px 8px 4px 12px; border-radius: 12px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+.aqua-name label > span { flex: none; color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-name input { flex: 1; min-width: 0; min-height: 36px; border: 0; background: transparent; color: inherit; font-size: 15px; font-family: var(--font-body); line-height: 24px; outline: none; }
+.aqua-name label:focus-within { box-shadow: inset 0 0 0 2px #7dd3fc; }
+.aqua-name small { flex: none; color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-name small.is-over { color: #fda4af; }
+.aqua-name .aqua-warn { flex-basis: 100%; margin-top: 0; }
+.aqua-story { margin-top: 12px; }
+.aqua-story > strong { display: block; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.aqua-story ol { display: grid; gap: 4px; margin-top: 4px; padding-left: 12px; border-left: 2px solid rgba(125,211,252,.35); }
+.aqua-story li { display: grid; gap: 0; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-story li small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-memorial summary { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 8px; cursor: pointer; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.aqua-memorial summary small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-memorial ul { display: grid; gap: 8px; margin-top: 8px; }
+.aqua-memorial li { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-memorial li .aqua-thumb { opacity: .78; }
+.aqua-memorial li small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-morph-legend { display: grid; gap: 4px; margin-top: 8px; }
+.aqua-morph-legend li { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; color: #a9c9de; }
+.aqua-morph-legend .aqua-morph-tag { margin-left: 0; min-width: 56px; text-align: center; }
+.aqua-morph-rows { display: grid; gap: 8px; margin-top: 12px; }
+.aqua-morph-rows li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-morph-cells { display: grid; flex-basis: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.aqua-morph-cell { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 28px; padding: 0 4px; border-radius: 8px; background: rgba(255,255,255,.06); color: #6b8aa0; font-size: 12px; font-family: var(--font-micro); line-height: 18px; white-space: nowrap; overflow: hidden; }
+.aqua-morph-cell.is-seen { background: rgba(255,255,255,.12); color: #e6f4ff; }
+.aqua-morph-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.aqua-morph-dot.is-albino { background: #fde2e7; }
+.aqua-morph-dot.is-golden { background: #fbd34d; }
+.aqua-morph-dot.is-melanistic { background: #111827; box-shadow: 0 0 0 1px rgba(255,255,255,.5); }
+.aqua-morph-dot.is-aurora { background: linear-gradient(135deg, #a78bfa, #67e8f9); }
