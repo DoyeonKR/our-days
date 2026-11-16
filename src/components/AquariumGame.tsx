@@ -33,6 +33,8 @@ import { NAME_LEN, checkFishName } from "@/lib/aqualife";
 import { memorialLine, storyLine } from "@/lib/aquastory";
 import { graphemes, normalizeShortText } from "@/lib/shorttext";
 import { gameNow } from "@/lib/islandsync";
+import { eventDef, eventGuest, eventsAt, modsAt, monthDay, nextEventAfter, occurrence, type ActiveEvent, type AquaEventKey } from "@/lib/aquaevent";
+import { claimBlock, claimEventDecor, eventSaveOf, eventTints, hasClaimed, tintedInBag, tintName } from "@/lib/aquaeventclaim";
 import type { IslandState } from "@/lib/island";
 
 type Tab = "tank" | "decor" | "dex";
@@ -47,6 +49,18 @@ function duration(h: number): string {
   if (h < 48) return `${Math.ceil(h)}시간`;
   return `${Math.ceil(h / 24)}일`;
 }
+/** 개발 빌드 전용 — 콘솔에서 window.__aquaEvent = "autumn" 처럼 두면 행사 카드 · 3D 그림만 그 행사로 보인다(정산 · 받기는 진짜 날짜 그대로). 배포 빌드엔 없다 */
+function devEvent(now: number): ActiveEvent | null {
+  if (process.env.NODE_ENV === "production" || typeof window === "undefined") return null;
+  const key = (window as { __aquaEvent?: unknown }).__aquaEvent;
+  const def = typeof key === "string" ? eventDef(key) : undefined;
+  if (!def) return null;
+  const y = Number(new Date(now + 9 * 3_600_000).toISOString().slice(0, 4));
+  const o = occurrence(def.key, y) ?? { start: "2026-12-20", end: "2026-12-27" };
+  return { def, id: `${def.key}:dev`, start: o.start, end: o.end, daysLeft: 7 };
+}
+const hex = (n: number) => `#${n.toString(16).padStart(6, "0")}`;
+
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 /** 도감 빈칸의 길잡이 — 어디서 잡히나 · 정성 얼마면 열리나 */
 function dexHint(family: string, stage: 0 | 1 | 2, index: number): string {
@@ -262,7 +276,14 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   // 잡아먹기 소식 — 최근 것부터 6개(소식은 섬 저장에 최근 몇십 개만 남는다)
   const eaten = (a.news ?? []).filter((x) => x.ate).slice(-6).reverse();
   const tk = tankOf(a);
-  const fx = aquaEffects(a);
+  // 계절 수조 행사(2026-11-13, lib/aquaevent) — 정산과 같은 배율로 남은 시간을 보인다. 카드 · 3D 그림은 개발용 덮어쓰기를 따른다
+  const fx = aquaEffects(a, modsAt(a.at));
+  const dev = devEvent(now);
+  const events: ActiveEvent[] = dev ? [dev] : eventsAt(now);
+  const nextEv = events.length ? null : nextEventAfter(now);
+  const evSave = eventSaveOf(view.state);
+  const tints = eventTints(evSave, a.placed);
+  const guest = a.req ? eventGuest(a.req.day) : null;
   const block = a.fish.length ? growBlock(a) : null;
   const left = careHoursLeft(a);
   const sel = a.fish.find((f) => f.id === selFish) ?? null;
@@ -354,11 +375,14 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
       {tab === "tank" && (
         <>
           <div ref={stageRef} className="aqua-stage">
-            <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
+            <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft, season: { keys: events.map((e) => e.def.key), tints } }}
               onFish={id => setSelFish(selFish === id ? null : id)}
               onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} replaying={replaying} replayNote={replayNote}
               people={[myName, partnerName]} onPhoto={setPhotoOpen} />
           </div>
+
+          <EventCard events={events} next={nextEv} busy={busy} claimed={(id) => hasClaimed(view.state, id)}
+            why={(k) => claimBlock(view.state, k, now)} onClaim={(k) => void act((st, t) => claimEventDecor(st, k, t))} />
 
           {a.fish.length === 0 ? (
             <section className="aqua-card aqua-empty-card">
@@ -450,11 +474,11 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
               </div>}
               {a.placed.length > 0 && <div className="aqua-3d-decor-list" aria-label="놓인 장식 선택">
                 {a.placed.map(p => <ActionButton key={p.id} aria-pressed={selDecor===p.id}
-                  disabled={busy} onClick={() => { setSelDecor(p.id); setMoving(false); setPlacing(null); setDraft(null); }}>{decorOf(p.key)?.name}</ActionButton>)}
+                  disabled={busy} onClick={() => { setSelDecor(p.id); setMoving(false); setPlacing(null); setDraft(null); }}>{(tints[p.id] && tintName(tints[p.id])) || decorOf(p.key)?.name}</ActionButton>)}
               </div>}
               {decorSel && !moving ? (
                 <div className="aqua-row">
-                  <span className="min-w-0 flex-1 truncate text-sm font-bold">{decorOf(decorSel.key)?.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-bold">{(tints[decorSel.id] && tintName(tints[decorSel.id])) || decorOf(decorSel.key)?.name}</span>
                   <ActionButton disabled={busy} onClick={() => { setMoving(true); setPlacing(null); setDraft({ ...decorSel, ...decorPose(decorSel) }); showStage(); }}>이동·회전·크기</ActionButton>
                   <ActionButton
                     disabled={busy} onClick={() => {
@@ -489,6 +513,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                     >
                       <span className="aqua-bag-pic"><DecorArt artKey={k} /></span>
                       <small>{decorOf(k)?.name}{n > 1 ? ` ×${n}` : ""}</small>
+                      {(() => { const lim = tintedInBag(evSave, k, a.placed.filter((p) => p.key === k).length); return lim.length > 0 && <small className="aqua-event-tag">한정 {lim.length}</small>; })()}
                     </button>
                   ))}
                 </div>
@@ -502,6 +527,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
           {a.req && (
             <section className="aqua-card aqua-req">
               <header><strong>오늘의 손님</strong><small><Coin /> {a.req.reward}</small></header>
+              {guest && <p className="aqua-note aqua-event-guest">{guest.event.name} 손님 — {josa(guest.name, "이/가")} 찾아왔어요</p>}
               <p className="aqua-note">{requestText(a.req)}</p>
               {a.req.done ? <p className="aqua-note">손님이 기뻐하며 돌아갔어요. 내일 또 와요.</p> : (
                 <ActionButton wide main={requestMet(a)} disabled={busy || !requestMet(a)} onClick={() => void act((st, t) => claimRequest(st, t))}>
@@ -733,6 +759,36 @@ function GrownCardInner({ g, morph, onNext }: { g: AquaNews; morph: Morph | null
         <ActionButton main wide data-dialog-initial onClick={onNext}>확인</ActionButton>
       </div>
     </div>
+  );
+}
+
+/** 계절 수조 행사 카드(2026-11-13) — 지금 열린 행사 · 남은 날 · 규칙 한 줄 · 한정 장식 받기. 행사가 없으면 다음 행사를 미리 알린다 */
+function EventCard({ events, next, busy, claimed, why, onClaim }: {
+  events: readonly ActiveEvent[]; next: { def: { name: string }; start: string; inDays: number } | null; busy: boolean;
+  claimed: (id: string) => boolean; why: (k: AquaEventKey) => string | null; onClaim: (k: AquaEventKey) => void;
+}) {
+  if (!events.length) {
+    if (!next) return null;
+    return <p className="aqua-note aqua-event-next">다음 수조 행사 · {next.def.name} — {monthDay(next.start)}부터({next.inDays}일 뒤)</p>;
+  }
+  return (
+    <section className="aqua-card aqua-event" aria-label="계절 수조 행사">
+      {events.map((e) => {
+        const got = claimed(e.id), block = got ? null : why(e.def.key);
+        return (
+          <div key={e.id} className="aqua-event-row" style={{ ["--ev" as string]: hex(e.def.decor.tint) }}>
+            <header><strong>{e.def.name}</strong><small>{e.daysLeft <= 1 ? "오늘까지" : `${e.daysLeft}일 남았어요`}</small></header>
+            <p className="aqua-note">{e.def.blurb}</p>
+            <div className="aqua-event-claim">
+              <span className="aqua-event-swatch" aria-hidden />
+              <span className="min-w-0 flex-1"><b>{e.def.decor.name}</b><small>한정 장식 · 행사마다 한 번</small></span>
+              <ActionButton main={!got && !block} disabled={busy || got || !!block} onClick={() => onClaim(e.def.key)}>{got ? "받았어요" : "받기"}</ActionButton>
+            </div>
+            {!got && block && <p className="aqua-note">{block}</p>}
+          </div>
+        );
+      })}
+    </section>
   );
 }
 

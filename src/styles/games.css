@@ -685,6 +685,19 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-foodshop { margin-top: 10px; }
 .aqua-foodshop > summary { cursor: pointer; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; color: #cfe6f5; }
 .aqua-req header small { display: inline-flex; align-items: center; gap: 3px; }
+/* 계절 수조 행사(2026-11-13, lib/aquaevent) — 행사 카드 · 한정 장식 받기 · 다음 행사 한 줄 · 보관함의 '한정' 표 · 행사 손님 */
+.aqua-event { border: 1px solid rgba(255, 255, 255, .12); }
+.aqua-event-row + .aqua-event-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, .1); }
+.aqua-event-row header strong { color: var(--ev, #fde68a); }
+.aqua-event-claim { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 8px; }
+.aqua-event-claim b { display: block; font-size: 15px; line-height: 24px; font-family: var(--font-body); }
+.aqua-event-claim small { display: block; color: #a9c9de; font-size: 12px; line-height: 18px; font-family: var(--font-micro); }
+.aqua-event-claim > .aqua-btn { flex: none; }
+.aqua-event-swatch { flex: none; width: 28px; height: 28px; border-radius: 999px; background: radial-gradient(circle at 35% 35%, #fff, var(--ev, #fde68a) 60%); box-shadow: 0 0 12px var(--ev, #fde68a); }
+.aqua-event-next { margin-top: 8px; padding: 0 4px; }
+.aqua-event-guest { color: #fde68a; }
+.aqua-bag .aqua-event-tag { color: #fde68a; font-weight: 800; }
+@media (prefers-reduced-motion: reduce) { .aqua-event-swatch { box-shadow: none; } }
 .fish-grown { color: #7dd3fc; }
 @media (prefers-reduced-motion: reduce) { .aqua-fish, .aqua-bubble { animation: none; } .aqua-bubble { display: none; } }
 /* 낚시터 · 미끼는 옆으로 밀지 않고 전부 펼친다 [사용자: "낚시준비 바텀시트 좌우 스크롤이 안됨"] — 15곳을 옆으로 넘기면 뒤쪽이 있는지도 모른다 */
