@@ -2,7 +2,9 @@ import { ATTACK_PITCH, blockedBy, clearShot, type Blocker, type ShotPick, huntOf
 import { isPredator } from "../predation.ts";
 import { faceSide, limitPitch, sideOnOf } from "./sideon.ts";
 import * as T from "three";
-import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaNews, type AquaState, type PlacedDecor } from "../aquarium.ts";
+import { decorPose, fishArtKey, fishCm, fishMorph, type AquaFish, type AquaNews, type AquaState, type PlacedDecor } from "../aquarium.ts";
+import type { Morph } from "../aquamorph.ts";
+import { morphMaterials } from "./morphlook.ts";
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { stepFish } from "./fishstep.ts";
 import { makeSandPuffs } from "./sandpuff.ts";
@@ -64,6 +66,7 @@ function makeCrown(r:number):T.Group{const g=new T.Group();
     g.add(arm);}
   return g;}
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number;
+  /** 색 변이(2026-11-13, morphlook) — 바뀌면 같은 자리에서 갈아 끼운다 */ morph?: Morph | null;
   /** 제작 모델로 갈아 끼웠나 */ glb: boolean; /** 쥐고 있는 GLB key(놓을 때 돌려준다) */ glbKey: string | null;
   /** 방금 들어왔다 — 첫 프레임은 방향을 바로 맞춘다(다른 물고기는 부드럽게 돈다) */ fresh: boolean; crown: T.Group | null;
   /** 이번 프레임 길 — 매 프레임 새 객체를 안 만들게 물고기마다 하나 들고 쓴다 */ course: Course;
@@ -127,7 +130,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // ⚠ 단, 이 렌더러가 그것들에 단 dispose 리스너(three 내부 — 형상 · 재질 · 텍스처마다 렌더러의 닫힌 함수)는 renderer.dispose 가 안 뗀다.
     //   캐시가 들고 있는 형상이 닫은 렌더러를 끝까지 붙잡아(수조를 오갈 때마다 하나씩) WebGL 상태 · 프로그램이 통째로 남았다(2026-11-11).
     //   dispose 이벤트만 쏴서 리스너가 스스로 떨어지게 한다 — 이벤트일 뿐 캐시의 그림 · 형상은 그대로고, 다른 살아 있는 렌더러(미리보기)는 다음에 쓸 때 다시 올린다
-    scene.traverse(collectBorrowed);for(const r of borrowed)r.dispose();borrowed.clear();
+    scene.traverse(collectBorrowed);for(const r of borrowed)r.dispose();borrowed.clear();morphs.dispose();
     const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();scene.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.LineSegments||o instanceof T.Points){if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();if(o.userData.glbShared)return;geometries.add(o.geometry);for(const mat of(Array.isArray(o.material)?o.material:[o.material])){materials.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)textures.add(value);}}});
     geometries.add(kit.sphere);geometries.add(kit.box);geometries.add(kit.cylinder);kit.materials.forEach(m=>materials.add(m));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});kit.disposeReferences();renderer.dispose();if(!lost&&renderer.extensions.has("WEBGL_lose_context"))renderer.forceContextLoss();canvas.remove();
   }
@@ -136,6 +139,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let post:Post|null=null,envMap:T.Texture|null=null,normalsFixed=0,postLevel=0;
   /** 이 수조가 쓴 나눠 쓰는 GLB 형상 · 재질 · 텍스처 — 닫을 때 이 렌더러의 dispose 리스너를 떼려고 모은다(dispose 참고) */
   const borrowed=new Set<T.BufferGeometry|T.Material|T.Texture>();
+  /** 색 변이 재질 — (원본 재질, 변이)마다 하나를 같은 모습 · 같은 변이 물고기끼리 나눠 쓴다. 떼어 낼 때(release) 지우지 않고 닫을 때 한 번에 */
+  const morphs=morphMaterials();
   const collectBorrowed=(o:T.Object3D)=>{const mesh=o as T.Mesh;if(!mesh.isMesh||!o.userData.glbShared)return;borrowed.add(mesh.geometry);
     for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
@@ -321,7 +326,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const geometry=new Set<T.BufferGeometry>(), materials=new Set<T.Material>(), textures=new Set<T.Texture>();
     const shared=new Set<T.Material>(kit.materials.values());
     root.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.Points){const borrowed=!!o.userData.glbShared;if(!borrowed&&o.geometry!==kit.sphere&&o.geometry!==kit.box&&o.geometry!==kit.cylinder)geometry.add(o.geometry);
-      for(const m of(Array.isArray(o.material)?o.material:[o.material]))if(!borrowed&&!shared.has(m)){materials.add(m);for(const value of Object.values(m))if(value instanceof T.Texture)textures.add(value);}
+      for(const m of(Array.isArray(o.material)?o.material:[o.material]))if(!borrowed&&!shared.has(m)&&!m.userData.aquaMorph){materials.add(m);for(const value of Object.values(m))if(value instanceof T.Texture)textures.add(value);}
       if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();}});
     geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});root.removeFromParent();
   }
@@ -353,13 +358,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   }
   /** prev — 자라서 모습(key)이 바뀐 같은 물고기의 지금 몸. 같은 Map 자리에 새 몸을 넣고 자리 · 방향 · 꼬리 박자를 잇는다 */
   function addFish(f:AquaFish,prev?:Swimmer){
-    const key=fishArtKey(f);
+    // 색 변이(2026-11-13) — 지금 상태의 변이 장부에서(임시 사냥꾼 · 유령은 음수 id 라 없다)
+    const key=fishArtKey(f),morph=f.id>=0?fishMorph(state.aquarium,f):null;
     const animal=makeAnimal(kit,f.family,key),length=fishLength(fishCm(f),f.family);
-    waterLitTree(animal.root,false);normalsFixed+=repairNormals(animal.root);calmSpecular(animal.root);fishShading(animal.root);
+    waterLitTree(animal.root,false);normalsFixed+=repairNormals(animal.root);calmSpecular(animal.root);fishShading(animal.root);morphs.apply(animal.root,morph);
     // 머리~꼬리 길이로 잰다(anatomy.bodyMeasure) — 키로 재면 엔젤 · 디스커스 같은 키 큰 물고기가 잡은 cm 의 71~90% 로 보였다
     const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(.001,bodyMeasure(f.family,key,size));
     animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
-    const m:Swimmer={...animal,key,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
+    const m:Swimmer={...animal,key,morph,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
     if(f.crown){m.crown=makeCrown(Math.max(size.x,size.z)*.2);m.crown.userData.aquaKeep=true;m.root.add(m.crown);placeCrown(m);}
     swimmers.set(f.id,m);
     if(prev){
@@ -380,7 +386,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
         inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);normalsFixed+=repairNormals(inner);calmSpecular(inner);fishShading(inner);
         release(swapBody(m.root,inner,"center",s=>bodyMeasure(f.family,key,s)));
-        m.animate=fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
+        m.animate=fishMotion(inner,f.family,key);morphs.apply(inner,m.morph??null);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
     });}
   }
   function addDecor(p:PlacedDecor):Decoration{
@@ -492,7 +498,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(nextWide!==wide){wide=nextWide;if(habitat){habitat.root.scale.x=wide;habitat.root.updateMatrix();}topologyChanged=true;}
     schools=schoolsOf(approvedFish);
     for(const[id,m]of swimmers)if(id>=0&&!ids.has(id)){dropFish(m);swimmers.delete(id);topologyChanged=true;}
-    for(const f of approvedFish){const key=fishArtKey(f),old=swimmers.get(f.id);if(old?.key===key)continue;
+    for(const f of approvedFish){const key=fishArtKey(f),old=swimmers.get(f.id),morph=fishMorph(next.aquarium,f);if(old?.key===key&&(old.morph??null)===morph)continue;
       topologyChanged=true;
       // 자라서 모습이 바뀌었다 — 지우고 맨 뒤에 새로 넣지 않고 같은 자리(Map 순서)에서 갈아 끼운다(addFish 의 prev). 못 지으면 예전처럼 뺀다
       if(old){try{addFish(f,old);}catch(e){if(swimmers.get(f.id)===old){dropFish(old);swimmers.delete(f.id);}skip(`물고기 ${key}`,e);}continue;}

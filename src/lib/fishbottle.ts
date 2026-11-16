@@ -13,6 +13,7 @@
 import type { IslandState } from "./island.ts";
 import { rng, type FishCatch, type FishResult, type GearResult } from "./fishing.ts";
 import { fishPlusOf, lureChance, specialCatch, withFishPlus, type SpecialCtx } from "./fishplus.ts";
+import { URL_LIKE, VISIBLE, clipShortText, graphemes, normalizeShortText } from "./shorttext.ts";
 
 export type Bottle = { id: string; from: string; text: string; at: number };
 export type OpenedBottle = Bottle & { by: string; openedAt: number };
@@ -33,35 +34,13 @@ const BOTTLE_SEED = 0x0b077e1;
 
 /* ── 글자 ─────────────────────────────────────────── */
 
-type Seg = new (l?: string, o?: { granularity: "grapheme" }) => { segment(s: string): Iterable<{ segment: string }> };
-const Segmenter = (Intl as unknown as { Segmenter?: Seg }).Segmenter;
-/** 자소 묶음으로 나눈다 — Segmenter 가 없는 옛 브라우저는 코드 포인트(이모지 조합은 여러 글자로 셀 수 있다) */
-export function graphemes(s: string): string[] {
-  if (Segmenter) return Array.from(new Segmenter(undefined, { granularity: "grapheme" }).segment(s), (x) => x.segment);
-  return Array.from(s);
-}
-/** 줄바꿈 · 제어 문자는 띄어쓰기로, 띄어쓰기는 한 칸으로, 앞뒤는 다듬는다. NFC — 풀어 쓴 한글(ㅎ+ㅏ+ㄴ)도 한 글자로 저장 */
-export function normalizeBottleText(raw: string): string {
-  return String(raw ?? "").normalize("NFC").replace(/[\r\n\u2028\u2029]+/g, " ").replace(/\p{Cc}/gu, "").replace(/\s+/g, " ").trim();
-}
-/** 그릴 때 — 저장된 값이 길어도(옛 앱 · 다른 기기) 10글자까지만. 길이 상한은 글자 단위로 덜어 낸다(UTF-16 로 자르면 이모지 반쪽이 남는다) */
-export function clipBottleText(s: string): string {
-  const out: string[] = [];
-  let units = 0;
-  for (const g of graphemes(normalizeBottleText(s)).slice(0, BOTTLE_LEN)) {
-    if (units + g.length > BOTTLE_UNITS) break;
-    out.push(g);
-    units += g.length;
-  }
-  return out.join("");
-}
+export { graphemes };
+/** 줄바꿈 · 제어 문자는 띄어쓰기로, 띄어쓰기는 한 칸으로, 앞뒤는 다듬는다. NFC — 풀어 쓴 한글(ㅎ+ㅏ+ㄴ)도 한 글자로 저장(shorttext.ts) */
+export const normalizeBottleText = normalizeShortText;
+/** 그릴 때 — 저장된 값이 길어도(옛 앱 · 다른 기기) 10글자까지만 */
+export const clipBottleText = (s: string): string => clipShortText(s, BOTTLE_LEN, BOTTLE_UNITS);
 /** 화면의 'n/10' — 입력 그대로가 아니라 보낼 모양으로 센다 */
 export const bottleLength = (raw: string): number => graphemes(normalizeBottleText(raw)).length;
-
-/** 주소는 못 넣는다 — 둘만 보는 편지지만 남의 링크를 실어 나르는 길이 되면 안 된다 */
-const URL_LIKE = /(https?:|www\.|:\/\/|[a-z0-9-]+\.(com|net|org|kr|io|me|ly|co|gg|app|xyz|link)\b)/i;
-
-const VISIBLE = /[^\s\p{Cf}\u115f\u1160\u3164\uffa0]/u;
 
 export type BottleCheck = { ok: true; text: string } | { ok: false; reason: string };
 export function checkBottleText(raw: string): BottleCheck {

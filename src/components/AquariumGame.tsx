@@ -22,12 +22,16 @@ import { feedSpot } from "@/lib/aqua3d/world";
 import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWaits, mealEndOf } from "@/lib/aqua3d/hunt";
 import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
-  aquaDangers, aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
+  aquaDangers, aquaEffects, buyDecor, fishAge, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
   fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
   releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
+import { MORPHS, MORPH_INFO, morphDex, type Morph } from "@/lib/aquamorph";
+import { NAME_LEN, checkFishName } from "@/lib/aqualife";
+import { memorialLine, storyLine } from "@/lib/aquastory";
+import { graphemes, normalizeShortText } from "@/lib/shorttext";
 import { gameNow } from "@/lib/islandsync";
 import type { IslandState } from "@/lib/island";
 
@@ -487,7 +491,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
             </section>
           )}
 
-          {sel && !editing && <FishCard f={sel} a={a} seen={seenForms} onRelease={() => void release(sel)} />}
+          {sel && !editing && <FishCard key={sel.id} f={sel} a={a} seen={seenForms} now={now} who={who} couple={!!coupleId} busy={busy}
+            onRelease={() => void release(sel)} onName={(name) => act((st, t) => nameFish(st, sel.id, name, t, coupleId ? who : undefined))} />}
 
           {a.req && (
             <section className="aqua-card aqua-req">
@@ -572,8 +577,9 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
                   return (
                     <li key={f.id}>
                       <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => setSelFish(selFish === f.id ? null : f.id)}>
-                        <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} /></span>
-                        <span className="min-w-0 flex-1 truncate font-bold">{fishName(f)} <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
+                        <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
+                        <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)} <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
+                        <MorphTag morph={fishMorph(a, f)} />
                         {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>{duration(hoursLeft(a, f))} 남음</small>}
                       </button>
                     </li>
@@ -582,6 +588,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
               </ul>
             </section>
           )}
+          {(a.life?.memorial.length ?? 0) > 0 && <MemorialCard a={a} />}
         </>
       )}
 
@@ -629,6 +636,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           <div className="aqua-food mt-2" role="radiogroup" aria-label="도감 거르기">
             {DEX_FILTERS.map(([k, label]) => <button key={k} type="button" role="radio" aria-checked={dexFilter === k} className={`tap ${dexFilter === k ? "is-on" : ""}`} onClick={() => setDexFilter(k)}>{label}</button>)}
           </div>
+          <MorphDexCard a={a} />
           <div className="aqua-dex-fams">
           {FAMILIES.map((fam) => {
             const forms = ALL_FORMS.filter((x) => x.family === fam.key);
@@ -660,7 +668,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
       )}
       </div>
 
-      {news[0] && !replaying && <GrownCard key={news[0].n} g={news[0]} waits={tab === "tank" && eatenCardWaits(news[0].n, news.filter((x) => x.ate).map((x) => x.n), mealDone)} onNext={() => setLocalSeen(news[0].n)} onReplay={() => { setLocalSeen(news[0].n); startReplay(news[0].n); }} />}
+      {news[0] && !replaying && <GrownCard key={news[0].n} g={news[0]} waits={tab === "tank" && eatenCardWaits(news[0].n, news.filter((x) => x.ate).map((x) => x.n), mealDone)} morph={news[0].egg ? (a.morph?.by[String(news[0].id)] ?? null) : null} onNext={() => setLocalSeen(news[0].n)} onReplay={() => { setLocalSeen(news[0].n); startReplay(news[0].n); }} />}
       {inspect && <DecorPreview artKey={inspect} onClose={() => setInspect(null)} />}
     </div>,
   );
@@ -675,7 +683,7 @@ export function dangerLine(dangers: { pred: AquaFish; prey: AquaFish }[]): strin
   return `${josa(who, "이/가")} 작은 물고기 ${prey.size}마리를 노려요`;
 }
 
-function GrownCard({ g, waits, onNext, onReplay }: { g: AquaNews; waits: boolean; onNext: () => void; onReplay?: () => void }) {
+function GrownCard({ g, morph, waits, onNext, onReplay }: { g: AquaNews; morph: Morph | null; waits: boolean; onNext: () => void; onReplay?: () => void }) {
   // 잡아먹기 소식은 수조의 사냥 장면이 끝난 뒤에 — 카드가 장면을 가리면 안 된다. waits = 수조가 그리는 장면(안 본 잡아먹기 중 가장 새 것)이고 그 번호의 끝 알림 전(hunt.ts eatenCardWaits).
   //   다른 카드(그려지지 않는 장면 · 자람 · 알)는 바로. 끝 알림을 못 들으면(장면을 못 열었다 · 옛 수조) 가장 긴 장면 + 모델을 기다리는 상한 뒤에
   const [late, setLate] = useState(false);
@@ -685,7 +693,7 @@ function GrownCard({ g, waits, onNext, onReplay }: { g: AquaNews; waits: boolean
     return () => clearTimeout(t);
   }, [waits]);
   if (waits && !late) return null;
-  return g.ate ? <EatenCard g={g} onNext={onNext} onReplay={onReplay} /> : <GrownCardInner g={g} onNext={onNext} />;
+  return g.ate ? <EatenCard g={g} onNext={onNext} onReplay={onReplay} /> : <GrownCardInner g={g} morph={morph} onNext={onNext} />;
 }
 
 function EatenCard({ g, onNext, onReplay }: { g: AquaNews; onNext: () => void; onReplay?: () => void }) {
@@ -705,16 +713,17 @@ function EatenCard({ g, onNext, onReplay }: { g: AquaNews; onNext: () => void; o
   );
 }
 
-function GrownCardInner({ g, onNext }: { g: AquaNews; onNext: () => void }) {
+function GrownCardInner({ g, morph, onNext }: { g: AquaNews; morph: Morph | null; onNext: () => void }) {
   const ref = useDialogFocus(true, onNext);
   const look = { family: g.family, stage: g.stage, species: g.species };
   const sp = speciesOf(g.species);
   return (
     <div className="aqua-grown" role="dialog" aria-modal="true" aria-label={g.egg ? "알에서 치어가 나왔어요" : "물고기가 자랐어요"} ref={ref} tabIndex={-1}>
       <div>
-        <p className="aqua-grown-kicker">{g.egg ? "알에서 치어가 나왔어요!" : g.stage === 2 ? "최종 형태!" : "쑥쑥 자랐어요"}</p>
-        <span className="aqua-grown-pic"><FishArt artKey={fishArtKey(look)} /></span>
+        <p className="aqua-grown-kicker">{g.egg ? (morph ? `${MORPH_INFO[morph].name} 변이 치어가 나왔어요!` : "알에서 치어가 나왔어요!") : g.stage === 2 ? "최종 형태!" : "쑥쑥 자랐어요"}</p>
+        <span className="aqua-grown-pic"><FishArt artKey={fishArtKey(look)} morph={morph} /></span>
         <strong>{fishName(look)}</strong>
+        {morph && <small className="aqua-note">{MORPH_INFO[morph].desc} · 변이 도감에 남아요</small>}
         {sp && <span className={gradeClass(sp.grade)}>{sp.grade}</span>}
         <ActionButton main wide data-dialog-initial onClick={onNext}>확인</ActionButton>
       </div>
@@ -737,7 +746,11 @@ function Meter({ label, value, marks = [] }: { label: string; value: number; mar
   );
 }
 
-function FishCard({ f, a, seen, onRelease }: { f: AquaFish; a: AquaState; seen: Set<string>; onRelease: () => void }) {
+function FishCard({ f, a, seen, now, who, couple, busy, onRelease, onName }: {
+  f: AquaFish; a: AquaState; seen: Set<string>; now: number; who: string; couple: boolean; busy: boolean; onRelease: () => void;
+  /** 이름 짓기 · 지우기(빈 값) — 저장까지 끝나면 true */
+  onName: (name: string) => Promise<boolean>;
+}) {
   const fam = familyOf(f.family);
   const cq = fishCare(f);
   const sp = speciesOf(f.species);
@@ -747,12 +760,18 @@ function FishCard({ f, a, seen, onRelease }: { f: AquaFish; a: AquaState; seen: 
   const fav = FAVORITE_DECOR[f.family];
   const favOn = !!fav && a.placed.some((p) => p.key === fav);
   const reward = releaseReward(f);
+  const morph = fishMorph(a, f), nick = fishNick(a, f.id), age = fishAge(a, f.id, now);
   return (
-    <section className="aqua-card">
+    <section className="aqua-card" aria-label={`${nick ?? fishName(f)} 자세히`}>
       <div className="aqua-row">
-        <span className="aqua-thumb is-big"><FishArt artKey={fishArtKey(f)} /></span>
+        <span className="aqua-thumb is-big"><FishArt artKey={fishArtKey(f)} morph={morph} /></span>
         <span className="min-w-0 flex-1">
+          {nick && <strong className="aqua-fish-nick block truncate">{nick}</strong>}
           <strong className="block truncate">{fishName(f)} · {fmtCm(fishCm(f))}</strong>
+          <span className="aqua-fish-meta">
+            <MorphTag morph={morph} />
+            {age && <small className="aqua-note">우리 수조 {age.days}일째{age.approx ? " 넘게" : ""}</small>}
+          </span>
           {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small className="aqua-note">성장 {pct}% · {duration(hoursLeft(a, f))} 남음 · 정성 {cq}</small>}
         </span>
         <ActionButton onClick={onRelease}>보내 주기 <span className="aqua-price"><Coin /> {reward.toLocaleString()}</span></ActionButton>
@@ -785,6 +804,122 @@ function FishCard({ f, a, seen, onRelease }: { f: AquaFish; a: AquaState; seen: 
         좋아하는 먹이 {foodOf(likedFood(f.family))?.name}
         {fav ? ` · 좋아하는 장식 ${decorOf(fav)?.name}${favOn ? "(놓여 있어요 — 정성이 더 빨리 차요)" : "(놓아 주면 정성이 더 빨리 차요)"}` : ""}
       </p>
+      {morph && <p className="aqua-note">{MORPH_INFO[morph].name} 변이 — {MORPH_INFO[morph].desc}. 보기만 달라요(값 · 성장은 같아요)</p>}
+      <NameForm nick={nick ?? ""} busy={busy} onName={onName} />
+      <FishStory f={f} a={a} who={who} couple={couple} />
+    </section>
+  );
+}
+
+/** 색 변이 표 — 변이가 없으면 아무것도 안 그린다 */
+function MorphTag({ morph }: { morph: Morph | null }) {
+  if (!morph) return null;
+  return <span className={`aqua-morph-tag is-${morph}`}>{MORPH_INFO[morph].name}</span>;
+}
+
+/** 이름 짓기 — 10글자(자소 묶음) · 주소 금지는 엔진(nameFish)이 다시 본다. 한글 조합 중 Enter 는 보내지 않는다 */
+function NameForm({ nick, busy, onName }: { nick: string; busy: boolean; onName: (name: string) => Promise<boolean> }) {
+  const [draft, setDraft] = useState(nick);
+  const [err, setErr] = useState<string | null>(null);
+  const n = graphemes(normalizeShortText(draft)).length;
+  const same = normalizeShortText(draft) === nick;
+  async function submit() {
+    const c = checkFishName(draft);
+    if (!c.ok) { setErr(c.reason); return; }
+    setErr(null);
+    if (await onName(c.name)) setDraft(c.name);
+  }
+  return (
+    <form className="aqua-name" onSubmit={(e) => { e.preventDefault(); if (!busy && !same) void submit(); }}>
+      <label>
+        <span>이름</span>
+        <input value={draft} maxLength={40} placeholder="이름을 지어 주세요" enterKeyHint="done" autoComplete="off" aria-describedby="aqua-name-count"
+          onChange={(e) => { setDraft(e.target.value); setErr(null); }}
+          onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }} />
+        <small id="aqua-name-count" className={n > NAME_LEN ? "is-over" : ""}>{n}/{NAME_LEN}</small>
+      </label>
+      <ActionButton type="submit" disabled={busy || same || n > NAME_LEN}>{nick && !normalizeShortText(draft) ? "지우기" : "저장"}</ActionButton>
+      {err && <p className="aqua-warn" role="alert">{err}</p>}
+    </form>
+  );
+}
+
+/** 개체 이야기 — 오래된 것부터. 처음 한 줄(어떻게 왔나)과 최근 11줄이 남는다 */
+function FishStory({ f, a, who, couple }: { f: AquaFish; a: AquaState; who: string; couple: boolean }) {
+  const log = a.life?.log[String(f.id)] ?? [];
+  if (!log.length) return null;
+  return (
+    <section className="aqua-story" aria-label="이 물고기의 이야기">
+      <strong>이야기</strong>
+      <ol>
+        {log.map((e, i) => {
+          const [when, text] = storyLine(e, { who, couple, a });
+          return <li key={`${e.t}-${i}`}><small>{when}</small><span>{text}</span></li>;
+        })}
+      </ol>
+    </section>
+  );
+}
+
+/** 추모 칸 — 떠난 물고기(잡아먹힘 · 보내 줌 · 옛 앱에서 떠남) 최근 30마리 */
+function MemorialCard({ a }: { a: AquaState }) {
+  const list = a.life?.memorial ?? [];
+  return (
+    <details className="aqua-card aqua-memorial">
+      <summary><strong>추모 칸</strong><small>떠난 물고기 {list.length}마리 · 최근 30마리까지 남아요</small></summary>
+      <ul>
+        {list.map((m) => {
+          const l = memorialLine(m, a);
+          return (
+            <li key={m.id}>
+              <span className="aqua-thumb"><FishArt artKey={m.key} morph={m.morph ?? null} /></span>
+              <span className="min-w-0 flex-1">
+                <strong className="block truncate">{l.name}{l.name !== l.form ? <small> {l.form}</small> : null} <MorphTag morph={m.morph ?? null} /></strong>
+                <small className="block">{l.cause}</small>
+                <small className="block">{l.span}</small>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </details>
+  );
+}
+
+/** 변이 도감 — 계열마다 만난 변이(알에서 깬 수). 낚시로는 안 오고 수조의 알에서만 나온다 */
+function MorphDexCard({ a }: { a: AquaState }) {
+  const rows = morphDex(a.morph);
+  const byFam = new Map<string, Map<Morph, number>>();
+  for (const r of rows) {
+    const m = byFam.get(r.family) ?? new Map<Morph, number>();
+    m.set(r.morph, r.n);
+    byFam.set(r.family, m);
+  }
+  const kinds = new Set(rows.map((r) => r.morph));
+  return (
+    <section className="aqua-card aqua-morph-dex" aria-label="변이 도감">
+      <header><strong>변이 도감</strong><small>만난 변이 {rows.length}칸 · 종류 {kinds.size}/{MORPHS.length}</small></header>
+      <p className="aqua-note">수조의 알에서 드물게 색이 다른 치어가 깨어나요(5%). 엄마 · 아빠가 변이면 더 잘 나오고 닮기도 해요. 보기만 달라요.</p>
+      <ul className="aqua-morph-legend">
+        {MORPHS.map((m) => <li key={m}><MorphTag morph={m} /><small>{MORPH_INFO[m].desc}</small></li>)}
+      </ul>
+      {byFam.size > 0 && (
+        <ul className="aqua-morph-rows">
+          {[...byFam].map(([fam, got]) => (
+            <li key={fam}>
+              <span className="aqua-thumb"><FishArt artKey={`fry_${fam}`} /></span>
+              <strong className="min-w-0 flex-1 truncate">{familyOf(fam)?.name ?? fam}</strong>
+              <span className="aqua-morph-cells">
+                {MORPHS.map((m) => (
+                  <span key={m} className={`aqua-morph-cell ${got.has(m) ? "is-seen" : ""}`} title={MORPH_INFO[m].name}>
+                    {got.has(m) ? <><b className={`aqua-morph-dot is-${m}`} aria-hidden />{MORPH_INFO[m].name} {got.get(m)}</> : "?"}
+                  </span>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
