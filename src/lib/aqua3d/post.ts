@@ -1,4 +1,5 @@
 import * as T from "three";
+import type { PhotoGrade } from "./photo.ts";
 import {faceJaw} from './faces.ts';
 
 /** 3D 엔진 다듬기(2026-11-10) [사용자: "3d 엔진을 우리는 더 디벨럽해야해 아직 10점 만점중 3점"]
@@ -53,6 +54,8 @@ export type Post = {
   setLevel: (level: number) => void;
   /** 물 탁함(0 맑음 ~ 1 아주 더러움, 2026-11-12) · 탁한 물빛(선형) — 마지막 그리기가 물빛을 흐리고 초록으로 기울이고, 먼 곳을 그 빛에 묻고, 유리 가장자리에 물때를 깐다 */
   setWater: (murk: number, color: T.Color) => void;
+  /** 사진 필터(photo.ts photoGrade, 2026-11-13) — 톤 매핑 · sRGB 뒤 화면 색에 건다. null · on 0 이면 끈다(평소 화면 그대로) */
+  setGrade: (grade: PhotoGrade | null) => void;
   /** 장면 그림 크기 ÷ 화면 그림 크기(계단 3 이면 .75) — 점 입자 크기를 맞춘다 */
   scale: () => number;
   /** 지금 그림들이 쓰는 GPU 바이트(색 · 깊이) — 개발 진단용 */
@@ -95,6 +98,7 @@ void main(){vec4 m=texture2D(tHalf,vUv);float r0=m.a;vec3 acc=m.rgb;float wsum=1
  *  FXAA — 멀티샘플 대신 가장자리만 그 방향으로 두 점 더 읽어 섞는다(⚠ 멀티샘플 그림의 깊이 그림이 줄 단위로 깨져 피사계 심도가 물고기를 흰 가로줄로 부쉈다, 2026-11-11).
  *  디더링 — 짙은 물빛 그라데이션의 띠를 없앤다. 예전 sin 해시는 시간이 커지면(수십 분) 정밀도가 무너져 무늬가 났다 → 화면 좌표만 쓰는 interleaved gradient noise, 시간은 64 초로 돌린다. */
 export const FINAL_FRAG = `varying vec2 vUv;${COMMON}uniform sampler2D tBlur;uniform sampler2D tGlow;uniform float time;uniform float split;uniform float bloom;uniform float murk;uniform vec3 murkColor;
+uniform float gradeOn;uniform vec4 grade;uniform vec3 gradeTint;uniform vec3 gradeShade;uniform float gradeGrain;
 float luma(vec3 c){return dot(min(c,vec3(1.)),vec3(.299,.587,.114));}
 vec3 fxaa(vec2 p){
   vec3 m=fix(p);float lm=luma(m);
@@ -130,6 +134,17 @@ void main(){
   gl_FragColor=vec4(c,1.);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
+  if(gradeOn>.5){
+    vec3 g=clamp(gl_FragColor.rgb,0.,1.);
+    float gl=dot(g,vec3(.299,.587,.114));
+    g=mix(vec3(gl),g,grade.x);
+    g=(g-.5)*grade.y+.5;
+    g*=mix(gradeShade,gradeTint,smoothstep(0.,1.,gl));
+    g=grade.z+g*(1.-grade.z);
+    g*=1.-smoothstep(.12,.6,r2)*grade.w;
+    g+=(ign(gl_FragCoord.yx*1.37+17.)-.5)*gradeGrain;
+    gl_FragColor.rgb=clamp(g,0.,1.);
+  }
   gl_FragColor.rgb+=(ign(gl_FragCoord.xy+5.588238*floor(mod(time,64.)*30.))-.5)/255.;
 }`;
 
@@ -154,7 +169,8 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
   const down = pass(DOWN_FRAG), glow = pass(GLOW_FRAG), blur = pass(BLUR_FRAG);
   const mat = new T.ShaderMaterial({
     depthTest: false, depthWrite: false,
-    uniforms: { ...shared, tBlur: { value: blurT.texture }, tGlow: { value: glowT.texture }, time: { value: 0 }, split: { value: 1 }, bloom: { value: 1 }, murk: { value: 0 }, murkColor: { value: new T.Color(0x2a3a24) } },
+    uniforms: { ...shared, tBlur: { value: blurT.texture }, tGlow: { value: glowT.texture }, time: { value: 0 }, split: { value: 1 }, bloom: { value: 1 }, murk: { value: 0 }, murkColor: { value: new T.Color(0x2a3a24) },
+      gradeOn: { value: 0 }, grade: { value: new T.Vector4(1, 1, 0, 0) }, gradeTint: { value: new T.Vector3(1, 1, 1) }, gradeShade: { value: new T.Vector3(1, 1, 1) }, gradeGrain: { value: 0 } },
     vertexShader: QUAD_VERT, fragmentShader: FINAL_FRAG,
   });
   const quad = new T.Mesh<T.BufferGeometry, T.Material>(new T.PlaneGeometry(2, 2), mat);
@@ -208,6 +224,15 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
       return Promise.all(jobs);
     },
     setLevel(next) { level = Math.max(0, Math.min(3, Math.round(next))); },
+    setGrade(g) {
+      const u = mat.uniforms;
+      u.gradeOn.value = g && g.on ? 1 : 0;
+      if (!g) return;
+      (u.grade.value as T.Vector4).set(g.saturation, g.contrast, g.fade, g.vignette);
+      (u.gradeTint.value as T.Vector3).set(g.tint[0], g.tint[1], g.tint[2]);
+      (u.gradeShade.value as T.Vector3).set(g.shade[0], g.shade[1], g.shade[2]);
+      u.gradeGrain.value = g.grain;
+    },
     setWater(murk, color) { mat.uniforms.murk.value = Math.max(0, Math.min(1, murk)); (mat.uniforms.murkColor.value as T.Color).copy(color); },
     scale: sceneScale,
     bytes() {

@@ -815,6 +815,32 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-tank-3d.is-full .aqua-replay-note { top: calc(var(--game-safe-top) + 62px); }
 /* 전체 보기는 페이지가 안 움직인다 — pan-y 를 두면 위아래로 끌어 시점을 숙이는 동작을 브라우저가 스크롤로 가져가 취소했다 */
 .aqua-tank-3d.is-full .aqua-webgl canvas { touch-action: none; }
+.aqua-photo-btn { position: absolute; z-index: 6; top: 62px; right: 10px; }
+.aqua-tank-3d.is-full .aqua-photo-btn { top: calc(var(--game-safe-top) + 60px); }
+/* 수조 사진 모드(2026-11-13) — 전체 보기 틀(is-full)에 펼치고 머리 단추 · 안내를 걷는다. 아래 판은 필터 · 확대 · 이름표 · 찍기, 찍으면 카드 미리보기 · 다시 찍기 · 공유하기 */
+.aqua-photo { position: absolute; inset: 0; z-index: 8; pointer-events: none; color: #eaf7f6; }
+.aqua-photo > * { pointer-events: auto; }
+.aqua-photo-exit { position: absolute; top: calc(var(--game-safe-top) + 8px); right: 10px; }
+.aqua-photo-labels { position: absolute; inset: 0; pointer-events: none; }
+.aqua-photo-labels > * { pointer-events: none; }
+.aqua-photo .aqua-photo-labels { pointer-events: none; }
+.aqua-photo-label { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(3,38,51,.74); color: #eaf7f6; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 700; white-space: nowrap; }
+.aqua-photo-guide { position: absolute; top: calc(var(--game-safe-top) + 64px); left: 50%; transform: translateX(-50%); margin: 0; padding: 4px 10px; border-radius: 20px; background: #032633b8; color: #d6eef0; font-size: 12px; font-family: var(--font-micro); line-height: 18px; white-space: nowrap; pointer-events: none; }
+.aqua-photo .aqua-photo-guide { pointer-events: none; }
+.aqua-photo-note { position: absolute; top: calc(var(--game-safe-top) + 100px); left: 14px; right: 14px; margin: 0; padding: 8px 12px; border-radius: 14px; background: #032633e8; color: #e3faf5; font-size: 12px; font-family: var(--font-micro); line-height: 18px; text-align: center; pointer-events: none; }
+.aqua-photo .aqua-photo-note { pointer-events: none; }
+.aqua-photo-panel { position: absolute; left: 10px; right: 10px; bottom: calc(var(--game-safe-bottom, 0px) + 10px); display: grid; gap: 10px; padding: 12px; border: 1px solid #a8c7bd44; border-radius: 18px; background: rgba(3,30,40,.86); }
+.aqua-photo-filters { display: flex; gap: 6px; overflow-x: auto; touch-action: pan-x; scrollbar-width: none; }
+.aqua-photo-chip { flex: none; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #a8c7bd66; background: transparent; color: #eaf7f6; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; white-space: nowrap; }
+.aqua-photo-chip.is-on { background: #fde68a; border-color: #fde68a; color: #3b2f05; }
+.aqua-photo-zoom { display: flex; align-items: center; gap: 10px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
+.aqua-photo-zoom input { flex: 1; min-width: 0; accent-color: #38bdf8; touch-action: pan-x; }
+.aqua-photo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.aqua-photo-row .aqua-btn { min-height: 44px; }
+.aqua-photo-preview { position: absolute; inset: calc(var(--game-safe-top) + 60px) 10px calc(var(--game-safe-bottom, 0px) + 10px); display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; padding: 12px; border-radius: 18px; background: rgba(3,30,40,.92); }
+.aqua-photo-preview img { width: 100%; height: 100%; min-height: 0; object-fit: contain; border-radius: 10px; }
+@media (prefers-reduced-motion: no-preference) { .aqua-photo-preview { animation: aqua-photo-in .2s ease-out both; } }
+@keyframes aqua-photo-in { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 .fish-fever { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; padding: calc(var(--game-safe-top, 0px) + 12px) 14px calc(var(--game-safe-bottom, 0px) + 14px); overflow: hidden; color: #fff; outline: none; background: radial-gradient(circle at 50% 38%, #fb7185 0, #7c2d92 46%, #1e1b4b 100%); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: fish-fever-in .25s ease-out both; }
 /* 위 규칙의 outline: none 은 전역 :focus-visible 링(globals.css, 이 규칙보다 뒤에 있었다)에 졌다 — 이 파일이 전역보다 늦게 실리므로 그 순서를 여기서 되살린다. */
 .fish-fever:focus-visible { outline: 2px solid var(--rose-deep); outline-offset: 2px; }
