@@ -221,6 +221,7 @@ begin
   delete from public.quiz_responses where user_id = p_user;
   delete from public.mood_checkins where user_id = p_user;
   delete from public.habit_checkins where user_id = p_user; -- 같이 하는 습관 체크(개인 기록) [2026-11-13]
+  delete from public.time_capsules where created_by = p_user; -- 타임캡슐 편지(쓴 것) [2026-11-13] — 20261107110000 의 purge 에 있던 줄. 이 정의가 마지막이라 옮긴다
   delete from public.chat_reads where user_id = p_user;
   delete from public.pokes where from_user = p_user;
   delete from public.letters where from_user = p_user; -- 편지 본문도 개인 데이터다 [2026-08-26]

@@ -244,6 +244,8 @@ export async function signOutAccount(): Promise<void> {
   try {
     const { clearSignedUrlCache } = await import("@/lib/couple");
     clearSignedUrlCache();
+    const { clearCapsuleUrlCache } = await import("@/lib/capsuleData"); // 타임캡슐 사진 서명 URL(메모리) — 2026-11-13
+    clearCapsuleUrlCache();
   } catch {
     /* noop */
   }

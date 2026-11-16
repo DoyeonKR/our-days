@@ -44,7 +44,12 @@ function liveStoragePolicies(sql: string): Map<string, string> {
 }
 
 test("★ 최종 storage 정책 = 보기 · 올리기 · 고치기 · 지우기 넷, for all 없음, 전부 to authenticated", () => {
-  const live = liveStoragePolicies(schema);
+  // couple-photos 버킷의 정책만 — 타임캡슐 사진은 따로 둔 버킷(capsule_photos_obj_*, 2026-11-13)이라 timecapsule.test 가 본다
+  const live = new Map([...liveStoragePolicies(schema)].filter(([name]) => !name.startsWith("capsule_photos_obj_")));
+  assert.deepEqual(
+    [...liveStoragePolicies(schema).keys()].filter((n) => n.startsWith("capsule_photos_obj_")).sort(),
+    ["capsule_photos_obj_delete", "capsule_photos_obj_insert", "capsule_photos_obj_select"],
+  );
   assert.deepEqual(
     [...live.keys()].sort(),
     ["couple_photos_obj_delete", "couple_photos_obj_insert", "couple_photos_obj_select", "couple_photos_obj_update"],

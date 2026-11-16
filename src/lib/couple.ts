@@ -1273,7 +1273,7 @@ export type ActivityEvent = {
   id: string;
   couple_id: string;
   actor_user: string;
-  kind: "poke" | "event" | "photo" | "diary" | "log" | "mood" | "answer" | "bucket";
+  kind: "poke" | "event" | "photo" | "diary" | "log" | "mood" | "answer" | "bucket" | "capsule" | "capsule_open";
   entity_id: string | null;
   summary: string | null;
   metadata: { operation?: string };

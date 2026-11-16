@@ -74,7 +74,7 @@ import { AuthOfflineError, getAuthInfo } from "@/lib/auth";
 import { SESSION_LOST_MESSAGE, onSessionLost } from "@/lib/session";
 import TodayTogether, { focusHomeCard } from "@/components/TodayTogether";
 import MemoryTeaser from "@/components/MemoryTeaser";
-import { activityRoute, gameRouteOf, goKindOf, joinGo, splitGo, withFocus, type AppRoute, type HomeFocus } from "@/lib/activity";
+import { activityRoute, focusQuery, gameRouteOf, goKindOf, joinGo, pushUrlFor, splitGo, withFocus, type AppRoute, type HomeFocus } from "@/lib/activity";
 const loadDecoBook = () => import("@/components/DecoBook");
 const DecoBook = dynamic(loadDecoBook, {
   loading: tabLoading,
@@ -168,6 +168,8 @@ const MonthlyRecapPopup = dynamic(() => import("@/components/MonthlyRecapPopup")
 const MemoriesRecap = dynamic(() => import("@/components/MemoriesRecap"), {
   loading: () => <SkeletonList rows={2} />,
 });
+// 기록 › 추억 맨 위 — 타임캡슐 편지(2026-11-13, README §10.26). 그 칸을 열 때만 받는다
+const TimeCapsules = dynamic(() => import("@/components/TimeCapsules"), { ssr: false });
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
@@ -320,6 +322,14 @@ export default function Home() {
   const [diaryComposeReq, setDiaryComposeReq] = useState(0); // 홈 '일기 쓰기' → 작성 창 바로 열기
   const [diaryFocus, setDiaryFocus] = useState<{ id: string; ts: number } | null>(null); // 활동함 · 알림 → 그 일기 카드
   const [photoFocus, setPhotoFocus] = useState<string | null>(null); // 활동함 · 알림 → 그 사진 보기(사진첩이 처리하면 비운다)
+  const [capsuleFocus, setCapsuleFocus] = useState<{ id: string; ts: number } | null>(null); // 활동함 · 알림 → 그 타임캡슐 편지
+  const clearCapsuleFocus = useMemo(() => () => setCapsuleFocus(null), []);
+  // 활동함에 새 타임캡슐 줄(묻음 · 열림)이 오면 추억의 편지함이 다시 읽는다 — 상대가 묻은 봉인 편지는 본문이 안 보이는 행이라
+  // 표 구독으로는 안 온다(README §10.26)
+  const capsuleActivityKey = useMemo(
+    () => inbox.events.find((e) => e.kind === "capsule" || e.kind === "capsule_open")?.id ?? null,
+    [inbox.events],
+  );
   // 알림 · 링크로 들어온 동안은 매달 팝업을 띄우지 않는다(그 자리를 덮었다) — 홈 탭을 다시 누르면 풀린다
   const [recapHold, setRecapHold] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -715,6 +725,46 @@ export default function Home() {
       }
     })();
   }, [mounted, notif, upcoming, dayKey, coupleId]);
+
+  // 타임캡슐 편지가 열리면 받는 사람 기기에 알림 한 번(2026-11-13, README §10.26).
+  // 서버에는 활동함 줄을 푸시로 보내는 함수가 없다(activity-nudge 는 '오늘 남기기'만) — 함수를 고치면 다시 배포해야 해서
+  // 앱이 활동함 줄(capsule_open)을 볼 때 이 기기에서 띄운다. 위 기념일 알림과 달리 푸시 구독이 있어도 띄운다(서버가 같은 알림을 안 보낸다).
+  // 줄마다 한 번(마커 = 최근 알린 줄 id 40개), 하루 넘게 지난 줄은 알리지 않는다(활동함에 남아 있다).
+  useEffect(() => {
+    if (!mounted || notif !== "granted" || typeof Notification === "undefined") return;
+    const fresh = inbox.events.filter(
+      (e) => e.kind === "capsule_open" && e.actor_user !== myUserId && Date.now() - Date.parse(e.created_at) < 86400_000,
+    );
+    if (!fresh.length) return;
+    let done: string[];
+    try {
+      const raw = JSON.parse(localStorage.getItem("ourdays:capsule-notified") ?? "[]");
+      done = Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+    } catch {
+      return;
+    }
+    const todo = fresh.filter((e) => !done.includes(e.id));
+    if (!todo.length) return;
+    safeSet("ourdays:capsule-notified", JSON.stringify([...done, ...todo.map((e) => e.id)].slice(-40)));
+    const e = todo[0];
+    const who = coupleMembers.find((m) => m.user_id === e.actor_user)?.nickname?.trim() || "상대";
+    const title = "타임캡슐 편지가 열렸어요";
+    const opts = {
+      body: todo.length > 1 ? `${who}님이 묻어 둔 편지 ${todo.length}통이 오늘 열렸어요` : `${who}님이 묻어 둔 편지가 오늘 열렸어요`,
+      icon: asset("/icon-192.png"),
+      tag: `capsule-${e.id}`,
+      data: { url: `${pushUrlFor("capsule_open")}${focusQuery(e.entity_id)}` },
+    };
+    void (async () => {
+      try {
+        const reg = await navigator.serviceWorker?.getRegistration();
+        if (reg) await reg.showNotification(title, opts);
+        else new Notification(title, opts);
+      } catch {
+        /* noop — 활동함에 그대로 있다 */
+      }
+    })();
+  }, [mounted, notif, inbox.events, myUserId, coupleMembers]);
 
   // 기념일 소스: 연동되면 커플 공유(couple_events)로 전환(로컬은 1회 이관) + 실시간 동기화.
   // 미연동이면 로컬(localStorage). → 상대가 추가한 기념일이 서로 보이게 됨.
@@ -1122,6 +1172,7 @@ export default function Home() {
     if (route.view === "records") {
       goRecords(route.sub);
       if (route.sub === "photos" && route.focus) setPhotoFocus(route.focus);
+      if (route.sub === "memories" && route.focus) setCapsuleFocus({ id: route.focus, ts: Date.now() });
     }
     else if (route.view === "plan") {
       goPlan(route.sub);
@@ -1495,7 +1546,18 @@ export default function Home() {
               <div hidden={recordView !== "memories"}>
                 <section className="mx-auto max-w-md px-5 pb-28 pt-5">
                   {coupleId ? (
-                    <MemoriesRecap coupleId={coupleId} members={coupleMembers} myUserId={myUserId} onRoute={goRoute} />
+                    <div className="space-y-3">
+                      <TimeCapsules
+                        coupleId={coupleId}
+                        members={coupleMembers}
+                        myUserId={myUserId}
+                        startDate={start}
+                        focusReq={capsuleFocus}
+                        onFocusHandled={clearCapsuleFocus}
+                        refreshKey={capsuleActivityKey}
+                      />
+                      <MemoriesRecap coupleId={coupleId} members={coupleMembers} myUserId={myUserId} onRoute={goRoute} />
+                    </div>
                   ) : (
                     <>
                       <h1 className="sr-only">추억</h1>
