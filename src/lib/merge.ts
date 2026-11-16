@@ -35,7 +35,8 @@ export const SCORE_PER_COIN = 50;
 export const DAILY_COIN_CAP = 400;
 
 export type Dir = "left" | "right" | "up" | "down";
-export type Tile = { id: number; lv: number; fert?: true };
+/** stone: 주간 도전판의 돌 장애물 — 움직이지도 합쳐지지도 않는다(lv 0). 보통 판에는 없다. */
+export type Tile = { id: number; lv: number; fert?: true; stone?: true };
 export type Board = (Tile | null)[];
 
 /** 단계별 식재료 — 단계가 오를수록 **귀하고 보기 힘든 것**. 화면은 이 key 로 MergeArt(벡터 그림)를 그린다.
@@ -84,6 +85,8 @@ export type Game = {
   streak?: number;
   /** 이 판에서 콤보 · 연속으로 더 받은 점수(점수에 이미 들어 있다 — 결과 화면 설명용) */
   bonus?: number;
+  /** 주간 도전판의 규칙(없으면 보통 판 — 장르 표준 그대로). WEEKLY_RULES 참고. */
+  rule?: WeeklyRuleId;
 };
 
 /* ── 콤보 · 연속 보너스 (2026-11-01 [사용자: "콤보일경우 점수를 조금 더 … 연속으로 깰 경우도 점수를 더 … 밸런스 잘 맞춰서"]) ──
@@ -117,18 +120,20 @@ export function rand(state: number): [number, number] {
   return [((t ^ (t >>> 14)) >>> 0) / 4294967296, next];
 }
 
-const idx = (r: number, c: number) => r * SIZE + c;
+/** 판 한 변의 칸 수 — 보통 판은 4, 주간 도전 '큰 판'은 5. 판 길이에서 읽는다(보통 판은 늘 SIZE). */
+export const sideOf = (board: Board) => (board.length === 25 ? 5 : SIZE);
 
-/** 미는 방향의 줄들 — 각 줄은 **미는 쪽 끝부터** 칸 번호를 늘어놓는다. */
-export function lines(dir: Dir): number[][] {
+/** 미는 방향의 줄들 — 각 줄은 **미는 쪽 끝부터** 칸 번호를 늘어놓는다. n 은 판 한 변(기본 4). */
+export function lines(dir: Dir, n: number = SIZE): number[][] {
   const out: number[][] = [];
-  for (let k = 0; k < SIZE; k++) {
+  const idx = (r: number, c: number) => r * n + c;
+  for (let k = 0; k < n; k++) {
     const line: number[] = [];
-    for (let j = 0; j < SIZE; j++) {
+    for (let j = 0; j < n; j++) {
       if (dir === "left") line.push(idx(k, j));
-      else if (dir === "right") line.push(idx(k, SIZE - 1 - j));
+      else if (dir === "right") line.push(idx(k, n - 1 - j));
       else if (dir === "up") line.push(idx(j, k));
-      else line.push(idx(SIZE - 1 - j, k));
+      else line.push(idx(n - 1 - j, k));
     }
     out.push(line);
   }
@@ -137,6 +142,7 @@ export function lines(dir: Dir): number[][] {
 
 /** 두 타일이 합쳐지면 남는 단계(못 합치면 0). 순서 무관. */
 export function mergeLv(a: Tile, b: Tile): number {
+  if (a.stone || b.stone) return 0;
   if (a.fert && b.fert) return 0;
   if (a.fert || b.fert) {
     const crop = a.fert ? b : a;
@@ -156,15 +162,32 @@ export type MoveResult = {
   vanished: Tile[];
 };
 
-/** 밀기 — 새 타일은 안 만든다(spawn 은 따로). */
+/** 밀기 — 새 타일은 안 만든다(spawn 은 따로).
+ *  돌(stone)은 제자리에 남고 줄을 **토막**으로 나눈다 — 타일은 자기 토막 안에서만 미는 쪽 끝(또는 돌 바로 앞)까지 몰린다.
+ *  돌이 없으면 줄 전체가 한 토막이라 장르 표준 그대로다(merge.test). */
 export function slide(board: Board, dir: Dir): MoveResult {
-  const next: Board = Array(SIZE * SIZE).fill(null);
+  const n = sideOf(board);
+  const next: Board = Array(n * n).fill(null);
   const slides: Slide[] = [];
   const merged: number[] = [];
   const vanished: Tile[] = [];
   let gained = 0;
   let moved = false;
-  for (const line of lines(dir)) {
+  const segments: number[][] = [];
+  for (const line of lines(dir, n)) {
+    let seg: number[] = [];
+    for (const i of line) {
+      const t = board[i];
+      if (t?.stone) {
+        next[i] = t;
+        slides.push({ id: t.id, to: i });
+        segments.push(seg);
+        seg = [];
+      } else seg.push(i);
+    }
+    segments.push(seg);
+  }
+  for (const line of segments) {
     const tiles = line.map((i) => board[i]).filter((t): t is Tile => !!t);
     let w = 0;
     for (let i = 0; i < tiles.length; i++) {
@@ -195,13 +218,15 @@ export function slide(board: Board, dir: Dir): MoveResult {
 }
 
 /** 빈 칸 하나에 새 타일 — 칸·종류 모두 시드로. 빈 칸이 없으면 그대로. */
-export function spawn(g: Pick<Game, "board" | "rng" | "nextId" | "moves">): { board: Board; rng: number; nextId: number; born: number | null } {
+export function spawn(g: Pick<Game, "board" | "rng" | "nextId" | "moves" | "rule">): { board: Board; rng: number; nextId: number; born: number | null } {
   const empty = g.board.map((t, i) => (t ? -1 : i)).filter((i) => i >= 0);
   if (!empty.length) return { board: g.board, rng: g.rng, nextId: g.nextId, born: null };
+  const rule = weeklyRule(g.rule);
   let [r, rng] = rand(g.rng);
   const at = empty[Math.floor(r * empty.length)];
   [r, rng] = rand(rng);
-  const fert = g.moves >= FERT_FROM_MOVE && r < FERT_CHANCE;
+  // 난수 세 번의 순서는 보통 판과 같다(이어하기 · 테스트가 같은 판을 낸다) — 주간 규칙은 거름 문턱 · 확률만 바꾼다
+  const fert = g.moves >= (rule?.fertFrom ?? FERT_FROM_MOVE) && r < (rule?.fertChance ?? FERT_CHANCE);
   [r, rng] = rand(rng);
   const tile: Tile = fert ? { id: g.nextId, lv: 0, fert: true } : { id: g.nextId, lv: r < 0.9 ? 1 : 2 };
   const board = g.board.slice();
@@ -210,18 +235,19 @@ export function spawn(g: Pick<Game, "board" | "rng" | "nextId" | "moves">): { bo
 }
 
 export function canMove(board: Board): boolean {
-  for (let r = 0; r < SIZE; r++)
-    for (let c = 0; c < SIZE; c++) {
-      const t = board[idx(r, c)];
+  const n = sideOf(board);
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++) {
+      const t = board[r * n + c];
       if (!t) return true;
-      const right = c + 1 < SIZE ? board[idx(r, c + 1)] : null;
-      const down = r + 1 < SIZE ? board[idx(r + 1, c)] : null;
+      const right = c + 1 < n ? board[r * n + c + 1] : null;
+      const down = r + 1 < n ? board[(r + 1) * n + c] : null;
       if ((right && mergeLv(t, right)) || (down && mergeLv(t, down))) return true;
     }
   return false;
 }
 
-const topOf = (board: Board) => board.reduce((m, t) => (t && !t.fert ? Math.max(m, t.lv) : m), 0);
+const topOf = (board: Board) => board.reduce((m, t) => (t && !t.fert && !t.stone ? Math.max(m, t.lv) : m), 0);
 
 /** 새 판 — 타일 두 개로 시작한다(장르 표준). */
 export function newGame(seed: number): Game {
@@ -250,12 +276,13 @@ export function play(g: Game, dir: Dir): Turn {
   const res = slide(g.board, dir);
   if (!res.moved) return { game: g, result: null, born: null, goalNow: false };
   const moves = g.moves + 1;
-  const s = spawn({ board: res.board, rng: g.rng, nextId: g.nextId, moves });
+  const s = spawn({ board: res.board, rng: g.rng, nextId: g.nextId, moves, rule: g.rule });
   const top = Math.max(g.top, topOf(s.board));
   const goalNow = !g.reachedGoal && top >= GOAL_LV;
   const merges = res.merged.length;
   const streak = merges > 0 ? (g.streak ?? 0) + 1 : 0;
   const bonus = Math.round(res.gained * bonusRate(merges, streak).total);
+  const limit = weeklyRule(g.rule)?.moveLimit ?? 0;
   const game: Game = {
     ...g,
     board: s.board,
@@ -265,7 +292,7 @@ export function play(g: Game, dir: Dir): Turn {
     moves,
     top,
     reachedGoal: g.reachedGoal || goalNow,
-    over: !canMove(s.board),
+    over: !canMove(s.board) || (limit > 0 && moves >= limit),
     streak,
     bonus: (g.bonus ?? 0) + bonus,
   };
@@ -294,6 +321,8 @@ export type MergeRecord = {
   /** 최근 정산한 판 id(SETTLED_KEEP 개) — 같은 판을 두 번 정산하지 않게(2026-11-11 리뷰: 저장 응답 전에 화면을 닫으면
    *  기기 기록에 '정산함'이 안 남아 다음에 열 때 하트 · 최고 기록을 또 줬다). 옵셔널 = 무마이그레이션. */
   settled?: number[];
+  /** 주간 도전판 보상을 받은 주(월요일 'YYYY-MM-DD', 최근 WEEK_PAID_KEEP 개) — 커플마다 주에 한 번. 옵셔널 = 무마이그레이션. */
+  weekPaid?: string[];
 };
 export const SETTLED_KEEP = 40;
 
@@ -380,4 +409,169 @@ export function markStoredFinished(json: string | null, id: number, key: "settle
   } catch {
     return null;
   }
+}
+
+/* ── 주간 도전판 (2026-11-13) [사용자 승인: "합치기 주간 도전판"] ─────────────────────────
+ * 주(KST 월요일 0시 ~ 다음 월요일 0시 전)마다 특별한 판 규칙 하나 — 주 일련번호로 정해져 모두가 같은 주에 같은 규칙을 한다.
+ * 보통 판(위의 장르 표준)은 그대로다 — 규칙은 Game.rule 이 있을 때만 켜지는 **별도 옵션**이다(merge.test 가 보통 판을 잠근다).
+ * 커플 점수 = 그 주 두 사람 각자의 최고 도전 점수의 합. 서버 표는 merge_weekly_runs(전체 순위 merge_runs 와 따로 —
+ * README §14.4.5 '주간 도전판'). ⚠ 규칙 순서 · 상수를 바꾸면 migration 20261107100000_merge_weekly.sql 의 같은 식도 바꾼다(mergeweekly.test). */
+export type WeeklyRuleId = "stones" | "moves" | "preset" | "fert" | "big";
+export type WeeklyRule = {
+  id: WeeklyRuleId;
+  name: string;
+  desc: string;
+  /** 판 한 변 */
+  size: number;
+  /** 돌 장애물 수(시드로 2 ~ stones 개) */
+  stones: number;
+  /** 수 제한(0 = 없음) — 이 수만큼 밀면 판이 끝난다 */
+  moveLimit: number;
+  fertFrom: number;
+  fertChance: number;
+  /** 시작 재료(칸마다 단계, 0 = 빈 칸) — 있으면 무작위 첫 두 타일 대신 이 판으로 시작한다 */
+  preset: readonly number[] | null;
+};
+/** 고정 시작판 — 모두 같은 판에서 출발한다. 가장 높은 재료는 PRESET_TOP(하한 계산이 이 값을 쓴다) */
+export const PRESET_TOP = 4;
+const PRESET_BOARD: readonly number[] = [
+  1, 0, 0, 1,
+  0, 2, 2, 0,
+  0, 0, 0, 0,
+  4, 3, 0, 3,
+];
+/** ⚠ 순서 = 서버 private.merge_week_rule 의 배열 순서(주 일련번호 mod 길이) */
+export const WEEKLY_RULES: readonly WeeklyRule[] = [
+  { id: "stones", name: "돌밭 정원", desc: "움직이지 않는 돌 2~3개가 판에 박혀 있어요. 돌은 밀리지도 합쳐지지도 않아요.", size: 4, stones: 3, moveLimit: 0, fertFrom: FERT_FROM_MOVE, fertChance: FERT_CHANCE, preset: null },
+  { id: "moves", name: "60수 승부", desc: "딱 60번만 밀 수 있어요. 60번째 수에서 판이 끝나요. 황금 거름은 나오지 않아요.", size: 4, stones: 0, moveLimit: 60, fertFrom: 0, fertChance: 0, preset: null },
+  { id: "preset", name: "같은 출발", desc: "모두 같은 재료 배치에서 시작해요. 첫 수부터 실력 차이가 나요.", size: 4, stones: 0, moveLimit: 0, fertFrom: FERT_FROM_MOVE, fertChance: FERT_CHANCE, preset: PRESET_BOARD },
+  { id: "fert", name: "거름 풍년", desc: "황금 거름이 5수째부터 훨씬 자주(12%) 나와요.", size: 4, stones: 0, moveLimit: 0, fertFrom: 5, fertChance: 0.12, preset: null },
+  { id: "big", name: "넓은 밭", desc: "5×5 큰 판이에요. 칸이 넓은 만큼 오래 버틸 수 있어요.", size: 5, stones: 0, moveLimit: 0, fertFrom: FERT_FROM_MOVE, fertChance: FERT_CHANCE, preset: null },
+];
+export function weeklyRule(id: string | null | undefined): WeeklyRule | null {
+  return (id && WEEKLY_RULES.find((r) => r.id === id)) || null;
+}
+
+/** 주 일련번호 — 1970-01-05(월, KST 날짜 일련번호 4)부터 센 주. 서버 private.merge_week_start 와 같은 식(정수 계산뿐). */
+const WEEK_EPOCH_DAY = 4;
+export function weekSerialOf(now: number): number {
+  return Math.floor((Math.floor((now + 9 * 3600_000) / 86400_000) - WEEK_EPOCH_DAY) / 7);
+}
+/** 그 주의 월요일(KST) 'YYYY-MM-DD' — 서버의 week(date) 칸과 같은 값 */
+export function weekStartOf(serial: number): string {
+  return new Date((WEEK_EPOCH_DAY + serial * 7) * 86400_000).toISOString().slice(0, 10);
+}
+/** 'YYYY-MM-DD'(월요일) → 일련번호. 월요일이 아니거나 못 읽으면 null */
+export function weekSerialOfStart(week: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) return null;
+  const t = Date.parse(`${week}T00:00:00Z`);
+  if (!Number.isFinite(t)) return null;
+  const day = t / 86400_000 - WEEK_EPOCH_DAY;
+  return day % 7 === 0 ? day / 7 : null;
+}
+export function weeklyRuleOfSerial(serial: number): WeeklyRule {
+  const n = WEEKLY_RULES.length;
+  return WEEKLY_RULES[((serial % n) + n) % n];
+}
+export type WeekInfo = { serial: number; week: string; rule: WeeklyRule; endsAt: number };
+export function weekOf(now: number): WeekInfo {
+  const serial = weekSerialOf(now);
+  return { serial, week: weekStartOf(serial), rule: weeklyRuleOfSerial(serial), endsAt: (WEEK_EPOCH_DAY + (serial + 1) * 7) * 86400_000 - 9 * 3600_000 };
+}
+
+/** 주간 도전판 새 판 — 돌 · 시작 재료를 놓고(규칙에 따라) 무작위 두 타일로 시작한다(시작 재료가 있으면 그 판 그대로). */
+export function newChallenge(seed: number, ruleId: WeeklyRuleId): Game {
+  const rule = weeklyRule(ruleId) ?? WEEKLY_RULES[0];
+  const n = rule.size;
+  let g: Game = { board: Array(n * n).fill(null), score: 0, moves: 0, rng: seed >>> 0, nextId: 1, over: false, reachedGoal: false, top: 0, rule: rule.id };
+  if (rule.preset) {
+    const board = g.board.slice();
+    let nextId = g.nextId;
+    rule.preset.forEach((lv, i) => {
+      if (lv > 0) board[i] = { id: nextId++, lv };
+    });
+    return { ...g, board, nextId, top: topOf(board) };
+  }
+  if (rule.stones > 0) {
+    let r: number, rng = g.rng;
+    [r, rng] = rand(rng);
+    const count = 2 + Math.floor(r * (rule.stones - 1)); // 2 ~ stones 개
+    const board = g.board.slice();
+    let nextId = g.nextId;
+    for (let k = 0; k < count; k++) {
+      const empty = board.map((t, i) => (t ? -1 : i)).filter((i) => i >= 0);
+      [r, rng] = rand(rng);
+      board[empty[Math.floor(r * empty.length)]] = { id: nextId++, lv: 0, stone: true };
+    }
+    g = { ...g, board, rng, nextId };
+  }
+  for (let k = 0; k < 2; k++) {
+    const s = spawn(g);
+    g = { ...g, board: s.board, rng: s.rng, nextId: s.nextId };
+  }
+  return { ...g, top: topOf(g.board) };
+}
+
+/** 저장분 검증(주간 도전판) — 규칙이 있고 판 크기가 그 규칙과 맞을 때만 */
+export function isChallengeGame(v: unknown): v is Game {
+  if (!v || typeof v !== "object") return false;
+  const g = v as Game;
+  const rule = weeklyRule(g.rule);
+  return !!rule && Array.isArray(g.board) && g.board.length === rule.size * rule.size && typeof g.score === "number" && typeof g.rng === "number" && typeof g.nextId === "number";
+}
+
+/* 도전판 점수의 범위 — 위 scoreCeiling 의 증명을 규칙마다 다시 센다(서버 private.merge_weekly_plausible 이 같은 식):
+ *   · 타일 하나 ≤ (l − 1)·2^l 은 그대로다 — 돌은 합쳐지지 않고(0 점), 시작 재료는 새 타일처럼 0 점으로 놓인다(≤ (l−1)·2^l).
+ *     거름 확률은 증명에 안 들어간다(거름 합치기도 같은 식 이하).
+ *   · 칸 수: 큰 판은 25, 나머지는 16(돌이 칸을 차지하면 더 적다 — 상한은 여전히 맞다). 상한 = 2 · 칸 · (L − 1) · 2^L.
+ *   · 60수: 거름이 없으니 판 위 '질량'(Σ 2^l)은 늘지 않고 새 타일마다 4 이하로만 는다 → Σ 2^l ≤ 4 · (2 + 60) = 248.
+ *     그래서 최고 단계 ≤ 7(2^8 = 256 > 248), 기본 점수 ≤ Σ (l − 1)·2^l ≤ (L − 1) · 248 → 총점 < 2 · (L − 1) · 248.
+ *   · 하한: 새로 놓이는 것보다 높은 단계(보통 3, 같은 출발은 PRESET_TOP + 1 부터)는 합쳐야만 생기므로 2^L 점 이상. */
+export const MOVES_MASS = 4 * (2 + 60);
+export function weeklyTopMax(rule: WeeklyRuleId): number {
+  return rule === "moves" ? Math.floor(Math.log2(MOVES_MASS)) : MAX_LV;
+}
+export function weeklyScoreCeiling(rule: WeeklyRuleId, top: number): number {
+  const r = weeklyRule(rule);
+  if (!r || !Number.isInteger(top) || top < 1 || top > weeklyTopMax(rule)) return 0;
+  const cells = r.size * r.size;
+  let c = Math.min(RANK_SCORE_MAX, 2 * cells * (top - 1) * 2 ** top);
+  if (rule === "moves") c = Math.min(c, 2 * (top - 1) * MOVES_MASS);
+  return c;
+}
+export function weeklyScoreFloor(rule: WeeklyRuleId, top: number): number {
+  const born = rule === "preset" ? PRESET_TOP : 2;
+  return top > born ? 2 ** top : 1;
+}
+
+/* ── 주간 보상 — 끝난 주의 커플 점수로 섬 하트(단계별 · 주당 상한 600 · 커플마다 주에 한 번) ──
+ * ⚠ 앱이 섬 상태(s.merge.weekPaid)에 적는다 — 서버는 점수 · 순위만 낸다(끝난 판 하트처럼 클라이언트가 쓰는 정산이다).
+ *   커플 점수는 서버 merge_weekly_board 가 돌려준 값을 쓰고, 같은 주를 두 번 주지 않게 섬 쪽에 주 id 를 남긴다(버전 잠금 저장). */
+export const WEEKLY_REWARD_CAP = 600;
+/** [커플 점수 이상, 하트] — 높은 것부터 */
+export const WEEKLY_REWARD_TIERS: readonly (readonly [number, number])[] = [
+  [40_000, 600],
+  [20_000, 500],
+  [10_000, 400],
+  [5_000, 300],
+  [2_000, 200],
+  [500, 100],
+  [1, 50],
+];
+export function weeklyReward(coupleScore: number): number {
+  if (!Number.isFinite(coupleScore) || coupleScore <= 0) return 0;
+  const hit = WEEKLY_REWARD_TIERS.find(([min]) => coupleScore >= min);
+  return Math.min(WEEKLY_REWARD_CAP, hit ? hit[1] : 0);
+}
+export const WEEK_PAID_KEEP = 12;
+/** 끝난 주의 보상을 섬에 — 이미 받은 주 · 아직 안 끝난 주 · 점수 없음이면 아무것도 안 바꾼다(같은 참조). 순수. */
+export function settleWeekly(s: IslandState, week: string, coupleScore: number, currentWeek: string): { state: IslandState; coins: number; dup?: boolean } {
+  const m = mergeOf(s);
+  const paid = Array.isArray(m.weekPaid) ? m.weekPaid : [];
+  if (paid.includes(week)) return { state: s, coins: 0, dup: true };
+  if (weekSerialOfStart(week) == null || !(week < currentWeek)) return { state: s, coins: 0 };
+  const coins = weeklyReward(coupleScore);
+  if (coins <= 0) return { state: s, coins: 0 };
+  const rec: MergeRecord = { ...m, weekPaid: [...paid, week].slice(-WEEK_PAID_KEEP) };
+  return { state: { ...s, coins: s.coins + coins, merge: rec }, coins };
 }
