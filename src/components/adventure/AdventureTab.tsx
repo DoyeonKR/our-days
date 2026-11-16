@@ -24,6 +24,8 @@ import { CloseButton } from "@/components/AppButtons";
 import { BallIcon, HpBar, SHAPE_LABEL, XpBar, moveTags } from "@/components/adventure/advui";
 import { enterBattleFullscreen } from "@/lib/battlefull";
 import { josa } from "@/lib/josa";
+// 시즌 미션 — 이 기기 수는 판이 끝난 그 틱에 동기로(가볍다: season · islandsync 만). 섬에 올리는 코드는 동적으로
+import { bumpAdvTally } from "@/lib/seasontally";
 import type { FieldState } from "@/lib/adventurefield";
 
 const { loadAdventure, saveAdventure, StaleSave } = advStore;
@@ -293,12 +295,14 @@ export default function AdventureTab({ myUserId: signedIn, coupleId = null }: { 
   }
 
   /** 시즌 미션(2026-11-13) — 이긴 판 · 대장 관문 · 잡은 생물을 이 기기에 먼저 세고 섬에 올린다(한 판에 한 번 — settle 의 settled 가 막는다).
-   *  섬은 모험 저장과 다른 행이라 따로 올리고, 실패해도 다음 판에 큰 값으로 다시 올린다. 이 탭의 첫 로드에 섬 쪽 코드가 안 실리게 동적 import */
+   *  수는 먼저 이 기기에 동기로 적고(오프라인에서 올리는 코드 조각을 못 받아도 남는다), 섬은 모험 저장과 다른 행이라 따로 올린다 —
+   *  실패해도 다음 판 · 시즌 시트를 열 때 큰 값으로 다시 올린다. 이 탭의 첫 로드에 섬 쪽 코드가 안 실리게 올리기만 동적 import */
   function noteSeason(b: Battle) {
     if (!myUserId || (b.over !== "win" && b.over !== "caught")) return;
     const uid = myUserId;
     const add = b.over === "caught" ? { advCatch: 1 } : { advWin: 1, ...(b.boss ? { advBoss: 1 } : {}) };
-    void import("@/lib/seasonsync").then((m) => m.syncAdvTally(coupleId, uid, m.bumpAdvTally(uid, add))).catch(() => undefined);
+    const tally = bumpAdvTally(uid, add);
+    void import("@/lib/seasonsync").then((m) => m.syncAdvTally(coupleId, uid, tally)).catch(() => undefined);
   }
 
   function endBattle(b: Battle, bag: Bag) {

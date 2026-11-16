@@ -28,7 +28,7 @@ import { islandSnapshot, refreshIsland, useIslandStore } from "@/lib/islandstore
 import { gameNow } from "@/lib/islandsync";
 // 시즌 미션(2026-11-13) — 카드는 가벼운 읽기만(lib/season 은 kst 하나만 부른다). 시트 · 보상 코드는 열 때 받는다
 import { TIERS, seasonBoard, titleText } from "@/lib/season";
-import { readAdvTally } from "@/lib/seasonsync";
+import { readAdvTally } from "@/lib/seasontally";
 import {
   islandRating,
   islandSummary,

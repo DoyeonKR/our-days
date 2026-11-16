@@ -15,7 +15,8 @@ import { decorOf } from "@/lib/aquarium";
 import type { IslandState } from "@/lib/island";
 import { GAME_NAME, GAME_ORDER, seasonBoard, seasonDecorFor, titleText, type TierReward } from "@/lib/season";
 import { claimSeason } from "@/lib/seasonclaim";
-import { readAdvTally, syncAdvTally } from "@/lib/seasonsync";
+import { syncAdvTally } from "@/lib/seasonsync";
+import { readAdvTally } from "@/lib/seasontally";
 
 function rewardName(r: TierReward, month: string): string {
   if (r === "decor") return `수조 장식 · ${decorOf(seasonDecorFor(month))?.name ?? "장식"}`;
@@ -51,6 +52,8 @@ export default function SeasonSheet({ coupleId, myUserId, state, onClose }: {
     setBusy(tier);
     setMsg(null);
     try {
+      // 이 기기에서 센 모험 수를 먼저 섬에 올린다 — 카드는 그 몫을 겹쳐 '받기'를 보이는데 받기 판정은 섬 상태만 본다
+      await syncAdvTally(coupleId, uid);
       let lost: { mark: string; note: string } | null = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         const cached = attempt === 0 ? islandSnapshot(coupleId).row : null;

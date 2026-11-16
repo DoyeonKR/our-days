@@ -357,8 +357,9 @@ export function settleGame(s: IslandState, who: string, score: number, top: numb
     dayCoins: used + coins,
     ...(gameId != null ? { settled: [...(m.settled ?? []), gameId].slice(-SETTLED_KEEP) } : {}),
   };
-  // 시즌 미션 — 끝낸 판 하나 · 이번 달 최고 점수 · 단계(같은 판을 두 번 정산하면 위의 dup 에서 멈춘다)
-  const state = seasonAdd({ ...s, coins: s.coins + coins, merge: rec }, today, { mergeGames: 1 }, { max: { mergeScore: score, mergeTop: top } });
+  // 시즌 미션 — 끝낸 판 하나 · 이번 달 최고 점수 · 단계(같은 판을 두 번 정산하면 위의 dup 에서 멈춘다).
+  // 0점 판은 판 수에 안 넣는다 — 판 중간의 '새 게임'으로 빈 판을 끝내 '5판'을 채우지 못하게
+  const state = seasonAdd({ ...s, coins: s.coins + coins, merge: rec }, today, { mergeGames: score > 0 ? 1 : 0 }, { max: { mergeScore: score, mergeTop: top } });
   return { state, coins, newBest };
 }
 
