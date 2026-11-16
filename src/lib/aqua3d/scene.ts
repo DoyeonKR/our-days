@@ -595,16 +595,16 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const hk=evFx.includes("heat")&&habitat?moteKey:"";
     if(heat&&heatKey!==hk){heat.points.removeFromParent();heat.points.geometry.dispose();(heat.points.material as T.Material).dispose();heat=null;heatKey="";}
     if(!heat&&hk){const hall=motion.hall,hx=4.2*wide,hz=Math.max(.6,3*deep-.9);
-      heat=bubbleStream({count:64,origin:i=>{let x=(((i*.618034)%1)*2-1)*hx,z=(((i*.414214+.13)%1)*2-1)*hz;
+      heat=bubbleStream({count:80,origin:i=>{let x=(((i*.618034)%1)*2-1)*hx,z=(((i*.414214+.13)%1)*2-1)*hz;
         if(hall&&hall.kind!=="tunnel"){const r=Math.hypot(x,z);if(r<hall.r+.4){const k=(hall.r+.4)/Math.max(.01,r);x*=k;z*=k;}}return[x,z] as const;},
-        bottom:WORLD.floor+.25,top:tallY(4.75,tall),size:[.05,.13],speed:[.45,1.05],seed:11,opacity:.5});
+        bottom:WORLD.floor+.25,top:tallY(4.75,tall),size:[.1,.22],speed:[.45,1.05],seed:11,opacity:.6});
       heatKey=hk;scene.add(heat.points);}
     const holiday=evKeys.map(k=>eventDef(k)).find(d=>d?.fx==="glow");
     const gk=holiday&&habitat?holiday.key:"";
     if(glow&&glowKey!==gk){glow.dispose();glow=null;glowKey="";}
     if(!glow&&gk&&holiday){glow=makeDecorGlow([holiday.decor.glow??holiday.decor.tint,holiday.decor.tint]);glowKey=gk;scene.add(glow.points);}
-    if(glow){const spots:[number,number,number,number][]=[];for(const d of decorations.values()){const s=d.root.scale.x;spots.push([d.root.position.x,d.root.position.y+.55*s,d.root.position.z,2.4*s]);}glow.setSpots(spots);}
-    if(evFx.includes("frost")){waterTopC.lerp(ICE,.4);waterTheme.lerp(ICE,.1);}
+    if(glow){const spots:[number,number,number,number][]=[];for(const d of decorations.values()){const s=d.root.scale.x;spots.push([d.root.position.x,d.root.position.y+.9*s,d.root.position.z,5*s]);}glow.setSpots(spots);}
+    if(evFx.includes("frost")){waterTopC.lerp(ICE,.45);waterTheme.lerp(ICE,.16);}
     // 물을 갈았다(물 값이 오른다) — 여기선 목표만 두고 draw 가 2~3초에 걸쳐 따라간다. 처음 · 수조가 바뀜 · 더러워지는 쪽 · 움직임 줄이기 · 멈춘 그리기는 바로
     const wGoal=clamp(next.aquarium.water,0,100);
     if(waterShown<0||rescaled||reduced.matches||!active||wGoal<=waterShown)waterShown=wGoal;
@@ -903,7 +903,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
       host.dataset.postBytes=String(postNow.bytes());host.dataset.postLevel=String(postLevel);host.dataset.programs=String(renderer.info.programs?.length??0);
-      host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.meal=meal?`${meal.predId}>${meal.ghostId}:${meal.bitesDone}${meal.t0<0?":wait":""}`:"";host.dataset.mealSeen=String(mealSeen);host.dataset.follow=followPick?JSON.stringify(followPick)+" cam "+camera.position.toArray().map(n=>n.toFixed(1)).join(",")+" look "+focusLook.toArray().map(n=>n.toFixed(1)).join(",")+" nb"+mealBlockers.length:"";host.dataset.shot=meal&&mealPredS&&mealGhost?[mealPredS.root.position,mealGhost.root.position,camera.position].map(v=>v.toArray().map(n=>n.toFixed(2)).join(",")).join(" | ")+" pick "+JSON.stringify(meal.camPick)+" n"+mealBlockers.length:"";host.dataset.jaw=meal?.jaw?String(meal.jaw.count):"-";host.dataset.remains=String(remains.length);host.dataset.textures=String(renderer.info.memory.textures);
+      host.dataset.time=elapsed.toFixed(2);host.dataset.season=[seasonLayer?.kind??"",heat?"heat":"",glow?`glow:${glow.points.geometry.drawRange.count}`:""].filter(Boolean).join(",");host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.meal=meal?`${meal.predId}>${meal.ghostId}:${meal.bitesDone}${meal.t0<0?":wait":""}`:"";host.dataset.mealSeen=String(mealSeen);host.dataset.follow=followPick?JSON.stringify(followPick)+" cam "+camera.position.toArray().map(n=>n.toFixed(1)).join(",")+" look "+focusLook.toArray().map(n=>n.toFixed(1)).join(",")+" nb"+mealBlockers.length:"";host.dataset.shot=meal&&mealPredS&&mealGhost?[mealPredS.root.position,mealGhost.root.position,camera.position].map(v=>v.toArray().map(n=>n.toFixed(2)).join(",")).join(" | ")+" pick "+JSON.stringify(meal.camPick)+" n"+mealBlockers.length:"";host.dataset.jaw=meal?.jaw?String(meal.jaw.count):"-";host.dataset.remains=String(remains.length);host.dataset.textures=String(renderer.info.memory.textures);
     }
   }
   // 개발 전용: 창이 숨겨져 rAF 가 멈춰도 시간을 흘려 움직임을 확인한다(host.__aquaStep(초)) — 배포 빌드엔 없다

@@ -22,14 +22,14 @@ void main(){vec3 p=position;float t=aquaTime;float s=aSeed;float size=.1;vSeed=s
 float leaf=float(KIND==2);
 float per=mix(34.,46.,h1(s*3.1))+leaf*10.;
 float cyc=fract(t/per+s);
-float sinks=step(mix(.55,.35,leaf),h1(s*7.7));
+float sinks=step(mix(.55,.62,leaf),h1(s*7.7));
 float depth=sinks*cyc*cyc*(uTop-uBottom)*mix(.55,.8,leaf);
 p.y=uTop-.05-depth+sin(t*1.3+s*40.)*.015;
 p.x+=sin(t*.19+s*40.)*.55+sin(t*.07+s*9.)*.35;
 p.z+=cos(t*.15+s*23.)*.4;
 p.x+=sinks*sin(t*.9+s*12.)*.25*cyc;
 vA=smoothstep(0.,.06,cyc)*(1.-sinks*smoothstep(.75,1.,cyc));
-size=mix(.17,.26,h1(s*5.3))*(1.+leaf*.7);
+size=mix(.28,.4,h1(s*5.3))*(1.+leaf*.4);
 vPhase=t*mix(.2,.9,h1(s*2.2))*(.3+sinks)+s*6.283;
 #elif KIND==1
 float per=1.7+h1(s*13.)*1.6;float k=t/per+s;float cyc=fract(k);float n=floor(k);
@@ -38,8 +38,8 @@ vPhase=cyc;vA=(1.-cyc)*smoothstep(0.,.08,cyc);
 size=.25+1.1*cyc;
 #else
 p.y=uTop-.04-h1(s*17.)*.45;
-vA=.25+.45*pow(.5+.5*sin(t*(.6+h1(s*3.)*.9)+s*30.),3.);
-size=mix(.05,.12,h1(s*11.));
+vA=.4+.6*pow(.5+.5*sin(t*(.6+h1(s*3.)*.9)+s*30.),3.);
+size=mix(.12,.24,h1(s*11.));
 #endif
 vec4 mvPosition=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mvPosition;
 vA*=smoothstep(.3,1.4,-mvPosition.z);
@@ -79,7 +79,7 @@ gl_FragColor=vec4(col,a);
 const COLORS: Readonly<Record<SurfaceFx, readonly number[]>> = {
   petal: [0xffe4ec, 0xf59ab5],
   rain: [0xd8f1ff],
-  leaf: [0xe8572a, 0xf2a03a, 0xc93a2c],
+  leaf: [0xf29a3a, 0xe8662a, 0xf2c94c],
   frost: [0xcfefff, 0xffffff],
 };
 
@@ -120,13 +120,13 @@ export function makeSurfaceFx(kind: SurfaceFx, box: SurfaceBox, skip?: (x: numbe
 /* ── 명절 장식 빛 — 놓인 장식마다 부드러운 빛무리 하나 + 반짝임 ── */
 export const GLOW_MAX = 32;
 export const GLOW_VERT = `uniform float aquaTime;uniform float aquaPointScale;attribute float aSize;attribute float aSeed;varying float vA;varying float vSeed;
-void main(){float t=aquaTime;vSeed=aSeed;vA=.55+.45*sin(t*1.4+aSeed*20.);
+void main(){float t=aquaTime;vSeed=aSeed;vA=.8+.2*sin(t*1.4+aSeed*20.);
 vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;
 gl_PointSize=aSize>0.?max(2.,aSize*aquaPointScale/max(.1,-mv.z)):0.;}`;
 export const GLOW_FRAG = `uniform vec3 uColorA;uniform vec3 uColorB;varying float vA;varying float vSeed;
 void main(){vec2 d=gl_PointCoord-.5;float r=length(d)*2.;if(r>1.)discard;
-float halo=exp(-r*r*3.2)*.55;float pick=step(.5,fract(vSeed*3.7));vec3 col=mix(uColorA,uColorB,pick);
-gl_FragColor=vec4(col*(halo*vA),halo*vA);}`;
+float halo=exp(-r*r*2.4)*.9+exp(-r*r*18.)*.6;float pick=step(.5,fract(vSeed*3.7));vec3 col=mix(uColorA,uColorB,pick);
+gl_FragColor=vec4(col,halo*clamp(vA,.6,1.));}`;
 export type DecorGlow = { points: T.Points; setSpots: (spots: readonly (readonly [number, number, number, number])[]) => void; dispose: () => void };
 /** colors — 명절 빛깔 둘(행사 표의 tint · glow) */
 export function makeDecorGlow(colors: readonly [number, number]): DecorGlow {
@@ -140,7 +140,8 @@ export function makeDecorGlow(colors: readonly [number, number]): DecorGlow {
     uniforms: { aquaTime: WATER_LIGHT.aquaTime, aquaPointScale: WATER_LIGHT.aquaPointScale, uColorA: { value: new T.Color(colors[0]) }, uColorB: { value: new T.Color(colors[1]) } },
     vertexShader: GLOW_VERT, fragmentShader: GLOW_FRAG });
   const points = new T.Points(geometry, material);
-  points.name = "season-glow"; points.frustumCulled = false; points.raycast = () => {}; points.renderOrder = 3;
+  // 투명한 것들 가운데 맨 마지막(빛줄기 3 · 해파리 갓 4 뒤) — 먼저 그리면 뒤에 그리는 큰 투명 면이 빛무리를 덮었다(장식에 가린 몫만 남았다)
+  points.name = "season-glow"; points.frustumCulled = false; points.raycast = () => {}; points.renderOrder = 5;
   return {
     points,
     setSpots(spots) {
