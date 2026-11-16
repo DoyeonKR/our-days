@@ -24,6 +24,8 @@ import {
   monthCountsLine,
   monthsBack,
   relationshipMilestones,
+  shouldAutoLoad,
+  AUTO_EMPTY_PAGES,
   yearMonths,
   yearSummary,
   type ChronicleItem,
@@ -57,6 +59,17 @@ test("달 묶기 — 최신 달부터, 빈 달은 만들지 않고, 쪽을 넘�
   assert.deepEqual(joined.map((m) => m.monthKey), ["2026-03", "2026-01", "2025-12"]);
   assert.deepEqual(joined[1].items.map((i) => i.key), ["a", "d", "c"]);
   assert.deepEqual(itemsInMonths([item("x", "2026-02-01"), item("y", "2026-04-01")], ["2026-02"]).map((i) => i.key), ["x"]);
+});
+
+test("저절로 받기 — 빈 쪽이 이어지면 멈추고 버튼으로만(기록 없는 긴 세월을 손대지 않고 훑지 않는다)", () => {
+  assert.equal(shouldAutoLoad(0), true);
+  assert.equal(shouldAutoLoad(AUTO_EMPTY_PAGES - 1), true);
+  assert.equal(shouldAutoLoad(AUTO_EMPTY_PAGES), false);
+  const ui = read("components/OurChronicle.tsx");
+  assert.match(ui, /!shouldAutoLoad\(emptyStreak\)\) return;/, "센티널이 빈 쪽 수를 본다");
+  assert.match(ui, /setEmptyStreak\(\(n\) => \(got\.items\.length \? 0 : n \+ 1\)\)/);
+  assert.match(ui, /onClick=\{\(\) => void loadMore\(true\)\}/, "버튼은 계속 받는다");
+  assert.doesNotMatch(read("lib/chronicledata.ts"), /floorMonth\([^)]*events/, "바닥 달에 일정 날짜(생일의 태어난 해)를 넣지 않는다");
 });
 
 test("쪽 넘기기 — 바닥 달 아래로 안 가고, 바닥은 아는 가장 이른 날(최대 MAX_MONTHS_BACK 달)", () => {
@@ -151,10 +164,12 @@ const SAMPLE: IslandSlice & Record<string, unknown> = {
   merge: { best: { me: 4096 }, top: { me: 11 } },
 };
 
-test("주인 — 한 번 잡았으면 그날, 여러 번이면 '이 날 이전'(다시 나오기까지 7일), last 가 없으면 until 로 경계, 그 밖은 싣지 않는다", () => {
+test("주인 — 한 번 잡았으면 그날, 여러 번이면 '마지막 토벌 날 이전'(늘 참인 경계만), last 가 없으면 until − 7, 그 밖은 싣지 않는다", () => {
   assert.deepEqual(bossFirstDefeat({ caught: 1, last: { day: "2026-11-05", by: "me", dmg: {} } }), { date: "2026-11-05" });
-  assert.deepEqual(bossFirstDefeat({ caught: 3, last: { day: "2026-11-10", by: "me", dmg: {} } }), { date: "2026-10-27", approx: "before" });
-  assert.deepEqual(bossFirstDefeat({ caught: 2, until: "2026-11-15" }), { date: "2026-11-01", approx: "before" });
+  // 동시 토벌 · 날짜 되돌리기로 잡은 수가 하루에 여럿 오른 저장이 있다 — 7 × (잡은 수 − 1) 을 빼면 거짓 경계가 된다
+  assert.deepEqual(bossFirstDefeat({ caught: 3, last: { day: "2026-11-10", by: "me", dmg: {} } }), { date: "2026-11-10", approx: "before" });
+  assert.deepEqual(bossFirstDefeat({ caught: 2, until: "2026-11-15" }), { date: "2026-11-08", approx: "before" });
+  assert.deepEqual(bossFirstDefeat({ caught: 1, until: "2026-11-15" }), { date: "2026-11-08", approx: "before" }, "until − 7 = 마지막 토벌 때의 at(그날 이후) — 정확한 날이 아니다");
   assert.equal(bossFirstDefeat({ caught: 1, until: "" }), null, "날짜도 경계도 없다");
   assert.equal(bossFirstDefeat({ caught: 0, last: { day: "2026-11-05", by: "me", dmg: {} } }), null);
   assert.equal(bossFirstDefeat(undefined), null);
@@ -169,16 +184,20 @@ test("섬 상태 → 게임 순간 — 날짜가 있는 주인 · 펫 진화만,
   assert.equal(by["boss:dolsoe"].approx, undefined);
   assert.equal(by["boss:neuti"].approx, "before");
   assert.equal(by["boss:neuti"].sub, "지금까지 3번 토벌");
-  assert.match(by["boss:dolsoe_awake"].title, /각성한 돌쇠/);
+  assert.equal(by["boss:dolsoe"].title, "돌쇠를 처음 잡았어요", "조사는 받침에 맞춘다(을(를) 금지)");
+  assert.equal(by["boss:neuti"].title, "느티나무 잉어를 처음 잡았어요");
+  assert.match(by["boss:dolsoe_awake"].title, /^각성한 돌쇠를/);
+  assert.equal(by["boss:hongryeon"].date, "2026-11-08");
   const pet = got.find((i) => i.kind === "pet")!;
   assert.equal(pet.date, "2026-11-10", "소식 시각은 KST 날짜로(UTC 16:30 = 다음 날 01:30)");
-  assert.equal(pet.title, "펫이 아기 토끼(으)로 진화했어요");
+  assert.equal(pet.title, "펫이 아기 토끼로 진화했어요");
+  for (const it of got) assert.doesNotMatch(it.title, /\(으\)|\(를\)|\(가\)/, "괄호 조사 없음");
   assert.equal(pet.sub, "상대의 돌봄으로");
   assert.deepEqual(pet.route, { view: "game", open: "island" });
   for (const it of got) assert.match(it.date, /^\d{4}-\d{2}-\d{2}$/);
   assert.deepEqual(gameMilestones(null, name), []);
   assert.deepEqual(gameMilestones({ fishing: null, feed: "x" } as IslandSlice, name), [], "모양이 어긋나도 던지지 않는다");
-  assert.equal(chronicleDateLabel(by["boss:neuti"]), "10월 27일 이전");
+  assert.equal(chronicleDateLabel(by["boss:neuti"]), "11월 10일 이전");
 });
 
 test("진화 소식 줄 — 섬 엔진의 pushLog 문구와 맞는다", () => {
@@ -195,7 +214,7 @@ const recap = (monthKey: string, total: number) => ({ monthKey, diaries: 1, phot
 
 test("올해의 우리 — 숫자 합 · 있는 것만 말한다(최대 넷)", () => {
   const rel = relationshipMilestones("2024-02-29", "2026-01", "2026-12", "2026-11-13");
-  const fish = item("fish:5", "2026-11-03", { kind: "fish", title: "처음 낚은 전설 물고기" });
+  const fish = item("fish:5", "2026-11-03", { kind: "fish", title: "내가 처음 낚은 전설 물고기" });
   const s = yearSummary({ year: 2026, months: [recap("2026-01", 6), recap("2026-05", 42), recap("2026-07", 42)], events: 7, relationship: rel, bucketsDone: 2, firstFish: fish });
   assert.equal(s.diaries, 3);
   assert.equal(s.photos, 6);

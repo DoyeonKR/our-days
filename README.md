@@ -1142,13 +1142,13 @@ commit;
 | 달 머리 숫자 | `memory_month_stats`(`getMonthRecap`) | 한 쪽에 달 수만큼 |
 | 기념일 | `couple_events` 중 기념일로 표시한 것(`isAnniversary`) · 그 달 회차(`eventDaysInMonth` — 건너뛴 회차 제외) | 처음 한 번 목록을 받는다(`listCoupleEvents`) |
 | 이룬 버킷 | `couple_bucket.done_at`(KST 경계) | 한 쪽에 `BUCKET_CAP` 30 |
-| 주인 토벌 | 섬 `fishing.bosses` · `fishPlus.awake` 의 `last.day` | 한 번 잡았으면 그날. 여러 번이면 '이 날 이전'(다시 나오기까지 7일 → 마지막 토벌 − 7 × (잡은 수 − 1)). `last` 가 없으면 `until − 7 × 잡은 수`. 그 밖은 싣지 않는다 |
+| 주인 토벌 | 섬 `fishing.bosses` · `fishPlus.awake` 의 `last.day` | 한 번 잡았으면 그날. 여러 번이면 '마지막 토벌 날 이전'(경계만). ⚠ 다시 나오기까지 7일로 더 당기지 않는다 — 동시 토벌(§10.24 전)이나 날짜 되돌리기(§10.25 전)로 잡은 수가 하루에 여럿 오른 저장이 있어 거짓 날이 된다. `last` 가 없으면 `until − 7`(이전). 그 밖은 싣지 않는다 |
 | 펫 진화 | 섬 소식 `feed` 의 진화 줄(`EVOLVE_LINE` — island.ts evolve() 문구와 테스트가 맞춰 본다) | 최근 30줄 안에 남은 것만 |
-| 처음 낚은 전설 · 신화 · 태초 | `fish_catches`(등급마다 `limit 1`) | **본인 행만 보인다**(RLS) → '내 기록'. 표가 2026-11-02 부터 쌓였다 |
+| 처음 낚은 전설 · 신화 · 태초 | `fish_catches`(등급마다 `limit 1`) | **본인 행만 보인다**(RLS) → '내가 처음 낚은 …'(두 사람이 서로 다른 줄을 본다). 표가 2026-11-02 부터 쌓였다 |
 | 합치기 최고 기록 | `merge_scores.best_at` | 본인 행만 |
 | 올해의 우리 | 그 해 달마다 `memory_month_stats`(많아야 12번 — 펼칠 때만) · 일정 회차 수(`eventsHeldInYear`, 오늘까지) · 이룬 버킷 수(count head) · 우리 사이 · 그 해에 처음 낚은 전설 | 기억할 순간은 있는 것만 · 최대 넷 |
 
-- **한 쪽 = 석 달**(`MONTHS_PER_PAGE`): 달 숫자 3 + 첫 기록 많아야 9 + 버킷 1. 맨 아래에 닿으면 다음 쪽(`observeInPage` — iOS 는 main 이 스크롤), '더 지난 달 보기' 버튼도 있다. 바닥 달 = 시작일 · 커플 만든 날 · 가장 이른 사진(찍은 날) · 가장 이른 일기 · 일정 날짜 중 가장 이른 달, 오늘에서 240달 위로는 안 간다. 빈 달은 머리를 안 만든다.
+- **한 쪽 = 석 달**(`MONTHS_PER_PAGE`): 달 숫자 3 + 첫 기록 많아야 9 + 버킷 1. 맨 아래에 닿으면 다음 쪽(`observeInPage` — iOS 는 main 이 스크롤), 빈 쪽이 둘 이어지면(`AUTO_EMPTY_PAGES`) 저절로 받기를 멈추고 '더 지난 달 보기' 버튼으로만 간다. 바닥 달 = 시작일 · 커플 만든 날 · 가장 이른 사진(찍은 날) · 가장 이른 일기 중 가장 이른 달, 오늘에서 240달 위로는 안 간다. 일정 날짜는 바닥에 안 넣는다(태어난 해로 넣은 생일 하나가 바닥을 수십 년 끌어내린다) — 그래서 바닥보다 앞선 기념일 회차는 안 보인다. 빈 달은 머리를 안 만든다.
 - **누르면 그 기록으로** — `AppRoute`(활동함 · 알림과 같은 표): 일기 · 사진 · 기념일은 카드까지(focus), 로그 · 버킷은 그 화면, 우리 사이는 달력, 게임은 낚시 · 합치기 · 섬 창. page 가 `goRoute` 를 `MemoriesRecap` → `OurChronicle` 로 넘긴다.
 - **첫 로드**: `OurChronicle`(+ `lib/chronicle` · `lib/chronicledata` · 게임 표 `fishingworld`)은 '연대기 펼치기'를 누를 때 받는다(next/dynamic). 카드 그리기(`lib/yearcard`)는 '카드로 공유'를 누를 때. 섬 엔진(`lib/island`)은 안 부른다 — 저장된 칸만 읽고, 섬은 `getIsland`(읽기만 — `loadIsland` 는 솔로 섬을 올릴 수 있다).
 - **공유 카드**: 1080×1350 · 세로 배치는 `YEAR_LAYOUT` 한 곳(테스트가 숫자 칸 · 순간 줄 · 맺음말 겹침을 잰다) · 순간 한 줄은 30자에서 자르고 그릴 때 폭으로 한 번 더. 공유는 월간 카드와 같은 `shareOrDownload`(앱 → 네이티브 공유 시트 · 웹 → Web Share · 거절되면 내려받기) — 제목 인자를 더했다(기본값 "우리의 한 달" 그대로).

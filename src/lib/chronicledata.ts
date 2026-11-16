@@ -4,7 +4,7 @@
  *   · 달 숫자: memory_month_stats(getMonthRecap) — 0 인 종류는 첫 기록을 묻지 않는다.
  *   · 첫 일기 · 첫 사진 · 첫 로그: deco_entries · couple_photos(shot_at, 휴지통 제외) · couple_logs 를 그 달 범위 · 오름차순 · limit 1.
  *   · 이룬 버킷: couple_bucket.done_at 이 이 쪽 범위 · 최신 순 · limit BUCKET_CAP.
- *   · 처음 한 번(맥락): couples.start_date · created_at, 가장 이른 사진 · 일기 1행씩(바닥 달), couple_events(기념일 · 일정 수),
+ *   · 처음 한 번(맥락): couples.start_date · created_at, 가장 이른 사진 · 일기 1행씩(바닥 달 — 일정 날짜는 안 넣는다), couple_events(기념일 · 일정 수),
  *     couple_island.state(주인 · 펫 소식 — getIsland 는 읽기만 한다), fish_catches(전설 이상 · 등급마다 1행, 본인 행만 보인다),
  *     merge_scores(본인 최고 기록). 게임 쪽은 실패해도 연대기를 막지 않는다(빈 목록).
  * 썸네일만 싣는다(thumb_paths · thumb_path · poster_path) — 서명은 signedPhotoUrls(캐시)로 한 쪽에 한 번. */
@@ -68,8 +68,8 @@ export async function loadChronicleContext(coupleId: string, todayIso: string, n
   const row = (couple.data ?? null) as { start_date: string | null; created_at: string } | null;
   const startDate = row?.start_date ?? null;
   const diaryDay = ((firstDiary.data ?? []) as { entry_date: string }[])[0]?.entry_date ?? null;
-  const annivDays = events.map((e) => e.date);
-  const floor = floorMonth(todayIso, [startDate, row?.created_at ? dateInTimezone(row.created_at) : null, diaryDay, firstPhoto, ...annivDays]);
+  // 바닥 달 — 일정 날짜는 넣지 않는다(생일을 태어난 해로 넣은 일정 하나가 바닥을 수십 년 끌어내렸다)
+  const floor = floorMonth(todayIso, [startDate, row?.created_at ? dateInTimezone(row.created_at) : null, diaryDay, firstPhoto]);
   const [game, fish, merge] = await Promise.all([gameItems(coupleId, nameOf), firstFishItems(), mergeBest()]);
   const rel = relationshipMilestones(startDate, floor, todayIso.slice(0, 7), todayIso);
   return { startDate, floor, events, known: mergeChronicle(rel, game, fish, merge), fish };

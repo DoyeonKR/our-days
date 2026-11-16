@@ -9,7 +9,7 @@
  *   · 기념일로 표시한 일정(couple_events.category = anniversary) — 그 달의 회차(건너뛴 회차는 빼고).
  *   · 이룬 버킷(done_at).
  *   · 게임 — 저장에 날짜가 **있는 것만**:
- *       주인 토벌(BossRecord.last.day — 한 번 잡았으면 그날, 여러 번이면 '첫 토벌은 이 날 이전'으로 위 경계만),
+ *       주인 토벌(BossRecord.last.day — 한 번 잡았으면 그날, 여러 번이면 '첫 토벌은 마지막 토벌 날 이전'으로 위 경계만),
  *       처음 낚은 전설 · 신화 · 태초(fish_catches.created_at — 표의 RLS 가 본인 행만 보여 준다: '내가'),
  *       합치기 최고 기록(merge_scores.best_at — 본인),
  *       펫 진화(섬 소식 s.feed 의 진화 줄 — 최근 30줄 안에 남은 것만).
@@ -20,6 +20,7 @@ import type { CoupleEvent } from "./dday.ts";
 import type { MonthlyRecap } from "./memories.ts";
 import { anniversaryDate, dayCountToDate, eventDaysInMonth, isAnniversary, parseDate, toISODate } from "./dday.ts";
 import { shiftedMonthKey } from "./memories.ts";
+import { josa } from "./josa.ts";
 import { BOSS_RETURN_DAYS, addDays, bossOf, type BossRecord } from "./fishingworld.ts";
 
 /** components/Icon 의 이름 중 연대기가 쓰는 것(값은 Icon 이 그린다 — UI 크롬에 이모지 없음) */
@@ -77,6 +78,13 @@ export function monthsBack(from: string, count: number, floor: string): string[]
 }
 
 /** 거슬러 올라갈 바닥 달 — 알고 있는 가장 이른 날의 달. 아무것도 모르면 오늘 달. 오늘에서 MAX_MONTHS_BACK 달 위로는 안 간다. */
+/** 맨 아래가 보여도 저절로 다음 쪽을 받는 것은 빈 쪽이 이만큼 이어질 때까지 — 그 뒤는 '더 지난 달 보기' 버튼으로만.
+ *  (기록 없는 달이 길게 이어지면 센티널이 계속 보여 손대지 않아도 쪽을 이어 받았다.) */
+export const AUTO_EMPTY_PAGES = 2;
+export function shouldAutoLoad(emptyStreak: number): boolean {
+  return emptyStreak < AUTO_EMPTY_PAGES;
+}
+
 export function floorMonth(todayIso: string, dates: readonly (string | null | undefined)[]): string {
   const known = dates.filter((d): d is string => !!d && ISO_DAY.test(d.slice(0, 10))).map((d) => d.slice(0, 7));
   const earliest = known.length ? known.reduce((a, b) => (a < b ? a : b)) : monthOf(todayIso);
@@ -203,15 +211,17 @@ export type IslandSlice = {
 
 /** 주인 하나의 토벌 — 날짜가 있거나 위 경계를 아는 것만. 첫 토벌을 말한다.
  *  · 한 번 잡았고 last.day 가 있다 → 그날(정확).
- *  · 여러 번 잡았다 → 잡은 뒤 BOSS_RETURN_DAYS 일 동안은 다시 못 싸우니 첫 토벌 ≤ 마지막 토벌 − 7 × (잡은 수 − 1). 경계만.
- *  · last 가 없는 옛 기록 → until(마지막 토벌 이후 다시 나오는 날) − 7 × 잡은 수 가 첫 토벌의 위 경계.
+ *  · 여러 번 잡았다 → 첫 토벌 ≤ 마지막 토벌(last.day). 경계만('이 날 이전').
+ *    ⚠ '다시 나오기까지 7일'로 더 당기지 않는다 — 동시 토벌이 잡은 수를 한 날에 +2 하던 때(§10.24 전)와 기기 날짜를
+ *    되돌려 재출현을 연 저장(§10.25 전)이 있어, 7 × (잡은 수 − 1) 을 빼면 실제 첫 토벌보다 앞선 날을 말할 수 있다.
+ *  · last 가 없는 옛 기록 → until − BOSS_RETURN_DAYS(= 마지막 토벌 때의 at, 그날 이후) 가 위 경계.
  *  · 그 밖(날짜를 못 읽는다) → 싣지 않는다. */
 export function bossFirstDefeat(rec: Partial<BossRecord> | undefined): { date: string; approx?: "before" } | null {
   const caught = Math.floor(Number(rec?.caught) || 0);
   if (!rec || caught <= 0) return null;
   const last = typeof rec.last?.day === "string" && ISO_DAY.test(rec.last.day) ? rec.last.day : null;
-  if (last) return caught === 1 ? { date: last } : { date: addDays(last, -BOSS_RETURN_DAYS * (caught - 1)), approx: "before" };
-  if (typeof rec.until === "string" && ISO_DAY.test(rec.until)) return { date: addDays(rec.until, -BOSS_RETURN_DAYS * caught), approx: "before" };
+  if (last) return caught === 1 ? { date: last } : { date: last, approx: "before" };
+  if (typeof rec.until === "string" && ISO_DAY.test(rec.until)) return { date: addDays(rec.until, -BOSS_RETURN_DAYS), approx: "before" };
   return null;
 }
 
@@ -236,7 +246,7 @@ export function gameMilestones(state: IslandSlice | null | undefined, nameOf: (u
       kind: "boss",
       date: when.date,
       ...(when.approx ? { approx: when.approx } : {}),
-      title: `${boss.name}을(를) 처음 잡았어요`,
+      title: `${josa(boss.name, "을/를")} 처음 잡았어요`,
       sub: caught > 1 ? `지금까지 ${caught}번 토벌` : "낚시터의 주인",
       icon: "flame",
       route: fishing,
@@ -253,7 +263,7 @@ export function gameMilestones(state: IslandSlice | null | undefined, nameOf: (u
       key: `pet:${e.at}`,
       kind: "pet",
       date,
-      title: `펫이 ${m[1].trim()}(으)로 진화했어요`,
+      title: `펫이 ${josa(m[1].trim(), "으로/로")} 진화했어요`,
       sub: typeof e.by === "string" && e.by ? `${nameOf(e.by)}의 돌봄으로` : undefined,
       icon: "sparkles",
       route: { view: "game", open: "island" },
@@ -273,7 +283,7 @@ export function fishItem(row: FirstFishRow, day: string): ChronicleItem | null {
     key: `fish:${row.grade}`,
     kind: "fish",
     date: day,
-    title: `처음 낚은 ${grade} 물고기`,
+    title: `내가 처음 낚은 ${grade} 물고기`,
     sub: `${row.name}${row.stored ? " · 수조에 담았어요" : ""}`,
     icon: "star",
     route: { view: "game", open: "fishing" },

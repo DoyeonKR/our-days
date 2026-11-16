@@ -17,6 +17,7 @@ import {
   monthCountsLine,
   monthHeadLabel,
   monthsBack,
+  shouldAutoLoad,
   type ChronicleItem,
   type ChronicleMonth,
   type YearSummary,
@@ -48,6 +49,8 @@ export default function OurChronicle({
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pageFailed, setPageFailed] = useState(false);
+  /** 이어진 빈 쪽 수 — 저절로 받기는 shouldAutoLoad 까지만(그 뒤는 버튼) */
+  const [emptyStreak, setEmptyStreak] = useState(0);
   const busy = useRef(false);
   const alive = useRef(true);
   const sentinel = useRef<HTMLDivElement | null>(null);
@@ -83,8 +86,9 @@ export default function OurChronicle({
     };
   }, [coupleId, today, ctxTry]);
 
-  const loadMore = useCallback(async () => {
+  const loadMore = useCallback(async (manual = false) => {
     if (!ctx || busy.current || done) return;
+    if (manual) setEmptyStreak(0);
     const page = monthsBack(cursor, MONTHS_PER_PAGE, ctx.floor);
     if (page.length === 0) {
       setDone(true);
@@ -97,6 +101,7 @@ export default function OurChronicle({
       const got = await loadChroniclePage(coupleId, page, ctx, today);
       if (!alive.current) return;
       setMonths((prev) => appendMonths(prev, groupByMonth(got.items)));
+      setEmptyStreak((n) => (got.items.length ? 0 : n + 1));
       setRecaps((prev) => ({ ...prev, ...got.recaps }));
       const next = shiftedMonthKey(`${page[page.length - 1]}-01`, -1);
       setCursor(next);
@@ -111,10 +116,10 @@ export default function OurChronicle({
     }
   }, [coupleId, ctx, cursor, done, today]);
 
-  // 맨 아래가 보이면 다음 쪽 — 빈 쪽(기록 없는 석 달)이면 센티널이 그대로 보여 다시 부른다
+  // 맨 아래가 보이면 다음 쪽 — 빈 쪽(기록 없는 석 달)이면 센티널이 그대로 보여 다시 부른다. 빈 쪽이 이어지면 버튼으로만
   useEffect(() => {
     const el = sentinel.current;
-    if (!el || !ctx || done || loading || pageFailed) return;
+    if (!el || !ctx || done || loading || pageFailed || !shouldAutoLoad(emptyStreak)) return;
     const stop = observeInPage(
       el,
       (entries) => {
@@ -123,7 +128,7 @@ export default function OurChronicle({
       { rootMargin: "600px 0px" },
     );
     return () => stop?.();
-  }, [ctx, done, loading, pageFailed, loadMore]);
+  }, [ctx, done, loading, pageFailed, emptyStreak, loadMore]);
 
   return (
     <div className="mt-3 space-y-3">
@@ -164,14 +169,14 @@ export default function OurChronicle({
           {pageFailed ? (
             <>
               <p role="alert">더 불러오지 못했어요.</p>
-              <button onClick={() => void loadMore()} className="tap mt-2 rounded-full bg-glass px-3 py-1.5 font-bold text-rose-deep ring-1 ring-line">
+              <button onClick={() => void loadMore(true)} className="tap mt-2 rounded-full bg-glass px-3 py-1.5 font-bold text-rose-deep ring-1 ring-line">
                 다시 시도
               </button>
             </>
           ) : done ? (
             <p>{months.length ? "우리 이야기의 처음까지 왔어요" : "아직 연대기에 남길 기록이 없어요"}</p>
           ) : ctx ? (
-            <button onClick={() => void loadMore()} disabled={loading} className="tap rounded-full bg-glass px-3 py-1.5 font-bold text-muted ring-1 ring-line disabled:opacity-60">
+            <button onClick={() => void loadMore(true)} disabled={loading} className="tap rounded-full bg-glass px-3 py-1.5 font-bold text-muted ring-1 ring-line disabled:opacity-60">
               {loading ? "불러오는 중…" : "더 지난 달 보기"}
             </button>
           ) : (
