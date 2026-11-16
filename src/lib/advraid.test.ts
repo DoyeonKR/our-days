@@ -7,8 +7,8 @@ import { LEGEND_KEYS, isDuel, makeMon, newSave, type AdvSave } from "./adventure
 import { ENGINE_HASH } from "./adventurehash.ts";
 import { TPS } from "./arena.ts";
 import {
-  RAID_CLAIMED_MAX, RAID_GOLD, RAID_SECONDS, RAID_TICKS, RAID_HEARTS, RAID_HITS_MAX, RAID_POOL_DUO, RAID_POOL_SOLO, RAID_TAKEN, RAID_TRIES, RAID_TRY_MAX, RAID_UNIT, RAID_WEEK_GONE,
-  raidBattle, raidBossOf, raidCharge, raidClaim, raidClaimable, raidCommit, raidDmg, raidHit, raidHitIsland, raidHitSolo, raidLeft, raidLog, raidMineOf, raidNow, raidOf,
+  RAID_BODY, RAID_CLAIMED_MAX, RAID_GOLD, RAID_SECONDS, RAID_TICKS, RAID_HEARTS, RAID_HITS_MAX, RAID_POOL_DUO, RAID_POOL_SOLO, RAID_TAKEN, RAID_TRIES, RAID_TRY_MAX, RAID_UNIT, RAID_WEEK_GONE,
+  raidBattle, raidBossOf, raidClaim, raidClaimable, raidCommit, raidDmg, raidHit, raidHitIsland, raidHitSolo, raidLeft, raidLog, raidMineOf, raidNow, raidOf,
   raidOpen, raidOpenIsland, raidOpenSolo, raidPhase, raidPoints, raidTotal, raidTriesLeft, raidWear, raidWeek, readRaid,
   type RaidDeps, type RaidShared,
 } from "./advraid.ts";
@@ -255,6 +255,15 @@ test("보상 — 사람마다 그 주에 한 번 · 정해진 양 · 휘장은 �
   assert.equal(raidClaim(s0, { ...beaten, beaten: undefined }), null);
 });
 
+test("상대가 없는 커플 공간 — 새 주는 작은 몫", () => {
+  const r = raidOpenIsland(island(), "me", FRI, 1);
+  assert.ok(r.ok);
+  assert.equal(raidLeft(r.raid), RAID_POOL_SOLO);
+  const duo = raidOpenIsland(island(), "me", FRI);
+  assert.ok(duo.ok);
+  assert.equal(raidLeft(duo.raid), RAID_POOL_DUO);
+});
+
 test("혼자 — 작은 몫 · 모험 저장에 기록 · 하트 없음", () => {
   const s0 = save0();
   const o = raidOpenSolo(s0, "me", FRI);
@@ -280,21 +289,25 @@ test("기세 — 50% 분노 · 25% 격노, 전투 판은 같은 시드 = 같은 
   assert.deepEqual(JSON.stringify(f1), JSON.stringify(f2));
   const boss = f1.battle.sides[1].team[0];
   assert.equal(boss.mon.species, r0.boss);
-  assert.equal(boss.stats.hp, Math.round((RAID_POOL_DUO * f1.unit) / RAID_UNIT));
-  assert.equal(boss.mon.hp, Math.round((RAID_POOL_DUO / 2) * f1.unit / RAID_UNIT));
-  assert.ok(boss.mon.hp < boss.stats.hp * 0.5 + 1, "절반이면 엔진의 대장 분노 문턱");
-  assert.ok(f1.battle.boss, "대장 패턴(예고 원)");
+  assert.equal(boss.stats.hp, f1.unit * RAID_BODY, "한 판 체력 = 몸 여덟 — 엔진의 비율 셈(화상 · 회복 · 각성)이 한 판 기준");
+  assert.equal(boss.mon.hp, boss.stats.hp);
+  assert.ok(boss.mon.moves.every((m) => m.id !== "rest"), "회복 기술은 뺀다");
+  assert.ok(f1.battle.boss, "대장 패턴(예고 원) · 판 안의 분노");
   assert.equal(isDuel(f1.battle), false);
   assert.equal(f1.battle.sides[0].team.every((f) => f.mon.hp === f.stats.hp), true, "팀은 다 회복한 사본");
   assert.equal(s.party[0].hp, save0().party[0].hp, "내 저장은 그대로");
+  const calm = raidBattle(s, r0, 42).battle.sides[1].team[0].stats;
   const fury = raidBattle(s, quarter, 42).battle.sides[1].team[0].stats;
-  assert.ok(fury.atk > boss.stats.atk && fury.spd > boss.stats.spd, "격노는 더 세다");
+  assert.ok(calm.atk < boss.stats.atk && boss.stats.atk < fury.atk && fury.spd > boss.stats.spd, "분노 · 격노는 더 세다");
+  // 남은 몫이 몸 여덟보다 적으면 남은 만큼만
+  const tail: RaidShared = { ...r0, hits: { x: { who: "a", day: FRI, n: 1, d: RAID_POOL_DUO - 150, fin: true } } };
+  const ft = raidBattle(s, tail, 42);
+  assert.equal(ft.startHp, Math.ceil((150 * ft.unit) / RAID_UNIT));
+  assert.equal(raidPoints(ft, 0), 150);
   // 점수
   assert.equal(raidPoints(f1, f1.startHp), 0);
   assert.equal(raidPoints(f1, f1.startHp - f1.unit), RAID_UNIT);
-  assert.equal(raidPoints(f1, 0), Math.min(RAID_TRY_MAX, Math.ceil((f1.startHp * RAID_UNIT) / f1.unit)));
-  assert.ok(raidCharge(f1.unit, f1.unit, boss.stats.hp) > 90);
-  assert.equal(raidCharge(0, f1.unit, boss.stats.hp), 0);
+  assert.equal(raidPoints(f1, 0), RAID_TRY_MAX);
 });
 
 test("저장 크기 — 한 주 줄 상한까지 채워도 섬 칸 10KB · 내 칸 2KB 아래, 읽기는 깨진 줄을 버린다", () => {

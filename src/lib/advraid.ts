@@ -20,13 +20,15 @@
  *
  *  ⚠ 전투 엔진은 그대로다(대전 지문 그대로 · adventure-battle 재배포 없음). 영물은 데이터로만 만든다:
  *   · 판의 boss 칸을 채워 대장 패턴(예고 원이 깔리는 범위 공격 — 고리 · 십자 · 소나기 · 조여들기)을 쓴다.
- *   · 전투 체력의 최대치 = 커플 몫 전체, 지금 체력 = 남은 몫. 엔진의 '대장은 절반 아래에서 분노'가 곧 레이드 50% 분노다.
- *   · 25% 아래에서 연 판은 격노 — 공격 · 빠르기를 올린 채로 나온다(능력치 데이터).
+ *   · 한 판의 영물 체력은 '몸' RAID_BODY 개(그 레벨 영물 체력 × 8) — 엔진의 '대장은 절반 아래에서 분노'가 판 안에서 한 번 온다.
+ *     ⚠ 처음엔 최대 체력을 커플 몫 전체로 두었는데, 엔진은 화상 · 독(최대 체력 ÷ 16~20) · 회복 기술 · 회복 줍기 · 꽃밭 · 풀 특성 ·
+ *     각성 게이지를 전부 최대 체력의 비율로 셈해서 화상 한 번에 판 상한이 차고 '쉬어 가기' 한 번에 몫 절반이 돌아왔다(봇 측정).
+ *   · 커플 몫의 기세는 판을 열 때의 능력치(데이터) — 절반 아래 분노 · 4분의 1 아래 격노. 영물의 회복 기술은 뺀다.
  *   · 한 판 90초(newArena 의 limit). 깎은 양은 점수(몸 하나 = 100점)로 바꿔 남긴다 — 영물은 내 팀 레벨에 맞춰 나오므로
  *     Lv.15 팀과 Lv.50 팀이 같은 몫을 나눠 깎는다.
  *  모든 함수는 순수 — 시계 · 난수 없이 today · seed 를 받는다. */
 import type { AdvSave, Battle, Fighter, Mon } from "./adventure.ts";
-import { BALLS, ITEMS, LEGEND_KEYS, MAX_LEVEL, SPECIES, battleStats, healMon, makeMon, statsOf, type BallKey, type ItemKey } from "./adventure.ts";
+import { BALLS, ITEMS, LEGEND_KEYS, MAX_LEVEL, MOVES, SPECIES, battleStats, healMon, makeMon, statsOf, type BallKey, type ItemKey } from "./adventure.ts";
 import type { IslandState } from "./island.ts";
 
 /* ───────── 수치 ───────── */
@@ -39,17 +41,23 @@ export const RAID_SECONDS = 90;
 export const RAID_TICKS = RAID_SECONDS * 30;
 /** 몸 하나 = 100점 — 영물 한 마리(그 레벨)의 체력 */
 export const RAID_UNIT = 100;
-/** 커플 몫(점) — 봇(adventurebalance 와 같은 손, 눈치 0.3~1)이 한 판에 낸 점수는 가운데 50~850 · 열에 아홉이 900(상한) 아래였다.
- *  사람은 패턴을 피하고 약 · 교체를 써서 더 낸다고 보고 한 판 250 안팎으로 잡으면 둘이 열일곱 판(사나흘), 혼자 열 판(사나흘 반). README §14.6 */
-export const RAID_POOL_DUO = 4200;
-export const RAID_POOL_SOLO = 2400;
-/** 한 판에 남길 수 있는 가장 큰 점수 — 90초에 아무리 잘해도 넘지 않는 값(기록 조작을 조금 묶는다) */
-export const RAID_TRY_MAX = 900;
-/** 영물 레벨 = 내 팀 최고 레벨 + 이것(5~50). +3 · 공격 1.2배로 재면 봇 팀이 25초 안에 늘 전멸하고 한 판 가운데 30~90점이었다 */
+/** 커플 몫(점) — 봇(adventurebalance 와 같은 손 · 눈치 0.6, 판마다 30번)으로 잰 한 판 평균: 팀 Lv.33~50 셋 400 안팎(격노 260~300),
+ *  Lv.25 230(170) · Lv.12 150(70) · Lv.5 한 마리 40~70. 한 판 평균 300 이면 둘이 열두 판(이틀), 150 이면 스물넷(나흘).
+ *  혼자는 한 판 300 이면 일곱 판, 150 이면 열네 판(닷새). README §14.6 */
+export const RAID_POOL_DUO = 3600;
+export const RAID_POOL_SOLO = 2000;
+/** 한 판 영물 체력 = 몸 여덟(800점). 다 깎으면 그 판은 '몸을 다 깎았다' — 커플 몫이 남았으면 레이드는 이어진다 */
+export const RAID_BODY = 8;
+/** 한 판에 남길 수 있는 가장 큰 점수 = 한 판 영물 체력 */
+export const RAID_TRY_MAX = RAID_BODY * 100;
+/** 영물 레벨 = 내 팀 최고 레벨 + 이것(5~50). 봇 팀은 지금 값으로도 25~35초면 다 쓰러진다(대장 패턴이 아프다) */
 export const RAID_LEVEL_UP = 0;
-/** 영물 능력치 배율 — 보통 · 격노(25% 아래에서 연 판). 체력은 커플 몫 전체라 공격은 낮춰도 대장 패턴(범위 공격)으로 버티기 30~50초다 */
-export const RAID_MUL = { atk: 0.6, def: 0.8, spd: 0.9 } as const;
-export const RAID_FURY_MUL = { atk: 0.8, def: 0.8, spd: 1.05 } as const;
+/** 영물 능력치 배율 — 커플 몫의 기세(0 보통 · 1 분노 = 절반 아래 · 2 격노 = 4분의 1 아래)마다. 판을 열 때 정한다 */
+export const RAID_MULS = [
+  { atk: 0.75, def: 0.9, spd: 0.95 },
+  { atk: 0.9, def: 0.9, spd: 1.05 },
+  { atk: 1.05, def: 0.95, spd: 1.15 },
+] as const;
 /** 보상 — 사람마다 한 번(모험 저장) */
 export const RAID_GOLD = 1500;
 export const RAID_BALLS: Partial<Record<BallKey, number>> = { great: 3, star: 1 };
@@ -217,16 +225,18 @@ export function raidLog(r: Pick<RaidShared, "hits">, max = RAID_LOG_SHOW): (Raid
 
 export type RaidIslandResult = { ok: true; state: IslandState; raid: RaidShared; id?: string; week?: string; beatenNow?: boolean; dealt?: number } | { ok: false; reason: string };
 export const raidOf = (st: Pick<IslandState, "advRaid">): RaidShared | undefined => readRaid(st.advRaid);
-export function raidOpenIsland(st: IslandState, who: string, today: string): RaidIslandResult {
-  const o = raidOpen(raidOf(st), who, today, 2);
+/** size — 둘이 연결된 커플 2 · 상대가 아직 없거나 떠난 공간 1(작은 몫). 새 주의 영물이 나타날 때만 쓰인다(그 주 안에선 저장된 size) */
+export function raidOpenIsland(st: IslandState, who: string, today: string, size: 1 | 2 = 2): RaidIslandResult {
+  const o = raidOpen(raidOf(st), who, today, size);
   if (!o.ok) return o;
   return { ok: true, state: { ...st, advRaid: o.raid }, raid: o.raid, id: o.id, week: o.week };
 }
 /** 끝난 판을 섬에 — 이 저장으로 쓰러지면 커플 하트를 한 번 */
 export function raidHitIsland(st: IslandState, id: string, pts: number, who: string, today: string, week: string): RaidIslandResult {
-  const h = raidHit(raidOf(st), id, pts, who, today, week);
+  const stored = raidOf(st);
+  const h = raidHit(stored, id, pts, who, today, week);
   if (!h.ok) return h;
-  if (h.raid === raidOf(st) && !h.beatenNow) return { ok: true, state: st, raid: h.raid, beatenNow: false, dealt: h.dealt };
+  if (h.raid === stored && !h.beatenNow) return { ok: true, state: st, raid: h.raid, beatenNow: false, dealt: h.dealt };
   return { ok: true, state: { ...st, advRaid: h.raid, coins: st.coins + (h.beatenNow ? RAID_HEARTS : 0) }, raid: h.raid, beatenNow: h.beatenNow, dealt: h.dealt };
 }
 
@@ -297,20 +307,21 @@ export function raidWear(save: AdvSave, boss: string | null): AdvSave {
 
 export const raidLevel = (save: Pick<AdvSave, "party">) => Math.max(5, Math.min(MAX_LEVEL, Math.max(1, ...save.party.map((m) => m.level)) + RAID_LEVEL_UP));
 export type RaidFight = { battle: Battle; /** 몸 하나(100점)의 체력 */ unit: number; /** 판을 열 때 영물 체력 */ startHp: number; phase: 0 | 1 | 2 };
-/** 레이드 판 — 내 팀은 다 회복한 사본(내 저장은 그대로), 영물은 한 마리. 판의 boss 칸을 채워 대장 패턴 · 분노를 쓴다.
- *  전투 체력 최대 = 커플 몫 전체, 지금 체력 = 남은 몫 → 엔진의 '절반 아래에서 분노'가 커플 몫의 절반이다 */
+/** 레이드 판 — 내 팀은 다 회복한 사본(내 저장은 그대로), 영물은 한 마리. 판의 boss 칸을 채워 대장 패턴 · 판 안의 분노를 쓴다.
+ *  영물 체력 = 몸 RAID_BODY 개(남은 몫이 그보다 적으면 남은 만큼) · 최대 체력도 같다 — 엔진의 비율 셈이 한 판 기준으로 맞는다 */
 export function raidBattle(save: AdvSave, r: RaidShared, seed: number): RaidFight {
   const rng = { s: seed | 0 };
   const lv = raidLevel(save);
-  const mon: Mon = makeMon(r.boss, lv, rng, "raid");
+  const made: Mon = makeMon(r.boss, lv, rng, "raid");
+  // 회복 기술은 뺀다 — 깎은 만큼이 남는 레이드에서 영물이 되찾으면 점수가 줄어든다
+  const moves = made.moves.filter((m) => !MOVES[m.id]?.heal);
+  const mon: Mon = { ...made, moves: moves.length ? moves : made.moves, picked: (moves.length ? moves : made.moves).map((m) => m.id) };
   const unit = statsOf(mon).hp;
-  const pool = raidPoolOf(r.size);
-  const left = Math.max(1, raidLeft(r));
   const phase = raidPhase(r);
-  const mul = phase === 2 ? RAID_FURY_MUL : RAID_MUL;
+  const mul = RAID_MULS[phase];
   const base = battleStats(mon);
-  const maxHp = Math.max(1, Math.round((pool * unit) / RAID_UNIT));
-  const startHp = Math.max(1, Math.min(maxHp, Math.round((left * unit) / RAID_UNIT)));
+  const maxHp = unit * RAID_BODY;
+  const startHp = Math.max(1, Math.min(maxHp, Math.ceil((Math.max(1, raidLeft(r)) * unit) / RAID_UNIT)));
   const boss: Fighter = {
     mon: { ...mon, hp: startHp },
     stats: { hp: maxHp, atk: Math.round(base.atk * mul.atk), def: Math.round(base.def * mul.def), spd: Math.round(base.spd * mul.spd) },
@@ -330,16 +341,10 @@ export function raidBattle(save: AdvSave, r: RaidShared, seed: number): RaidFigh
   };
   return { battle, unit, startHp, phase };
 }
-/** 판이 끝난 뒤 — 깎은 체력을 점수로(내림). 영물이 쓰러졌으면 남은 몫 전부 */
+/** 판이 끝난 뒤 — 깎은 체력을 점수로(내림). 영물이 쓰러졌으면 그 판의 체력 전부 */
 export function raidPoints(f: Pick<RaidFight, "unit" | "startHp">, endHp: number): number {
   if (endHp <= 0) return Math.min(RAID_TRY_MAX, Math.ceil((f.startHp * RAID_UNIT) / f.unit));
   return Math.max(0, Math.min(RAID_TRY_MAX, Math.floor(((f.startHp - endHp) * RAID_UNIT) / f.unit)));
-}
-/** 각성 게이지 보정 — 엔진은 '깎은 체력 ÷ 최대 체력'으로 채우는데 레이드 영물의 최대 체력은 커플 몫 전체라 거의 안 찬다.
- *  화면(BattleView raid)이 영물을 때릴 때마다 몸 하나 기준과의 차이를 더한다. 대전이 아니라 판정(서버)과 무관하다 */
-export function raidCharge(dmg: number, unit: number, maxHp: number): number {
-  if (dmg <= 0 || unit <= 0 || maxHp <= 0) return 0;
-  return Math.max(0, (dmg / unit) * 105 - (dmg / maxHp) * 105);
 }
 
 /* ───────── 섬에 쓰기(버전 비교 · 다시 돌리기) ───────── */

@@ -27,7 +27,6 @@ import GameWindowGuard from "@/components/GameWindowGuard";
 import MonArt from "@/components/adventure/MonArt";
 import { josa } from "@/lib/josa";
 import { confirmDialog } from "@/lib/confirm";
-import { raidCharge } from "@/lib/advraid";
 import { BallIcon, HpBar, SHAPE_LABEL, STATUS_LABEL, STAT_LABEL, XpBar, holdProps, moveTags, pressProps, shade } from "@/components/adventure/advui";
 import { A2HS_KEY, holdRepeat, minFont, onceFlag, ringNow, stickVec, wantsA2hsTip } from "@/lib/advmobile";
 
@@ -114,9 +113,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   keepFull?: boolean;
   /** 판 길이(틱) — 없으면 엔진 기본(대전 150초 · 그 밖 없음). 커플 레이드는 90초 */
   limit?: number;
-  /** 커플 레이드(2026-11-13, lib/advraid) — 영물의 최대 체력이 커플 몫 전체라 엔진의 각성 게이지가 거의 안 찬다.
-   *  영물을 때릴 때마다 몸 하나(unit) 기준과의 차이를 더한다(화면에서만 — 대전이 아니라 서버 판정과 무관). 끝 문구도 레이드 것 */
-  raid?: { unit: number };
+  /** 커플 레이드(2026-11-13, lib/advraid) — 끝 문구 · 시작 글자 · 포기 확인만 레이드 것. last = 이 판의 영물 체력이 남은 몫 전부(쓰러뜨리면 토벌) */
+  raid?: { last: boolean };
 }) {
   const arenaRef = useRef<Arena | null>(null);
   if (!arenaRef.current) arenaRef.current = newArena(start, startBag, limit);
@@ -474,10 +472,6 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         lastDir.current = record(logRef.current, lastDir.current, a.tick, inp);
       }
       stepArena(a, inp);
-      if (raid && a.units[0].awake === 0) {
-        const foeMax = a.b.sides[1].team[a.b.sides[1].active].stats.hp;
-        for (const e of a.ev) if (e.t === "hit" && e.side === 1 && !e.recoil) a.charge[0] = Math.min(CHARGE_MAX, a.charge[0] + raidCharge(e.dmg, raid.unit, foeMax));
-      }
       if (a.bag) {
         const left = bagTotal(a.bag);
         if (left < bagLeft.current) onSpendRef.current?.({ balls: { ...a.bag.balls }, items: { ...a.bag.items } });
@@ -518,12 +512,12 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ended.current = true;
         feel.current.endAt = performance.now();
         const raidDown = !!raid && a.b.sides[1].team.every((f) => f.mon.hp <= 0);
-        feel.current.endText = raid ? (raidDown ? "토벌!" : a.limit && a.tick >= a.limit ? "시간 끝!" : "기록했어요") : a.b.over === "win" ? "승리!" : a.b.over === "caught" ? "잡았다!" : a.b.over === "run" ? "도망!" : "패배…";
+        feel.current.endText = raid ? (raidDown ? (raid.last ? "토벌!" : "몸을 다 깎았다!") : a.limit && a.tick >= a.limit ? "시간 끝!" : "기록했어요") : a.b.over === "win" ? "승리!" : a.b.over === "caught" ? "잡았다!" : a.b.over === "run" ? "도망!" : "패배…";
         setHud(hudOf(a));
         // 진행 저장은 지금 — 축하 연출(1.5초)을 기다리다 앱이 닫히면 잡은 생물 · 경험치가 사라졌다
         if (!online) onSettleRef.current?.(a.b, a.bag ?? startBag);
         const r = a.b.over;
-        setTimeout(() => toast(raid ? (raidDown ? "영물을 쓰러뜨렸다!" : "깎은 만큼 레이드 기록에 남겨요") : r === "win" ? "이겼다!" : r === "caught" ? "새 친구가 생겼다!" : r === "run" ? "무사히 빠져나왔다" : "졌다…"), 300);
+        setTimeout(() => toast(raid ? (raidDown && raid.last ? "영물을 쓰러뜨렸다!" : "깎은 만큼 레이드 기록에 남겨요") : r === "win" ? "이겼다!" : r === "caught" ? "새 친구가 생겼다!" : r === "run" ? "무사히 빠져나왔다" : "졌다…"), 300);
         void (async () => {
           await new Promise((res) => setTimeout(res, 1500));
           if (online) {
@@ -1640,7 +1634,7 @@ function HpCard({ m, xp, extra, foe, boss }: { m: Mini; xp?: boolean; extra?: st
     <div className={`adv-rt-card ${foe ? "is-foe" : "is-me"} ${boss ? "is-boss" : ""} ${boss?.enraged ? "is-enraged" : ""}`}>
       {boss && (
         <div className="adv-rt-boss">
-          <b className="min-w-0 flex-1 truncate">👑 {boss.name}</b>
+          <b className="min-w-0 flex-1 truncate"><CrownMark /> {boss.name}</b>
           {boss.enraged && <i>분노</i>}
         </div>
       )}
@@ -1978,4 +1972,15 @@ function drawMapTop(ctx: CanvasRenderingContext2D, a: Arena, t: number) {
     ctx.fillRect(-200, -200, ARENA_W + 400, ARENA_H + 400);
   }
   ctx.globalAlpha = 1;
+}
+
+/** 대장 표시 — 이모지(👑) 대신 그린 왕관(2026-11-13 커플 레이드와 함께 — UI 크롬에 이모지를 쓰지 않는다) */
+function CrownMark() {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden style={{ display: "inline-block", verticalAlign: "-0.125em" }}>
+      <path d="M3 8.5l4.6 4 4.4-7 4.4 7 4.6-4-1.8 10H4.8z" fill="#facc15" stroke="#713f12" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M5.2 18.5h13.6v2.2H5.2z" fill="#eab308" stroke="#713f12" strokeWidth="1.4" strokeLinejoin="round" />
+      <circle cx="12" cy="13.6" r="1.6" fill="#ef4444" />
+    </svg>
+  );
 }

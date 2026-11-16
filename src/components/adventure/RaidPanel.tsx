@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { REGIONS, SPECIES, type AdvSave, type BallKey, type Battle, type ItemKey } from "@/lib/adventure";
 import {
-  RAID_GOLD, RAID_HEARTS, RAID_PHASE_NAME, RAID_SECONDS, RAID_TICKS, RAID_TRIES, RAID_TAKEN,
+  RAID_GOLD, RAID_HEARTS, RAID_PHASE_NAME, RAID_SECONDS, RAID_TICKS, RAID_TRIES, RAID_TAKEN, RAID_TRY_MAX,
   raidBattle, raidClaim, raidClaimable, raidDmg, raidHitIsland, raidHitSolo, raidLeft, raidLog, raidMineOf, raidNow, raidOf, raidOpenIsland, raidOpenSolo,
   raidPhase, raidPoints, raidPoolOf, raidTriesLeft, raidWear, type RaidFight, type RaidShared,
 } from "@/lib/advraid";
@@ -18,11 +18,13 @@ import { useBackClose } from "@/lib/useBackClose";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import MonArt from "@/components/adventure/MonArt";
 import { josa } from "@/lib/josa";
+import { gameNow } from "@/lib/islandsync";
+import { kstDate } from "@/lib/kst";
 
 const BattleView = dynamic(() => import("@/components/adventure/BattleView"), { ssr: false });
 
 type Bag = { balls: Record<BallKey, number>; items: Record<ItemKey, number> };
-type Fight = { f: RaidFight; id: string; week: string };
+type Fight = { f: RaidFight; id: string; week: string; last: boolean };
 type Saved = "saving" | "ok" | "fail" | "late";
 type Outcome = { id: string; week: string; pts: number; down: boolean; saved: Saved; reason?: string; beatenNow?: boolean };
 
@@ -60,8 +62,13 @@ export default function RaidPanel({ save, myUserId, coupleId, partnerName, today
   const settledId = useRef<string | null>(null);
 
   const me = myUserId;
+  /** 새 주의 몫 크기 — 상대가 있는 커플만 큰 몫(상대가 아직 없거나 떠난 공간은 혼자 몫) */
+  const size: 1 | 2 = couple && partnerName?.trim() ? 2 : 1;
+  /** 저장에 쓰는 날 — 커플은 섬 저장이 잰 서버 시각(gameNow, §10.25). 폰 날짜를 앞으로 돌려 주 · 하루 도전을 새로 여는 길을 줄인다
+   *  (그 실행에서 섬 저장이 한 번도 없었으면 기기 시계 — 첫 판을 여는 저장이 시계를 잰다) */
+  const actDay = () => (couple ? kstDate(gameNow()) : today);
   const stored = couple ? (isle.row ? raidOf(isle.row.state) : undefined) : raidMineOf(save).solo;
-  const r = raidNow(stored, today, couple ? 2 : 1);
+  const r = raidNow(stored, today, couple ? size : 1);
   const pool = raidPoolOf(r.size);
   const dmg = raidDmg(r);
   const mine = dmg[me] ?? 0;
@@ -84,11 +91,11 @@ export default function RaidPanel({ save, myUserId, coupleId, partnerName, today
     try {
       let opened: { raid: RaidShared; id: string; week: string } | null = null;
       if (couple) {
-        const res = await raidAct(coupleId!, (st) => raidOpenIsland(st, me, today));
+        const res = await raidAct(coupleId!, (st) => raidOpenIsland(st, me, actDay(), size));
         if (!res.ok) flash(res.reason);
         else opened = { raid: res.raid, id: res.id!, week: res.week! };
       } else {
-        const o = raidOpenSolo(saveRef.current, me, today);
+        const o = raidOpenSolo(saveRef.current, me, actDay());
         if (!o.ok) flash(o.reason);
         else {
           saveRef.current = o.save;
@@ -102,7 +109,7 @@ export default function RaidPanel({ save, myUserId, coupleId, partnerName, today
       }
       settledId.current = null;
       setOutcome(null);
-      setFight({ f: raidBattle(saveRef.current, opened.raid, seedOf(opened.id, saveRef.current.seed)), id: opened.id, week: opened.week });
+      setFight({ f: raidBattle(saveRef.current, opened.raid, seedOf(opened.id, saveRef.current.seed)), id: opened.id, week: opened.week, last: raidLeft(opened.raid) <= RAID_TRY_MAX });
       onFighting(true);
     } finally {
       setBusy(false);
@@ -114,11 +121,11 @@ export default function RaidPanel({ save, myUserId, coupleId, partnerName, today
     setOutcome({ id, week, pts, down, saved: "saving" });
     if (couple) {
       commit(base);
-      const res = await raidAct(coupleId!, (st) => raidHitIsland(st, id, pts, me, today, week));
+      const res = await raidAct(coupleId!, (st) => raidHitIsland(st, id, pts, me, actDay(), week));
       if (res.ok) setOutcome({ id, week, pts, down, saved: "ok", beatenNow: !!(res as { beatenNow?: boolean }).beatenNow });
       else setOutcome({ id, week, pts, down, saved: res.reason === RAID_TAKEN || /주가 바뀌어/.test(res.reason) ? "late" : "fail", reason: res.reason });
     } else {
-      const h = raidHitSolo(base, id, pts, me, today, week);
+      const h = raidHitSolo(base, id, pts, me, actDay(), week);
       if (h.ok) {
         saveRef.current = h.save;
         commit(h.save);
@@ -158,9 +165,9 @@ export default function RaidPanel({ save, myUserId, coupleId, partnerName, today
   const log = raidLog(r);
   const rules = [
     "영물이 예고 원을 깔면 그 자리를 피해요 — 고리 · 십자 · 소나기 · 조여들기",
-    `${couple ? "커플 " : ""}몫이 절반 아래면 분노 — 더 빨라지고 패턴이 잦아져요`,
-    "4분의 1 아래에서 연 판은 격노 — 공격 · 빠르기가 올라요",
-    `한 판 ${RAID_SECONDS}초 · 팀은 다 회복한 채로 싸우고 쓴 약만 빠져요`,
+    "판 안에서 영물 체력이 절반 아래면 분노 — 잠깐 세지고 패턴이 잦아져요",
+    `${couple ? "커플 " : ""}몫이 절반 아래면 분노, 4분의 1 아래면 격노로 나와요 — 공격 · 빠르기가 올라요`,
+    `한 판 ${RAID_SECONDS}초 · 영물 몸 여덟(${RAID_TRY_MAX}점)까지 · 팀은 다 회복한 채로 싸우고 쓴 약만 빠져요`,
   ];
 
   return (
@@ -254,7 +261,7 @@ export default function RaidPanel({ save, myUserId, coupleId, partnerName, today
           region={TEMPLE}
           bag={{ balls: save.balls, items: save.items }}
           limit={RAID_TICKS}
-          raid={{ unit: fight.f.unit }}
+          raid={{ last: fight.last }}
           onSettle={settle}
           onEnd={end}
           onSpend={spend}
