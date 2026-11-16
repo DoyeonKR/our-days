@@ -132,7 +132,7 @@ function bakeRod(img: CanvasImageSource, key: string): RodSprite | null {
 export type FxLook = { bobber: string; line: string; rodTint: string };
 export const FX_LOOK_DEFAULT: Readonly<FxLook> = { bobber: "bob_red", line: "#ffffff", rodTint: "" };
 /** 찌 모양 — 상점의 꾸미기 id 와 같아야 한다(fishlooks.test 가 맞춰 본다). 모르는 id 는 기본 빨강으로 그린다 */
-export const FX_BOBBERS = ["bob_red", "bob_star", "bob_heart", "bob_duck", "bob_moon", "bob_gold", "bob_trophy"] as const;
+export const FX_BOBBERS = ["bob_red", "bob_star", "bob_heart", "bob_duck", "bob_moon", "bob_gold", "bob_trophy", "bob_season"] as const;
 
 type BobberPal = { hi: string; mid: string; lo: string; band: string | null; edge: string };
 const BOBBER_PAL: Readonly<Record<string, BobberPal>> = {
@@ -144,6 +144,8 @@ const BOBBER_PAL: Readonly<Record<string, BobberPal>> = {
   bob_gold: { hi: "#fff3b0", mid: "#e5b84a", lo: "#8a5a12", band: "#fff8dc", edge: "rgba(80,50,6,.6)" },
   // 강태공 찌(이달의 대회 1등 한정 — fishlooks 의 LIMITED_LOOKS) — 금빛 찌와 가려지게 띠를 남색으로, 몸에 작은 우승컵
   bob_trophy: { hi: "#fff1a8", mid: "#f5c542", lo: "#9a6410", band: "#1e3a8a", edge: "rgba(70,40,4,.65)" },
+  // 시즌 찌(시즌 미션 8개 보상 — fishlooks 의 LIMITED_LOOKS) — 청록 몸 · 흰 띠, 몸에 작은 잎
+  bob_season: { hi: "#9df0dc", mid: "#2fb39a", lo: "#0f5e52", band: "#fffdf5", edge: "rgba(4,40,34,.65)" },
 };
 
 /** 별 하나(다섯 뿔) — 찌 무늬 · 반짝임에 쓴다 */
@@ -272,6 +274,21 @@ export function paintBobber(c: CanvasRenderingContext2D, skin: string, x: number
     c.arc(-3.1, -8.2, 1.1, Math.PI * 0.5, Math.PI * 1.5);
     c.moveTo(3.1, -9.3);
     c.arc(3.1, -8.2, 1.1, -Math.PI * 0.5, Math.PI * 0.5);
+    c.stroke();
+  } else if (id === "bob_season") {
+    // 잎 한 장 — 띠 위, 몸 안(가로 ±4)에만. 잎맥 한 줄
+    c.fillStyle = "#f2fff9";
+    c.beginPath();
+    c.moveTo(-2.6, -4.2);
+    c.quadraticCurveTo(-3, -9, 2.6, -9.6);
+    c.quadraticCurveTo(2.4, -4.6, -2.6, -4.2);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = "#2fb39a";
+    c.lineWidth = 0.6;
+    c.beginPath();
+    c.moveTo(-2.2, -4.6);
+    c.quadraticCurveTo(0, -6.4, 2.2, -9.2);
     c.stroke();
   }
   // 하이라이트 · 테두리

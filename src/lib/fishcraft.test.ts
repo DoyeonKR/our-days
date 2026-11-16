@@ -306,7 +306,7 @@ test("경제 — 재료 바닥값(하트 + 가장 싼 작물 + 치어 보내 주
 
 test("화면 — 낚시 준비가 만든 미끼를 고르고, 쓸 때는 spendCraft · 뽑기는 그 단계 산 미끼 번호 · 장비 아래 칸이 FishCraft", () => {
   const src = code("src/components/FishingGame.tsx");
-  assert.match(src, /ck \? spendCraft\(s, sp, m, ck, kstDate\(t\), castM, night\) : spendBait\(s, sp, m, key, kstDate\(t\), castM, night\), true\)/, '만든 미끼도 집어등 밤 판정을 같이 받는다');
+  assert.match(src, /ck \? spendCraft\(s, sp, m, ck, kstDate\(t\), castM, night\) : spendBait\(s, sp, m, key, kstDate\(t\), castM, night\);[\s\S]{0,160}?\}, true\)/, '만든 미끼도 집어등 밤 판정을 같이 받는다');
   assert.match(src, /const \{ shown, bait \} = craft \? craftAsBait\(craft\) : currentBait\(fs, spot, baitPick/);
   assert.match(src, /waitPlan\(seed, tideEffect\(spot\.water, moment\.moon\)\.wait \* craftFx\.wait\)/, '물때 배율에 향 미끼 배율을 곱한다');
   assert.match(src, /size: craftFx\.size \}\)/);

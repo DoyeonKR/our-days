@@ -1616,3 +1616,37 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
   /* 충격파는 움직임으로만 보이는 연출 — 애니메이션을 끄면 다 펼쳐진 고리 · 빛살이 지워지지 않고 남는다 */
   .boss-raid-burst { display: none; }
 }
+
+/* ── 시즌 미션(2026-11-13, GameArcade 의 '이번 시즌' 카드 · SeasonSheet) — 글자는 12/18 · 15/24 짝만 ── */
+.season-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); color: var(--ink); box-shadow: 0 3px 0 color-mix(in srgb, var(--line) 74%, #2fa98c 26%); }
+.season-card.is-ready { border-color: #2fa98c; }
+.season-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.season-card-head strong { font-size: 15px; line-height: 24px; font-weight: 900; }
+.season-card-head span, .season-card-foot { font-size: 12px; line-height: 18px; color: var(--muted); font-weight: 700; }
+.season-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.season-track { position: relative; display: block; height: 8px; margin-top: 6px; border-radius: 999px; background: color-mix(in srgb, var(--line) 70%, transparent); overflow: hidden; }
+.season-track b { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2fa98c, #7dd3c0); transition: width .4s ease; }
+.season-track i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--card); }
+.season-ready-chip { padding: 0 8px; border-radius: 999px; background: #2fa98c; color: #fff; font-size: 12px; line-height: 18px; font-weight: 800; }
+.season-sub, .season-note { font-size: 12px; line-height: 18px; color: var(--muted); }
+.season-tiers { display: grid; gap: 6px; }
+.season-tier { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; }
+.season-tier.is-ready { border-color: #2fa98c; background: color-mix(in srgb, #2fa98c 10%, transparent); }
+.season-tier.is-got { opacity: .72; }
+.season-tier-need { font-size: 12px; line-height: 18px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.season-tier-name { font-size: 15px; line-height: 24px; font-weight: 700; color: var(--ink); }
+.season-tier-state { font-size: 12px; line-height: 18px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.season-msg { font-size: 12px; line-height: 18px; font-weight: 700; color: color-mix(in srgb, #e11d48 65%, var(--ink)); }
+.season-msg.is-ok { color: color-mix(in srgb, #2fa98c 60%, var(--ink)); }
+.season-group { display: grid; gap: 8px; }
+.season-group-title { font-size: 15px; line-height: 24px; font-weight: 900; color: var(--ink); }
+.season-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; }
+.season-row-label { font-size: 15px; line-height: 24px; color: var(--ink); }
+.season-row-count { font-size: 12px; line-height: 18px; font-weight: 800; color: var(--muted); white-space: nowrap; align-self: center; }
+.season-row.is-done .season-row-count { color: color-mix(in srgb, #2fa98c 60%, var(--ink)); }
+.season-bar { grid-column: 1 / -1; display: block; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--line) 70%, transparent); overflow: hidden; }
+.season-bar b { display: block; height: 100%; border-radius: 999px; background: #2fa98c; transition: width .4s ease; }
+.season-titles { display: flex; flex-wrap: wrap; gap: 6px; }
+.season-title-chip { display: inline-flex; align-items: center; padding: 0 9px; border-radius: 999px; background: #e6f6f1; color: #14564a; font-size: 12px; line-height: 18px; font-weight: 800; }
+.season-title-chip.is-card { background: rgba(255, 255, 255, .94); color: #14564a; }
+@media (prefers-reduced-motion: reduce) { .season-track b, .season-bar b { transition: none; } }

@@ -20,6 +20,7 @@
  */
 
 import type { IslandState } from "./island.ts";
+import { seasonAdd } from "./season.ts";
 
 export const SIZE = 4;
 /** 목표 단계(장르의 '2048' 자리) — 화이트 트러플. 넘어서 계속할 수 있다. */
@@ -356,7 +357,9 @@ export function settleGame(s: IslandState, who: string, score: number, top: numb
     dayCoins: used + coins,
     ...(gameId != null ? { settled: [...(m.settled ?? []), gameId].slice(-SETTLED_KEEP) } : {}),
   };
-  return { state: { ...s, coins: s.coins + coins, merge: rec }, coins, newBest };
+  // 시즌 미션 — 끝낸 판 하나 · 이번 달 최고 점수 · 단계(같은 판을 두 번 정산하면 위의 dup 에서 멈춘다)
+  const state = seasonAdd({ ...s, coins: s.coins + coins, merge: rec }, today, { mergeGames: 1 }, { max: { mergeScore: score, mergeTop: top } });
+  return { state, coins, newBest };
 }
 
 /** 기기에 남긴 판 기록(MergeGame 의 {game, finished, backlog} JSON)에서 그 판의 표시(settled · ranked)만 켠다 — 순수.

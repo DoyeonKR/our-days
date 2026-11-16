@@ -44,8 +44,11 @@ export const LOOKS: readonly FishLook[] = [
 /** 한정 꾸미기 — 상점 표(LOOKS)와 따로 둔다: 상점은 '종류마다 기본 하나 + 산 것 · 값은 오르기만'이고 소모처 합계(lookSinkTotal)가 하트 경제를 잰다.
  *  한정은 상점에 '살 것'으로 안 나오고, 가진 커플만 상점의 그 종류 줄 끝에 '끼기'로 나온다. 연출은 id 로 모양을 그린다(fishingfx 의 FX_BOBBERS). */
 export const TROPHY_BOBBER = "bob_trophy";
+export const SEASON_BOBBER = "bob_season";
 export const LIMITED_LOOKS: readonly FishLook[] = [
   { id: TROPHY_BOBBER, kind: "bobber", name: "강태공 찌", price: 0, color: "#f5c542", desc: "이달의 대회 1등 상품 · 하트로 못 사요", limited: true },
+  // 시즌 미션 8개 보상(2026-11-13, lib/season 의 SEASON_BOBBER — 같은 id 여야 한다)
+  { id: SEASON_BOBBER, kind: "bobber", name: "시즌 찌", price: 0, color: "#2fb39a", desc: "시즌 미션 8개를 채우면 받아요 · 하트로 못 사요", limited: true },
 ];
 const ALL_LOOKS: readonly FishLook[] = [...LOOKS, ...LIMITED_LOOKS];
 /** 기본(처음부터 갖고 있는 것) — 값 0 이고 한정이 아닌 것 */
@@ -110,7 +113,7 @@ export function buyLook(st: IslandState, who: string, id: string): GearResult {
   const look = lookById(id);
   if (!look) return { ok: false, reason: "없는 꾸미기예요" };
   if (ownsLook(looksOf(st), id)) return { ok: false, reason: "이미 있는 꾸미기예요" };
-  if (look.limited) return { ok: false, reason: "이달의 대회 1등만 받는 꾸미기예요" };
+  if (look.limited) return { ok: false, reason: look.id === TROPHY_BOBBER ? "이달의 대회 1등만 받는 꾸미기예요" : "하트로 살 수 없는 한정 꾸미기예요" };
   if (st.coins < look.price) return { ok: false, reason: `하트가 ${(look.price - st.coins).toLocaleString()}개 모자라요` };
   return { ok: true, state: { ...writeLooks(st, who, look, true), coins: st.coins - look.price } };
 }

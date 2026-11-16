@@ -17,6 +17,7 @@ import { mealPairs, nextMealTime, pickMeal } from "./predation.ts";
 import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
 import { kstDate } from "./kst.ts";
+import { seasonAdd, type CountStat } from "./season.ts";
 
 export const GRADES = ["흔함", "보통", "고급", "희귀", "영웅", "전설", "신화", "태초"] as const;
 export type Grade = (typeof GRADES)[number];
@@ -505,7 +506,11 @@ export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   if (a.tank > TANK_CORE_MAX) (plus as Record<string, unknown>).tankTop = a.tank;
   // 최상위 칸이 진짜 자리 — 옛 앱이 aquaPlus 를 다시 지어도 남는다(tankTop 은 지금 앱끼리의 사본)
   // 10단계 위는 aquaTankMax 에도 — 지금 배포된 앱은 9 로 깎아 aquaTankTop 에 다시 쓰지만 이 칸은 모르고 흘린다(...st)
-  return { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}), ...(a.tank > TANK_TOP_LEGACY ? { aquaTankMax: a.tank } : {}) };
+  const out: Island = { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}), ...(a.tank > TANK_TOP_LEGACY ? { aquaTankMax: a.tank } : {}) };
+  // 시즌 미션 — 알에서 깬 치어(eggN 은 늘기만 한다). 정산(syncAqua)도 여기를 지나므로 저장된 값과 견주면 한 번만 센다
+  const eggs0 = num(((st as Island).aquaPlus as { eggN?: unknown } | undefined)?.eggN, 0);
+  const hatched = Math.floor((a.eggN ?? 0) - eggs0);
+  return hatched > 0 ? seasonAdd(out, a.at, { hatch: hatched }) : out;
 }
 
 /** 지금 모습의 그림 열쇠 — 치어 fry_<계열> · 어린 물고기 juv_<계열> · 최종 <종> */
@@ -819,6 +824,8 @@ export function careHoursLeft(a: AquaState): { feed: number; clean: number } {
 export type AquaResult = { ok: true; state: Island; note?: string } | { ok: false; reason: string };
 
 const put = (st: IslandState, a: AquaState, coins = st.coins, note?: string): AquaResult => ({ ok: true, state: stow(st, a, coins), ...(note ? { note } : {}) });
+/** 시즌 미션 수 하나 — 성공한 동작에만(같은 저장에 들어가 다시 돌려도 한 번) */
+const withSeason = (r: AquaResult, now: number, stat: CountStat): AquaResult => (r.ok ? { ...r, state: seasonAdd(r.state, now, { [stat]: 1 }) } : r);
 
 /** 정산 — 시간 · 그물 기한 · 오늘의 의뢰까지. 모든 동작이 이걸 먼저 부른다.
  *  dirty = 저장해야 할 변화(자람 · 알 · 그물 판매 · 새 의뢰 · 시계 보정)가 있나 — 화면이 보기만 하다가도 한 번 저장한다. */
@@ -962,7 +969,7 @@ export function feedFish(st: IslandState, now: number, opt: { food?: string; who
   const c = careBy(a, opt.who, now);
   const hours = Math.round(aquaEffects(c.a).hungerHours * (100 - GOOD_HUNGER) / 100);
   const note = `냠냠 — ${hours}시간 든든해요${food ? liked ? ` · ${liked}마리가 좋아하는 먹이예요` : " · 좋아하는 물고기가 없었어요" : ""}${c.duo ? ` · 둘이 함께 돌봐서 정성이 올랐어요` : ""}`;
-  return put(s, c.a, s.coins, note);
+  return withSeason(put(s, c.a, s.coins, note), now, "feed");
 }
 
 export function cleanWater(st: IslandState, now: number, opt: { who?: string } = {}): AquaResult {
@@ -972,7 +979,7 @@ export function cleanWater(st: IslandState, now: number, opt: { who?: string } =
   if (s.coins < price) return { ok: false, reason: `물을 갈려면 하트가 ${price}개 필요해요` };
   const c = careBy({ ...a, water: 100 }, opt.who, now);
   const hours = Math.round(aquaEffects(c.a).waterHours * (100 - GOOD_WATER) / 100);
-  return put(s, c.a, s.coins - price, `물을 갈았어요(하트 ${price}개) — ${hours}시간 맑아요${c.duo ? " · 둘이 함께 돌봐서 정성이 올랐어요" : ""}`);
+  return withSeason(put(s, c.a, s.coins - price, `물을 갈았어요(하트 ${price}개) — ${hours}시간 맑아요${c.duo ? " · 둘이 함께 돌봐서 정성이 올랐어요" : ""}`), now, "water");
 }
 
 export function upgradeTank(st: IslandState, now: number): AquaResult {
@@ -1160,5 +1167,5 @@ export function claimRequest(st: IslandState, now: number): AquaResult {
   if (!a.req || a.req.day < kstDate(now)) return { ok: false, reason: "오늘은 손님이 없어요" };
   if (a.req.done) return { ok: false, reason: "오늘 손님은 이미 다녀갔어요" };
   if (!requestMet(a)) return { ok: false, reason: "아직 부탁을 들어주지 못했어요" };
-  return put(s, { ...a, req: { ...a.req, done: true } }, s.coins + a.req.reward, `손님이 기뻐해요 — 하트 +${a.req.reward}`);
+  return withSeason(put(s, { ...a, req: { ...a.req, done: true } }, s.coins + a.req.reward, `손님이 기뻐해요 — 하트 +${a.req.reward}`), now, "guest");
 }

@@ -64,6 +64,7 @@ import {
 import type { IslandState } from "@/lib/island";
 import { josa } from "@/lib/josa";
 import { kstDate } from "@/lib/kst";
+import { seasonAdd } from "@/lib/season";
 import { withTimeout } from "@/lib/logreview";
 import { gameNow } from "@/lib/islandsync";
 import { moonMomentOf, moonPhase, tideEffect, tideOf } from "@/lib/fishtide";
@@ -648,7 +649,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         if (you > 0) share = ` · 둘이 함께 잡았어요(나 ${Math.round(me * 100)}% · 상대 ${Math.round(you * 100)}%)`;
         winShare = { me, you };
       }
-      return won;
+      // 시즌 미션 — 이번 저장이 처음 토벌을 적을 때만(이미 들어간 저장을 다시 받은 것이면 원본 그대로라 안 센다)
+      return paid && won.ok ? { ...won, state: seasonAdd(won.state, clock(), { boss: 1 }) } : won;
     }, true).then((r) => ({
       res: r,
       win: r?.ok ? { id: Date.now(), name: beaten.name, ...winShare } : null,
@@ -1034,7 +1036,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   effRef.current = eff;
   const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
   const look = spotLookOf(st, spot.key);
-  trophyRef.current = (r, c, t) => noteTrophy(r, c, { who, by: myName.trim() || readFishNick(), spot: spot.key, day: kstDate(t) });
+  // 시즌 미션(2026-11-13) — 끌어올린 물고기 한 마리 · 그 계열. 담기 · 팔기 · 그물 · 빠져나감(이미 끌어올렸다) 모두. 쓰레기 · 편지 · 보물은 빼고, 같은 저장 안이라 다시 돌려도 한 번
+  trophyRef.current = (r, c, t) => {
+    const n = noteTrophy(r, c, { who, by: myName.trim() || readFishNick(), spot: spot.key, day: kstDate(t) });
+    return n.ok && !c.junk && !c.special && n.outcome !== "junk" && n.outcome !== "special" ? { ...n, state: seasonAdd(n.state, t, { landed: 1 }, { kind: c.family }) } : n;
+  };
   // 달(2026-11-12 물때 · 달) — 때와 같은 서버 시각(gameNow)의 KST 로 센다. 둘이 같은 물때 · 같은 보름달 밤을 본다
   const moment: FishMoment = { time: fishTimeOf(clock()), wx: forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null, moon: moonMomentOf(clock()) };
   const tide = tideOf(clock()), moonNow = moonPhase(clock());
@@ -1107,13 +1113,17 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   }
 
   /** 미끼 쓰기 — 화면은 기다리지 않는다. 그 사이 상대가 마지막 미끼를 썼거나 저장이 끝내 안 됐으면 판을 물린다(미끼 없이 낚는 판이 생기지 않게). */
-  function payBait(castM = 0) {
+  function payBait(castM = 0, kick = false) {
     // 밤 판정은 던지는 순간 다시 본다 — 화면의 night 는 30초 박자라 19시 · 5시 경계에서 한 박자 늦을 수 있다
     const t = clock(), key = bait.key, sp = spot, m = method, ck = craft?.key ?? null, night = nightNow();
     roundBait.current = baitIndex(key);
     setRoundCraft(ck);
     // 만든 미끼는 fishPlus.craft 에서 센다(산 미끼 · 공짜 지렁이는 그대로) — 뽑기는 위에서 그 단계 산 미끼(key)로 했다
-    void act((s) => ck ? spendCraft(s, sp, m, ck, kstDate(t), castM, night) : spendBait(s, sp, m, key, kstDate(t), castM, night), true).then((r) => {
+    // 바나나킥이면 시즌 미션 한 번 — 미끼를 쓰는 같은 저장에 넣는다(던지기는 따로 저장하지 않는다)
+    void act((s) => {
+      const r = ck ? spendCraft(s, sp, m, ck, kstDate(t), castM, night) : spendBait(s, sp, m, key, kstDate(t), castM, night);
+      return r.ok && kick ? { ...r, state: seasonAdd(r.state, t, { kick: 1 }) } : r;
+    }, true).then((r) => {
       if (!r?.ok) abortRound();
     });
   }
@@ -1481,7 +1491,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       fishRef.current = c;
       setFish(c);
       setLandPt(land);
-      payBait(meters);
+      payBait(meters, banana >= 1);
       // 물 밑 그림자는 물렸을 물고기의 실루엣 — 꽝도 진짜 물고기 모습(...real)이라 공개 전까지 모른다
       { const sk = fishArtKey(c); fx?.shape(sk, FISH_IMAGE_KEYS.has(sk) ? asset(`/aqua/fish/sm/${sk}.webp`) : null); }
       // 입질 · 간 보기는 찌가 내려앉은 뒤부터 — 던진 순간부터 세면 휘어 오래 나는 찌가 공중에서 입질했다(물때 · 향 미끼로 기다림이 짧아지면 더 잦다)
