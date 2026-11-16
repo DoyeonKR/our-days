@@ -109,6 +109,7 @@
 | `couple_logs` | 3초 로그(오전/오후 한 편씩). **영상은 90일 보관** — 지나면 영상만 떼어 내고(`video_expired_at`) 글·이모지·댓글은 남긴다 |
 | ~~`game_*` · `board_*` · `tetris_results`~~ | 옛 아케이드·순위판·부루마블·테트리스 표. 게임은 2026-08-06 지웠고 표는 `migrations/20260924000000_drop_old_game_tables.sql` 로 내렸다(2026-09-24 push 때 GitHub 연동이 자동 적용 — §7) |
 | `fish_catches` | 낚시 랭킹 — 끌어올린 물고기 한 마리 = 한 줄. 본인 행만 직접 읽고 순위는 `fish_board` 함수가 닉네임 · 점수만 돌려준다(§14.4.7) |
+| `merge_weekly_runs` | 합치기 주간 도전판 — 도전 한 판 = 한 줄(주 · 규칙 · 커플). 우리 커플 줄만 직접 읽고 순위는 `merge_weekly_board` 가 닉네임 · 점수만 돌려준다(§14.4.5) |
 | `couple_island` | 우리 섬(메인 게임) 상태(커플당 1행 · `state` jsonb + version 낙관적 락). 차례 없이 둘 다 자유, `island_action` 이 버전만 강제 |
 | `activity_events` / `activity_reads` | 서버 트리거 기반 활동함과 사용자별 마지막 읽은 시각 |
 
@@ -1308,6 +1309,45 @@ DB 표(`game_*` · `board_*` · `tetris_results`)는 한동안 그대로 뒀다�
     drop function if exists public.merge_score_plausible(integer, integer);
     commit;
     -- guarded 칸 · merge_overtake_notified 표 · merge_runs_user_time_idx 는 남겨 둬도 옛 함수와 맞는다(걷지 않는 쪽이 안전)
+    ```
+- **주간 도전판**(2026-11-13) [사용자 승인: "합치기 주간 도전판"] 잠금: mergeweekly.test(+ migrationlint · gamesguard 그대로 통과).
+  주(KST 월요일 0시 ~ 다음 월요일 0시 전)마다 규칙 하나로 커플끼리 겨룬다. 게임 화면 '주간 도전' 버튼 → `components/MergeWeekly.tsx`.
+
+  | 규칙(`WEEKLY_RULES` 순서) | 판 | 점수 범위(`weeklyScoreCeiling` · `weeklyScoreFloor`) |
+  |---|---|---|
+  | 돌밭 정원(stones) | 4×4 · 움직이지도 합쳐지지도 않는 돌 2~3개(시드). 돌은 줄을 토막으로 나눈다 | 보통 판과 같다 — 2·16·(L−1)·2^L, 하한 2^L(3단계부터) |
+  | 60수 승부(moves) | 4×4 · 60번째 수에서 끝 · 거름 없음 | 판 위 질량(Σ2^l) ≤ 4·(2+60) = 248 → 최고 7단계 · 2·(L−1)·248 |
+  | 같은 출발(preset) | 4×4 · 모두 같은 시작 재료(가장 높은 4단계), 그 뒤 새 타일은 무작위 | 상한은 보통 판, 하한은 5단계부터(시작 재료가 4단계까지라) |
+  | 거름 풍년(fert) | 4×4 · 거름이 5수째부터 12% | 보통 판과 같다(거름 확률은 증명에 안 든다) |
+  | 넓은 밭(big) | 5×5 | 2·25·(L−1)·2^L(칸 25), 1천만 상한 |
+
+  - 규칙 = 주 일련번호(1970-01-05 월요일부터 7일씩) mod 5 — 앱(`weekOf`)과 서버(`private.merge_week_rule`)가 같은 정수 계산이라 같은 규칙이다. ISO 주 번호를 쓰지 않아 53주 해에도 이웃한 두 주가 늘 다르다. ⚠ 규칙 순서 · 상수를 바꾸면 새 migration 과 앱을 같이, 주가 바뀔 때.
+  - 보통 판은 그대로다(merge.test · gamesguard.test). 도전판 이전 엔진(dc5cd5e)과 지금 엔진을 60판 · 10,592수 동안 매 수 견줘 같았고, 그 끝 값을 mergeweekly.test 가 잠근다. 규칙은 `Game.rule` 이 있을 때만 켜지는 별도 옵션이고, 진행 중인 도전판은 자기 자리(`ourdays:merge:wk:v1:<커플|solo>`)에 둔다 — 옛 앱이 보통 판 자리를 읽으므로 5×5 · 돌이 든 판이 거기로 새면 보통 판으로 정산 · 순위에 올라간다. 도전판은 하루 하트 · 전체 순위에 들어가지 않는다.
+  - 커플 점수 = 그 주 두 사람 각자의 최고 도전 점수의 합(지금도 그 커플인 사람만). 같은 점수면 합을 먼저 이룬 커플. 결과 판은 보통 판과 같은 모양(점수 · 우리 합계 · N커플 중 M위 · 1~10위 + 우리 줄).
+  - **주간 보상**(섬 하트, `weeklyReward` · `settleWeekly`): 끝난 주의 커플 점수 × 규칙 곱(`WEEKLY_REWARD_SCALE` — 돌밭 3 · 60수 4 · 같은 출발 1 · 거름 풍년 1 · 넓은 밭 0.2)으로 1점 50 · 500점 100 · 2천 200 · 5천 300 · 1만 400 · 2만 500 · 4만 600(주당 상한 600 — 합치기 하루 상한 400 의 1.5일치). 곱을 두는 이유: 규칙마다 점수 크기가 열 배 넘게 달라서(봇 200판 가운데값 돌밭 558 · 60수 514 · 같은 출발 1,913 · 거름 풍년 2,108 · 넓은 밭 11,335) 곱이 없으면 60수 주는 많아야 300, 넓은 밭 주는 대개 600 이었다 — 곱한 뒤엔 어느 주든 보통 커플이 200 근처다. 도전판 안내에 그 주 기준 점수를 보여 준다. 게임을 열면 지난 주를 한 번 본다(`useWeeklyReward`). ⚠ **앱이 섬 상태에 적는 정산이다**(끝난 판 하트와 같다) — 서버는 점수 · 순위 · 그 주가 서버 시각으로 끝났는지(`ended`)만 내고, 같은 주는 `s.merge.weekPaid`(최근 12주, 옵셔널 — 무마이그레이션)로 한 번, 버전 잠금 저장이라 둘이 동시에 열어도 한 번. `gameNow()` 는 그 실행의 첫 섬 저장 전엔 기기 시계라서, 시계가 앞선 폰이 진행 중인 주를 덜 찬 점수로 받아 가지 않게 `ended` 가 참일 때만 적는다. 서버가 지난 주까지만 답하므로 다음 한 주 안에 게임을 한 번도 안 열면 그 보상은 지나간다.
+  - 주가 바뀌는 순간 하던 판(점수가 있으면)은 그 주 기록으로 마쳐 올린다 — 서버가 경계 뒤 10분까지 받고, 그 뒤면 PT422 로 걸러져 줄에서 빠진다.
+  - 커플이 아니면 도전은 할 수 있지만 올리지 않는다(PT403). 닉네임은 전체 순위판과 같은 `ourdays:merge:nick` — 정하기 전에 끝난 판은 기다렸다가 올라간다.
+  - **DB — `migrations/20261107100000_merge_weekly.sql`**(push 때 운영 적용, §7 · schema.sql 끝에 원문 한 번). 표를 새로 둔다: `merge_runs` 에 칸을 더하면 그 표를 읽는 전체 순위 · 순위 계산 · 옛 순위 · 역전 알림이 모두 보통 판 범위로 거르므로, 섞으면 함수를 전부 다시 정의해야 한다(옛 앱이 부르는 것까지). 새 표는 기존 함수 · 행 · 정책을 하나도 건드리지 않는다.
+    · `merge_weekly_runs`(user_id · couple_id · week · rule · nickname · score · top_lv) — RLS, 직접 읽기는 우리 커플 줄만(`couple_id in (select private.my_couple_ids())`, to authenticated), 쓰기 권한 없음(RPC 로만), anon 없음.
+    · `submit_merge_weekly(p_week, p_rule, p_nickname, p_score, p_top)` — `submit_merge_run` 과 같은 지킴이: 사람마다 잠금(`merge_weekly:` 키) 뒤 20초에 한 판 · 하루(KST) 200판(PT429), 주 · 규칙은 서버가 now() 로 정하고 다르면 PT422(지난 주 판은 경계 뒤 10분까지), 규칙별 범위 밖 PT422(`private.merge_weekly_plausible`), 닉네임 `merge_clean_nick`(PT422), 커플 아님 PT403. 반환: 판 id · 이번 주 내 최고 · 우리 합계 · 커플 순위 · 참여 커플 수.
+    · `merge_weekly_board(p_week default null)` — 이번 주(또는 지난 주) 1~20위 + 우리 줄. 닉네임 · 점수만(아이디 없음), 내 최고 · 상대 최고는 우리 줄에만. 그 밖의 주는 빈 결과.
+    · 도우미 `private.merge_week_start` · `merge_week_rule` · `merge_weekly_plausible` · `merge_weekly_totals` — 아무도 직접 못 부른다.
+  - 검증(스크래치 폴더의 PGlite — 레포에 안 남긴다): `scripts/rls-verify.mjs` 통과(보이는 행 · 쓰기 시도 차이 0 · 두 번 적용 멱등 · 신규 bootstrap 같은 정책 81개). 동작 38가지 — 이번 주 ended 거짓 · 지난 주 ended 참 · 주 · 규칙이 앱과 같음(7시각 + 200주) · 범위 식 570칸이 앱과 같음 · anon 거부 · 커플 없음 PT403 · 지난/다음 주 · 다른 규칙 · 상한 넘음 · 링크 · 빈 닉네임 PT422 · 20초 · 하루 200 PT429 · 합 · 순위 · 남의 줄엔 최고 없음 · 직접 넣기 · 고치기 · 지우기 거부 · 나간 상대는 합에서 빠짐. 화면은 로컬 모드(연동 없음)에서 375 · 320px 로 규칙 카드 · 같은 출발 · 넓은 밭 5×5 · 돌밭 판 · 결과 판까지 봤다(320px 에선 도구 줄이 두 줄로 접힌다).
+    ⚠ 못 본 것: PostgREST 를 거친 호출, 커플 연동 화면(올리기 성공 · 순위 줄 · 보상 띠), 진짜 폰. 안 한 것: 계정 내보내기(§10.11)에 `merge_weekly_runs` 를 넣지 않았다(계정 삭제는 auth.users · couples 연쇄 삭제로 지워진다).
+  - **롤백**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다). 앱을 되돌린 **뒤에** 실행한다(새 앱이 RPC 를 부른다). 표를 지우면 도전 기록이 사라진다 — 먼저 백업. 같은 내용을 새 migration 파일로도 남긴다(§7). 섬 상태의 `weekPaid` 는 옛 앱이 모르는 칸이라 남겨 둬도 된다.
+    ```sql
+    begin;
+    drop function if exists public.submit_merge_weekly(date, text, text, integer, integer);
+    drop function if exists public.merge_weekly_board(date);
+    drop function if exists private.merge_weekly_totals(date);
+    drop function if exists private.merge_weekly_plausible(text, integer, integer);
+    drop function if exists private.merge_week_rule(date);
+    drop function if exists private.merge_week_start(timestamptz);
+    -- 기록까지 걷을 때만(되돌릴 수 없다): 백업 뒤
+    -- create table private.merge_weekly_runs_backup as select * from public.merge_weekly_runs;
+    -- drop table if exists public.merge_weekly_runs;
+    notify pgrst, 'reload schema';
+    commit;
     ```
 
 ### 14.4.6 우리 수조 (2026-11-01)

@@ -3486,3 +3486,39 @@ export async function getMergeRunBoard(runId: number | null): Promise<MergeRunRa
   if (error) throw new Error(humanError(error.message));
   return (data ?? []) as MergeRunRank[];
 }
+
+// 합치기 주간 도전판(2026-11-13) — 커플 점수 = 그 주 두 사람 각자의 최고 도전 점수의 합. migrations/20261107100000_merge_weekly.sql
+// 순위판은 닉네임 · 점수만 돌려준다. 내 최고 · 상대 최고는 우리 커플 줄에만 있다(남의 줄은 null).
+export type MergeWeeklyRow = {
+  week: string;
+  rule: string;
+  rank: number;
+  names: string;
+  score: number;
+  is_mine: boolean;
+  my_best: number | null;
+  partner_best: number | null;
+  couples: number;
+  /** 그 주가 서버 시각으로 끝났는지 — 주간 보상은 이게 참일 때만 */
+  ended: boolean;
+};
+export type MergeWeeklySubmit = { runId: number; myBest: number; coupleScore: number; coupleRank: number; couples: number };
+
+export async function submitMergeWeekly(week: string, rule: string, nickname: string, score: number, top: number): Promise<MergeWeeklySubmit | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("submit_merge_weekly", { p_week: week, p_rule: rule, p_nickname: nickname, p_score: Math.round(score), p_top: top });
+  // PT422(받을 수 없는 판 · 지난 주) · PT403(커플 없음)은 다시 보내지 않고, PT429 는 잠시 뒤 다시 — 화면이 코드를 가른다
+  if (error) throw Object.assign(new Error(humanError(error.message)), { code: error.code });
+  const row = (Array.isArray(data) ? data[0] : data) as { run_id: number; my_best: number; couple_score: number; couple_rank: number; couples: number } | undefined;
+  return row ? { runId: Number(row.run_id), myBest: row.my_best ?? 0, coupleScore: row.couple_score ?? 0, coupleRank: row.couple_rank ?? 0, couples: row.couples ?? 0 } : null;
+}
+
+/** week: 그 주의 월요일 'YYYY-MM-DD'(null 이면 이번 주). 서버는 이번 주 · 지난 주만 답한다(그 밖은 빈 목록). */
+export async function getMergeWeeklyBoard(week: string | null): Promise<MergeWeeklyRow[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("merge_weekly_board", { p_week: week });
+  if (error) throw new Error(humanError(error.message));
+  return ((data ?? []) as MergeWeeklyRow[]).map((r) => ({ ...r, week: String(r.week).slice(0, 10) }));
+}
