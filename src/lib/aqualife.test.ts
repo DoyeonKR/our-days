@@ -274,6 +274,8 @@ test("옛 앱이 알을 낳고 · 잡아먹히고 · 보내 줘도 — 새 앱�
   let fryId = since;
   while (!rollMorph(fryId, "guppy")) fryId++;
   const newsN = a.newsN ?? 0;
+  // 옛 앱에서 먹힐 물고기(7777)는 새 앱이 적어 둔 변이가 있었다
+  s = stow(s, { ...a, morph: { ...a.morph!, by: { ...a.morph!.by, 7777: "albino" } } });
   const old = oldClientSave(s as Island, (fish, plus) => {
     // 옛 앱: 알을 낳고(소식 egg) · p2 가 다른 물고기를 먹은 것처럼 소식 ate · p1 을 보내 줬다(소식 없음)
     plus.newsN = newsN + 2;
@@ -291,6 +293,7 @@ test("옛 앱이 알을 낳고 · 잡아먹히고 · 보내 줘도 — 새 앱�
   assert.equal(hatched.a, 1, "때를 모른다 — 무렵");
   assert.equal(life.memorial.find((m) => m.id === p1.id)?.cause, "gone", "소식 없이 떠난 물고기");
   assert.equal(life.memorial.find((m) => m.id === 7777)?.cause, "eaten");
+  assert.equal(life.memorial.find((m) => m.id === 7777)?.morph, "albino", "먹힌 물고기의 변이도 추모 칸에");
   assert.ok(life.log[String(p2.id)].some((e) => e.k === "ate" && e.prey.id === 7777));
   // 한 번 더 정산 · 저장 · 정산해도 두 번 적지 않는다
   const again = syncAqua(stow(synced.state, synced.a), t + H);
@@ -309,4 +312,20 @@ test("이 기능 전에 깬 물고기는 거슬러 변이가 되지 않는다(si
     const st = { ...legacy, aquarium: { ...legacy.aquarium!, fish: [{ ...born, id }], nextId: 300 } } as Island;
     assert.equal(fishMorph(syncAqua(st, T0).a, { id, family: "guppy", bred: true }), null);
   }
+});
+
+test("이 번들이 모르는 계열(alien) 물고기의 이름 · 이야기 · 변이는 추모 칸으로 보내지 않는다", () => {
+  const s = pairTank();
+  const a = aquaOf(s, T0);
+  const alien = { id: 900, family: "future_fish", stage: 0, growH: 0, goodH: 0, totalH: 0, bred: true };
+  const st = {
+    ...s, aquarium: { ...s.aquarium!, fish: [...s.aquarium!.fish, alien] },
+    aquaMorph: { ...a.morph!, by: { 900: "aurora" } },
+    aquaLife: { ...a.life!, names: { 900: "미래" }, log: { ...a.life!.log, 900: [{ k: "hatched", t: T0, key: "fry_future_fish" }] } },
+  } as unknown as Island;
+  const r = syncAqua(st, T0 + H);
+  assert.equal(r.a.life!.memorial.length, 0);
+  assert.equal(r.a.life!.names["900"], "미래");
+  assert.equal(r.a.life!.log["900"]?.length, 1);
+  assert.equal(r.a.morph!.by["900"], "aurora");
 });

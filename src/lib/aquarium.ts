@@ -700,9 +700,10 @@ const alienIds = (a: Pick<AquaState, "alien">): Set<number> =>
 function settleLife(a: AquaState, t0: number): AquaState {
   if (!a.life) return a;
   let life = a.life;
-  for (const x of [...(a.news ?? [])].sort((p, q) => p.n - q.n)) if (x.n > life.n) life = newsToLife(life, x, t0, true);
-  // 떠난 물고기의 변이는 추모 칸이 들고 간다(adoptMorphs 가 by 를 덜어 내기 전에)
-  const alive = new Set(a.fish.map((f) => f.id));
+  // 잡아먹힌 물고기의 변이도 추모 칸으로(아직 by 에 남아 있다 — adoptMorphs 가 덜어 내기 전)
+  for (const x of [...(a.news ?? [])].sort((p, q) => p.n - q.n)) if (x.n > life.n) life = newsToLife(life, x, t0, true, { preyMorph: x.ate ? a.morph?.by[String(x.ate.id)] : undefined });
+  // 떠난 물고기의 변이는 추모 칸이 들고 간다(adoptMorphs 가 by 를 덜어 내기 전에). 이 번들이 모르는 계열(alien)은 살아 있다
+  const alive = new Set([...a.fish.map((f) => f.id), ...alienIds(a)]);
   for (const id of Object.keys(life.log).map(Number)) {
     const m = a.morph?.by[String(id)];
     if (!alive.has(id) && m) {
