@@ -16,7 +16,7 @@ export const MORPH_LOOK: Readonly<Record<Morph, MorphLook>> = {
   // 알비노 — 색소가 빠져 희고 분홍빛이 돈다
   albino: { desat: 0.85, tint: [1.05, 0.93, 0.95], lift: [0.32, 0.27, 0.28] },
   // 황금 — 밝기를 금빛으로 옮긴다
-  golden: { desat: 0.9, tint: [1.45, 1.08, 0.38], lift: [0.06, 0.04, 0], emissive: 0x5a3c00, emissiveIntensity: 0.3, metalness: 0.45, roughness: 0.35 },
+  golden: { desat: 0.9, tint: [1.65, 1.12, 0.3], lift: [0.08, 0.04, 0], emissive: 0x5a3c00, emissiveIntensity: 0.3, metalness: 0.45, roughness: 0.35 },
   // 흑색 — 짙은 먹빛
   melanistic: { desat: 0.55, tint: [0.3, 0.3, 0.34], lift: [0.01, 0.01, 0.015] },
   // 오로라 — 푸른 보랏빛에 은은한 빛(무지갯빛은 몸 둘레 빛 fishShading 이 가장자리에서 더한다)

@@ -621,7 +621,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-preview-dialog p { margin: 12px 0 6px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
 .aqua-model-viewer { width: 100%; aspect-ratio: 1; max-height: 48dvh; margin-top: 12px; }
 .aqua-model-viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; border-radius: 16px; }
-.aqua-list { display: grid; gap: 4px; }
+.aqua-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .aqua-list button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 8px; border-radius: 10px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; text-align: left; }
 .aqua-list button.is-on { background: rgba(125,211,252,.16); }
 .aqua-list small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; white-space: nowrap; }

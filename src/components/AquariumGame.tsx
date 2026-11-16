@@ -578,8 +578,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
                     <li key={f.id}>
                       <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => setSelFish(selFish === f.id ? null : f.id)}>
                         <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
-                        <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)} <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
-                        <MorphTag morph={fishMorph(a, f)} />
+                        {/* 변이 표는 이름 칸 안에 — 오른쪽 등급 · 남은 시간 칸을 375px 밖으로 밀어내지 않게(넘치면 길이 글이 먼저 잘린다) */}
+                        <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)}<MorphTag morph={fishMorph(a, f)} /> <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
                         {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>{duration(hoursLeft(a, f))} 남음</small>}
                       </button>
                     </li>
