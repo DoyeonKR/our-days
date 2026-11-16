@@ -12,9 +12,13 @@
  *  · 네 표 중 어디서 이벤트가 와도 둘 다 다시 받던 것 → 0.8초 모아서 한 번.
  *  · 같은 날 사진 20장이 카드 8칸을 다 채우던 것 → 날짜로 묶고 '+N'. 서명은 한 번에. 사진 카드를 누르면 사진 보기.
  *  · 아무 달이나 고르고, 그 달을 카드 한 장(사진 4장 + 숫자)으로 공유/저장.
+ *
+ * [2026-11-13 우리 연대기] 맨 아래 카드 — 펼칠 때만 OurChronicle 조각을 받는다(next/dynamic). 항목을 누르면 onRoute(page 의 goRoute).
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import type { AppRoute } from "@/lib/activity";
 import {
   type Member,
   type Photo,
@@ -41,15 +45,22 @@ import { useDayTick } from "@/lib/useDayTick";
 import Icon, { type IconName } from "@/components/Icon";
 import { MoodGlyph } from "@/components/PixelGlyph";
 import PhotoViewer from "@/components/PhotoViewer";
+import { SkeletonList } from "@/components/Skeleton";
+
+// 우리 연대기 — '연대기 펼치기'를 누를 때만 받는다(추억 칸 첫 로드에 연대기 · 게임 표가 실리지 않게)
+const OurChronicle = dynamic(() => import("@/components/OurChronicle"), { ssr: false, loading: () => <SkeletonList rows={3} /> });
 
 export default function MemoriesRecap({
   coupleId,
   members,
   myUserId,
+  onRoute,
 }: {
   coupleId: string;
   members: Member[];
   myUserId: string | null;
+  /** 연대기 항목을 누르면 그 기록이 있는 곳으로(page 의 goRoute) */
+  onRoute?: (route: AppRoute) => void;
 }) {
   const tick = useDayTick();
   // 추억의 '오늘'은 KST — 두 사람이 같은 날을 본다(기기 시간대와 무관). tick 은 자정을 넘겼다는 신호로만 쓴다.
@@ -68,6 +79,7 @@ export default function MemoriesRecap({
   const [viewer, setViewer] = useState<{ photos: Photo[]; id: string } | null>(null);
   const [cardBusy, setCardBusy] = useState(false);
   const [cardNote, setCardNote] = useState<string | null>(null);
+  const [chronicleOpen, setChronicleOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -324,6 +336,28 @@ export default function MemoriesRecap({
           </>
         )}
         <p className="mt-3 text-center text-xs text-muted">기록은 직접 지우기 전까지 남아요 · 3초 로그 영상만 90일 뒤 정리돼요.</p>
+      </div>
+
+      <div className="rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-xs font-bold text-rose-deep">처음부터 지금까지</p>
+            <h2 className="mt-0.5 text-base font-extrabold text-ink">우리 연대기</h2>
+          </div>
+          <span className="text-rose-deep" aria-hidden>
+            <Icon name="calendar" size={24} />
+          </span>
+        </div>
+        {chronicleOpen ? (
+          <OurChronicle coupleId={coupleId} members={members} myUserId={myUserId} onRoute={onRoute} />
+        ) : (
+          <>
+            <p className="mt-2 text-xs leading-relaxed text-muted">시작한 날 · 기념일 · 달마다의 첫 기록 · 이룬 버킷 · 게임의 순간을 한 줄로 모아 봐요.</p>
+            <button onClick={() => setChronicleOpen(true)} className="tap mt-3 w-full rounded-full bg-brand px-4 py-2 text-xs font-bold text-white">
+              연대기 펼치기
+            </button>
+          </>
+        )}
       </div>
 
       {viewer && (

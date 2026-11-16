@@ -105,3 +105,16 @@ test("게임 허브 — 게임 창 넷은 열 때 받는다(정적 import 면 �
   for (const name of ["IslandGame", "MergeGame", "AquariumGame", "FishingGame"])
     assert.match(hub, new RegExp(`const ${name} = dynamic\\(\\(\\) => import\\("@/components/${name}"\\), \\{ ssr: false`), name);
 });
+
+test("우리 연대기 — 홈 · 추억 첫 로드에 안 실린다(추억 칸에서 펼칠 때 받는다) [2026-11-13]", () => {
+  const CHRONICLE = ["components/OurChronicle.tsx", "lib/chronicle.ts", "lib/chronicledata.ts", "lib/yearcard.ts", "lib/fishingworld.ts"];
+  const home = reachable(join(SRC, "app", "page.tsx"));
+  assert.deepEqual(CHRONICLE.filter((f) => home.has(f)), [], "홈(page.tsx)이 연대기 · 게임 표를 정적으로 싣는다");
+  const memories = reachable(join(SRC, "components", "MemoriesRecap.tsx"));
+  assert.ok(memories.has("components/MemoriesRecap.tsx") && memories.has("lib/memories.ts"), "그래프를 못 따라갔다(테스트가 헛돈다)");
+  assert.deepEqual(CHRONICLE.filter((f) => memories.has(f)), [], "추억 칸이 연대기를 정적으로 싣는다 — next/dynamic 으로");
+  const chronicle = reachable(join(SRC, "components", "OurChronicle.tsx"));
+  assert.ok(chronicle.has("lib/chronicle.ts") && chronicle.has("lib/chronicledata.ts"), "연대기 그래프를 못 따라갔다");
+  assert.ok(!chronicle.has("lib/yearcard.ts"), "카드 그리기는 누를 때 받는다");
+  assert.ok(!chronicle.has("lib/island.ts"), "연대기는 섬 엔진 없이 저장된 칸만 읽는다");
+});
