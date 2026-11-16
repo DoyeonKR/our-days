@@ -27,6 +27,7 @@ import GameWindowGuard from "@/components/GameWindowGuard";
 import MonArt from "@/components/adventure/MonArt";
 import { josa } from "@/lib/josa";
 import { confirmDialog } from "@/lib/confirm";
+import { raidCharge } from "@/lib/advraid";
 import { BallIcon, HpBar, SHAPE_LABEL, STATUS_LABEL, STAT_LABEL, XpBar, holdProps, moveTags, pressProps, shade } from "@/components/adventure/advui";
 import { A2HS_KEY, holdRepeat, minFont, onceFlag, ringNow, stickVec, wantsA2hsTip } from "@/lib/advmobile";
 
@@ -98,7 +99,7 @@ const BG_PAD = 140;
    렌더에서 읽는다. 실시간 버튼(pressProps · holdProps)도 입력 ref 에 넣는다. 예전엔 뒤로 가기 처리가 아래의 async 함수(forfeit)를 먼저 불러서
    컴파일러 린트가 이 컴포넌트를 통째로 건너뛰었고(그래서 드러나지 않았다), 2026-11-09 대전의 뒤로 가기를 안내로 바꾸자 같은 읽기가 전부 걸렸다.
    React Compiler 는 켜져 있지 않다(README §10.13) — 이 컴포넌트만 이 규칙을 끈다. */
-export default function BattleView({ battle: start, region, bag: startBag, onEnd, onSettle, onSpend, online, keepFull }: {
+export default function BattleView({ battle: start, region, bag: startBag, onEnd, onSettle, onSpend, online, keepFull, limit, raid }: {
   battle: Battle;
   region: Region;
   bag: Bag;
@@ -111,9 +112,14 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   online?: Online;
   /** 필드에서 열렸다 — 끝나도 전체 화면을 유지한다 */
   keepFull?: boolean;
+  /** 판 길이(틱) — 없으면 엔진 기본(대전 150초 · 그 밖 없음). 커플 레이드는 90초 */
+  limit?: number;
+  /** 커플 레이드(2026-11-13, lib/advraid) — 영물의 최대 체력이 커플 몫 전체라 엔진의 각성 게이지가 거의 안 찬다.
+   *  영물을 때릴 때마다 몸 하나(unit) 기준과의 차이를 더한다(화면에서만 — 대전이 아니라 서버 판정과 무관). 끝 문구도 레이드 것 */
+  raid?: { unit: number };
 }) {
   const arenaRef = useRef<Arena | null>(null);
-  if (!arenaRef.current) arenaRef.current = newArena(start, startBag);
+  if (!arenaRef.current) arenaRef.current = newArena(start, startBag, limit);
   const stage = REGIONS.find((r) => r.key === arenaRef.current!.map.key) ?? region;
   const [hud, setHud] = useState<Hud>(() => hudOf(arenaRef.current!));
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -468,6 +474,10 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         lastDir.current = record(logRef.current, lastDir.current, a.tick, inp);
       }
       stepArena(a, inp);
+      if (raid && a.units[0].awake === 0) {
+        const foeMax = a.b.sides[1].team[a.b.sides[1].active].stats.hp;
+        for (const e of a.ev) if (e.t === "hit" && e.side === 1 && !e.recoil) a.charge[0] = Math.min(CHARGE_MAX, a.charge[0] + raidCharge(e.dmg, raid.unit, foeMax));
+      }
       if (a.bag) {
         const left = bagTotal(a.bag);
         if (left < bagLeft.current) onSpendRef.current?.({ balls: { ...a.bag.balls }, items: { ...a.bag.items } });
@@ -507,12 +517,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       if (a.b.over && !ended.current) {
         ended.current = true;
         feel.current.endAt = performance.now();
-        feel.current.endText = a.b.over === "win" ? "승리!" : a.b.over === "caught" ? "잡았다!" : a.b.over === "run" ? "도망!" : "패배…";
+        const raidDown = !!raid && a.b.sides[1].team.every((f) => f.mon.hp <= 0);
+        feel.current.endText = raid ? (raidDown ? "토벌!" : a.limit && a.tick >= a.limit ? "시간 끝!" : "기록했어요") : a.b.over === "win" ? "승리!" : a.b.over === "caught" ? "잡았다!" : a.b.over === "run" ? "도망!" : "패배…";
         setHud(hudOf(a));
         // 진행 저장은 지금 — 축하 연출(1.5초)을 기다리다 앱이 닫히면 잡은 생물 · 경험치가 사라졌다
         if (!online) onSettleRef.current?.(a.b, a.bag ?? startBag);
         const r = a.b.over;
-        setTimeout(() => toast(r === "win" ? "이겼다!" : r === "caught" ? "새 친구가 생겼다!" : r === "run" ? "무사히 빠져나왔다" : "졌다…"), 300);
+        setTimeout(() => toast(raid ? (raidDown ? "영물을 쓰러뜨렸다!" : "깎은 만큼 레이드 기록에 남겨요") : r === "win" ? "이겼다!" : r === "caught" ? "새 친구가 생겼다!" : r === "run" ? "무사히 빠져나왔다" : "졌다…"), 300);
         void (async () => {
           await new Promise((res) => setTimeout(res, 1500));
           if (online) {
@@ -1192,7 +1203,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       const since0 = now - fe2.startAt;
       if (since0 < (a.b.boss ? 1300 : 900)) {
         const fadeAt = a.b.boss ? 1000 : 620;
-        label(a.b.boss ? "대장전!" : "전투 시작!", top + room * 0.42, 46 * (since0 < 140 ? 1.5 - (since0 / 140) * 0.5 : 1), a.b.boss ? "#ff9a8a" : "#ffe27a", since0 > fadeAt ? 1 - (since0 - fadeAt) / 300 : 1);
+        label(raid ? "레이드!" : a.b.boss ? "대장전!" : "전투 시작!", top + room * 0.42, 46 * (since0 < 140 ? 1.5 - (since0 / 140) * 0.5 : 1), a.b.boss ? "#ff9a8a" : "#ffe27a", since0 > fadeAt ? 1 - (since0 - fadeAt) / 300 : 1);
         if (a.b.boss) label(a.b.sides[1].name, top + room * 0.42 + 42, 22, "#ffffff", since0 > fadeAt ? 1 - (since0 - fadeAt) / 300 : 1);
       }
       if (fe2.combo >= 2 && now - fe2.comboAt < 1500) {
@@ -1384,7 +1395,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
 
   async function giveUp() {
     if (ended.current) return;
-    if (!(await confirmDialog({ message: "이 승부를 포기할까요? 진 것으로 쳐요.", confirmText: "포기", danger: true }))) return;
+    if (!(await confirmDialog(raid ? { message: "여기서 끝낼까요? 깎은 만큼은 레이드 기록에 남아요.", confirmText: "끝내기" } : { message: "이 승부를 포기할까요? 진 것으로 쳐요.", confirmText: "포기", danger: true }))) return;
     ended.current = true;
     const ar = arenaRef.current!;
     ar.b.over = "lose";

@@ -61,7 +61,8 @@ test("떠 있는 막대 — 누른 자리가 가운데, 반지름 밖은 테두�
 test("알림 띠 — 손가락을 막지 않고, 필드 · 전투가 열려 있으면 위쪽에", () => {
   assert.match(rule(".adv-toast"), /pointer-events: none/);
   assert.match(rule(".adv-toast.is-top"), /top: calc\(var\(--game-safe-top, env\(safe-area-inset-top\)\) \+ \d+px\); bottom: auto;/);
-  assert.match(TAB, /className=\{`adv-toast\$\{field \|\| battle \? " is-top" : ""\}`\}/);
+  // 커플 레이드 판(2026-11-13)도 전투 — 같이 위로
+  assert.match(TAB, /className=\{`adv-toast\$\{field \|\| battle \|\| raidFight \? " is-top" : ""\}`\}/);
 });
 
 test("필드 이어 걷기 — 지역마다 걷던 필드를 기억하고(날이 바뀌면 비운다), 다시 들어오면 그 자리에서 잠깐 무적", () => {
