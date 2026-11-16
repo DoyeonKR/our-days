@@ -402,7 +402,8 @@ export type AquaPlus = Partial<Pick<AquaState, (typeof PLUS_KEYS)[number]>>;
 /** 섬 상태 + 수조의 맨 위 칸. 섬 타입(island.ts)은 건드리지 않는다 — 옛 저장분의 bubble 칸처럼 ...st 로 흘러간다.
  *  aquaTankTop: 7단계 위 수조. ⚠ aquaPlus 안에만 두면 2026-11-06 까지 배포된 앱(7ab54e1)이 aquaPlus 를 자기 칸 목록으로 다시 지어
  *  tankTop 을 버린다 — 하트는 그대로 쓰였는데 수조가 6단계로 내려앉는다. 섬 최상위 칸은 옛 앱도 ...st 로 그대로 흘려보낸다. */
-export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number; aquaMorph?: unknown; aquaLife?: unknown };
+export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number; aquaMorph?: unknown; aquaLife?: unknown;
+  /** 계절 수조 행사의 받음 표시 · 한정 장식 빛깔(lib/aquaeventclaim, 2026-11-13) — 맨 위 칸이라 옛 앱도 ...st 로 흘린다 */ aquaEvent?: unknown };
 
 export const GROW_JUVENILE = 0.4;
 export const HUNGER_HOURS = 24;

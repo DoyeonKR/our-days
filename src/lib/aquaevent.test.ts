@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import {
   AQUA_EVENTS, EVENT_FROM, LUNAR, changeAfter, eventGuest, eventsAt, eventsOn, kstMidnight, modsOn, nextEventAfter, occurrence,
 } from "./aquaevent.ts";
-import { DECOR, aquaOf, decorOf, tickAqua, type AquaFish, type AquaState } from "./aquarium.ts";
+import { DECOR, aquaOf, buyDecor, decorOf, feedFish, placeDecor, tickAqua, type AquaFish, type AquaState, type Island } from "./aquarium.ts";
+import { claimBlock, claimEventDecor, eventSaveOf, eventTints, readEventSave } from "./aquaeventclaim.ts";
+import { createIsland, type IslandState } from "./island.ts";
 
 const H = 3_600_000;
 const keys = (day: string) => eventsOn(day).map((e) => e.def.key);
@@ -180,4 +182,90 @@ test("배율이 정산에 듣는다 — 겨울엔 포만이 15% 오래 · 봄엔
 test("출시 전 저장(at)이 몇십 년 전이어도 정산이 끝난다 — 경계는 출시일부터만", () => {
   const r = tickAqua(tank(0), kstMidnight("2030-01-01")).a;
   assert.equal(r.at, kstMidnight("2030-01-01"));
+});
+
+/* ── 한정 장식 받기 · 저장 ─────────────────────────────── */
+const isle = (coins = 100_000): IslandState => ({ ...createIsland("콩", null, 0), coins });
+function ok<T extends { ok: boolean }>(r: T): Extract<T, { ok: true }> {
+  assert.ok(r.ok, (r as { reason?: string }).reason);
+  return r as Extract<T, { ok: true }>;
+}
+/** 2026-11-06 까지 배포된 앱(7ab54e1)의 쓰기 — aquacare.test 의 oldClientSave 와 같다: s.aquarium 을 아는 칸으로, aquaPlus 를 옛 PLUS_KEYS 로 다시 짓고 나머지는 ...st */
+const OLD_PLUS_KEYS = ["badH", "news", "newsN", "newsSeen", "care", "duoDay", "released", "net", "combos", "req", "food", "junkUsed", "breedH", "eggN"] as const;
+function oldClientSave(st: Island): Island {
+  const a = st.aquarium!;
+  const core = { tank: Math.min(6, Math.max(1, Math.floor(a.tank))), hunger: a.hunger, water: a.water, at: a.at, nextId: a.nextId,
+    fish: a.fish, placed: a.placed, ...(a.wide !== undefined ? { wide: a.wide } : {}), bag: a.bag, dex: a.dex };
+  const plusIn = (st.aquaPlus ?? {}) as Record<string, unknown>, plus: Record<string, unknown> = {};
+  for (const k of OLD_PLUS_KEYS) if (plusIn[k] !== undefined) plus[k] = plusIn[k];
+  return { ...st, aquarium: core as AquaState, aquaPlus: plus } as Island;
+}
+
+test("받기 — 행사마다 커플 한 번 · 하트는 그대로 · 장식은 옛 앱도 아는 보관함 · 빛깔은 맨 위 칸", () => {
+  const t = noon("2026-11-20");
+  const s0 = isle();
+  const r = ok(claimEventDecor(s0, "autumn", t));
+  const s1 = r.state as Island;
+  assert.equal(s1.coins, s0.coins, "하트 없음");
+  assert.equal(aquaOf(s1, t).bag.java_fern, 1);
+  assert.deepEqual(eventSaveOf(s1), { claimed: ["autumn:2026"], tint: { java_fern: ["autumn"] } });
+  assert.match(r.note, /단풍 자바 펀/);
+  // 두 번째(같은 폰 · 상대 폰이 저장 충돌 뒤 다시 읽어 누른 것) — 같은 판정에 걸린다
+  assert.equal(claimEventDecor(s1, "autumn", t + H).ok, false);
+  assert.match(claimBlock(s1, "autumn", t + H) ?? "", /이미 받았어요/);
+  // 행사가 아닌 때 · 열리지 않은 행사
+  assert.match(claimBlock(s0, "autumn", noon("2027-05-10")) ?? "", /기간이 아니에요/);
+  assert.equal(claimEventDecor(s0, "spring", t).ok, false);
+  assert.equal(claimEventDecor(s0, "autumn", noon("2026-11-10")).ok, false, "출시 전");
+  // 다음 해 가을은 새 행사 — 또 받는다
+  const s2 = ok(claimEventDecor(s1, "autumn", noon("2027-10-05"))).state;
+  assert.deepEqual(eventSaveOf(s2).claimed, ["autumn:2026", "autumn:2027"]);
+  assert.equal(aquaOf(s2 as Island, t).bag.java_fern, 2);
+});
+
+test("옛 앱이 수조를 다시 지어도 남는다 — 받음 표시 · 빛깔(맨 위 칸) · 장식(보관함) · 다시 받기는 막힌다", () => {
+  const t = noon("2026-12-22");
+  let s = ok(claimEventDecor(isle(), "winter", t)).state as Island;
+  s = ok(claimEventDecor(s, "xmas", t)).state as Island;
+  const old = oldClientSave(s);
+  assert.deepEqual(eventSaveOf(old), eventSaveOf(s));
+  assert.deepEqual(aquaOf(old, t).bag, aquaOf(s, t).bag);
+  assert.equal(claimEventDecor(old, "winter", t + H).ok, false);
+  // 새 앱의 다른 쓰기(사기)도 맨 위 칸을 그대로 둔다
+  const bought = ok(buyDecor(old, "pebbles", t + H)).state as Island;
+  assert.deepEqual(eventSaveOf(bought), eventSaveOf(s));
+  assert.equal(feedFish(bought, t + 2 * H).ok, false, "물고기가 없어 먹이는 거절");
+  // aquaPlus 에 새 칸을 만들지 않았다(옛 앱이 버린다)
+  assert.deepEqual(Object.keys(s.aquaPlus ?? {}).filter((k) => !(OLD_PLUS_KEYS as readonly string[]).includes(k)), []);
+  // 다음 버전이 더한 칸은 지우지 않는다
+  const future = { ...s, aquaEvent: { ...((s as { aquaEvent?: object }).aquaEvent ?? {}), next: 7 } } as Island;
+  const again = ok(claimEventDecor(future, "seollal", noon("2027-02-06"))).state as { aquaEvent?: { next?: number } };
+  assert.equal(again.aquaEvent?.next, 7);
+});
+
+test("날짜는 앞으로만 — 겹친 행사는 어느 쪽을 먼저 받아도 되지만, 더 늦은 행사를 받은 뒤엔 먼저 끝난 행사를 못 받는다", () => {
+  const t = noon("2026-12-22");
+  const a = ok(claimEventDecor(isle(), "xmas", t)).state;
+  assert.ok(claimEventDecor(a, "winter", t).ok, "크리스마스 뒤 겨울");
+  const b = ok(claimEventDecor(isle(), "winter", t)).state;
+  assert.ok(claimEventDecor(b, "xmas", t).ok, "겨울 뒤 크리스마스");
+  // 시계가 빨랐던 폰이 2027 겨울을 받은 뒤 진짜 2027 가을(12/1 에 끝)은 못 받는다
+  const ahead = ok(claimEventDecor(isle(), "winter", noon("2027-12-05"))).state;
+  assert.match(claimBlock(ahead, "autumn", noon("2027-11-20")) ?? "", /지난 행사/);
+});
+
+test("빛깔 — 놓인 같은 장식을 id 순으로 앞에서부터 · 모르는 값은 버린다", () => {
+  const t = noon("2026-11-20");
+  let s = ok(claimEventDecor(isle(), "autumn", t)).state;
+  s = ok(buyDecor(s, "java_fern", t)).state;
+  s = ok(placeDecor(s, "java_fern", 30, 50, t)).state;
+  s = ok(placeDecor(s, "java_fern", 60, 50, t)).state;
+  const placed = aquaOf(s as Island, t).placed;
+  const ids = placed.filter((p) => p.key === "java_fern").map((p) => p.id).sort((x, y) => x - y);
+  assert.equal(ids.length, 2);
+  assert.deepEqual(eventTints(eventSaveOf(s), placed), { [ids[0]]: "autumn" });
+  assert.deepEqual(eventTints(eventSaveOf(s), []), {});
+  assert.deepEqual(readEventSave({ claimed: ["nope:2026", 3, "autumn:2026", "autumn:20x"], tint: { java_fern: ["autumn", "x"], zzz: ["autumn"], coral: "a" } }),
+    { claimed: ["autumn:2026"], tint: { java_fern: ["autumn"] } });
+  assert.deepEqual(readEventSave(null), { claimed: [], tint: {} });
 });
