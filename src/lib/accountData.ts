@@ -3,9 +3,11 @@ import { nativePlatform } from "./nativeplatform.ts";
 import { shareFileInAppResult } from "./nativefile.ts";
 import { confirmDialog } from "@/lib/confirm";
 import { signedPhotoUrls } from "@/lib/couple";
+import { signedCapsulePhotoUrls } from "@/lib/capsuleData";
 import {
   ACCOUNT_EXPORT_TABLES,
   accountArchiveName,
+  collectExportCapsulePhotoPaths,
   collectExportMediaPaths,
   ourDaysStorageKeys,
   type AccountExportTable,
@@ -198,35 +200,44 @@ export async function downloadAccountArchive(
   openPart();
   addFile("our-days-data.json", strToU8(JSON.stringify(data, null, 2)));
   const failures: string[] = [];
-  for (let start = 0; start < paths.length; start += SIGN_BATCH) {
-    const batch = paths.slice(start, start + SIGN_BATCH);
-    let urls: Record<string, string> = {};
-    try {
-      urls = await signedPhotoUrls(batch);
-    } catch {
-      /* 아래에서 경로마다 실패로 센다 */
-    }
-    for (let k = 0; k < batch.length; k += 1) {
-      const path = batch[k];
-      onProgress?.({ done: start + k, total: paths.length, label: path.split("/").pop() ?? path });
+  // 타임캡슐 편지 사진은 다른 버킷(capsule-photos) — 서명 함수만 다르고 받는 길은 같다. ZIP 안에선 media/capsule-photos/ 아래(README §10.26)
+  const capsulePaths = collectExportCapsulePhotoPaths(data.tables);
+  const total = paths.length + capsulePaths.length;
+  const jobs: { list: string[]; sign: (batch: string[]) => Promise<Record<string, string>>; dir: string; offset: number }[] = [
+    { list: paths, sign: (batch) => signedPhotoUrls(batch), dir: "media", offset: 0 },
+    { list: capsulePaths, sign: (batch) => signedCapsulePhotoUrls(batch), dir: "media/capsule-photos", offset: paths.length },
+  ];
+  for (const job of jobs) {
+    for (let start = 0; start < job.list.length; start += SIGN_BATCH) {
+      const batch = job.list.slice(start, start + SIGN_BATCH);
+      let urls: Record<string, string> = {};
       try {
-        const url = urls[path];
-        if (!url) throw new Error("signed url missing");
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        if (partBytes > 0 && partBytes + bytes.byteLength > ARCHIVE_PART_BYTES) {
-          await closePart();
-          openPart();
-        }
-        addFile(`media/${path.replace(/^\/+/, "")}`, bytes);
+        urls = await job.sign(batch);
       } catch {
-        failures.push(path);
+        /* 아래에서 경로마다 실패로 센다 */
+      }
+      for (let k = 0; k < batch.length; k += 1) {
+        const path = batch[k];
+        onProgress?.({ done: job.offset + start + k, total, label: path.split("/").pop() ?? path });
+        try {
+          const url = urls[path];
+          if (!url) throw new Error("signed url missing");
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const bytes = new Uint8Array(await response.arrayBuffer());
+          if (partBytes > 0 && partBytes + bytes.byteLength > ARCHIVE_PART_BYTES) {
+            await closePart();
+            openPart();
+          }
+          addFile(`${job.dir}/${path.replace(/^\/+/, "")}`, bytes);
+        } catch {
+          failures.push(path);
+        }
       }
     }
   }
   if (failures.length) addFile("media-download-failures.txt", strToU8(failures.join("\n")));
-  onProgress?.({ done: paths.length, total: paths.length, label: "압축 중" });
+  onProgress?.({ done: total, total, label: "압축 중" });
   await closePart();
   const nameOf = (i: number) => (finished.length > 1 ? `${base}-${i + 1}.zip` : `${base}.zip`);
   let saved = 0;
@@ -251,7 +262,7 @@ export async function downloadAccountArchive(
     finished.forEach((blob, i) => downloadBlob(blob, nameOf(i)));
     saved = finished.length;
   }
-  return { files: paths.length - failures.length, skipped: failures.length, parts: finished.length, saved };
+  return { files: total - failures.length, skipped: failures.length, parts: finished.length, saved };
 }
 
 /** Edge Function만 service_role로 DB purge→Storage→Auth 순서의 삭제를 수행한다.

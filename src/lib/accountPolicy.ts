@@ -36,6 +36,8 @@ export const ACCOUNT_EXPORT_TABLES = [
   "adventure_ratings",
   // 2026-11-09 — 내가 건 대전 판(입력 기록 포함). 방어한 판은 RLS 가 안 보여 준다(adventure_matches_select_mine — 20261107050000)
   "adventure_matches",
+  // 2026-11-13 타임캡슐 편지 — RLS 가 내가 쓴 편지와 열린 편지만 보여 준다(봉인된 상대 편지는 내보내기에도 안 온다)
+  "time_capsules",
   "push_subscriptions",
   "native_push_tokens",
   "debug_logs",
@@ -80,6 +82,18 @@ export function collectExportMediaPaths(
   for (const row of rows(tables.couple_logs)) {
     add(row.video_path);
     add(row.poster_path); // 2026-11-06 3초 로그 첫 장면
+  }
+  return [...paths].sort();
+}
+
+/** 타임캡슐 편지 사진 — 사진첩과 다른 버킷(capsule-photos)이라 따로 받는다(README §10.26). */
+export function collectExportCapsulePhotoPaths(
+  tables: Partial<Record<AccountExportTable, unknown>>,
+): string[] {
+  const paths = new Set<string>();
+  for (const row of rows(tables.time_capsules)) {
+    const path = safeExportMediaPath(row.photo_path);
+    if (path) paths.add(path);
   }
   return [...paths].sort();
 }

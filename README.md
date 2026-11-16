@@ -34,6 +34,7 @@
 | 오늘의 질문 | 매일 질문, 내가 답해야 상대 답 공개(RLS 강제) + 지난 질문 보관함. 1년(365일) 동안 안 겹침 · 뜻이 겹치는 질문 없음 · 같은 주제가 이틀 연달아 안 옴, 같은 질문이 돌아오면 빈 칸에서 새로 답하고 지난번 답은 접어서 보여 줌. 매일 아침 알림(아직 안 답했을 때만) |
 | 활동함 | 홈 머리글 🔔 — DB 트리거 기반 활동 알림/읽음 상태, 누르면 그 기록이 있는 화면·카드로 |
 | 추억 | 기록 › 추억: 작년 오늘(일기·사진·로그·질문), 월간 리캡, 이 달의 기분. 홈엔 작년 오늘이 있는 날만 한 장 |
+| 타임캡슐 편지 | 기록 › 추억 맨 위. 정한 날(내일 ~ 10년 뒤)에 열리는 편지(2000자 · 사진 한 장 선택). 그 전엔 받는 사람이 봉인 카드만 본다 — 본문 · 사진은 **서버가** 막는다. 열리면 활동함에 한 줄, 처음 열 때 봉투 연출 · 답장. §10.26 |
 | 알림 → 제자리 | 푸시 알림을 누르면 앱만 열리지 않고 그 화면·카드로(?go=, 활동함과 같은 경로 표) |
 | 저장 안전 | 일정·일기·질문 작성 초안, 오프라인 배너, 저장 성공/실패 공통 피드백 |
 | **낚시** (게임 탭 메인) | 방식 5가지(찌 · 루어 · 뜰채 · 심해 · 밤의 집어등) → **포획 확률로 수조 보관**. **점수 랭킹(이번 달 · 전체) · 물고기 종류별 크기 랭킹**. 미끼 7종(높을수록 귀한 물고기 · 횟수 많음) · 꽝 쓰레기 23종 수집 · 낚시터 15곳 · 능력치 4종 · 낚싯대(그림이 낚시터에 그대로) · 뜰채 · **낚시터의 주인(전용 레이드 — 밀어 막고 두드리기) · 주간 원정 · 크기 기록 · 때 손님 · 유리병 편지 · 어탁 · 숙련도 · 보물 · 장비 꾸미기 · 물때 · 미끼 만들기 · 바나나킥 · 이달의 대회 · 함께 끌어올리기**. §14.4.7 · §14.4.9 · §14.4.10 |
@@ -111,6 +112,7 @@
 | `fish_catches` | 낚시 랭킹 — 끌어올린 물고기 한 마리 = 한 줄. 본인 행만 직접 읽고 순위는 `fish_board` 함수가 닉네임 · 점수만 돌려준다(§14.4.7) |
 | `couple_island` | 우리 섬(메인 게임) 상태(커플당 1행 · `state` jsonb + version 낙관적 락). 차례 없이 둘 다 자유, `island_action` 이 버전만 강제 |
 | `activity_events` / `activity_reads` | 서버 트리거 기반 활동함과 사용자별 마지막 읽은 시각 |
+| `time_capsules` | 타임캡슐 편지(2026-11-13). **본문 · 사진 경로는 쓴 사람이거나 여는 날(KST)이 지났을 때만 SELECT** — 봉인 카드는 본문 없는 `time_capsule_cards` RPC. 사진은 비공개 버킷 `capsule-photos`(§10.26) |
 
 신규 빈 프로젝트는 [`supabase/schema.sql`](supabase/schema.sql)을 한 번만 실행한다. 기존 프로젝트는
 [`supabase/migrations/`](supabase/migrations/)의 아직 적용하지 않은 SQL만 시간순으로 실행한다.
@@ -193,6 +195,7 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
 - `media-gc`: 기본 dry-run. 24시간 이상 고아 파일을 참조 2회 확인·명시 승인·회당 200개 상한으로 정리.
 - **pg_cron**(pg_net 으로 호출, 시각은 KST): daily-reminders 09시 · 19시(저녁은 놓친 기념일 보충 + 상대가 먼저 답한 질문 알림 — §10.12) ·
   activity-nudge 10시 · 20시 · weather-push 06:00~08:30 · 09:00 · 21:00~23:30(30분마다).
+  SQL 만 부르는 크론(비밀 없음): `purge-old-logs-daily` 03:30 · `open-time-capsules-hourly` 매시 1분(타임캡슐 열기 — §10.26).
 - VAPID 비공개키/`CRON_SECRET`은 함수 시크릿(`supabase secrets`).
 - ⚠ **날씨 함수 `weather-push` · `kma-proxy` · `kma-ncst` 는 운영에만 있고 레포에 소스가 없다**(2026-09-27 확인 — git 이력에도 없다).
   고치려면 먼저 get_edge_function 으로 운영 소스를 받아 `supabase/functions/` 에 넣고 시작한다.
@@ -1130,6 +1133,86 @@ commit;
 - 이미 산 스킨은 환불하지 않는다. 이미 쌓인 잔액은 그대로다.
 
 **롤백**: 앱 코드만 바뀌었다 — 되돌리는 커밋 하나를 main 에 올리면 된다. 저장 모양은 같고, 일기에 새로 붙는 사진 이름(시도마다 다른 값)은 옛 앱도 경로 그대로 읽는다. 경제 값을 되돌리면 그 사이 싸게 산 스킨은 그대로 남는다.
+
+## 10.26 타임캡슐 편지 (2026-11-13)
+
+[사용자 승인: "타임캡슐 편지"] 한 사람이 편지(글 2000자 이하 · 사진 한 장은 선택)를 쓰고 여는 날을 고른다. 여는 날 전에는 받는 사람이 봉인된 카드(보낸 사람 · 여는 날 · D-day)만 보고, 여는 날이 오면 활동함에 한 줄이 생긴다. 처음 열 때 이 기기에서 한 번 봉투가 열리는 연출이 나오고(움직임 줄이기면 바로 편지) 편지 아래에 '답장 묻기'가 있다. 잠금: `timecapsule.test`(+ 고친 `recordscommon.test` 한 줄) · `scripts/rls-verify.mjs` 의 `capsuleChecks`.
+
+| 무엇 | 어떻게 |
+|---|---|
+| 자리 | 기록 › 추억 맨 위(`components/TimeCapsules`, 추억을 열 때만 받는다). 봉인된 편지(곧 열릴 것부터) · 열린 편지(최근 것부터) 두 묶음 |
+| 여는 날 | 내일 ~ 10년 뒤(KST 날짜). 빠른 선택: 다음 주년 · 다음 100일 단위(사귄 날 = 1일째) · 1년 뒤 · 직접 고르기. 2/29 는 평년에 2/28(Postgres 의 `date + interval` 과 같다). 계산은 `lib/capsule.ts`(순수) |
+| 고치기 · 지우기 | 쓴 사람이 여는 날 전에만(서버 정책이 같은 규칙). 열린 편지는 둘 다 보기만 |
+| 답장 | 받은 편지를 열면 '답장 묻기' — 새 타임캡슐(`reply_to` 에 원래 편지) |
+| 활동함 | `capsule`(묻었어요) · `capsule_open`(묻어 둔 편지가 열렸어요) 두 종류. 누르면 추억의 그 카드(`activityRoute` → `{ view: "records", sub: "memories", focus }`), 열린 편지면 바로 연다. 줄에 본문은 없다(summary null) |
+
+**데이터 모델** — `public.time_capsules`(`migrations/20261107110000_time_capsule.sql`)
+
+| 칸 | 뜻 |
+|---|---|
+| `id` · `couple_id` · `created_by` | 편지 · 커플 · 쓴 사람(`auth.users` 삭제에 따라 지워진다) |
+| `open_on` | 여는 날(KST 날짜). 이날 0시(KST)부터 열린다 |
+| `body` | 2000자 이하, 빈 글 금지(CHECK `time_capsules_body_len`) |
+| `photo_path` | 선택. `{커플}/{쓴 사람}/…` 아래만(CHECK `time_capsules_photo_path`) — 남의 파일 경로를 적어 상대 화면에 걸 수 없다 |
+| `reply_to` | 답장이면 원래 편지(지우면 null) |
+| `opened_at` | 크론이 열림 활동을 넣은 시각 — **봉인 판정에는 안 쓴다**(앱이 못 쓰는 칸) |
+| `created_at` · `updated_at` | `updated_at` 은 본문 · 여는 날 · 사진이 바뀔 때만(트리거 `time_capsules_touch`) |
+
+**봉인 보장 — 화면이 숨기는 게 아니라 서버가 안 준다**
+- 표 SELECT 정책 `time_capsules_select`: 내 커플이고 **(내가 쓴 편지이거나 `open_on <= KST 오늘`)** 인 행만. 받는 사람의 기기에는 봉인된 편지의 본문 · 사진 경로가 아예 오지 않는다(실시간 구독 · 내보내기도 같은 정책을 탄다).
+- 봉인 카드는 security definer RPC `time_capsule_cards(p_couple)` 로만 — 돌려주는 칸은 id · 쓴 사람 · 여는 날 · 사진 유무 · 답장 대상 · 시각뿐(본문 · 경로 없음). 남의 커플은 0줄.
+- 사진은 사진첩과 다른 비공개 버킷 `capsule-photos`. 읽기 정책 `capsule_photos_obj_select` 는 내 폴더(쓴 사람)이거나 열린 편지의 경로(`private.my_open_capsule_photos()`)일 때만 — 봉인 중에는 목록(list) · 서명(sign)도 안 된다. 올리기 · 지우기는 내 폴더만.
+- 봉인은 **시각으로만** 정한다(`opened_at` 이 아니라). 크론이 늦어도 일찍 열리지 않고, 크론이 멈춰도 여는 날엔 열린다.
+- 쓰기 정책: 넣기 · 고치기는 여는 날이 내일 ~ 10년 뒤일 때만(with check — 크론 · 계정 삭제는 서비스 롤이라 막히지 않는다), 고치기 · 지우기는 쓴 사람이 여는 날 전에만. 칸 권한으로 `opened_at` · 쓴 사람 · 커플은 앱이 못 바꾼다(고칠 수 있는 칸은 본문 · 여는 날 · 사진).
+- 사진 유무(`has_photo`)는 봉인 카드에 보인다(의도 — "사진 한 장"). 서비스 롤(대시보드)은 모든 행을 본다.
+
+**여는 순간**
+- 크론 `open-time-capsules-hourly`(매시 1분, 명령은 `select private.open_due_capsules()` 한 줄 — 비밀 없음)가 `opened_at` 이 빈 편지 중 여는 날이 지난 것에 시각을 찍고 `activity_events` 에 `capsule_open` 한 줄. 앱도 목록을 읽을 때 내 커플에 한해 같은 함수를 부른다(`open_due_time_capsules`) — 자정 직후 먼저 연 사람이 바로 본다. `opened_at is null` 인 줄만이라 몇 번 돌아도(동시에 돌아도) 한 줄.
+- 알림: **서버 푸시는 없다**. 활동함 줄을 푸시로 보내는 함수가 없고(activity-nudge 는 '오늘 남기기'만), 함수를 고치면 따로 배포해야 해서 이번엔 하지 않았다. 대신 앱이 활동함에서 `capsule_open`(상대가 쓴 것, 하루 안)을 보면 이 기기에서 알림을 한 번 띄운다(권한이 있을 때 · 줄마다 한 번 · 마커 `ourdays:capsule-notified`). 기념일 로컬 알림과 달리 푸시 구독이 있어도 띄운다. 앱을 안 열면 홈 머리글 종의 숫자로만 안다.
+  - 서버 푸시를 붙이려면(선택): activity-nudge(또는 daily-reminders)가 `activity_events` 의 `capsule_open` 중 안 보낸 것을 받는 사람에게 보내고, `notify_prefs` 에 카테고리를 더한 뒤(send-poke-push 의 `PUSH_CATEGORIES` · `NotifyCategory` 를 같이 — serverguard.test) **함수를 다시 배포**한다.
+
+**계정 삭제 · 내보내기 · 정리**
+- 계정 삭제: `purge_account_data` 가 쓴 편지를 지운다 — 20260924000000 판 본문 그대로에 `delete from public.time_capsules where created_by = p_user;` 한 줄(timecapsule.test 가 글자로 견준다). 받은 편지는 상대의 기록이라 남고, 상대도 없으면 couples 삭제가 연쇄로 지운다. **엣지 함수 재배포는 필요 없다.** 계정 삭제 안내(`deletionImpact`)에도 '내가 묻은 타임캡슐 편지(아직 안 열린 것 포함)'를 더했다. timecapsule.test 가 schema.sql 의 **마지막** purge 정의에 이 줄이 남아 있는지 본다 — 뒤 migration 이 purge 를 다시 정의하면 이 줄을 옮긴다.
+- ⚠ manage-account 는 `couple-photos` 버킷만 지운다 — 지운 계정의 편지 사진 파일은 `capsule-photos` 에 남는다. 행이 사라져 읽기 정책이 아무에게도 열지 않으므로(쓴 사람은 로그인할 수 없다) 새어 나가지는 않지만 공간을 쓴다. 나중에 manage-account 가 `capsule-photos/{커플}/{사용자}/` 를 지우게 고치고 다시 배포하면 깔끔하다(지금은 안 했다).
+- media-gc 는 `couple-photos` 만 훑으니 편지 사진을 고아로 보고 지우는 일은 없다(그래서 버킷을 나눴다). 대신 저장 실패로 남은 편지 사진은 쓴 사람 폴더에 남는다(쓴 사람만 본다).
+- 내보내기: `time_capsules` 표(정책대로 — 내가 쓴 것 · 열린 것만, 봉인된 상대 편지는 안 나온다)와 그 사진(`media/capsule-photos/…`, `collectExportCapsulePhotoPaths` · `signedCapsulePhotoUrls`).
+- '내 기록도 지우고 나가기'(`leave_couple(…, true)`)는 편지를 지우지 않는다 — 그 함수를 다시 정의해야 해서 이번엔 뺐다. 필요하면 다음 migration 에서.
+
+**migration** — `20261107110000_time_capsule.sql`(push 때 운영에 자동 적용, §7). 멱등 · 한 트랜잭션 · 이 파일은 행을 지우지 않는다. schema.sql 끝에 원문 한 번. 표 · 인덱스 · 정책 4 · 트리거 2(updated_at · 묻음 활동) · RPC 2(`time_capsule_cards` · `open_due_time_capsules`, authenticated 만) · private 함수 3 · 버킷 `capsule-photos`(10MB, 그림만) · 저장소 정책 3 · 크론 1 · `purge_account_data` 다시 정의 · 실시간 등록.
+
+**검증**: 스크래치 폴더에 PGlite 를 받아(레포에 남기지 않는다) `scripts/rls-verify.mjs` — 옛 표 보이는 행 416칸 · 쓰기 시도 828건 차이 0, 두 번 적용 멱등, 신규 bootstrap 같은 정책 84개. 새 `capsuleChecks` 38가지 통과: 받는 사람은 봉인된 편지 행 · 사진 파일이 0(카드는 3장 · 본문 칸 없음), 쓴 사람은 자기 것 둘, 남의 커플 · anon 0, 범위 밖(오늘 · 10년 넘게) · 남 행세 · 남의 커플 · `opened_at` 미리 찍기 · 상대 폴더 사진 · 2001자 거절, 받는 사람의 고치기 · 지우기 0행, 쓴 사람도 열린 뒤엔 0행, 여는 날 당기기 · `opened_at` 직접 쓰기 거절, 묻음 활동 summary null, 열기 1회차 1 · 2회차 0, 여는 날이 오면 크론 전에도 본문 · 사진이 보인다, 계정 삭제 뒤 쓴 편지만 지워진다. 화면은 임시 라우트로 봉투 두 자세 · 편지 · 쓰기 시트를 375px 라이트 · 다크로 봤다(라우트는 지웠다). ⚠ 운영 DB · 진짜 폰 · 실제 알림은 아직 못 봤다.
+
+**롤백**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다. 같은 내용을 새 migration 파일로도 남긴다, §7)
+
+| 무엇 | 방법 |
+|---|---|
+| 열림 활동만 멈추기 | `select cron.unschedule(jobid) from cron.job where jobname = 'open-time-capsules-hourly';` — 봉인 · 열기는 시각으로 정해서 그대로 동작하고, 활동함 줄만 앱이 목록을 읽을 때 생긴다 |
+| 기능 전체 내리기 | 아래 SQL. **편지가 사라진다 — 먼저 백업**. 계정 삭제 함수부터 옛 판으로 돌린 **뒤에** 표를 지운다(반대면 다음 계정 삭제가 'relation does not exist' 로 통째로 실패한다) |
+| 앱 | 이 커밋을 되돌려 웹을 다시 배포. 표가 남아 있어도 옛 앱은 모른다 — 활동함의 모르는 종류 줄은 기본 문구("새 활동이 있어요")로 보이고 눌러도 아무 데도 안 간다(배포 직후 옛 번들도 같다) |
+| 저장소 파일 | SQL 로 지우지 않는다(Storage API · 대시보드). 버킷은 남겨 둬도 정책이 없으면 아무도 못 읽는다 |
+
+```sql
+begin;
+select cron.unschedule(jobid) from cron.job where jobname = 'open-time-capsules-hourly';
+-- 1) 백업(선택이 아니다 — 아래 drop table 은 되돌릴 수 없다)
+create table if not exists private.time_capsules_backup as select * from public.time_capsules;
+-- 2) purge_account_data 를 옛 판으로: migrations/20260924000000_drop_old_game_tables.sql 의 1절 블록
+--    (create or replace function public.purge_account_data … grant execute … to service_role;)을 그대로 실행
+-- 3) 나머지
+drop trigger if exists activity_on_capsule on public.time_capsules;
+drop trigger if exists time_capsules_touch on public.time_capsules;
+drop policy if exists capsule_photos_obj_select on storage.objects;
+drop policy if exists capsule_photos_obj_insert on storage.objects;
+drop policy if exists capsule_photos_obj_delete on storage.objects;
+drop function if exists public.open_due_time_capsules(uuid);
+drop function if exists public.time_capsule_cards(uuid);
+drop function if exists private.open_due_capsules(uuid);
+drop function if exists private.my_open_capsule_photos();
+drop function if exists private.touch_time_capsule();
+drop table if exists public.time_capsules;
+notify pgrst, 'reload schema';
+commit;
+```
 
 ## 11. 알아둘 점 / 트러블슈팅
 

@@ -128,6 +128,8 @@ const TABLES = ["activity_events","activity_reads","chat_reads","couple_bucket",
   "mood_checkins","notify_prefs","poke_reactions","pokes","push_subscriptions","qa_answers","quiz_responses",
   // 2026-11-05 — 기록 리뷰 · 게임 · 방문 · 알림 기록 표(빠져 있어 정책이 바뀌어도 스냅샷에 안 잡혔다)
   "log_reactions","photo_comments","photo_reactions","fish_catches","merge_runs","merge_scores","daily_visits","reminder_log"];
+// 새 migration 이 처음 만드는 표 — 옛 상태엔 없어서(42P01) 옛/새 비교에서 뺀다. 대신 아래 capsuleChecks 처럼 표마다 규칙을 직접 잰다.
+const NEW_TABLES = ["time_capsules"];
 const DELETE_TABLES = ["couple_bucket","couple_events","couple_logs","couple_members","couple_photos","deco_entries","entry_comments",
   "entry_reactions","letters","log_comments","poke_reactions","notify_prefs","push_subscriptions"];
 const UPDATES = { activity_reads: "last_read_at", chat_reads: "last_read_at", couple_bucket: "title", couple_events: "title",
@@ -199,7 +201,7 @@ async function snapshot(db, users) {
   for (const w of users) {
     const who = `${w.kind}|${w.id ?? "-"}`;
     await as(db, w);
-    for (const t of TABLES) {
+    for (const t of [...TABLES, ...NEW_TABLES]) {
       try {
         const r = await db.query(`select count(*)::int as n, md5(coalesce(string_agg(x::text, '|' order by x::text), '')) as h from public.${t} x`);
         acc[`${who}|S|${t}`] = `${r.rows[0].n}:${r.rows[0].h}`;
@@ -377,7 +379,8 @@ const newPolicies = await policies(db);
 const after = { ...(await snapshot(db, users)), ...(await dml(db, users)), ...(await fnChecks(db)), ...(await timing(db)) };
 
 // (6) 비교
-const snapCmp = compare(before, after, (k) => k.includes("|S|"));
+const isNewTable = (k) => NEW_TABLES.some((t) => k.endsWith(`|S|${t}`));
+const snapCmp = compare(before, after, (k) => k.includes("|S|") && !isNewTable(k));
 const dmlCmp = compare(before, after, (k) => /\|(D|U|I)\|/.test(k));
 report.snapshot = { compared: snapCmp.n, diffs: snapCmp.diffs.length, first: snapCmp.diffs.slice(0, 10) };
 report.dml = { compared: dmlCmp.n, diffs: dmlCmp.diffs.length, first: dmlCmp.diffs.slice(0, 20) };
@@ -408,6 +411,124 @@ try {
   report.idempotent = { ok: false, error: errCode(e), msg: String(e.message).slice(0, 300) };
 }
 
+// (7.5) 타임캡슐 봉인 — 새 표라 옛/새 비교가 없으니 규칙을 직접 잰다(2026-11-13, README §10.26).
+//   c1 = u1 · u2, c2 = u3 · u4. A = u1 이 쓴 봉인 편지(사진 a), B = u1 이 쓴 열린 편지(사진 b), C = u2 가 쓴 봉인 편지.
+//   이 단계는 행을 넣고 지운다(계정 삭제까지) — 멱등 검사(7) 뒤, 같은 DB 의 마지막에 돈다.
+async function capsuleChecks(db) {
+  const exists = (await q1(db, `select to_regclass('public.time_capsules') is not null as ok`))[0].ok;
+  if (!exists) return { skipped: true };
+  const fails = [];
+  const expect = (name, got, want) => {
+    if (JSON.stringify(got) !== JSON.stringify(want)) fails.push({ name, got, want });
+  };
+  const U = Object.fromEntries((await q1(db, `select g, md5('u'||g)::uuid::text as id from generate_series(1,4) g`)).map((r) => [r.g, r.id]));
+  const C1 = (await q1(db, `select md5('c1')::uuid::text as id`))[0].id;
+  const C2 = (await q1(db, `select md5('c2')::uuid::text as id`))[0].id;
+  const today = (await q1(db, `select (now() at time zone 'Asia/Seoul')::date::text as d`))[0].d;
+  const plus = (n) => `('${today}'::date + ${n})`;
+  const who = (n) => ({ kind: "member", id: U[n] });
+  const rows = async (w, sql) => {
+    await as(db, w);
+    try { return (await db.query(sql)).rows; } catch (e) { return "err:" + errCode(e); } finally { await db.exec("reset role"); }
+  };
+  await db.exec("reset role");
+  await db.exec("set ourdays.suppress_activity = 'off'");
+
+  // 쓰기: u1 이 봉인 편지 A 를 묻는다(사진 경로는 내 폴더 아래)
+  const A = "00000000-0000-4000-8000-00000000000a";
+  const B = "00000000-0000-4000-8000-00000000000b";
+  const Cc = "00000000-0000-4000-8000-00000000000c";
+  await as(db, who(1));
+  try {
+    await db.query(`insert into public.time_capsules (id, couple_id, open_on, body, photo_path) values ('${A}', '${C1}', ${plus(5)}, 'secret-A', '${C1}/${U[1]}/a.webp')`);
+  } catch (e) { fails.push({ name: "u1 insert A", got: errCode(e), want: "ok" }); }
+  await db.exec("reset role");
+  // 범위 · 행세 · 남의 커플 · opened_at 미리 찍기 · 남의 폴더 사진 — 전부 막힌다
+  for (const [name, sql] of [
+    ["오늘 열리는 편지", `insert into public.time_capsules (couple_id, open_on, body) values ('${C1}', ${plus(0)}, 'x')`],
+    ["10년 넘게", `insert into public.time_capsules (couple_id, open_on, body) values ('${C1}', ${plus(3654)}, 'x')`],
+    ["남 행세", `insert into public.time_capsules (couple_id, created_by, open_on, body) values ('${C1}', '${U[2]}', ${plus(3)}, 'x')`],
+    ["남의 커플", `insert into public.time_capsules (couple_id, open_on, body) values ('${C2}', ${plus(3)}, 'x')`],
+    ["opened_at 미리", `insert into public.time_capsules (couple_id, open_on, body, opened_at) values ('${C1}', ${plus(3)}, 'x', now())`],
+    ["상대 폴더 사진", `insert into public.time_capsules (couple_id, open_on, body, photo_path) values ('${C1}', ${plus(3)}, 'x', '${C1}/${U[2]}/p.webp')`],
+    ["2001자", `insert into public.time_capsules (couple_id, open_on, body) values ('${C1}', ${plus(3)}, repeat('가', 2001))`],
+  ]) {
+    await as(db, who(1));
+    const r = await attempt(db, sql);
+    await db.exec("reset role");
+    if (r.startsWith("ok")) fails.push({ name: `막혀야 함: ${name}`, got: r, want: "err" });
+  }
+  // 열린 편지 B 와 u2 의 봉인 편지 C 는 서비스 쪽에서 넣는다(어제 날짜는 정책이 막으니까)
+  await db.exec(`insert into public.time_capsules (id, couple_id, created_by, open_on, body, photo_path) values
+    ('${B}', '${C1}', '${U[1]}', ${plus(-1)}, 'open-B', '${C1}/${U[1]}/b.webp'),
+    ('${Cc}', '${C1}', '${U[2]}', ${plus(3)}, 'secret-C', null)`);
+  await db.exec(`insert into storage.buckets (id, name) values ('capsule-photos', 'capsule-photos') on conflict do nothing`);
+  await db.exec(`insert into storage.objects (bucket_id, name, owner, owner_id) values
+    ('capsule-photos', '${C1}/${U[1]}/a.webp', '${U[1]}', '${U[1]}'), ('capsule-photos', '${C1}/${U[1]}/b.webp', '${U[1]}', '${U[1]}')`);
+
+  const vis = (w) => rows(w, `select id::text, body from public.time_capsules order by body`);
+  expect("u1 이 보는 편지(내 것 둘)", await vis(who(1)), [{ id: B, body: "open-B" }, { id: A, body: "secret-A" }]);
+  expect("u2 가 보는 편지(열린 B · 내 C — 봉인된 A 는 없다)", await vis(who(2)), [{ id: B, body: "open-B" }, { id: Cc, body: "secret-C" }]);
+  expect("다른 커플 u3", await vis(who(3)), []);
+  const anon = await rows({ kind: "anon" }, `select count(*)::int as n from public.time_capsules`);
+  if (!(typeof anon === "string" ? anon.startsWith("err:") : anon[0].n === 0)) fails.push({ name: "anon", got: anon, want: "0행 또는 거절" });
+
+  // 봉인 카드는 본문 없이 셋 다(받는 사람도 A 가 있다는 건 안다)
+  const cards = await rows(who(2), `select * from public.time_capsule_cards('${C1}')`);
+  expect("u2 의 카드 수", Array.isArray(cards) ? cards.length : cards, 3);
+  if (Array.isArray(cards) && cards.some((c) => "body" in c || "photo_path" in c)) fails.push({ name: "카드에 본문 · 경로", got: Object.keys(cards[0]), want: "없음" });
+  expect("다른 커플이 c1 카드", await rows(who(3), `select count(*)::int as n from public.time_capsule_cards('${C1}')`), [{ n: 0 }]);
+
+  // 사진: u2 는 열린 B 의 사진만, u1 은 둘 다, u3 는 없음
+  const objs = (w) => rows(w, `select name from storage.objects where bucket_id = 'capsule-photos' order by name`);
+  expect("u2 사진", await objs(who(2)), [{ name: `${C1}/${U[1]}/b.webp` }]);
+  expect("u1 사진", await objs(who(1)), [{ name: `${C1}/${U[1]}/a.webp` }, { name: `${C1}/${U[1]}/b.webp` }]);
+  expect("u3 사진", await objs(who(3)), []);
+  await as(db, who(2));
+  const up2 = await attempt(db, `insert into storage.objects (bucket_id, name, owner, owner_id) values ('capsule-photos', '${C1}/${U[1]}/x.webp', '${U[2]}', '${U[2]}')`);
+  await db.exec("reset role");
+  if (up2.startsWith("ok")) fails.push({ name: "u2 가 u1 폴더에 올리기", got: up2, want: "err" });
+
+  // 고치기 · 지우기: 받는 사람은 0행, 쓴 사람은 열리기 전만, opened_at 은 칸 권한으로 막힌다
+  const tryAs = async (n, sql) => { await as(db, who(n)); const r = await attempt(db, sql); await db.exec("reset role"); return r; };
+  expect("u2 가 A 고치기", await tryAs(2, `update public.time_capsules set body = 'x' where id = '${A}'`), "ok:0");
+  expect("u2 가 A 지우기", await tryAs(2, `delete from public.time_capsules where id = '${A}'`), "ok:0");
+  expect("u1 이 A 고치기", await tryAs(1, `update public.time_capsules set body = 'y' where id = '${A}'`), "ok:1");
+  expect("u1 이 열린 B 고치기", await tryAs(1, `update public.time_capsules set body = 'y' where id = '${B}'`), "ok:0");
+  expect("u1 이 열린 B 지우기", await tryAs(1, `delete from public.time_capsules where id = '${B}'`), "ok:0");
+  const early = await tryAs(1, `update public.time_capsules set open_on = ${plus(0)} where id = '${A}'`);
+  if (early.startsWith("ok")) fails.push({ name: "A 를 오늘로 당기기", got: early, want: "err" });
+  const stamp = await tryAs(1, `update public.time_capsules set opened_at = now() where id = '${A}'`);
+  if (stamp.startsWith("ok")) fails.push({ name: "opened_at 직접 찍기", got: stamp, want: "err" });
+
+  // 활동: 묻을 때 한 줄(본문 없음), 열기는 몇 번 돌아도 한 줄
+  expect("묻은 활동(A)", await q1(db, `select kind, summary from public.activity_events where entity_id = '${A}'`), [{ kind: "capsule", summary: null }]);
+  expect("열기 1회차", (await q1(db, `select private.open_due_capsules() as n`))[0].n, 1);
+  expect("열기 2회차", (await q1(db, `select private.open_due_capsules() as n`))[0].n, 0);
+  expect("열림 활동(B)", await q1(db, `select kind, summary, actor_user::text as a from public.activity_events where entity_id = '${B}' and kind = 'capsule_open'`), [{ kind: "capsule_open", summary: null, a: U[1] }]);
+  expect("남의 커플이 c1 을 열기", await rows(who(3), `select public.open_due_time_capsules('${C1}') as n`), [{ n: 0 }]);
+  expect("anon 이 열기", typeof (await rows({ kind: "anon" }, `select public.open_due_time_capsules('${C1}')`)), "string");
+  // 여는 날이 오면(A 를 어제로) 받는 사람이 본문 · 사진을 본다 — 크론이 아직 안 돌아도
+  await db.exec(`update public.time_capsules set open_on = ${plus(-1)} where id = '${A}'`);
+  expect("열린 A 를 u2 가 본다(고치기 시도는 되돌렸다)", await rows(who(2), `select body from public.time_capsules where id = '${A}'`), [{ body: "secret-A" }]);
+  expect("열린 A 의 사진을 u2 가 본다", (await objs(who(2))).length, 2);
+  expect("A 를 읽을 때 연다(내 커플)", await rows(who(2), `select public.open_due_time_capsules('${C1}') as n`), [{ n: 1 }]);
+  expect("A 열림 활동 한 줄", (await q1(db, `select count(*)::int as n from public.activity_events where entity_id = '${A}' and kind = 'capsule_open'`))[0].n, 1);
+
+  // 계정 삭제: u1 이 쓴 편지(A · B)는 지워지고 u2 가 쓴 C 는 남는다
+  await db.query("select set_config('request.jwt.claims', $1, false)", [JSON.stringify({ role: "service_role" })]);
+  await db.exec("set role service_role");
+  try { await db.query(`select public.purge_account_data('${U[1]}')`); } catch (e) { fails.push({ name: "purge", got: errCode(e), want: "ok" }); }
+  await db.exec("reset role");
+  expect("purge 뒤 남은 편지", await q1(db, `select id::text from public.time_capsules where couple_id = '${C1}' order by id`), [{ id: Cc }]);
+  return { ok: fails.length === 0, fails };
+}
+try {
+  report.capsule = await capsuleChecks(db);
+} catch (e) {
+  report.capsule = { ok: false, error: errCode(e), msg: String(e.message).slice(0, 300) };
+}
+
 // (8) 신규 bootstrap = schema.sql + 마이그레이션
 try {
   const fresh = await boot(oldSchema.replace(/\n+$/, "\n") + "\n" + migration.trim() + "\n");
@@ -426,7 +547,8 @@ const failed =
   report.idempotent?.ok !== true ||
   report.idempotent?.snapshot_diffs > 0 ||
   report.fresh_bootstrap?.ok !== true ||
-  report.fresh_bootstrap?.same_policies_as_migrated !== true;
+  report.fresh_bootstrap?.same_policies_as_migrated !== true ||
+  report.capsule?.ok === false;
 if (failed) {
   console.error("\n실패: 위 snapshot · dml · static · idempotent · fresh_bootstrap 를 보세요.");
   process.exit(1);

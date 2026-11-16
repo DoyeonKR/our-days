@@ -9,6 +9,9 @@ const KIND_TEXT: Record<ActivityEvent["kind"], { emoji: string; action: string }
   mood: { emoji: "😊", action: "오늘의 기분을 남겼어요" }, // 하루 한 번 고른다 — '바꿨어요'는 옛 무드 체크인 문구
   answer: { emoji: "💬", action: "오늘의 질문에 답했어요" },
   bucket: { emoji: "🎯", action: "버킷리스트를 바꿨어요" },
+  // 타임캡슐 편지(2026-11-13, README §10.26) — 묻을 때 한 줄, 여는 날 크론(또는 목록을 읽을 때)이 한 줄. 본문은 싣지 않는다.
+  capsule: { emoji: "💌", action: "타임캡슐 편지를 묻었어요" },
+  capsule_open: { emoji: "📬", action: "묻어 둔 타임캡슐 편지가 열렸어요" },
 };
 
 export function activityPresentation(
@@ -57,6 +60,7 @@ export type HomeFocus = "today-log" | "today-mood" | "today-question" | "home-po
  *   { view: "diary", focus: <deco_entries.id> }                  → 일기장이 그 카드로 스크롤 + 반짝(10편 밖이면 '더 보기'를 펼친다)
  *   { view: "records", sub: "photos", focus: <couple_photos.id> } → 사진첩이 소비한다(사진 쪽 담당 — page 가 PhotoAlbum 에 넘긴다)
  *   { view: "plan", sub: "cal", focus: <couple_events.id> }       → 달력이 그 일정의 다음 회차가 있는 달 · 날을 연다(2026-11-05 — 일정 · 기념일 알림)
+ *   { view: "records", sub: "memories", focus: <time_capsules.id> } → 추억 맨 위의 타임캡슐이 그 편지 카드로(2026-11-13)
  * focus 가 없으면(옛 행 · 다른 종류) 그 화면 맨 위로 — 예전 동작 그대로.
  * 푸시 주소는 `?go=<종류>&f=<id>` — 옛 앱은 f 를 모르고 go 만 읽어 그 화면으로 간다(뒤 호환). */
 export type AppRoute =
@@ -73,13 +77,14 @@ export function focusIdOf(raw: string | null | undefined): string | null {
   return raw && UUID.test(raw) ? raw.toLowerCase() : null;
 }
 
-/** 경로에 카드 id 를 싣는다 — 일기 · 사진 · 달력의 일정만(다른 화면엔 카드 단위 focus 가 없다). */
+/** 경로에 카드 id 를 싣는다 — 일기 · 사진 · 달력의 일정 · 추억의 타임캡슐만(다른 화면엔 카드 단위 focus 가 없다). */
 export function withFocus(route: AppRoute | null, raw: string | null | undefined): AppRoute | null {
   const focus = focusIdOf(raw);
   if (!route || !focus) return route;
   if (route.view === "diary") return { ...route, focus };
   if (route.view === "records" && route.sub === "photos") return { ...route, focus };
   if (route.view === "plan" && route.sub === "cal") return { ...route, focus };
+  if (route.view === "records" && route.sub === "memories") return { ...route, focus };
   return route;
 }
 
@@ -101,6 +106,9 @@ export function activityRoute(kind: ActivityEvent["kind"], entityId?: string | n
       return { view: "plan", sub: "bucket" };
     case "poke":
       return { view: "home", focus: "home-poke" };
+    case "capsule":
+    case "capsule_open":
+      return withFocus({ view: "records", sub: "memories" }, entityId) ?? { view: "records", sub: "memories" };
     default: {
       // 새 종류를 추가하면 여기서 타입 오류가 난다 — 경로 없는 활동 행(죽은 버튼)을 만들지 않게
       const never: never = kind;

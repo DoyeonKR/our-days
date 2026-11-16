@@ -2294,6 +2294,29 @@ select {
 
 /* 낚시 — 그림은 파일로 들어온다(lib/fishingimages). 파일이 없어도 낚시터처럼 보이게 하는 바탕. */
 
+/* 타임캡슐 편지(2026-11-13, README §10.26) — 봉인 카드의 밀랍 동그라미, 활동함에서 온 카드 반짝임, 처음 열 때 한 번 봉투가 열리는 연출.
+   반복 연출은 없다(한 번씩). 움직임 줄이기면 컴포넌트가 봉투 단계를 건너뛰고, 여기서도 전환을 끈다. */
+.capsule-seal { background: color-mix(in srgb, var(--rose) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rose) 35%, transparent); }
+.capsule-flash { animation: capsule-flash 1.4s ease-out 1; }
+@keyframes capsule-flash { 0%, 40% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--rose) 70%, transparent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.capsule-envelope { position: relative; display: block; width: 260px; height: 172px; margin-top: 90px; perspective: 900px; }
+.capsule-envelope > span { position: absolute; }
+.capsule-envelope-back { inset: 0; border-radius: 14px; background: color-mix(in srgb, var(--rose-deep) 78%, #000); box-shadow: var(--shadow-lg); }
+.capsule-envelope-paper { left: 18px; right: 18px; top: 26px; height: 136px; border-radius: 8px; background: #fffaf2; box-shadow: 0 2px 6px rgba(0, 0, 0, .18); z-index: 1; transition: transform .7s cubic-bezier(.2, .8, .2, 1) .4s; }
+.capsule-envelope-paper::before, .capsule-envelope-paper::after { content: ""; position: absolute; left: 18px; right: 40px; height: 4px; border-radius: 4px; background: #eadfce; top: 18px; }
+.capsule-envelope-paper::after { top: 30px; right: 70px; }
+.capsule-envelope-front { inset: 0; border-radius: 14px; background: linear-gradient(160deg, var(--rose) 0%, var(--rose-deep) 100%); clip-path: polygon(0 0, 50% 62%, 100% 0, 100% 100%, 0 100%); z-index: 2; }
+.capsule-envelope-flap { left: 0; right: 0; top: 0; height: 104px; background: color-mix(in srgb, var(--rose) 86%, #fff); clip-path: polygon(0 0, 100% 0, 50% 100%); border-radius: 14px 14px 0 0; transform-origin: top center; transition: transform .55s cubic-bezier(.4, 0, .2, 1), z-index 0s .28s; z-index: 3; }
+.capsule-envelope-seal { left: calc(50% - 20px); top: 82px; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 9999px; background: #b3123f; color: #ffd7e3; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); z-index: 4; transition: opacity .25s ease, transform .25s ease; }
+.capsule-envelope.is-opening .capsule-envelope-seal { opacity: 0; transform: scale(.6); }
+.capsule-envelope.is-opening .capsule-envelope-flap { transform: rotateX(180deg); z-index: 0; background: color-mix(in srgb, var(--rose-deep) 70%, #fff); }
+.capsule-envelope.is-opening .capsule-envelope-paper { transform: translateY(-78px); }
+.capsule-letter { animation: capsule-letter-in .45s cubic-bezier(.2, .8, .2, 1) 1 both; }
+@keyframes capsule-letter-in { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .capsule-flash, .capsule-letter { animation: none; }
+  .capsule-envelope-paper, .capsule-envelope-flap, .capsule-envelope-seal { transition: none; }
+}
 /* 움직임 줄이기 안전망 (2026-11-05 앱 공통 리뷰 — README §10.13)
    규칙마다 reduced-motion 을 따로 달다 보니 새로 생긴 반복 연출(전설 작물 빛 · 첫 발견 그림 · 뜰채 점)이 빠졌다.
    ① 빠졌던 넷은 직접 끈다. ② 그 밖의 모든 반복 연출은 한 바퀴만 돌고 멈춘다 — 한 번 도는 등장 연출은 그대로라
