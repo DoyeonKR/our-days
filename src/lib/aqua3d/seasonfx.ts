@@ -140,7 +140,7 @@ export function makeDecorGlow(colors: readonly [number, number]): DecorGlow {
     uniforms: { aquaTime: WATER_LIGHT.aquaTime, aquaPointScale: WATER_LIGHT.aquaPointScale, uColorA: { value: new T.Color(colors[0]) }, uColorB: { value: new T.Color(colors[1]) } },
     vertexShader: GLOW_VERT, fragmentShader: GLOW_FRAG });
   const points = new T.Points(geometry, material);
-  // 투명한 것들 가운데 맨 마지막(빛줄기 3 · 해파리 갓 4 뒤) — 먼저 그리면 뒤에 그리는 큰 투명 면이 빛무리를 덮었다(장식에 가린 몫만 남았다)
+  // 투명한 것들 가운데 맨 마지막(빛줄기 3 · 해파리 갓 4 뒤)에 그린다. 빛무리는 장식 위로 올리고 크게(scene 의 spots) — 처음엔 장식 크기만 해서 장식 뒤에 가려 거의 안 보였다
   points.name = "season-glow"; points.frustumCulled = false; points.raycast = () => {}; points.renderOrder = 5;
   return {
     points,

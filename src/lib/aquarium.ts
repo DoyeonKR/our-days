@@ -421,7 +421,8 @@ export const SKEW_MS = 5 * 60_000;
 /** 대기 그물 — 몇 마리 · 몇 시간 */
 export const NET_MAX = 3;
 export const NET_HOURS = 24;
-/** 짝이 잘 지낸 시간이 이만큼 쌓이면 알 하나. 잘 돌본 시간은 실제 시간보다 길 수 없으니 수조 하나에 3일에 많아야 하나다. */
+/** 짝이 잘 지낸 시간이 이만큼 쌓이면 알 하나. 잘 돌본 시간은 실제 시간보다 길 수 없으니 수조 하나에 3일에 많아야 하나다
+ *  (봄 산란기 행사엔 1.15배로 쌓여 약 2.6일 — lib/aquaevent). */
 export const BREED_H = 72;
 /** 수조에서 키운 몫 — 보내 줄 때 '잡은 값'에 더하는 비율의 상한. 1 보다 작아서 다 키워도 다 큰 놈을 잡아 판 값보다 적다. */
 export const RAISE_SHARE = 0.8;
@@ -859,6 +860,8 @@ export function tickAqua(input: AquaState, now: number, seen: readonly string[] 
     a = settleSpan(a, end, seen, evolved);
     if (end >= now) break;
   }
+  // 경계 200개(약 15년 넘게 비운 수조)를 다 써도 끝은 늘 지금 — 남은 몫은 마지막 배율로 한 번에
+  if (a.at < now) a = settleSpan(a, now, seen, evolved);
   return { a, evolved };
 }
 /** 한 구간(행사 배율이 같은 동안) 정산 — 사건(모습 · 알 · 잡아먹기)마다 끊어 굴린다 */
