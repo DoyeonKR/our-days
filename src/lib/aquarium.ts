@@ -20,6 +20,7 @@ import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
 import { kstDate } from "./kst.ts";
 import { seasonAdd, type CountStat } from "./season.ts";
+import { changeAfter, modsAt, type AquaEventMods } from "./aquaevent.ts";
 
 export const GRADES = ["흔함", "보통", "고급", "희귀", "영웅", "전설", "신화", "태초"] as const;
 export type Grade = (typeof GRADES)[number];
@@ -614,8 +615,9 @@ export function tankBeauty(a: Pick<AquaState, "placed">): number {
     return n + (x ? decorBeauty(x) : 0);
   }, 0) + activeCombos(a.placed).length * COMBO_BEAUTY;
 }
-/** 지금 수조의 효과 — 화면과 정산이 같은 값을 본다 */
-export function aquaEffects(a: Pick<AquaState, "placed" | "fish" | "tank"> & Partial<Pick<AquaState, "wide" | "alien">>) {
+/** 지금 수조의 효과 — 화면과 정산이 같은 값을 본다.
+ *  mods = 계절 수조 행사의 배율(lib/aquaevent, 2026-11-13) — 정산은 구간 시작 시각의 배율, 화면은 modsAt(a.at). 없으면 1(행사 없음) */
+export function aquaEffects(a: Pick<AquaState, "placed" | "fish" | "tank"> & Partial<Pick<AquaState, "wide" | "alien">>, mods?: AquaEventMods) {
   const load = fishCount(a) / tankOf(a).fish;
   const beauty = tankBeauty(a);
   const beautyGrow = Math.min(BEAUTY_GROW_CAP, beauty / 2000);
@@ -627,8 +629,10 @@ export function aquaEffects(a: Pick<AquaState, "placed" | "fish" | "tank"> & Par
     combos,
     comboGrow,
     growMult: 1 + gearBest(a, "grow") + beautyGrow + comboGrow,
-    hungerHours: HUNGER_HOURS * (1 + gearBest(a, "feed")),
-    waterHours: WATER_HOURS * (1 - 0.3 * Math.min(1, load)) * (1 + gearBest(a, "clean")),
+    hungerHours: HUNGER_HOURS * (1 + gearBest(a, "feed")) * (mods?.hunger ?? 1),
+    waterHours: WATER_HOURS * (1 - 0.3 * Math.min(1, load)) * (1 + gearBest(a, "clean")) * (mods?.water ?? 1),
+    /** 알을 향해 쌓이는 빠르기(잘 돌본 1시간 = breed 시간) */
+    breed: mods?.breed ?? 1,
   };
 }
 /** 장비가 이미 더 좋은 게 있어서 사도 안 듣는가 — 놓여 있거나 보관함에 있는 같은 종류 장비 중 더 센 것 */
@@ -744,7 +748,8 @@ export function breedPairs(a: Pick<AquaState, "fish">): string[] {
 function tickCore(input: AquaState, now: number, seen: readonly string[]): { a: AquaState; evolved: AquaEvolved[] } {
   const elapsed = (now - input.at) / HOUR;
   if (elapsed <= 0) return { a: input, evolved: [] };
-  const fx = aquaEffects(input);
+  // 행사 배율은 구간 시작 시각으로 — tickAqua 가 행사 경계(changeAfter)에서 정산을 쪼개므로 구간 안에선 늘 같다
+  const fx = aquaEffects(input, modsAt(input.at));
   const hr = 100 / fx.hungerHours, wr = 100 / fx.waterHours;
   // 성장하는 시간: 배가 안 비고 물이 MIN_WATER 위인 동안
   const growWin = Math.max(0, Math.min(elapsed, input.hunger / hr, (input.water - MIN_WATER) / wr));
@@ -785,7 +790,7 @@ function tickCore(input: AquaState, now: number, seen: readonly string[]): { a: 
   a = {
     ...a, at: now, hunger: Math.max(0, input.hunger - elapsed * hr), water: Math.max(0, input.water - elapsed * wr), fish, dex,
     ...(badH > 0 || input.badH !== undefined ? { badH } : {}),
-    ...(pairs ? { breedH: Math.min(BREED_H, (input.breedH ?? 0) + goodWin) } : {}),
+    ...(pairs ? { breedH: Math.min(BREED_H, (input.breedH ?? 0) + goodWin * fx.breed) } : {}),
   };
   for (const e of evolved) a = pushNews(a, { id: e.id, family: e.family, stage: e.stage, ...(e.species ? { species: e.species } : {}) });
   return { a, evolved };
@@ -796,7 +801,7 @@ function tickCore(input: AquaState, now: number, seen: readonly string[]): { a: 
 function nextEvent(a: AquaState, now: number): { h: number; egg: boolean } | null {
   const elapsed = (now - a.at) / HOUR;
   if (elapsed <= 0) return null;
-  const fx = aquaEffects(a);
+  const fx = aquaEffects(a, modsAt(a.at));
   const hr = 100 / fx.hungerHours, wr = 100 / fx.waterHours;
   const growWin = Math.max(0, Math.min(elapsed, a.hunger / hr, (a.water - MIN_WATER) / wr));
   const goodWin = Math.max(0, Math.min(elapsed, (a.hunger - GOOD_HUNGER) / hr, (a.water - GOOD_WATER) / wr));
@@ -810,7 +815,7 @@ function nextEvent(a: AquaState, now: number): { h: number; egg: boolean } | nul
     if (need <= growWin && need < best) best = need;
   }
   if (breedPairs(a).length && fishRoom(a) > 0) {
-    const need = Math.max(0, BREED_H - (a.breedH ?? 0));
+    const need = Math.max(0, BREED_H - (a.breedH ?? 0)) / fx.breed;
     if (need <= goodWin && need < best) { best = need; egg = true; }
   }
   return best < elapsed ? { h: best, egg } : null;
@@ -846,6 +851,18 @@ export function tickAqua(input: AquaState, now: number, seen: readonly string[] 
   if (input.at > now + SKEW_MS) return { a: { ...input, at: now }, evolved: [] };
   let a = input;
   const evolved: AquaEvolved[] = [];
+  // 계절 수조 행사(2026-11-13) — 배율이 바뀌는 자정(절대 시각)에서 정산을 쪼갠다. 모습이 바뀌는 때 · 알처럼 끊는 자리가 절대 시각이라
+  //   쪼개 정산 = 한 번 정산이 그대로다. 행사가 없는 구간은 배율 1 이라 예전과 똑같다
+  for (let seg = 0; seg < 200; seg++) {
+    const end = Math.min(now, changeAfter(a.at));
+    a = settleSpan(a, end, seen, evolved);
+    if (end >= now) break;
+  }
+  return { a, evolved };
+}
+/** 한 구간(행사 배율이 같은 동안) 정산 — 사건(모습 · 알 · 잡아먹기)마다 끊어 굴린다 */
+function settleSpan(input: AquaState, now: number, seen: readonly string[], evolved: AquaEvolved[]): AquaState {
+  let a = input;
   for (let guard = 0; guard < 500; guard++) {
     const ev = nextEvent(a, now);
     // 잡아먹기 — 성장 · 알 사건보다 먼저 오면 그 때까지 정산하고 한 번 굴린다(절대 시각 · 날짜 번호뿐이라 쪼개 정산해도 같다)
@@ -863,7 +880,7 @@ export function tickAqua(input: AquaState, now: number, seen: readonly string[] 
   }
   const r = tickCore(a, now, seen);
   evolved.push(...r.evolved);
-  return { a: r.a, evolved };
+  return r.a;
 }
 
 /** 그날의 사냥 — 상성이 안 맞는 짝 하나가 있고 배가 고프면, 먹이는 수조에서 빠지고 소식에 남는다 */
@@ -886,7 +903,7 @@ export function aquaDangers(a: Pick<AquaState, "fish">): { pred: AquaFish; prey:
 export function hoursLeft(a: AquaState, f: AquaFish): number {
   const fam = familyOf(f.family);
   if (!fam || f.stage === 2) return 0;
-  return Math.max(0, fam.hours - f.growH) / aquaEffects(a).growMult;
+  return Math.max(0, fam.hours - f.growH) / aquaEffects(a, modsAt(a.at)).growMult;
 }
 /** 자라는 중인가 — 멈췄으면 이유를 준다 */
 export function growBlock(a: Pick<AquaState, "hunger" | "water">): string | null {
@@ -896,7 +913,7 @@ export function growBlock(a: Pick<AquaState, "hunger" | "water">): string | null
 }
 /** 정성이 멈추기까지 남은 시간 — 포만이 GOOD_HUNGER · 물이 GOOD_WATER 아래로 내려가는 때 */
 export function careHoursLeft(a: AquaState): { feed: number; clean: number } {
-  const fx = aquaEffects(a);
+  const fx = aquaEffects(a, modsAt(a.at));
   return { feed: Math.max(0, (a.hunger - GOOD_HUNGER) * fx.hungerHours / 100), clean: Math.max(0, (a.water - GOOD_WATER) * fx.waterHours / 100) };
 }
 
@@ -1053,7 +1070,7 @@ export function feedFish(st: IslandState, now: number, opt: { food?: string; who
     };
   }
   const c = careBy(a, opt.who, now);
-  const hours = Math.round(aquaEffects(c.a).hungerHours * (100 - GOOD_HUNGER) / 100);
+  const hours = Math.round(aquaEffects(c.a, modsAt(now)).hungerHours * (100 - GOOD_HUNGER) / 100);
   const note = `냠냠 — ${hours}시간 든든해요${food ? liked ? ` · ${liked}마리가 좋아하는 먹이예요` : " · 좋아하는 물고기가 없었어요" : ""}${c.duo ? ` · 둘이 함께 돌봐서 정성이 올랐어요` : ""}`;
   return withSeason(put(s, c.a, s.coins, note), now, "feed");
 }
@@ -1064,7 +1081,7 @@ export function cleanWater(st: IslandState, now: number, opt: { who?: string } =
   const price = waterPrice(a.tank);
   if (s.coins < price) return { ok: false, reason: `물을 갈려면 하트가 ${price}개 필요해요` };
   const c = careBy({ ...a, water: 100 }, opt.who, now);
-  const hours = Math.round(aquaEffects(c.a).waterHours * (100 - GOOD_WATER) / 100);
+  const hours = Math.round(aquaEffects(c.a, modsAt(now)).waterHours * (100 - GOOD_WATER) / 100);
   return withSeason(put(s, c.a, s.coins - price, `물을 갈았어요(하트 ${price}개) — ${hours}시간 맑아요${c.duo ? " · 둘이 함께 돌봐서 정성이 올랐어요" : ""}`), now, "water");
 }
 
