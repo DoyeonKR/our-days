@@ -62,7 +62,7 @@ export type HomeFocus = "today-log" | "today-mood" | "today-question" | "home-po
 export type AppRoute =
   | { view: "home"; focus?: HomeFocus }
   | { view: "records"; sub: "log" | "diary" | "photos" | "memories"; focus?: string }
-  | { view: "plan"; sub: "cal" | "bucket"; focus?: string }
+  | { view: "plan"; sub: "cal" | "bucket" | "habit"; focus?: string }
   | { view: "diary"; focus?: string }
   | { view: "together" }
   | { view: "game"; open?: "island" | "merge" | "aquarium" | "fishing" };

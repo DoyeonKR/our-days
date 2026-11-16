@@ -118,6 +118,11 @@ insert into public.merge_runs (user_id, nickname, score) select u.id, 'n', 100 *
 insert into public.merge_scores (user_id, nickname, score) select id, 'n', 200 from auth.users;
 insert into public.daily_visits (day, device) select current_date - (n % 3), md5('d'||n)::uuid::text from generate_series(1,9) n;
 insert into public.reminder_log (user_id, sent_on, r_key) select id, current_date, 'k' from auth.users;
+-- 2026-11-13 같이 하는 습관(§10.27) — 이 표가 생긴 뒤의 migration 부터 견준다(20261107120000_habits 자신을 견줄 땐 이 두 줄을 빼고 돌린다)
+insert into public.couple_habits (couple_id, name, created_by) select m.couple_id, 'h'||n, m.user_id from public.couple_members m, generate_series(1,2) n;
+insert into public.habit_checkins (habit_id, couple_id, user_id, day)
+  select h.id, h.couple_id, m.user_id, (now() at time zone 'Asia/Seoul')::date - d
+  from public.couple_habits h join public.couple_members m on m.couple_id = h.couple_id, generate_series(0,1) d;
 insert into storage.buckets (id, name) values ('couple-photos', 'couple-photos') on conflict do nothing;
 insert into storage.objects (bucket_id, name, owner, owner_id) select 'couple-photos', c.id||'/f'||n, c.created_by, c.created_by::text from public.couples c, generate_series(1,4) n;
 analyze;
@@ -127,16 +132,18 @@ const TABLES = ["activity_events","activity_reads","chat_reads","couple_bucket",
   "couple_members","couple_photos","couples","debug_logs","deco_entries","entry_comments","entry_reactions","letters","log_comments",
   "mood_checkins","notify_prefs","poke_reactions","pokes","push_subscriptions","qa_answers","quiz_responses",
   // 2026-11-05 — 기록 리뷰 · 게임 · 방문 · 알림 기록 표(빠져 있어 정책이 바뀌어도 스냅샷에 안 잡혔다)
-  "log_reactions","photo_comments","photo_reactions","fish_catches","merge_runs","merge_scores","daily_visits","reminder_log"];
-const DELETE_TABLES = ["couple_bucket","couple_events","couple_logs","couple_members","couple_photos","deco_entries","entry_comments",
+  "log_reactions","photo_comments","photo_reactions","fish_catches","merge_runs","merge_scores","daily_visits","reminder_log",
+  "couple_habits","habit_checkins"]; // 2026-11-13 같이 하는 습관
+const DELETE_TABLES = ["couple_habits","habit_checkins","couple_bucket","couple_events","couple_logs","couple_members","couple_photos","deco_entries","entry_comments",
   "entry_reactions","letters","log_comments","poke_reactions","notify_prefs","push_subscriptions"];
 const UPDATES = { activity_reads: "last_read_at", chat_reads: "last_read_at", couple_bucket: "title", couple_events: "title",
   couple_logs: "body", couple_members: "nickname", couples: "start_date", deco_entries: "title", mood_checkins: "emoji",
-  qa_answers: "body", notify_prefs: "updated_at" };
+  qa_answers: "body", notify_prefs: "updated_at", couple_habits: "name", habit_checkins: "done" };
 const INSERTS = [
   ["pokes", "", "insert into public.pokes(couple_id, from_user, kind, message) values ({c},{u},'x','x')"],
   ["mood_checkins", "", "insert into public.mood_checkins(couple_id, user_id, emoji) values ({c},{u},'x')"],
   ["couple_bucket", "", "insert into public.couple_bucket(couple_id, title, created_by) values ({c},'x',{u})"],
+  ["couple_habits", "", "insert into public.couple_habits(couple_id, name, created_by) values ({c},'x',{u})"],
   ["couple_events", "", "insert into public.couple_events(couple_id, title, event_date, created_by) values ({c},'x',current_date,{u})"],
   ["couple_photos", "", "insert into public.couple_photos(couple_id, storage_path, created_by) values ({c},'x/y',{u})"],
   ["deco_entries", "", "insert into public.deco_entries(couple_id, entry_date, created_by) values ({c},current_date,{u})"],

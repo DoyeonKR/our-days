@@ -27,6 +27,7 @@ import { keysetFilter, type StorageUsage } from "@/lib/photoalbum";
 import { kstMonthRange, monthlyRecap, pastSameDays, recapFromStats, type MemorySnapshot, type MonthlyRecap } from "@/lib/memories";
 import { normalizeSharedAppearance, parseAppearanceRecord, type SharedAppearance } from "@/lib/coupleAppearance";
 import { withTimeout } from "@/lib/logreview";
+import type { Habit, HabitCheckin } from "@/lib/habits";
 import { DIARY_PHOTO_TIMEOUT_MS, DIARY_SAVE_TIMEOUT_MS, alignedPhotoUrls, diaryPhotoStem, isDefiniteRejection, isDuplicateKey, retryPhotoPlan, sameDiaryContent, samePaths } from "@/lib/diarysave";
 
 export type Couple = {
@@ -2900,6 +2901,98 @@ export async function deleteBucket(id: string): Promise<void> {
 /** 버킷 실시간 구독 (추가/완료/삭제 시 콜백). */
 export function subscribeBucket(coupleId: string, onChange: () => void): () => void {
   return muxOn(coupleId, "couple_bucket", `couple_id=eq.${coupleId}`, () => onChange());
+}
+
+/* ---------- 같이 하는 습관 (couple_habits · habit_checkins, 2026-11-13 — README §10.27) ----------
+ * 화면은 lib/habitstore 하나만 본다(홈 카드 · 계획 › 습관이 같은 저장소 · 같은 재시도 줄).
+ * 오류는 code 를 달고 던진다 — 저장소가 saveErrorKind 로 '길 위의 오류(다시 보낸다)'와 '서버가 거절(버린다)'을 가른다. */
+
+/** 표가 아직 없다(migration 이 운영에 오르기 전 1분) — 화면은 습관 칸을 숨긴다. */
+export const HABITS_MISSING = "habits-missing";
+const habitTableMissing = (e: { code?: string } | null) => !!e && (e.code === "42P01" || e.code === "PGRST205");
+function habitError(error: { code?: string; message: string }): Error {
+  if (habitTableMissing(error)) return Object.assign(new Error(HABITS_MISSING), { code: HABITS_MISSING });
+  return Object.assign(new Error(humanError(error.message)), { code: error.code ?? "" });
+}
+function habitClient() {
+  const sb = getSupabase();
+  if (!sb) throw Object.assign(new Error("서버에 연결되지 않았어요. 연결을 확인한 뒤 다시 시도해 주세요."), { code: "" });
+  return sb;
+}
+
+export async function listHabits(coupleId: string): Promise<Habit[]> {
+  const sb = habitClient();
+  const { data, error } = await sb.from("couple_habits").select("*").eq("couple_id", coupleId)
+    .order("created_at", { ascending: true }).order("id", { ascending: true });
+  if (error) throw habitError(error);
+  return (data ?? []) as Habit[];
+}
+
+/** 체크한 줄(done) 전부 — 연속 기록을 창으로 자르지 않으려고 끝까지 받는다(1000행 상한 → fetchAllPages, 순서 끝은 열쇠). */
+export async function listHabitCheckins(coupleId: string): Promise<HabitCheckin[]> {
+  const sb = habitClient();
+  return fetchAllPages(async (from, to) => {
+    const { data, error } = await sb.from("habit_checkins").select("habit_id,user_id,day,done")
+      .eq("couple_id", coupleId).eq("done", true)
+      .order("day", { ascending: true }).order("habit_id", { ascending: true }).order("user_id", { ascending: true })
+      .range(from, to);
+    if (error) throw habitError(error);
+    return (data ?? []) as HabitCheckin[];
+  }, 1000, 200);
+}
+
+/** 그 날의 체크를 서버에서 새로 — 하트는 낙관적 화면이 아니라 이 값으로만 정산한다. */
+export async function habitCheckinsOn(coupleId: string, day: string): Promise<HabitCheckin[]> {
+  const sb = habitClient();
+  const { data, error } = await sb.from("habit_checkins").select("habit_id,user_id,day,done")
+    .eq("couple_id", coupleId).eq("day", day).eq("done", true);
+  if (error) throw habitError(error);
+  return (data ?? []) as HabitCheckin[];
+}
+
+export type HabitInput = Pick<Habit, "name" | "icon" | "target_kind" | "target_count" | "mode">;
+
+/** 습관 추가 — id 는 화면이 만든 uuid(응답을 잃고 다시 눌러도 같은 줄, 23505 = 이미 들어감). */
+export async function addHabit(coupleId: string, input: HabitInput, id: string): Promise<void> {
+  const sb = habitClient();
+  const uid = await ensureAnonAuth();
+  if (!uid) throw Object.assign(new Error("로그인이 필요해요."), { code: "PT401" });
+  const { error } = await sb.from("couple_habits").insert({ id: id.toLowerCase(), couple_id: coupleId, created_by: uid, ...input });
+  if (duplicateKey(error)) return;
+  if (error) throw habitError(error);
+}
+
+export async function updateHabit(id: string, input: HabitInput): Promise<void> {
+  const sb = habitClient();
+  const { data, error } = await sb.from("couple_habits").update(input).eq("id", id).select("id").maybeSingle();
+  if (error) throw habitError(error);
+  if (!data) throw Object.assign(new Error("습관이 지워졌거나 고칠 수 없어요. 목록을 다시 불러올게요."), { code: "PGRST116" });
+}
+
+export async function deleteHabit(id: string): Promise<void> {
+  const sb = habitClient();
+  const { error } = await sb.from("couple_habits").delete().eq("id", id);
+  if (error) throw habitError(error);
+}
+
+/** 내 체크 · 되돌리기 — 같은 열쇠(습관 · 나 · 날)에 upsert 라 몇 번을 다시 보내도 결과가 같다. */
+export async function setHabitCheck(coupleId: string, habitId: string, day: string, done: boolean): Promise<void> {
+  const sb = habitClient();
+  const uid = await ensureAnonAuth();
+  if (!uid) throw Object.assign(new Error("로그인이 필요해요."), { code: "PT401" });
+  const { error } = await sb.from("habit_checkins")
+    .upsert({ habit_id: habitId, couple_id: coupleId, user_id: uid, day, done }, { onConflict: "habit_id,user_id,day" });
+  if (error) throw habitError(error);
+}
+
+/** 습관 · 체크 실시간 — 상대의 체크(INSERT · UPDATE)와 습관 추가 · 고침 · 지움. resync 는 둘 다에 온다. */
+export function subscribeHabits(coupleId: string, onChange: (table: "couple_habits" | "habit_checkins", p: MuxPayload) => void): () => void {
+  const a = muxOn(coupleId, "couple_habits", `couple_id=eq.${coupleId}`, (p) => onChange("couple_habits", p));
+  const b = muxOn(coupleId, "habit_checkins", `couple_id=eq.${coupleId}`, (p) => onChange("habit_checkins", p));
+  return () => {
+    a();
+    b();
+  };
 }
 
 /* ---------- 일기 반응(이모지) + 댓글 ---------- */

@@ -189,14 +189,16 @@ test("★ 계정 삭제 안내 = purge_account_data 가 실제로 지우는 것"
   for (const t of ["deco_entries", "couple_logs", "couple_photos", "qa_answers", "mood_checkins", "pokes", "activity_events"]) {
     assert.match(purge, new RegExp(`delete from public\\.${t} where`), `purge 가 ${t} 를 지우지 않으면 안내를 고친다`);
   }
-  for (const t of ["couple_events", "couple_bucket", "couple_island"]) {
+  for (const t of ["couple_events", "couple_bucket", "couple_habits", "couple_island"]) {
     assert.match(purge, new RegExp(`update public\\.${t}`), `purge 가 ${t} 를 상대에게 넘기지 않으면 안내를 고친다`);
   }
   const pair = deletionImpact("pair", "민지");
   assert.match(pair.lead, /민지님 화면에서도/);
   const gone = pair.gone.join(" ");
   for (const w of ["일기", "반응·댓글", "사진", "3초 로그", "질문", "기분", "쿡"]) assert.ok(gone.includes(w), w);
-  assert.match(pair.kept.join(" "), /일정 · 버킷리스트 · 우리 섬/);
+  assert.match(pair.kept.join(" "), /일정 · 버킷리스트 · 같이 하는 습관 · 우리 섬/);
+  assert.match(purge, /delete from public\.habit_checkins where user_id = p_user/, "습관 체크는 개인 기록 — 계정 삭제가 지운다");
+  assert.ok(gone.includes("습관 체크"), "안내에 습관 체크가 빠졌다");
   assert.equal(deletionImpact("solo", null).kept.length, 0);
   assert.match(deletionImpact("solo", null).lead, /모두 함께 삭제/);
 });

@@ -11,6 +11,9 @@ export const ACCOUNT_EXPORT_TABLES = [
   "quiz_responses",
   "deco_entries",
   "couple_bucket",
+  // 2026-11-13 같이 하는 습관(§10.27) — 습관은 커플 공유, 체크는 커플 두 사람 것이 보인다(계정 삭제 purge_account_data 도 같은 두 표를 안다)
+  "couple_habits",
+  "habit_checkins",
   "entry_reactions",
   "entry_comments",
   "couple_logs",

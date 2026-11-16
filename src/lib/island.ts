@@ -1641,6 +1641,9 @@ export type IslandState = {
   /** 저장 표식 링(최근 SAVE_MARKS) — 응답을 잃은 저장이 들어갔는지 다시 받은 상태로 가린다. 엔진은 안 읽는다.
    *  옵셔널 = 무마이그레이션. 쓰기는 couple.ts 의 saveIsland 한 곳(lib/islandsync 의 withSaveMark). */
   _saves?: string[];
+  /** 같이 하는 습관 하트 정산 열쇠 링(최근 60, '날짜|습관 id') — 같은 습관 · 하루를 두 번 주지 않고 하루 상한을 센다(2026-11-13 §10.27).
+   *  **클라이언트가 쓰는 칸**이다(서버는 모양 · 크기만 본다). 옵셔널 = 무마이그레이션. 쓰기는 lib/habits 의 settleHabitPay 한 곳. 엔진은 안 읽는다. */
+  habitPay?: string[];
   log: string[];
 };
 
