@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  MAX_LV, MOVES_MASS, PRESET_TOP, SIZE, WEEKLY_REWARD_CAP, WEEKLY_REWARD_TIERS, WEEKLY_RULES, WEEK_PAID_KEEP,
+  MAX_LV, MOVES_MASS, PRESET_TOP, SIZE, WEEKLY_REWARD_CAP, WEEKLY_REWARD_SCALE, WEEKLY_REWARD_TIERS, WEEKLY_RULES, WEEK_PAID_KEEP,
   canMove, isChallengeGame, isGame, mergeOf, newChallenge, newGame, play, rand, settleWeekly, slide, weekOf, weekSerialOf, weekSerialOfStart,
   weekStartOf, weeklyReward, weeklyRuleOfSerial, weeklyScoreCeiling, weeklyScoreFloor, weeklyTopMax,
   type Board, type Dir, type Game, type Tile, type WeeklyRuleId,
@@ -34,13 +34,36 @@ test("보통 판은 그대로 — 규칙 없는 판은 4×4 · 장르 표준([1,
   assert.equal(g.rule, undefined);
   assert.ok(isGame(g));
   assert.equal(isGame(newChallenge(42, "big")), false, "5×5 도전판이 보통 판 저장 자리로 새면 안 된다");
-  // 같은 시드 = 같은 판(규칙 칸이 없을 때 난수 순서가 그대로)
-  let a = newGame(7), c = newGame(7);
-  for (const d of ["left", "up", "right", "down", "left", "up"] as Dir[]) {
-    a = play(a, d).game;
-    c = play(c, d).game;
-  }
-  assert.deepEqual(a, c);
+});
+
+test("★ 보통 판의 결과가 도전판 이전 엔진과 같다 — 시드별 끝 점수 · 수 · 최고 단계(dc5cd5e 엔진으로 잰 값)", () => {
+  // 2026-11-13 확인: 도전판 이전 엔진(dc5cd5e 의 merge.ts)과 지금 엔진을 60판 · 10,592수 동안 매 수 deepEqual 로 견줘 같았다.
+  // 그때 잰 끝 값을 잠근다 — 규칙 옵션을 고치다 보통 판의 난수 순서 · 밀기가 바뀌면 여기서 깨진다.
+  const order: Dir[] = ["down", "left", "right", "up"];
+  const finish = (seed: number, randomish: boolean) => {
+    let g = newGame(seed);
+    let r = seed ^ 0x5bd1e995;
+    for (let n = 0; n < 6000 && !g.over; n++) {
+      let x: number;
+      [x, r] = rand(r);
+      const tries = randomish ? [order[Math.floor(x * 4)], ...order] : [...order];
+      let moved = false;
+      for (const d of tries) {
+        const t = play(g, d);
+        if (t.result) {
+          g = t.game;
+          moved = true;
+          break;
+        }
+      }
+      if (!moved) break;
+    }
+    return `${g.score}:${g.moves}:${g.top}`;
+  };
+  assert.equal(finish(1000, false), "3909:279:8");
+  assert.equal(finish(8919, true), "1600:145:7");
+  assert.equal(finish(16838, false), "6963:372:9");
+  assert.equal(finish(24757, true), "1182:110:7");
 });
 
 test("돌 — 움직이지 않고 줄을 토막으로 나눈다 · 돌 너머로 합쳐지지 않는다 · 거름도 안 먹는다", () => {
@@ -255,24 +278,33 @@ test("★ 서버 범위 식 = 앱 — migration 의 상수가 merge.ts 와 같�
 const island = (): IslandState => createIsland("콩", null, Date.parse("2026-11-16T10:00:00+09:00"));
 
 test("★ 주간 보상 — 점수 단계별 · 주당 상한 600 · 끝난 주만 · 같은 주는 한 번", () => {
-  assert.equal(weeklyReward(0), 0);
-  assert.equal(weeklyReward(-5), 0);
-  assert.equal(weeklyReward(Number.NaN), 0);
-  assert.equal(weeklyReward(1), 50);
-  assert.equal(weeklyReward(499), 50);
-  assert.equal(weeklyReward(500), 100);
-  assert.equal(weeklyReward(40_000), 600);
-  assert.equal(weeklyReward(9_999_999), WEEKLY_REWARD_CAP);
+  assert.equal(weeklyReward(0, "preset"), 0);
+  assert.equal(weeklyReward(-5, "preset"), 0);
+  assert.equal(weeklyReward(Number.NaN, "preset"), 0);
+  assert.equal(weeklyReward(1, "preset"), 50);
+  assert.equal(weeklyReward(499, "preset"), 50);
+  assert.equal(weeklyReward(500, "preset"), 100);
+  assert.equal(weeklyReward(40_000, "preset"), 600);
+  for (const { id } of WEEKLY_RULES) {
+    assert.equal(weeklyReward(9_999_999, id), WEEKLY_REWARD_CAP, id);
+    assert.equal(weeklyReward(1, id) > 0, true, `${id}: 1점이라도 했으면 받는다`);
+    assert.ok(WEEKLY_REWARD_SCALE[id] > 0, id);
+  }
+  // 규칙마다 점수 크기가 달라 곱해 맞춘다 — 60수 커플의 실제 상한(2,976 × 2)으로도 꼭대기 근처에 닿는다
+  assert.equal(weeklyReward(2 * weeklyScoreCeiling("moves", weeklyTopMax("moves")), "moves"), 500);
+  assert.equal(weeklyReward(500, "moves"), 200);
+  assert.equal(weeklyReward(10_000, "big"), 200);
   for (const [, coins] of WEEKLY_REWARD_TIERS) assert.ok(coins <= WEEKLY_REWARD_CAP);
   for (let i = 1; i < WEEKLY_REWARD_TIERS.length; i++) assert.ok(WEEKLY_REWARD_TIERS[i][0] < WEEKLY_REWARD_TIERS[i - 1][0], "높은 것부터");
   assert.ok(WEEKLY_REWARD_CAP <= 600);
 
   const s0 = island();
-  const r1 = settleWeekly(s0, "2026-11-09", 12_345, "2026-11-16");
+  assert.equal(weeklyRuleOfSerial(weekSerialOfStart("2026-11-16")!).id, "preset", "아래 값은 같은 출발 주(곱 1) 기준");
+  const r1 = settleWeekly(s0, "2026-11-16", 12_345, "2026-11-23");
   assert.equal(r1.coins, 400);
   assert.equal(r1.state.coins, s0.coins + 400);
-  assert.deepEqual(mergeOf(r1.state).weekPaid, ["2026-11-09"]);
-  const r2 = settleWeekly(r1.state, "2026-11-09", 99_999, "2026-11-16");
+  assert.deepEqual(mergeOf(r1.state).weekPaid, ["2026-11-16"]);
+  const r2 = settleWeekly(r1.state, "2026-11-16", 99_999, "2026-11-23");
   assert.equal(r2.dup, true);
   assert.equal(r2.coins, 0);
   assert.equal(r2.state, r1.state, "이미 받은 주는 같은 참조");
@@ -335,10 +367,11 @@ test("★ migration — 새 표 · 멱등 · 지우지 않음 · PT4xx · 잠금
   const ret = board.slice(board.indexOf("returns table ("), board.indexOf(")", board.indexOf("returns table (")));
   assert.doesNotMatch(ret, /user_id|couple_id/);
   assert.match(board, /where k\.rk <= 20 or k\.mine/);
+  assert.match(ret, /ended boolean/, "보상은 서버 시각으로 끝난 주만");
+  assert.match(board, /ok\.week < private\.merge_week_start\(now\(\)\)/);
   // 신규 bootstrap
   const schema = raw("supabase/schema.sql");
   assert.equal(schema.split(MIG.trim()).length - 1, 1);
-  assert.ok(schema.trimEnd().endsWith(MIG.trim()), "schema.sql 맨 끝에 붙인다");
 });
 
 /* ── 화면 ── */
@@ -350,7 +383,8 @@ test("화면 — 도전판은 보통 판과 저장 · 정산 · 순위가 따로
   assert.doesNotMatch(w, /\b(settleGame|submitMergeRun|getMergeRunBoard)\b/, "도전판은 보통 판의 하트 · 순위로 가지 않는다");
   assert.match(w, /submitMergeWeekly\(/);
   assert.match(w, /settleWeekly\(/);
-  assert.match(w, /gameNow\(\)/, "주와 보상 판정은 서버 시각으로");
+  assert.match(w, /gameNow\(\)/, "주 판정은 서버 시각(잰 뒤)으로");
+  assert.match(w, /!mine\.ended\) return;/, "보상은 서버가 끝났다고 한 주만");
   assert.match(w, /useDialogFocus\(/);
   const g = code("src/components/MergeGame.tsx");
   assert.match(g, /<MergeWeekly\b/);

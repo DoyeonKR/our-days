@@ -21,7 +21,7 @@ import type { IslandRow } from "@/lib/couple";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  NICK_MAX, WEEKLY_REWARD_CAP, WEEKLY_REWARD_TIERS, chainOf, isChallengeGame, mergeOf, newChallenge, normalizeNick, play, settleWeekly,
+  NICK_MAX, WEEKLY_REWARD_CAP, WEEKLY_REWARD_SCALE, WEEKLY_REWARD_TIERS, chainOf, isChallengeGame, mergeOf, newChallenge, normalizeNick, play, settleWeekly,
   weekOf, weekStartOf, weeklyRule, type Dir, type Game, type Tile, type WeeklyRuleId,
 } from "@/lib/merge";
 
@@ -39,11 +39,13 @@ function readSaved(scope: string, week: string, rule: WeeklyRuleId): WSaved {
   try {
     const v = JSON.parse(localStorage.getItem(storeKey(scope)) ?? "null") as Partial<WSaved> | null;
     const queue = (Array.isArray(v?.queue) ? v.queue : [])
-      .filter((f): f is WFin => !!f && typeof f.id === "number" && typeof f.week === "string" && !!weeklyRule(f.rule) && isChallengeGame(f.game) && !f.sent)
-      .slice(-QUEUE_MAX);
-    // 지난 주에 하던 판은 버린다 — 이번 주 규칙이 다르다(끝난 판만 줄에 남아 서버가 받을지 정한다)
-    const game = v && v.week === week && isChallengeGame(v.game) && v.game.rule === rule && !v.game.over ? v.game : newChallenge(freshSeed(), rule);
-    return { week, game, queue };
+      .filter((f): f is WFin => !!f && typeof f.id === "number" && typeof f.week === "string" && !!weeklyRule(f.rule) && isChallengeGame(f.game) && !f.sent);
+    const same = !!v && v.week === week && isChallengeGame(v.game) && v.game.rule === rule && !v.game.over;
+    // 지난 주에 하던 판은 그 주 기록으로 마친다(점수가 있으면) — 서버가 경계 뒤 10분까지는 받고, 그 뒤면 PT422 로 걸러진다.
+    // 이번 주 판은 규칙이 다르니 새로 시작한다.
+    if (!same && v && typeof v.week === "string" && isChallengeGame(v.game) && v.game.score > 0 && !v.game.over && v.game.rule)
+      queue.push({ id: finId(), week: v.week, rule: v.game.rule, game: { ...v.game, over: true }, sent: false });
+    return { week, game: same ? (v!.game as Game) : newChallenge(freshSeed(), rule), queue: queue.slice(-QUEUE_MAX) };
   } catch {
     return { week, game: newChallenge(freshSeed(), rule), queue: [] };
   }
@@ -57,7 +59,8 @@ function writeSaved(scope: string, v: WSaved) {
 }
 
 /** 지난 주 보상 — 섬이 있는 커플이 게임을 열면 한 번 본다. 지난 주의 우리 커플 점수(서버)로 하트를 섬에 적는다.
- *  ⚠ 클라이언트가 쓰는 정산이다(끝난 판 하트와 같다): 같은 주는 s.merge.weekPaid 로 한 번, 버전 잠금 저장으로 둘이 동시에 받아도 한 번. */
+ *  ⚠ 클라이언트가 쓰는 정산이다(끝난 판 하트와 같다): 같은 주는 s.merge.weekPaid 로 한 번, 버전 잠금 저장으로 둘이 동시에 받아도 한 번.
+ *  gameNow() 는 그 실행의 첫 섬 저장 전엔 기기 시계라, '끝난 주인가'는 서버가 준 ended 로 다시 본다. */
 export function useWeeklyReward(coupleId: string | null, islandRow: IslandRow | null): { week: string; coins: number } | null {
   const [paid, setPaid] = useState<{ week: string; coins: number } | null>(null);
   const busy = useRef(false);
@@ -70,7 +73,8 @@ export function useWeeklyReward(coupleId: string | null, islandRow: IslandRow | 
       try {
         const rows = await getMergeWeeklyBoard(lastWeek);
         const mine = rows.find((r) => r.is_mine);
-        if (!mine || mine.score <= 0) return;
+        // 서버 시각으로 끝난 주만 — 기기 시계가 앞선 폰은 lastWeek 가 사실 이번 주일 수 있다
+        if (!mine || mine.score <= 0 || !mine.ended) return;
         for (let attempt = 0; attempt < 3; attempt++) {
           const row = await refreshIsland(coupleId);
           if (!row) return;
@@ -356,7 +360,7 @@ export default function MergeWeekly({
           <ul className="merge-rules">
             <li>이번 주 안에 몇 번이든 도전할 수 있어요. 사람마다 <b>가장 높은 한 판</b>만 세요.</li>
             <li>커플 점수 = 나와 상대의 최고 점수를 더한 값이에요.</li>
-            <li>주가 끝나면 우리 점수만큼 <b>섬 하트</b>를 받아요(최대 {WEEKLY_REWARD_CAP}개 · 주에 한 번). {WEEKLY_REWARD_TIERS.slice().reverse().map(([min, c]) => `${min.toLocaleString()}점 ${c}`).join(" · ")}</li>
+            <li>주가 끝나면 우리 점수만큼 <b>섬 하트</b>를 받아요(최대 {WEEKLY_REWARD_CAP}개 · 주에 한 번). 이번 주 기준 {WEEKLY_REWARD_TIERS.slice().reverse().map(([min, c]) => `${Math.ceil(min / WEEKLY_REWARD_SCALE[rule.id]).toLocaleString()}점 ${c}`).join(" · ")}</li>
             <li>도전판 점수는 보통 판 순위 · 하루 하트에 들어가지 않아요.</li>
           </ul>
         </>

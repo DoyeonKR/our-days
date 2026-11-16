@@ -3499,6 +3499,8 @@ export type MergeWeeklyRow = {
   my_best: number | null;
   partner_best: number | null;
   couples: number;
+  /** 그 주가 서버 시각으로 끝났는지 — 주간 보상은 이게 참일 때만 */
+  ended: boolean;
 };
 export type MergeWeeklySubmit = { runId: number; myBest: number; coupleScore: number; coupleRank: number; couples: number };
 

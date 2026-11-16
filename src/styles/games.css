@@ -1642,6 +1642,7 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .mwk-score .is-total { border-color: var(--rose-deep); background: color-mix(in oklab, var(--rose-deep) 12%, var(--card)); }
 .mwk-go { min-height: 48px; margin-top: 4px; }
 .mwk-result-back { display: block; width: 100%; min-height: 40px; margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 18px; font-weight: 700; }
+.merge-tools { flex-wrap: wrap; }
 .merge-tools .merge-tool-weekly span { margin-left: 4px; padding: 0 6px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-size: 12px; line-height: 18px; }
 @media (prefers-reduced-motion: reduce) { .mwk .merge-tile, .mwk .merge-tile.is-merged, .mwk .merge-tile.is-born { transition: none; animation: none; } }
 /* ── 합치기 주간 도전판 끝 ── */

@@ -6663,8 +6663,9 @@ $$;
 
 -- 이번 주(또는 지난 주) 커플 순위 — 1~20등 + (20등 밖이면) 우리 커플 줄. 닉네임 · 점수만 나간다(user_id · couple_id 는 안 나간다).
 -- 내 최고 · 상대 최고는 우리 커플 줄에만. 지난 주는 주간 보상 정산용(앱이 끝난 주의 우리 점수를 읽는다). 그 밖의 주는 빈 결과.
+-- ended = 그 주가 서버 시각으로 끝났는지 — 앱은 이게 참일 때만 보상을 적는다(기기 시계가 앞선 폰이 진행 중인 주를 받아 가지 않게).
 create or replace function public.merge_weekly_board(p_week date default null)
-returns table (week date, rule text, rank integer, names text, score integer, is_mine boolean, my_best integer, partner_best integer, couples integer)
+returns table (week date, rule text, rank integer, names text, score integer, is_mine boolean, my_best integer, partner_best integer, couples integer, ended boolean)
 language sql
 stable
 security definer
@@ -6693,7 +6694,8 @@ as $$
   select ok.week, private.merge_week_rule(ok.week), k.rk, k.names, k.score, k.mine,
          case when k.mine then coalesce((select me.best from me where me.is_me), 0) end,
          case when k.mine then coalesce((select me.best from me where not me.is_me), 0) end,
-         (select count(*)::integer from k)
+         (select count(*)::integer from k),
+         ok.week < private.merge_week_start(now())
   from k, ok
   where k.rk <= 20 or k.mine
   order by k.rk;

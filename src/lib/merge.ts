@@ -545,8 +545,9 @@ export function weeklyScoreFloor(rule: WeeklyRuleId, top: number): number {
 }
 
 /* ── 주간 보상 — 끝난 주의 커플 점수로 섬 하트(단계별 · 주당 상한 600 · 커플마다 주에 한 번) ──
- * ⚠ 앱이 섬 상태(s.merge.weekPaid)에 적는다 — 서버는 점수 · 순위만 낸다(끝난 판 하트처럼 클라이언트가 쓰는 정산이다).
- *   커플 점수는 서버 merge_weekly_board 가 돌려준 값을 쓰고, 같은 주를 두 번 주지 않게 섬 쪽에 주 id 를 남긴다(버전 잠금 저장). */
+ * ⚠ 앱이 섬 상태(s.merge.weekPaid)에 적는다 — 서버는 점수 · 순위 · 그 주가 끝났는지(ended)만 낸다(끝난 판 하트처럼 클라이언트가 쓰는 정산이다).
+ *   커플 점수는 서버 merge_weekly_board 가 돌려준 값을 쓰고, 같은 주를 두 번 주지 않게 섬 쪽에 주 id 를 남긴다(버전 잠금 저장).
+ *   '끝났나'는 서버 시각으로 본다(ended) — 기기 시계가 앞선 폰이 아직 안 끝난 주를 덜 찬 점수로 받아 가지 않게. */
 export const WEEKLY_REWARD_CAP = 600;
 /** [커플 점수 이상, 하트] — 높은 것부터 */
 export const WEEKLY_REWARD_TIERS: readonly (readonly [number, number])[] = [
@@ -558,9 +559,13 @@ export const WEEKLY_REWARD_TIERS: readonly (readonly [number, number])[] = [
   [500, 100],
   [1, 50],
 ];
-export function weeklyReward(coupleScore: number): number {
+/** 규칙마다 점수 크기가 달라서(봇 200판 가운데값: 돌밭 558 · 60수 514 · 같은 출발 1,913 · 거름 풍년 2,108 · 넓은 밭 11,335)
+ *  단계 표에 대기 전에 곱한다 — 어느 주든 보통으로 하면 비슷한 단계(커플 가운데값 → 200)에 닿게. 상한 600 은 그대로. */
+export const WEEKLY_REWARD_SCALE: Readonly<Record<WeeklyRuleId, number>> = { stones: 3, moves: 4, preset: 1, fert: 1, big: 0.2 };
+export function weeklyReward(coupleScore: number, rule: WeeklyRuleId): number {
   if (!Number.isFinite(coupleScore) || coupleScore <= 0) return 0;
-  const hit = WEEKLY_REWARD_TIERS.find(([min]) => coupleScore >= min);
+  const scaled = Math.max(1, Math.floor(coupleScore * (WEEKLY_REWARD_SCALE[rule] ?? 1)));
+  const hit = WEEKLY_REWARD_TIERS.find(([min]) => scaled >= min);
   return Math.min(WEEKLY_REWARD_CAP, hit ? hit[1] : 0);
 }
 export const WEEK_PAID_KEEP = 12;
@@ -569,8 +574,9 @@ export function settleWeekly(s: IslandState, week: string, coupleScore: number, 
   const m = mergeOf(s);
   const paid = Array.isArray(m.weekPaid) ? m.weekPaid : [];
   if (paid.includes(week)) return { state: s, coins: 0, dup: true };
-  if (weekSerialOfStart(week) == null || !(week < currentWeek)) return { state: s, coins: 0 };
-  const coins = weeklyReward(coupleScore);
+  const serial = weekSerialOfStart(week);
+  if (serial == null || !(week < currentWeek)) return { state: s, coins: 0 };
+  const coins = weeklyReward(coupleScore, weeklyRuleOfSerial(serial).id);
   if (coins <= 0) return { state: s, coins: 0 };
   const rec: MergeRecord = { ...m, weekPaid: [...paid, week].slice(-WEEK_PAID_KEEP) };
   return { state: { ...s, coins: s.coins + coins, merge: rec }, coins };
