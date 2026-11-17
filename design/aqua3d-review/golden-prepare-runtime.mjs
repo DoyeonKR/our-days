@@ -1,0 +1,6 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import path from 'node:path';
+import {createRequire} from 'node:module';
+const ts=createRequire(import.meta.url)('typescript'),root=process.cwd(),dest='design/aqua3d-review/golden-v2/runtime',seen=new Set();
+async function visit(file){file=path.resolve(file);if(seen.has(file))return;seen.add(file);const relative=path.relative(root,file);if(relative.startsWith('..'))throw Error('Outside repo');const out=path.join(dest,relative.replace(/\.ts$/,'.mjs'));await mkdir(path.dirname(out),{recursive:true});if(file.endsWith('.json')){await writeFile(out,await readFile(file));return;}let text=ts.transpileModule(await readFile(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText.replaceAll('process.env.NEXT_PUBLIC_BASE_PATH','"/public"');for(const {fileName:spec}of ts.preProcessFile(text,true,true).importedFiles){if(!spec.startsWith('.'))continue;const dep=path.resolve(path.dirname(file),spec);if(/\.(ts|json)$/.test(dep))await visit(dep);}text=text.replace(/\.ts(["'])/g,'.mjs$1');await writeFile(out,text);}
+await visit('src/lib/aqua3d/glb.ts');console.log('Read-only game runtime transpiled: '+seen.size+' modules');

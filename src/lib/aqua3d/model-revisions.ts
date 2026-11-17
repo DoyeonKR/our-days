@@ -5,6 +5,7 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  whale_shark:'c45f42015733',
  oceanic_manta:'614cceae533e',
  imugi_fish:'75bd0d776b1b',
+ golden_dragonfish:'8174a89a7cb9',
  fry_corydoras:'d899008d1dfa',juv_corydoras:'5b600651820b',
  juv_nurse_shark:'9eaa536bdf7c',fry_nurse_shark:'ec05a0ba7333',nurse_shark:'01c976ead1b3',
  molly:'b5bea7a6b915',fry_molly:'26e0586e7e0a',juv_molly:'bad8f0f2bf92',
