@@ -43808,6 +43808,492 @@
         "bytes": 300000
       },
       "note": "다 큰 개체 모델 · 그림을 그대로 쓴다(새끼 · 어린 그림 대기 — ART-GUIDE F)"
+    },
+    "fry_snow_crab": {
+      "kind": "fish",
+      "family": "snow_crab",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_snow_crab.glb",
+      "triangles": 7000,
+      "bytes": 132284,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "crab",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "64e3a7c93e213a9abacfed23ed79e3cefa744a4343683c3d3719e282ad3f9dc2",
+      "sha256": "e2c9d41ae3198af565d151423069c18cf2cd92ffefd6287511c7870187592c6b",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 crab-build.mjs (NOAA public-domain dorsal illustration, rounded inflation)"
+    },
+    "juv_snow_crab": {
+      "kind": "fish",
+      "family": "snow_crab",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_snow_crab.glb",
+      "triangles": 7000,
+      "bytes": 138992,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "crab",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "61a5a7f5a9e1a29cee70d01a456f3a64ff1eb1972d6d3ba22c74c142b9706958",
+      "sha256": "45565c781d7f23a4cf26f28a6b0587a448f0a52d82e84e72d721d292551e949b",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 crab-build.mjs (NOAA public-domain dorsal illustration, rounded inflation)"
+    },
+    "snow_crab": {
+      "kind": "fish",
+      "family": "snow_crab",
+      "form": "adult",
+      "file": "public/aqua/models/fish/snow_crab.glb",
+      "triangles": 7000,
+      "bytes": 148308,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "crab",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "d8153dd688ca4b1f9f79e0f8eb32cda0d120feb98dd95dc7baa159712aa4bb3f",
+      "sha256": "ed02a88ab8231a60ba97b29566180d1361f4114441e0c9de2c3d16c5b2fdac1c",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 crab-build.mjs (NOAA public-domain dorsal illustration, rounded inflation)"
+    },
+    "fry_king_crab": {
+      "kind": "fish",
+      "family": "king_crab",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_king_crab.glb",
+      "triangles": 7000,
+      "bytes": 134044,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "crab",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "9436145b530fc528d5afdd517b1f86cea369468462e30dbb14cfa316ffe5d933",
+      "sha256": "dbe434c9f7c21a8d22103e63e80ee1e300997bc0f8efa5664d4b359fdd04c274",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 crab-build.mjs (NOAA public-domain dorsal illustration, rounded inflation)"
+    },
+    "juv_king_crab": {
+      "kind": "fish",
+      "family": "king_crab",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_king_crab.glb",
+      "triangles": 7000,
+      "bytes": 140452,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "crab",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "7867677c5834adf410ed6c18ea47851f21a13973f44f7b5db7b6abfda34199b5",
+      "sha256": "28ae21317ce36c3747f20d9408ffb618b0452a410f7d12a94f9255da370dd5e6",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 crab-build.mjs (NOAA public-domain dorsal illustration, rounded inflation)"
+    },
+    "king_crab": {
+      "kind": "fish",
+      "family": "king_crab",
+      "form": "adult",
+      "file": "public/aqua/models/fish/king_crab.glb",
+      "triangles": 7000,
+      "bytes": 147796,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "crab",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "7f14269b712087664f0e272a4a8d34aa226519d055fa42bfeee1e5e8662dd51f",
+      "sha256": "d03da0844526e1a93fd3be4d9e3079a327b2f70f45e1768cb6050c354c3d3d68",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "authoringProfile": {
+        "key": "cherry_shrimp",
+        "name": "체리새우",
+        "scientificName": "Neocaridina davidi",
+        "cm": 3,
+        "widthRatio": 0.22,
+        "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "shrimp-volume-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 crab-build.mjs (NOAA public-domain dorsal illustration, rounded inflation)"
     }
   },
   "structuralValidation": "passed",

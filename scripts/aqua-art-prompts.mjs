@@ -17,6 +17,12 @@ const juv = (kind, look) => `Juvenile ${kind}: young teenage fish, body starting
 // 새우 프롬프트는 공통 화풍까지 한 문장이라 — 표엔 화풍 뒤의 설명만 싣는다(2026-11-14)
 const shrimpSubject = (key) => { const p = shrimp.items.find(i => i.key === key).prompt; return p.startsWith(FISH_STYLE) ? p.slice(FISH_STYLE.length).trim() : p; };
 const SHRIMP_GRADE = { cherry_shrimp: "흔함", fleshy_prawn: "고급", dokdo_shrimp: "희귀" };
+// 게(2026-11-18) — 그림 세션이 그리지 않았다. Claude 세션이 NOAA Fisheries 등쪽 일러스트(퍼블릭 도메인)를 머리 오른쪽으로 돌려 썼다(design/aqua3d-review/crabs/make-art.mjs).
+//   다시 그릴 때 쓰는 설명을 남긴다
+const CRAB = {
+  snow_crab: ["대게", "희귀", "Real snow crab (Chionoecetes opilio) seen exactly from above, head RIGHT: round orange-red carapace with fine bumps, long slender flattened walking legs spread wide, two slim claws. Natural-history illustration, transparent background.", "Newborn-sized young snow crab seen from above, head RIGHT: pale peach shell, short legs, tiny claws.", "Juvenile snow crab seen from above, head RIGHT: lighter orange shell, legs not yet full length."],
+  king_crab: ["킹크랩", "영웅", "Real red king crab (Paralithodes camtschaticus) seen exactly from above, head RIGHT: spiny heart-shaped red carapace, thick spiny walking legs with white undersides, right claw larger than the left. Natural-history illustration, transparent background.", "Newborn-sized young red king crab seen from above, head RIGHT: pale pinkish shell, spines just starting, short legs.", "Juvenile red king crab seen from above, head RIGHT: lighter red shell, legs not yet full length."],
+};
 const ORCA_FRY = "Real newborn killer whale calf (Orcinus orca): short rounded body, proportionally large head and flippers, small curved dorsal fin, the white areas tinged pale orange-peach as in real newborn calves, black elsewhere, faint fetal fold lines on the flank. Exact side view, head RIGHT.";
 const ORCA_JUV = "Real juvenile killer whale (Orcinus orca), about one third grown: longer body than the calf, white patches now clean white, small upright dorsal fin not yet tall, faint grey saddle. Exact side view, head RIGHT.";
 
@@ -34,6 +40,7 @@ export const YOUNG = [
   ...shrimp.species.map(({key, name}) => [key, name, shrimpSubject(`fry_${key}`), shrimpSubject(`juv_${key}`)]),
   // 범고래(2026-11-14) — 새끼 · 어린 그림은 아직 없어 다 큰 그림을 쓴다(ART-GUIDE F)
   ["orca", "범고래", ORCA_FRY, ORCA_JUV],
+  ...Object.entries(CRAB).map(([key, [name, , , f, j]]) => [key, name, f, j]),
   ...expansion4.species.map(({key, name}) => [key, name,
     expansion4.items.find(i => i.key === `fry_${key}`).subject,
     expansion4.items.find(i => i.key === `juv_${key}`).subject]),
@@ -68,6 +75,7 @@ export const FINALS = [
   ...expansion4.species.map(({key, name, grade}) => [key, name, grade, expansion4.items.find(i => i.key === key).subject]),
   ...mammals.species.map(({key, name, grade}) => [key, name, grade, mammals.items.find(i => i.key === key).subject]),
   ...shrimp.species.map(({key, name}) => [key, name, SHRIMP_GRADE[key], shrimpSubject(key)]),
+  ...Object.entries(CRAB).map(([key, [name, grade, adult]]) => [key, name, grade, adult]),
   ["orca", "범고래", "신화", "Real adult killer whale (Orcinus orca): powerful streamlined black body, rounded blunt head with closed mouth, white oval eye patch behind and above a tiny dark eye, white lower jaw and belly with sweeping flank marking, grey saddle patch behind a tall dorsal fin, broad paddle-shaped pectoral flippers, horizontal tail flukes. Exact side view, head RIGHT, neutral straight swimming pose, matte skin with no white specular streaks."],
   ...expansion.species.map(([key, name, grade]) => [key, name, grade, expansion.items.find(i => i.key === key).subject]),
   ["catfish", "메기", "고급", "Real adult Korean Amur catfish (Silurus asotus), long flat dark-olive scaleless body, broad flattened head, one long maxillary barbel pair and one short mandibular barbel pair, small natural eyes, tiny dorsal fin and long anal fin. Exact side view, head RIGHT, neutral straight swimming pose."],

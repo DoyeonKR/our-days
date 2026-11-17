@@ -40,6 +40,14 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   // 동해 독도새우(도화새우) — 울릉도 앞바다의 귀한 몫(미끼 한 단계에 약 1%)
   { key: "dokdo_shrimp", name: "독도새우", grade: "희귀", price: 3500, hours: 91, minTank: 2, size: 18, cm: 22, fresh: false, ornamental: false,
     spots: [["ocean", 8, "skate"]], habit: crawl({ lane: 0.7, speed: 0.05, rest: 0.65 }) },
+  // 게(2026-11-18 [사용자: "토종물고기 보다는 갑각류를 추가하자"]) — 그림 · 3D 는 NOAA Fisheries 등쪽 일러스트(퍼블릭 도메인)를 기준으로
+  //   Claude 세션이 직접 지었다(design/aqua3d-review/crab-build.mjs · crabs/). 바닥을 천천히 걷고 오래 멈춰 있다 — 놀라도 거의 안 튄다(dart 0.05)
+  // 동해 대게 — 울릉도 앞바다의 귀한 몫(독도새우 바로 뒤)
+  { key: "snow_crab", name: "대게", grade: "희귀", price: 3700, hours: 92.4, minTank: 2, size: 24, cm: 60, fresh: false, ornamental: false,
+    spots: [["ocean", 6, "dokdo_shrimp"]], habit: crawl({ lane: 0.9, speed: 0.035, rest: 0.7, hop: 0.7, dart: 0.05, hug: 0.05 }) },
+  // 킹크랩 — 울릉분지 심해의 영웅(찬 깊은 바다)
+  { key: "king_crab", name: "킹크랩", grade: "영웅", price: 23500, hours: 204.5, minTank: 4, size: 30, cm: 120, fresh: false, ornamental: false,
+    spots: [["abyss", 1.5, "viperfish"]], habit: crawl({ lane: 1, speed: 0.03, rest: 0.72, hop: 0.7, dart: 0.05, hug: 0.05 }) },
 ];
 
 /** 켜졌을 때만 — 다른 표가 펼쳐 넣는다 */

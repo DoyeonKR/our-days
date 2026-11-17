@@ -1657,6 +1657,30 @@
     "orca": {
       "sourceHash": "ff18fbe40f4a7e61dd6e8ac51b8290bf1947594cab70a546d534dabb0e15ed6b",
       "sheet": "design/aqua3d-review/orca-color/comparison.webp"
+    },
+    "fry_snow_crab": {
+      "sourceHash": "64e3a7c93e213a9abacfed23ed79e3cefa744a4343683c3d3719e282ad3f9dc2",
+      "sheet": "design/aqua3d-review/crabs/review.webp"
+    },
+    "juv_snow_crab": {
+      "sourceHash": "61a5a7f5a9e1a29cee70d01a456f3a64ff1eb1972d6d3ba22c74c142b9706958",
+      "sheet": "design/aqua3d-review/crabs/review.webp"
+    },
+    "snow_crab": {
+      "sourceHash": "d8153dd688ca4b1f9f79e0f8eb32cda0d120feb98dd95dc7baa159712aa4bb3f",
+      "sheet": "design/aqua3d-review/crabs/review.webp"
+    },
+    "fry_king_crab": {
+      "sourceHash": "9436145b530fc528d5afdd517b1f86cea369468462e30dbb14cfa316ffe5d933",
+      "sheet": "design/aqua3d-review/crabs/review.webp"
+    },
+    "juv_king_crab": {
+      "sourceHash": "7867677c5834adf410ed6c18ea47851f21a13973f44f7b5db7b6abfda34199b5",
+      "sheet": "design/aqua3d-review/crabs/review.webp"
+    },
+    "king_crab": {
+      "sourceHash": "7f14269b712087664f0e272a4a8d34aa226519d055fa42bfeee1e5e8662dd51f",
+      "sheet": "design/aqua3d-review/crabs/review.webp"
     }
   }
 }
