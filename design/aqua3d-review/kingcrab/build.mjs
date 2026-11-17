@@ -42,19 +42,22 @@ function limb(pts){const curve=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(p
   for(let j=0;j<SIDES;j++){const ang=j/SIDES*Math.PI*2,sx=Math.cos(ang)*half,sy=Math.sin(ang)*half*.75,px=cx+nx*sx,py=cy+ny*sx;ring.push(vert(toW(px,py,(c.z+sy)*HT),uvOf(px,py)));}rings.push(ring);}
  for(let i=0;i<N;i++)for(let j=0;j<SIDES;j++){const a=rings[i][j],b=rings[i][(j+1)%SIDES],c=rings[i+1][j],d=rings[i+1][(j+1)%SIDES];addTri(a,c,b);addTri(b,c,d);}
  const end=rings[N],tip=curve.getPoint(1),tv=vert(toW(tip.x,tip.y,tip.z*HT),uvOf(tip.x,tip.y));for(let j=0;j<SIDES;j++)addTri(end[j],tv,end[(j+1)%SIDES]);parts++;}
-for(const l of[...LEFT,...RIGHT])limb(l.pts);
+// 다리 뿌리는 등딱지 밑으로 깊이 넣는다 — 몸 가장자리에서 시작하면 떨어져 보인다(2026-11-17 [사용자: "다리가 몸과 다 떨어져있는 느낌"])
+for(const l of[...LEFT,...RIGHT]){const [x,y]=l.pts[0];limb([[x+(CX-x)*.32,y+(CY-y)*.32,6],...l.pts]);}
 // 등딱지: 그림에서 가운데와 이어진 불투명 영역(다리 뿌리 안쪽)만 — 격자 높이장 돔 + 납작한 배
 {const inside=(x,y)=>{const ex=(x-CX)/88,ey=(y-CY)/(y<CY?84:78);return ex*ex+ey*ey<1.02&&alpha(x,y)>100;},A=56,K=9,rim=[];
  // 가운데에서 방향마다 그림의 등딱지 끝까지 — 매끈한 윤곽(이웃 셋 평균)
  for(let i=0;i<A;i++){const a=i/A*Math.PI*2;let r=0;while(r<110&&inside(CX+Math.cos(a)*(r+1),CY+Math.sin(a)*(r+1)))r++;rim.push(r);}
  const sm=rim.map((r,i)=>(rim[(i+A-1)%A]+2*r+rim[(i+1)%A])/4);
- for(const bottom of[false,true]){const ring=[];for(let k=0;k<=K;k++){const s=1-k/K,row=[];for(let i=0;i<A;i++){const a=i/A*Math.PI*2,x=CX+Math.cos(a)*sm[i]*s,y=CY+Math.sin(a)*sm[i]*s,t=1-s,h=bottom?-8:-8+46*Math.sqrt(1-s*s)+3*Math.sin(x*.21)*Math.sin(y*.19)*t;row.push(vert(toW(x,y,h*HT),uvOf(x,y)));}ring.push(row);}
-  const top=vert(toW(CX,CY,(bottom?-8:38)*HT),uvOf(CX,CY));
+ const rims=[];for(const bottom of[false,true]){const ring=[];for(let k=0;k<=K;k++){const s=1-k/K,row=[];for(let i=0;i<A;i++){const a=i/A*Math.PI*2,x=CX+Math.cos(a)*sm[i]*s,y=CY+Math.sin(a)*sm[i]*s,t=1-s,h=bottom?-12:4+38*Math.sqrt(1-s*s)+3*Math.sin(x*.21)*Math.sin(y*.19)*t;row.push(vert(toW(x,y,h*HT),uvOf(x,y)));}ring.push(row);}
+  rims.push(ring[0]);const top=vert(toW(CX,CY,(bottom?-12:42)*HT),uvOf(CX,CY));
   for(let k=0;k<K;k++)for(let i=0;i<A;i++){const a=ring[k][i],b=ring[k][(i+1)%A],c=ring[k+1][i],d=ring[k+1][(i+1)%A];if(bottom){addTri(a,b,c);addTri(b,d,c);}else{addTri(a,c,b);addTri(b,c,d);}}
   for(let i=0;i<A;i++){const a=ring[K][i],b=ring[K][(i+1)%A];if(bottom)addTri(a,b,top);else addTri(a,top,b);}}
+ // 등딱지 옆면 — 위 · 아래 가장자리를 잇는 띠(두께가 있어야 다리 뿌리가 몸에 박혀 보인다)
+ for(let i=0;i<A;i++){const a=rims[0][i],b=rims[0][(i+1)%A],c=rims[1][i],d=rims[1][(i+1)%A];addTri(a,b,c);addTri(b,d,c);}
  parts++;}
 // 눈 두 개(그림의 이마 양옆)
-for(const s of[-1,1]){const g=new T.SphereGeometry(3.4*HT,8,6),c=toW(CX+s*12,146,30*HT);g.translate(c.x,c.y,c.z);const o=P.length/3,pos=g.attributes.position;for(let i=0;i<pos.count;i++)vert(new T.Vector3(pos.getX(i),pos.getY(i),pos.getZ(i)),[.5,.36]);for(const k of g.index.array)I.push(k+o);parts++;}
+for(const s of[-1,1]){const g=new T.SphereGeometry(4.2*HT,8,6),c=toW(CX+s*12,150,12*HT);g.translate(c.x,c.y,c.z);const o=P.length/3,pos=g.attributes.position;for(let i=0;i<pos.count;i++)vert(new T.Vector3(pos.getX(i),pos.getY(i),pos.getZ(i)),[.5,.36]);for(const k of g.index.array)I.push(k+o);parts++;}
 const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setIndex(I);
 const names=['spine_0','spine_1','spine_2','spine_3','spine_4','spine_5','fin_L','fin_L_tip','fin_R','fin_R_tip'],bones=names.map(n=>{const b=new T.Bone();b.name=n;return b;});for(let i=1;i<6;i++){bones[i].position.x=-.1;bones[i-1].add(bones[i]);}bones[0].add(bones[6]);bones[6].add(bones[7]);bones[0].add(bones[8]);bones[8].add(bones[9]);
 const n=P.length/3,J=new Uint16Array(n*4),Wt=new Float32Array(n*4);for(let i=0;i<n;i++)Wt[i*4]=1;g.setAttribute('skinIndex',new T.Uint16BufferAttribute(J,4));g.setAttribute('skinWeight',new T.Float32BufferAttribute(Wt,4));

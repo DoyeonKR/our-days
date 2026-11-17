@@ -97,7 +97,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/tuxedo_guppy.glb",
       "triangles": 2090,
-      "bytes": 35388,
+      "bytes": 46104,
       "bones": [
         "spine_0",
         "spine_1",
@@ -154,7 +154,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23578696893156167
       },
-      "sha256": "f6ebfc5a11b1da20020e67d8cb588d402aae357b6cd547311b679813991589f4",
+      "sha256": "b6a048b8dd3adaafc0255f3e41a68193a46919d8eb6e5171623c0869608dd375",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -167,7 +167,8 @@
         },
         "uncompressedBytes": 162668,
         "uncompressedSha256": "7e160b6ec5c48dd3ad5995ae1f7a9cf66721b7466d45a8daa51b08d654b38908"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "mosaic_guppy": {
       "kind": "fish",
@@ -175,7 +176,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/mosaic_guppy.glb",
       "triangles": 2058,
-      "bytes": 45752,
+      "bytes": 57864,
       "bones": [
         "spine_0",
         "spine_1",
@@ -232,7 +233,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23484726602081515
       },
-      "sha256": "014a03b336b990873892290db3c849eb397e603017bf581ea90570cefadeff65",
+      "sha256": "af66393c53c4a896d117dd96e6a675d8fd9f0c04fdfb2c423821b9324f167984",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -245,7 +246,8 @@
         },
         "uncompressedBytes": 188772,
         "uncompressedSha256": "0aa9962eca2d0311f7f8b33d4276b95252c0f0a43364ea240422fb0e09e52416"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fullred_guppy": {
       "kind": "fish",
@@ -253,7 +255,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/fullred_guppy.glb",
       "triangles": 2166,
-      "bytes": 32692,
+      "bytes": 43560,
       "bones": [
         "spine_0",
         "spine_1",
@@ -310,7 +312,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23531551153812694
       },
-      "sha256": "164cdc5c553e1a4600d7998ab38f64d6937520cc3db39c15eb15b47e6a44b638",
+      "sha256": "fe4c03a15f2dfa6290641140c4c68608efcb8cba9f5908b58763fe9c07ede28c",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -323,7 +325,8 @@
         },
         "uncompressedBytes": 164484,
         "uncompressedSha256": "0f856b544a2f2f2e606a2ab0cb02b5d357cced3f3f204d3d4538662fb4c813e8"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_guppy": {
       "kind": "fish",
@@ -331,7 +334,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_guppy.glb",
       "triangles": 1806,
-      "bytes": 28176,
+      "bytes": 37132,
       "bones": [
         "spine_0",
         "spine_1",
@@ -388,7 +391,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23554034022598144
       },
-      "sha256": "79df1a70c773f26d5dc7f7a5e26d752dc668eed5467e2ad4f7419b5481650b62",
+      "sha256": "acfe3fb4ec5b0e3b829f9ac65eda0bc7cae17a3bb2f35eef89ee57eb413bed34",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -401,7 +404,8 @@
         },
         "uncompressedBytes": 142668,
         "uncompressedSha256": "977d7a163def4675c58b46fc24024ba9fd17c11300d306ad668298821c84b64b"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_guppy": {
       "kind": "fish",
@@ -409,7 +413,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_guppy.glb",
       "triangles": 1950,
-      "bytes": 30744,
+      "bytes": 41240,
       "bones": [
         "spine_0",
         "spine_1",
@@ -466,7 +470,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23558205064145815
       },
-      "sha256": "6dfd081c7f28d5b8e8f076487e7c159d82b0004f507b2c9d281ad98ce0027c2b",
+      "sha256": "730e7d32090b1807c0049bd1083bc8f79228fe50ac765b07cb868a287119cf50",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -479,7 +483,8 @@
         },
         "uncompressedBytes": 150828,
         "uncompressedSha256": "a3487b435d2180ceaece8d5093ef65e505ad4b31a98c19c80dba6b8f40013858"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "neon_tetra": {
       "kind": "fish",
@@ -1501,7 +1506,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/crown_betta.glb",
       "triangles": 2438,
-      "bytes": 42900,
+      "bytes": 53096,
       "bones": [
         "spine_0",
         "spine_1",
@@ -1558,7 +1563,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23038930995945836
       },
-      "sha256": "ed926696f83a8ddece6cc8424ccf84ec9ca125e21bf252acdc4714ce2cba0bea",
+      "sha256": "8006fb324375b28c7ccbddd3934f821b753044dca360725f0ef7c282427929a3",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -1571,7 +1576,8 @@
         },
         "uncompressedBytes": 175588,
         "uncompressedSha256": "c377f3aa307f65e8e0a4c3971b1f20f71d6f34c32b72eea4b622aaa26710ec67"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "halfmoon_betta": {
       "kind": "fish",
@@ -1891,7 +1897,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/silver_angel.glb",
       "triangles": 2234,
-      "bytes": 40868,
+      "bytes": 53772,
       "bones": [
         "spine_0",
         "spine_1",
@@ -1948,7 +1954,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2207130768995001
       },
-      "sha256": "256b9646c26e7c2ace5497e0cdc17cac45179bf4528ffba3dd14ba4c760e60a3",
+      "sha256": "f6e3c22af6fd257cf6807fa25c45e1717d34d512826cba0967f0b7beecc89e1f",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -1961,7 +1967,8 @@
         },
         "uncompressedBytes": 168380,
         "uncompressedSha256": "68bbe6d771bdb1ff7588fe8890fa46e125adf9aa4acee011e3b4fe149c6d87aa"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "marble_angel": {
       "kind": "fish",
@@ -2047,7 +2054,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/platinum_angel.glb",
       "triangles": 2206,
-      "bytes": 32484,
+      "bytes": 42932,
       "bones": [
         "spine_0",
         "spine_1",
@@ -2104,7 +2111,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.22930798604092006
       },
-      "sha256": "574972074389dea0fd00f436862fd1d6322dad1d49bf89d68310a7d6bbc2b7c5",
+      "sha256": "16e19036a0b9879119db160ce5ced5a47d179bbca340b964fc547ec93a2539ca",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -2117,7 +2124,8 @@
         },
         "uncompressedBytes": 145144,
         "uncompressedSha256": "fb09b1e9ee1a4197f7fab88750e096c0090cd68f8567f0dc922a2b8db4037e58"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "altum_angel": {
       "kind": "fish",
@@ -2125,7 +2133,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/altum_angel.glb",
       "triangles": 2246,
-      "bytes": 43776,
+      "bytes": 56116,
       "bones": [
         "spine_0",
         "spine_1",
@@ -2182,7 +2190,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2326153495692437
       },
-      "sha256": "437511cbd7205629b17225ca3b44d07e6a49f661ad7502014d6f44a754030ca3",
+      "sha256": "cb12839e57046d465ffbc55886c622d7f37793bf3f989383e30d5c34b5c6070a",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -2195,7 +2203,8 @@
         },
         "uncompressedBytes": 188892,
         "uncompressedSha256": "af3302d5a71dd33c84fb31ad0bb86cd2d5a470db3f2970c154a1bca1da0ca7a9"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_angel": {
       "kind": "fish",
@@ -2203,7 +2212,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_angel.glb",
       "triangles": 1918,
-      "bytes": 34920,
+      "bytes": 47268,
       "bones": [
         "spine_0",
         "spine_1",
@@ -2260,7 +2269,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23567014062859593
       },
-      "sha256": "86b083b12152a17a9a6779e5117ed42a2b1fb96492aac22ce097523d4e99253f",
+      "sha256": "a7590e67930d832db63ea917ea303761f9ccd47c12633f62fdf8550bd8ff8cc6",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -2273,7 +2282,8 @@
         },
         "uncompressedBytes": 150908,
         "uncompressedSha256": "432357a36a1519f956a84b48354479fc7bd210317faf50c94ccfc6a1701adaac"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_angel": {
       "kind": "fish",
@@ -2281,7 +2291,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_angel.glb",
       "triangles": 2378,
-      "bytes": 38164,
+      "bytes": 48864,
       "bones": [
         "spine_0",
         "spine_1",
@@ -2338,7 +2348,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23628861169495458
       },
-      "sha256": "c0fbc0aae6d73f057c7334c13af7bbf910e0cea7a2ba704e1e6350feb23ffbce",
+      "sha256": "6aa2021b09d6a418258de900e6b26ce6599026b9ef6365e0b85018d3deabecb6",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -2351,7 +2361,8 @@
         },
         "uncompressedBytes": 162156,
         "uncompressedSha256": "384e614707de75324f07eb821f0b5d2268202a68b46f50a57d6d7d4bd305c23f"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "ocellaris_clown": {
       "kind": "fish",
@@ -2437,7 +2448,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/percula_clown.glb",
       "triangles": 1934,
-      "bytes": 31404,
+      "bytes": 40284,
       "bones": [
         "spine_0",
         "spine_1",
@@ -2494,7 +2505,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2356526400549482
       },
-      "sha256": "f6e0e802ad4a0159e23a4868cc08f92cc9ff5eb707dba9f9176b7c2528d48330",
+      "sha256": "58fa4a2c26ce3c7a71d32b0eb02d714fdf241f5650564dba22853cc1a238ea45",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -2507,7 +2518,8 @@
         },
         "uncompressedBytes": 160456,
         "uncompressedSha256": "a1b47a199895466d3d3882150cd507d061be33778833020107d917180a837fac"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "snowflake_clown": {
       "kind": "fish",
@@ -2749,7 +2761,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_clown.glb",
       "triangles": 1926,
-      "bytes": 29168,
+      "bytes": 38684,
       "bones": [
         "spine_0",
         "spine_1",
@@ -2806,7 +2818,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23550608018327612
       },
-      "sha256": "70bce2af4062a7974eabf79fb1403158e85d95bfdf7b824929398af8c1229c17",
+      "sha256": "8daaf879d5ca5383918ca2c01bff1bdea8044143394182d8aabedf6b11464356",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -2819,7 +2831,8 @@
         },
         "uncompressedBytes": 150364,
         "uncompressedSha256": "8669f199f8def53f41156183e4326b1a4b94b8b5b7de8386a07b1ae0447ee85b"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "blue_discus": {
       "kind": "fish",
@@ -2827,7 +2840,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/blue_discus.glb",
       "triangles": 2458,
-      "bytes": 57428,
+      "bytes": 72760,
       "bones": [
         "spine_0",
         "spine_1",
@@ -2884,7 +2897,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23538218828199037
       },
-      "sha256": "50e9e78a65ba61b592b5e305803ac76297b6cedcdc3013c7ca95f6693e678074",
+      "sha256": "9daf1439d243ad587fd20f4cfa74f9b546ab41764b50f6027e1bff4b99a7a258",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -2897,7 +2910,8 @@
         },
         "uncompressedBytes": 220928,
         "uncompressedSha256": "f805f10ecfbf3732b8ca69c1cc2420fa3a3d921383ec1cdc64cb4600b2ca2a9d"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "pigeon_discus": {
       "kind": "fish",
@@ -2905,7 +2919,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/pigeon_discus.glb",
       "triangles": 2214,
-      "bytes": 53512,
+      "bytes": 70528,
       "bones": [
         "spine_0",
         "spine_1",
@@ -2962,7 +2976,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23590649951376455
       },
-      "sha256": "808df9202917ad2e76f6a3d96b7e01c01fa8e64c56658886d01b65c895c41009",
+      "sha256": "fa54cd3233d0c0124d1280755a90dd5fb7249ad22b20dfc52c96707a4433d2d2",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -2975,7 +2989,8 @@
         },
         "uncompressedBytes": 210448,
         "uncompressedSha256": "9ab2aaafd3f0e6c7dfb70b99dc64c3f8536e59b26cb71f65b05ea9a7bab62418"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "leopard_discus": {
       "kind": "fish",
@@ -2983,7 +2998,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/leopard_discus.glb",
       "triangles": 2322,
-      "bytes": 59552,
+      "bytes": 74552,
       "bones": [
         "spine_0",
         "spine_1",
@@ -3040,7 +3055,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23583962142807074
       },
-      "sha256": "16934580f8efae8e7b5ba00838b45ad09208a6b8d3bdf8b577ff076404b3b0e1",
+      "sha256": "2dc03f7cca7b227cbe1586af2c41d6523b040939f07da5a53bb98f579dbcacc3",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -3053,7 +3068,8 @@
         },
         "uncompressedBytes": 236396,
         "uncompressedSha256": "ada4c34002f3832fbcaac51cd804c697d821ed0e0c344b9eafc784b5409fde22"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "turquoise_discus": {
       "kind": "fish",
@@ -3061,7 +3077,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/turquoise_discus.glb",
       "triangles": 2278,
-      "bytes": 50364,
+      "bytes": 66340,
       "bones": [
         "spine_0",
         "spine_1",
@@ -3118,7 +3134,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23526225424513808
       },
-      "sha256": "9fa8302f7dc3ebc6b3e9d4d1e81f90cfd2065fc07b218c01f2051af0bc60e57d",
+      "sha256": "2924452b5c723e6afe9d9cc27130c921e6bc4370d9a4718f8a8bb9df22716024",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -3131,7 +3147,8 @@
         },
         "uncompressedBytes": 205016,
         "uncompressedSha256": "07becfe4970ccfce23188d8dc71d92d83ff4b7719a31c4411a6be97a51d1b2e2"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_discus": {
       "kind": "fish",
@@ -4387,7 +4404,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/red_arowana.glb",
       "triangles": 2030,
-      "bytes": 32632,
+      "bytes": 41244,
       "bones": [
         "spine_0",
         "spine_1",
@@ -4444,7 +4461,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23576217185931497
       },
-      "sha256": "0d285047f49a9f23f8937f7bdcb027ecc6ae21a53e12191ad7792983095403bc",
+      "sha256": "3b2537b7e9042680836417c237b7eaaa75945a202fd480f417e7ad0dacae9912",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -4457,7 +4474,8 @@
         },
         "uncompressedBytes": 166220,
         "uncompressedSha256": "5be1d73cc1b30e818d0433adaf2f8dd711b737b1ba8d90bd7a47e549c21bdded"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "platinum_arowana": {
       "kind": "fish",
@@ -5415,7 +5433,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/pearl_carp.glb",
       "triangles": 1446,
-      "bytes": 33320,
+      "bytes": 45508,
       "bones": [
         "spine_0",
         "spine_1",
@@ -5472,7 +5490,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23219315372480787
       },
-      "sha256": "815b47ece31c390c823a1304593f6026b06d2db40b4f82a3a0ce835ad5af5581",
+      "sha256": "3440a47059330a2b6a4b6e028c360450a637adfbe3a0088cf4a830028a0c4d55",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -5485,7 +5503,8 @@
         },
         "uncompressedBytes": 148732,
         "uncompressedSha256": "b42756c4f00c6cfadebcdde8edc0b6eac37dfa819ba14eb483ce0fcb09ed17a7"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "imugi_fish": {
       "kind": "fish",
@@ -5736,7 +5755,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_rising.glb",
       "triangles": 2286,
-      "bytes": 32612,
+      "bytes": 40964,
       "bones": [
         "spine_0",
         "spine_1",
@@ -5793,7 +5812,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2344130861965332
       },
-      "sha256": "0bb1a800b23b09463c1d0282062e7cb9ed46d4917591a4c791d90d5132f4db61",
+      "sha256": "8dcc3542cd6abeb3803820ed542d9d7f5e8702d36ce7d9521133f8c2183d2ea6",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -5806,7 +5825,8 @@
         },
         "uncompressedBytes": 156920,
         "uncompressedSha256": "b3c78a55812e1281821676d96eb8e566d4d7a2a5222e7a872e830d5fab031f45"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_rising": {
       "kind": "fish",
@@ -5892,7 +5912,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/moon_jelly.glb",
       "triangles": 2720,
-      "bytes": 35136,
+      "bytes": 46064,
       "bones": [
         "spine_0",
         "spine_1",
@@ -5945,7 +5965,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24014444114865505
       },
-      "sha256": "7a25bcf0a01375efe25b133ccefbfd13a2b28ca998f122fec2ccd640bc5c5392",
+      "sha256": "fb473ccf69fa09f85bacad414e62d511df070d5b92c46d5cc26c8d605fd4fcbe",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -5958,7 +5978,8 @@
         },
         "uncompressedBytes": 177204,
         "uncompressedSha256": "80866631c334398fabe6790f72ace627dcf317269529678faf0685d3084404e2"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "aurora_ray": {
       "kind": "fish",
@@ -6122,7 +6143,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/genesis_fish.glb",
       "triangles": 2374,
-      "bytes": 44160,
+      "bytes": 57612,
       "bones": [
         "spine_0",
         "spine_1",
@@ -6179,7 +6200,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.22984123032203344
       },
-      "sha256": "707c963564967ea7fc84a1104b2d9bff130a53474298175c207e25d63b35f88b",
+      "sha256": "70f886f3e4d3c200453e7a93a55e5f83bfe73e27d49a30155b94df8dd89fe6d9",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -6192,7 +6213,8 @@
         },
         "uncompressedBytes": 192368,
         "uncompressedSha256": "ae503adbfd66dc5a428dc30337bfc96cd55bac96c40ceaa8ac4f32749ac24b9c"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_astral": {
       "kind": "fish",
@@ -6278,7 +6300,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_astral.glb",
       "triangles": 2434,
-      "bytes": 40604,
+      "bytes": 51908,
       "bones": [
         "spine_0",
         "spine_1",
@@ -6335,7 +6357,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.22467050828248608
       },
-      "sha256": "fb1760702a67c7681af72f50045090bc4714fadae4ae375e0670563310bfe30b",
+      "sha256": "b54b05b2d432af5edfb75d21140a80e7fbb7c0bdd409f456b39eb6506031f984",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -6348,7 +6370,8 @@
         },
         "uncompressedBytes": 174564,
         "uncompressedSha256": "5e88eb0f00b36d2cba0941c57b65acdf4aa7d413065fde1d62c49ecabba9b3e9"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "filter_1": {
       "kind": "decor",
@@ -6462,7 +6485,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/filter_3.glb",
       "triangles": 3780,
-      "bytes": 92216,
+      "bytes": 104268,
       "bones": [],
       "textureSize": [
         512,
@@ -6490,7 +6513,7 @@
           }
         ]
       },
-      "sha256": "dfe3bd5600337cd794823749de7e893384178afe196fb2e3c32a582654048ac0",
+      "sha256": "016e62ce1ae39e9bc2a5bae287430b0b5a6a5097385271cc462704fd3013bef6",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -6510,7 +6533,8 @@
         },
         "uncompressedBytes": 365768,
         "uncompressedSha256": "fb2b94b287bb383684da12a61dcbcbc22e2f3fcafc523c8ec0bb03ceb1cb1953"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "heater_1": {
       "kind": "decor",
@@ -6624,7 +6648,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/heater_3.glb",
       "triangles": 1150,
-      "bytes": 58404,
+      "bytes": 70400,
       "bones": [],
       "textureSize": [
         512,
@@ -6652,7 +6676,7 @@
           }
         ]
       },
-      "sha256": "a0092920350a63b6136d560a3eb2ed3304e608e37f834ebf8e1547d77b35bbc6",
+      "sha256": "759092f3ebb50c4b963cee4c9b7f0f84ef101102cd1ebfc5c97f23a44f6a2602",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -6672,7 +6696,8 @@
         },
         "uncompressedBytes": 262500,
         "uncompressedSha256": "043ec1c31469abf4d43c14b75fcd83dd5fc474ba5bb81d0e59ed2ab6c33a9eb9"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "feeder_1": {
       "kind": "decor",
@@ -6842,7 +6867,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/moss_ball.glb",
       "triangles": 1260,
-      "bytes": 56048,
+      "bytes": 68040,
       "bones": [],
       "textureSize": [
         512,
@@ -6870,7 +6895,7 @@
           }
         ]
       },
-      "sha256": "e1164dd0026a9b03141490fd7166a343b3d84e55b7d99044323b5d2833033562",
+      "sha256": "4029787012a90ebdcb6fde1032b4151ead404dc52afefe99245695b4c7169447",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -6890,13 +6915,14 @@
         },
         "uncompressedBytes": 271820,
         "uncompressedSha256": "edfa0b28a544b43fb8575fb22cd6bf577c3db935125923f3ffc10af61515c0dc"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "vallisneria": {
       "kind": "decor",
       "file": "public/aqua/models/decor/vallisneria.glb",
       "triangles": 1728,
-      "bytes": 39632,
+      "bytes": 51632,
       "bones": [],
       "textureSize": [
         512,
@@ -6929,7 +6955,7 @@
           }
         ]
       },
-      "sha256": "df1e7b0035c3f652cfba2c9427627c748a720c0fcdf64eef1f9c33a3d267651b",
+      "sha256": "1d6f8f06aa57d2a6768a86d4bbce613f2fe5e2f9f58aa899b163c3a0dbdc7796",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -6949,7 +6975,8 @@
         },
         "uncompressedBytes": 221120,
         "uncompressedSha256": "b1870b0917f41011f8d49fe9b00c48b575bace1365accf678a17ef238d621235"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "java_fern": {
       "kind": "decor",
@@ -7073,7 +7100,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/red_rotala.glb",
       "triangles": 1728,
-      "bytes": 39808,
+      "bytes": 51796,
       "bones": [],
       "textureSize": [
         512,
@@ -7106,7 +7133,7 @@
           }
         ]
       },
-      "sha256": "39e60d952cdf4db840ebc7e3867daf46ea73d9f53ff7ef5dc8564eac9d1b9ca6",
+      "sha256": "5bc9c597aa05a5869712c2d8032fcae49c213eead09808773be098debcc7a507",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -7126,7 +7153,8 @@
         },
         "uncompressedBytes": 221100,
         "uncompressedSha256": "e2b304103fe47fe35d908738ccabe1cb804b184a33903512572141068dbcd680"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "water_lily": {
       "kind": "decor",
@@ -7244,7 +7272,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/glow_kelp.glb",
       "triangles": 1728,
-      "bytes": 39808,
+      "bytes": 51796,
       "bones": [],
       "textureSize": [
         512,
@@ -7277,7 +7305,7 @@
           }
         ]
       },
-      "sha256": "87aeec986d98ab465e6c7d4828aaab4c87ec6fa0f3451ae585f23e0c1820502e",
+      "sha256": "a0168d5817516d39e8f433a242f22d09c025dc9f7b00ddda66a9a85937035b22",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -7297,7 +7325,8 @@
         },
         "uncompressedBytes": 221100,
         "uncompressedSha256": "21138c9b678e154dce68b0dd45fa6326ca6d856350c6b9d402af9d5143256f26"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "pebbles": {
       "kind": "decor",
@@ -7465,7 +7494,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/lava_rock.glb",
       "triangles": 1300,
-      "bytes": 36848,
+      "bytes": 48848,
       "bones": [],
       "textureSize": [
         512,
@@ -7493,7 +7522,7 @@
           }
         ]
       },
-      "sha256": "af2fb48efa7a97930307904db48251ed6672a112dd530504858f320b383fea9e",
+      "sha256": "f2d46554b58c2897dd30221ac563bdad04d9958d1e898e72b0025155fee3a210",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -7513,7 +7542,8 @@
         },
         "uncompressedBytes": 213128,
         "uncompressedSha256": "2cca40d854c5def60434e6632953e1107b63ee8754b5e505c985c3467e3496b3"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "crystal": {
       "kind": "decor",
@@ -7573,7 +7603,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/moon_stone.glb",
       "triangles": 820,
-      "bytes": 32316,
+      "bytes": 44316,
       "bones": [],
       "textureSize": [
         512,
@@ -7601,7 +7631,7 @@
           }
         ]
       },
-      "sha256": "d9c72dd7af2d4babaf8eaaa620f65823b4cd141864fda9f94c9b23922b7cf271",
+      "sha256": "0f23efede4e23ec378a749178bcff1841a2219a224303bddba6130cf2f9aec84",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -7621,13 +7651,14 @@
         },
         "uncompressedBytes": 199684,
         "uncompressedSha256": "9c078c3ed24a235ec86a40c6412dd118a5c1ae89ed8d0b75b29198ff795d9925"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "mailbox": {
       "kind": "decor",
       "file": "public/aqua/models/decor/mailbox.glb",
       "triangles": 4256,
-      "bytes": 56220,
+      "bytes": 68216,
       "bones": [],
       "textureSize": [
         512,
@@ -7655,7 +7686,7 @@
           }
         ]
       },
-      "sha256": "59162a4b7c2a77c953e0b62beb04abe0679888625b8424b4dcba6f05830fda6e",
+      "sha256": "8e0b0ea5602506dd540361b6fd5bdfa9b3264b5af3138638c896f0046ebf89d5",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -7675,7 +7706,8 @@
         },
         "uncompressedBytes": 288752,
         "uncompressedSha256": "c9ecf09bfab2bdad653c63df1343eae4bb0a58dc7d730c4b6c2d3449dd0f7ac6"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "diver": {
       "kind": "decor",
@@ -7843,7 +7875,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/windmill.glb",
       "triangles": 3484,
-      "bytes": 63584,
+      "bytes": 75416,
       "bones": [],
       "textureSize": [
         512,
@@ -7873,7 +7905,7 @@
           }
         ]
       },
-      "sha256": "cc6597c5ef81802f03203efa91f9aa4f6d94e549e0c02801b70bea68673ae162",
+      "sha256": "84608998265daffe184b5e3f0e66aadcfdf4b86d307c79c27dbc9563a0e605f8",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -7893,13 +7925,14 @@
         },
         "uncompressedBytes": 297628,
         "uncompressedSha256": "6d74c22f40cebb461252590178d46d7876909ccf06d04dca08a2ad99b0d2e9c1"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "treasure": {
       "kind": "decor",
       "file": "public/aqua/models/decor/treasure.glb",
       "triangles": 2928,
-      "bytes": 58212,
+      "bytes": 70292,
       "bones": [],
       "textureSize": [
         512,
@@ -7929,7 +7962,7 @@
           }
         ]
       },
-      "sha256": "3f31ae05c35f5b74ee33dc970d3c41c14f550f721d433d419807868b6e6030dc",
+      "sha256": "7cd8d205cce1aade80eec9b0c5958215fe0a8df8acc256d6402add184fbbda19",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -7949,13 +7982,14 @@
         },
         "uncompressedBytes": 288800,
         "uncompressedSha256": "14dcd495adf3b8094dfa909d0141be32440b5757e6ac26244b5c40c38210a40e"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "pearl_clam": {
       "kind": "decor",
       "file": "public/aqua/models/decor/pearl_clam.glb",
       "triangles": 3208,
-      "bytes": 44060,
+      "bytes": 56088,
       "bones": [],
       "textureSize": [
         512,
@@ -7985,7 +8019,7 @@
           }
         ]
       },
-      "sha256": "7e3e1428a994a09d6bc04beebc64f3765bf2ce14753409870ce3d09248e8c3c0",
+      "sha256": "df5700d6df1c6f305ce5c9704357a19593900c96b5010ecda6db9970459e607c",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -8005,13 +8039,14 @@
         },
         "uncompressedBytes": 251352,
         "uncompressedSha256": "767b1b1e00bf153cca1eddf8fdd23aebc602cb5c0a00434fda85a887b2ed34c4"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "stone_pagoda": {
       "kind": "decor",
       "file": "public/aqua/models/decor/stone_pagoda.glb",
       "triangles": 4956,
-      "bytes": 57440,
+      "bytes": 69512,
       "bones": [],
       "textureSize": [
         512,
@@ -8039,7 +8074,7 @@
           }
         ]
       },
-      "sha256": "a17c3b755b30f9594565def995bd388bc995844297dc89c83f787598b7753db3",
+      "sha256": "61a67c30678477b94e2518ce684f39e180edcc81db090ed4488385b979acc0cc",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -8059,13 +8094,14 @@
         },
         "uncompressedBytes": 305436,
         "uncompressedSha256": "016fb5bf3d578cec391d5a9f25a61d41386f1be38782ac20933744c1adb6353a"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "sunken_ship": {
       "kind": "decor",
       "file": "public/aqua/models/decor/sunken_ship.glb",
       "triangles": 5318,
-      "bytes": 62260,
+      "bytes": 74272,
       "bones": [],
       "textureSize": [
         512,
@@ -8093,7 +8129,7 @@
           }
         ]
       },
-      "sha256": "e2f2c30a58e4e8be94c50b865a62e4b900b2ca541720d4eed3b9d1362bd308d6",
+      "sha256": "477f150271910c425c3dec5deeecf7b95b74cbb4f5997ed83d508ccb5179361d",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -8113,7 +8149,8 @@
         },
         "uncompressedBytes": 335032,
         "uncompressedSha256": "54e036b3cedfaad344fe0bb3ef60629b20e8ae5e2075d6bba4adba5def2d5800"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "hanok": {
       "kind": "decor",
@@ -8227,7 +8264,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/turtle_ship.glb",
       "triangles": 6492,
-      "bytes": 79624,
+      "bytes": 91644,
       "bones": [],
       "textureSize": [
         512,
@@ -8255,7 +8292,7 @@
           }
         ]
       },
-      "sha256": "4bf0be661ae4257dcd8ea5cd61f5ee8ed07f33185569ba434eef310035b5a8a3",
+      "sha256": "af57e95d61635cf44548606eaa2b78bfe1afcf1a79909629ff39da34829b77b1",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -8275,13 +8312,14 @@
         },
         "uncompressedBytes": 404780,
         "uncompressedSha256": "7fe70cc311fbb4f85ac1a31b4e07af08712f96660f8eae14b21bc153d97a49c4"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "dragon_palace": {
       "kind": "decor",
       "file": "public/aqua/models/decor/dragon_palace.glb",
       "triangles": 11740,
-      "bytes": 140344,
+      "bytes": 152436,
       "bones": [],
       "textureSize": [
         512,
@@ -8309,7 +8347,7 @@
           }
         ]
       },
-      "sha256": "783f0659c339b5c2197c83d24b2aa2c8bcfde72f78963ac8bce04bb072175c75",
+      "sha256": "50bc960d1e3a3bba771d4f845dd94a1c9ccd6a6b87bcaf1dbb8320cc0734dfcb",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -8329,13 +8367,14 @@
         },
         "uncompressedBytes": 556608,
         "uncompressedSha256": "cfdb7504866dbe6f84164760e237ee200f119a594275366011527b3d84577585"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "star_gate": {
       "kind": "decor",
       "file": "public/aqua/models/decor/star_gate.glb",
       "triangles": 4188,
-      "bytes": 67612,
+      "bytes": 79772,
       "bones": [],
       "textureSize": [
         512,
@@ -8363,7 +8402,7 @@
           }
         ]
       },
-      "sha256": "1c84f47f26c5c481022bd978a90ab4a4fc0759369c36d98fad7a8dedaf39dc5d",
+      "sha256": "81a09434d281108777ea99e19173393e4fbfc785ce0499f52dcd455f6733f46f",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -8383,7 +8422,8 @@
         },
         "uncompressedBytes": 315320,
         "uncompressedSha256": "26cd9e82b80a9feef4951ec155a953604d0445480eb22e6a8a643e6ca495a111"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "sweetfish": {
       "kind": "fish",
@@ -8391,7 +8431,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/sweetfish.glb",
       "triangles": 1818,
-      "bytes": 24748,
+      "bytes": 32372,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8448,7 +8488,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23536945399194253
       },
-      "sha256": "11bf1c1eb6f2c1130608b08de0322432fc6426b529177ad02209ccdf0ccbc91f",
+      "sha256": "dd39a7b8021840ee9880e30ff2ab8c3fc998a4b9087b34f7e4b2f68a553d8fee",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -8461,7 +8501,8 @@
         },
         "uncompressedBytes": 136312,
         "uncompressedSha256": "cd0421f6c23fe29b1e2e7619f85994adf94e16ff92f48654e6301c5e20732997"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_sweetfish": {
       "kind": "fish",
@@ -8547,7 +8588,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_sweetfish.glb",
       "triangles": 1786,
-      "bytes": 24472,
+      "bytes": 32372,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8604,7 +8645,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23573546635524667
       },
-      "sha256": "bce2568fc3a74bc7bf3e953a55bf7a19651189778d98d5f4ee0aa1df31122e08",
+      "sha256": "db23f68fd9e77fe47be7827948a5e7893563af9c6f657038fc6450a5cc17a476",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -8617,7 +8658,8 @@
         },
         "uncompressedBytes": 132684,
         "uncompressedSha256": "dd162c8271beadda4f24fbbcb1a6620314d1f650038180b07d06595bb5cf6ab0"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "catfish": {
       "kind": "fish",
@@ -8625,7 +8667,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/catfish.glb",
       "triangles": 2386,
-      "bytes": 28160,
+      "bytes": 34724,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8682,7 +8724,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23564799241259654
       },
-      "sha256": "6a5818ba6c3653f6d4ce7de1711c2704ce9c61f7f74b96bd02ef3c797d99c264",
+      "sha256": "bc30bfdd18bbf85a17a24fc4dc219fbf712e34758dc3d4f6c7776fdc70eadf33",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -8695,7 +8737,8 @@
         },
         "uncompressedBytes": 154116,
         "uncompressedSha256": "acd3f3dbe83cb437faab834590ccf8041e4e9f355d41191fb123c9cc01893dad"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_catfish": {
       "kind": "fish",
@@ -8703,7 +8746,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_catfish.glb",
       "triangles": 2230,
-      "bytes": 27928,
+      "bytes": 35724,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8760,7 +8803,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23553573051913324
       },
-      "sha256": "d919df5cc12b43e8f937e83fa62f50afe026feb6934791a0a4e2c94f9f3dc826",
+      "sha256": "dfbbc0aee5bfa17707426712e7f928b4a0903b34e390c478474882bdb4ac1dfd",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -8773,7 +8816,8 @@
         },
         "uncompressedBytes": 155532,
         "uncompressedSha256": "14bb070edaff56378f78fff713c334bab6012c5a500ed90f53b763936229fe0a"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_catfish": {
       "kind": "fish",
@@ -8781,7 +8825,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_catfish.glb",
       "triangles": 2254,
-      "bytes": 27140,
+      "bytes": 33452,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8838,7 +8882,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23548407943264568
       },
-      "sha256": "489d1b99b5f4afdc1abe8f09229d25f43e8d634b5ccd7a80e8ab69281289615c",
+      "sha256": "c65b88cd43eb77e2942d8e7b4c12bed1f7da9f51d4354f67178cabf0e7ecf577",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -8851,7 +8895,8 @@
         },
         "uncompressedBytes": 146936,
         "uncompressedSha256": "24afa4636f44f401efc31e15471bcff99f6e4bb43cc5d10957d2af42764dbd55"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "jellyfish": {
       "kind": "fish",
@@ -8859,7 +8904,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/jellyfish.glb",
       "triangles": 2720,
-      "bytes": 34868,
+      "bytes": 45128,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8912,7 +8957,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.1677456614674888
       },
-      "sha256": "533630e86361e310de8840ce5a653ab5f87596f4b0fd85a5b7d8d17bb5938b3a",
+      "sha256": "63675c300cfa50c5af7e033c2c4844dd2dc10ac134c4263b193bf292ae3137d3",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -8925,7 +8970,8 @@
         },
         "uncompressedBytes": 176584,
         "uncompressedSha256": "978bc0388970aa135f32a41190ca2c967005c50ee417844fcacdb11eea59883a"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_jellyfish": {
       "kind": "fish",
@@ -8933,7 +8979,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_jellyfish.glb",
       "triangles": 1152,
-      "bytes": 25288,
+      "bytes": 35688,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8984,7 +9030,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.07417157300575447
       },
-      "sha256": "803d5ccc53880270d6c1c184d0cae28ae3241f21e4a3b725b69ba09f01857c19",
+      "sha256": "313d00bbe6016810db151bc92c6298f4b27e8c7f3a3af848d63a2eb0f2a67675",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -8997,7 +9043,8 @@
         },
         "uncompressedBytes": 113200,
         "uncompressedSha256": "7cb1315fe9c7133f8fdeea01c1a16937f4758e583d5d7bebec0e10f97b81ee67"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_jellyfish": {
       "kind": "fish",
@@ -9005,7 +9052,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_jellyfish.glb",
       "triangles": 2720,
-      "bytes": 35880,
+      "bytes": 45364,
       "bones": [
         "spine_0",
         "spine_1",
@@ -9058,7 +9105,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.1677456614674888
       },
-      "sha256": "4e29a59f075993264de0c5c2c6db47c68bc11d690aa4526265dd1d558ba40d5a",
+      "sha256": "0f728a54baa4453088a56fd77df69655912765dfdedef6cff537e96062b2ab43",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -9071,7 +9118,8 @@
         },
         "uncompressedBytes": 183020,
         "uncompressedSha256": "8abcf800b8d4d05f2782df75cc333680fee2480c79d7c780e24dd5928e6fd36d"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "nurse_shark": {
       "kind": "fish",
@@ -10279,7 +10327,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/hammerhead.glb",
       "triangles": 2270,
-      "bytes": 26728,
+      "bytes": 31948,
       "bones": [
         "spine_0",
         "spine_1",
@@ -10336,7 +10384,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23586722672260138
       },
-      "sha256": "2fa38d725ef7161ec7187d00f46fe362136024dcd269786ec11615247c264606",
+      "sha256": "df0577fdc8c62a0f9256cfabef664b6498c2cb59fc7e89278d2f885fbdcebb19",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -10349,7 +10397,8 @@
         },
         "uncompressedBytes": 131324,
         "uncompressedSha256": "1d1a3bcdf94c48fba622c7a1295e8a467f36ed5639904d87b0a870c8bff09b2a"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_hammerhead": {
       "kind": "fish",
@@ -10357,7 +10406,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_hammerhead.glb",
       "triangles": 2226,
-      "bytes": 26440,
+      "bytes": 32376,
       "bones": [
         "spine_0",
         "spine_1",
@@ -10414,7 +10463,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23568799139091692
       },
-      "sha256": "1ffb69d1a53d75580af32e999b221e77d669e2a9dfe09061c22b5633d756020c",
+      "sha256": "f8a79952025a13cf682224fc8539e5dba3c29e85f06c34bffe0afd015e369ac0",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -10427,7 +10476,8 @@
         },
         "uncompressedBytes": 135780,
         "uncompressedSha256": "da4270a061944ea0a6a11f224d3a1b33ee21f4e920a10c9443660a26989a2543"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_hammerhead": {
       "kind": "fish",
@@ -10435,7 +10485,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_hammerhead.glb",
       "triangles": 2162,
-      "bytes": 25336,
+      "bytes": 30872,
       "bones": [
         "spine_0",
         "spine_1",
@@ -10492,7 +10542,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2357994401073649
       },
-      "sha256": "e988ec68b55139c4353bb3e5e0df181dfa3ea091b123a06113b8f8e3b7d88ce6",
+      "sha256": "68201f8a50819e156e5b8279b7b27c7ac2dd8ebabbd375f151de26f8f41749d0",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -10505,7 +10555,8 @@
         },
         "uncompressedBytes": 129096,
         "uncompressedSha256": "445f08ffa821d33b6e517dba9832eb54f28068476758e10d731e8476731259c3"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "great_white": {
       "kind": "fish",
@@ -13850,7 +13901,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_gulper_eel.glb",
       "triangles": 2086,
-      "bytes": 24716,
+      "bytes": 30708,
       "bones": [
         "spine_0",
         "spine_1",
@@ -13907,7 +13958,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2357613227116992
       },
-      "sha256": "bd7d30bca101f2b9fc80af38dcde6269562fc3bb229e29e740ce70da0246e8c9",
+      "sha256": "3064930fd1754c7b2fb851e99e2296e2e4cad5c2c77016639b5f256c590c8d03",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -13920,7 +13971,8 @@
         },
         "uncompressedBytes": 128672,
         "uncompressedSha256": "8c97d8ff42d062bc65ff6f56e194996daa673effdb77a15b769400a833a3280d"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_gulper_eel": {
       "kind": "fish",
@@ -13928,7 +13980,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_gulper_eel.glb",
       "triangles": 2006,
-      "bytes": 25084,
+      "bytes": 30736,
       "bones": [
         "spine_0",
         "spine_1",
@@ -13985,7 +14037,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23552956124228167
       },
-      "sha256": "60b761678fa8d46b06fbb8fa784124f37d6740ef90c57457a23073c6f56c6ccb",
+      "sha256": "d6a3e3e73b66e4657f2214ccf6e9e4751f32b62bb7df3acc999cb1d8d4fd623b",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -13998,7 +14050,8 @@
         },
         "uncompressedBytes": 130796,
         "uncompressedSha256": "17dce7d1cfef401dd4469efffade8630e36b62c6e813cc61b72834224c9f004c"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "anglerfish": {
       "kind": "fish",
@@ -14084,7 +14137,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_anglerfish.glb",
       "triangles": 2160,
-      "bytes": 33180,
+      "bytes": 45008,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14141,7 +14194,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23573174646826575
       },
-      "sha256": "5afe2684be6aa455f9757e2c8d85d075e3697e1a5b2f30cb90b3ee91c3208513",
+      "sha256": "ad39a515025c4978ac6196824ebd52cbb5192130d3edb9d3902761d4c9f1e3dd",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -14154,7 +14207,8 @@
         },
         "uncompressedBytes": 144792,
         "uncompressedSha256": "217094bff17e0e7f4b6256d90492c1a05c8c30f095fcf9980f2e2fc63b26795f"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_anglerfish": {
       "kind": "fish",
@@ -14240,7 +14294,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/oarfish.glb",
       "triangles": 2208,
-      "bytes": 32992,
+      "bytes": 40720,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14297,7 +14351,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2336765316130804
       },
-      "sha256": "33945de43a2c0d4d4b496ef620fec3931a485c7c459250d2aa3515f69823b812",
+      "sha256": "ccfd9a986e4900493a9d32d1b67d5840176f8f063a1af327b716745acc35205c",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -14310,7 +14364,8 @@
         },
         "uncompressedBytes": 158312,
         "uncompressedSha256": "43d53d5e1c7ff3784346681e120dbf16dd0fa9992d55656df8cb6048305e2331"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_oarfish": {
       "kind": "fish",
@@ -14318,7 +14373,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_oarfish.glb",
       "triangles": 2312,
-      "bytes": 31516,
+      "bytes": 39344,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14375,7 +14430,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2336765267751526
       },
-      "sha256": "a2f63b843c14669ba49b125024441e493ed9ce4712c82071e1563927eb60a5d4",
+      "sha256": "b1513d088add6edeba67bc3fd61521d4acf678b01ec1880dd0275a9f171afc6b",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -14388,7 +14443,8 @@
         },
         "uncompressedBytes": 154356,
         "uncompressedSha256": "c52298d1ed8c81d867d17d3cd9d8536c8980bf084b8ec1b3b4056cd415e3d64d"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_oarfish": {
       "kind": "fish",
@@ -14396,7 +14452,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_oarfish.glb",
       "triangles": 2388,
-      "bytes": 33076,
+      "bytes": 40896,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14453,7 +14509,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2336765463256584
       },
-      "sha256": "0d71cc62a631f261639440f8dccc491365913802a4118446111bf8e01a175ce2",
+      "sha256": "eafe3db21da58dfcb9738fdc63cf4fc2c37c13d5355a57e4e91ff8f4c84ff11f",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -14466,7 +14522,8 @@
         },
         "uncompressedBytes": 158628,
         "uncompressedSha256": "98cb84b26a92362eb723cbba26b364477f495b9b7da0631e97be9e251e40fdfa"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "coelacanth": {
       "kind": "fish",
@@ -14474,7 +14531,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/coelacanth.glb",
       "triangles": 2382,
-      "bytes": 37848,
+      "bytes": 46740,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14531,7 +14588,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2355233469132007
       },
-      "sha256": "bb63130fcf541d76fad92ef48c45d7cde7c3bf5988676217c72d15cdc2f3c352",
+      "sha256": "f7cced81fbb0ae7a26b36f444ab3a4ff98746a6fbf16176c5fb91c24abcf2896",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -14544,7 +14601,8 @@
         },
         "uncompressedBytes": 164828,
         "uncompressedSha256": "8b2232802992e6df303256ec43b47c8f0432e58d087396905228885171771fe3"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_coelacanth": {
       "kind": "fish",
@@ -14552,7 +14610,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_coelacanth.glb",
       "triangles": 2154,
-      "bytes": 30328,
+      "bytes": 38136,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14609,7 +14667,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23534315350917928
       },
-      "sha256": "8eb14b4bdaf496a0f0f5bed0deec328e93330d96b0257e908d4ca54b7bc0f784",
+      "sha256": "7a3e3b5a41c0e9c874be2b3517a4ae23e0dbca76291533c3b6b8b76749210928",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -14622,7 +14680,8 @@
         },
         "uncompressedBytes": 143520,
         "uncompressedSha256": "bfce7fa0b1329666399a4d53cd0361c21f6f8710fcf0b40b95496b7329b6831c"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_coelacanth": {
       "kind": "fish",
@@ -14630,7 +14689,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_coelacanth.glb",
       "triangles": 2238,
-      "bytes": 32856,
+      "bytes": 41756,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14687,7 +14746,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23544129947285125
       },
-      "sha256": "6538af8c93b4249835e1a0988d2f02dacfd0594dbdd7d907adee26b26ba0a67c",
+      "sha256": "a31732140cc92b106e418622fc92b0ae03bbfd823897afd492b7df5f6054ad40",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -14700,7 +14759,8 @@
         },
         "uncompressedBytes": 153276,
         "uncompressedSha256": "1f134e0d2d7ee293faab0ea601159d0908201e038d9e6749e25f222a81eeeef3"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "giant_squid": {
       "kind": "fish",
@@ -15874,7 +15934,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/smelt.glb",
       "triangles": 1782,
-      "bytes": 24000,
+      "bytes": 30724,
       "bones": [
         "spine_0",
         "spine_1",
@@ -15931,7 +15991,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23563365190243615
       },
-      "sha256": "3b7609afe85cd5238f1169ba15a5ef5026bc06fabaac304f924948c5eb7fc917",
+      "sha256": "0f3d2b414814833c099cf3d8872a3c79ef5fd4bb7ba4edb8f8b8081470007cc7",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -15944,7 +16004,8 @@
         },
         "uncompressedBytes": 126308,
         "uncompressedSha256": "f0f27baa1cdab1dfccca76b5696fe092663cb5e10d1578d4bd990c4c6a84cd3f"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_smelt": {
       "kind": "fish",
@@ -15952,7 +16013,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_smelt.glb",
       "triangles": 1726,
-      "bytes": 22492,
+      "bytes": 29440,
       "bones": [
         "spine_0",
         "spine_1",
@@ -16009,7 +16070,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23551702448707396
       },
-      "sha256": "3c219b21a79792b88a6ef293a2e85ad15fac3af008ac851087ef118d75e7da98",
+      "sha256": "15b2dc7622caa48d221ec32466478f57256ef2986e82c3017d84bd32bc7f6a96",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -16022,7 +16083,8 @@
         },
         "uncompressedBytes": 121660,
         "uncompressedSha256": "94b813c04a599b4d6b580a062ee4a452201c48ce0d3f797f9eb1aa39fd344e1b"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_smelt": {
       "kind": "fish",
@@ -16030,7 +16092,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_smelt.glb",
       "triangles": 1762,
-      "bytes": 22656,
+      "bytes": 29400,
       "bones": [
         "spine_0",
         "spine_1",
@@ -16087,7 +16149,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23574279763564196
       },
-      "sha256": "5c0ffbfc49ae085f22c30ebd670fb8c4327d2760ee2ac28c9681b2fab44b4a13",
+      "sha256": "545d95bcce114b8b4ad299d9d3f8b2899b3c64ef1532e4686f23ac5b6db0ab05",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -16100,7 +16162,8 @@
         },
         "uncompressedBytes": 127372,
         "uncompressedSha256": "a6655a583035579c905cc3fabaec161fd132b21f9c79bf4e0d9a5be8f44321b9"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "bullhead": {
       "kind": "fish",
@@ -16108,7 +16171,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/bullhead.glb",
       "triangles": 2650,
-      "bytes": 34132,
+      "bytes": 41804,
       "bones": [
         "spine_0",
         "spine_1",
@@ -16165,7 +16228,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23562347598310784
       },
-      "sha256": "9e1ceb4d6ccf7aaf5a72152d269135bcf8291d9bb9c63476705e609b179d6a20",
+      "sha256": "a16b65b0667e176eb86479f70012394b92a22e3678e24636928861149ba73182",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -16178,7 +16241,8 @@
         },
         "uncompressedBytes": 177508,
         "uncompressedSha256": "28da03a9888b4267724a3971dca70c0cd5434a4e44a235f429c4ed1e63e124f2"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_bullhead": {
       "kind": "fish",
@@ -16264,7 +16328,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_bullhead.glb",
       "triangles": 2458,
-      "bytes": 31404,
+      "bytes": 40020,
       "bones": [
         "spine_0",
         "spine_1",
@@ -16321,7 +16385,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23579326014047397
       },
-      "sha256": "268198cd94394ef5d14ffcb38233f7b15d5ffa898368ad41a1207dc06453ae15",
+      "sha256": "1b4530858ad4f77577842357a3716d78d081782a8bb80fd82897d53b61605d3b",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -16334,7 +16398,8 @@
         },
         "uncompressedBytes": 163388,
         "uncompressedSha256": "f89d90ea26da7106348a67609b03219cf2d847af1faa5958f330bf0277c40106"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "common_carp": {
       "kind": "fish",
@@ -16654,7 +16719,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_masu_salmon.glb",
       "triangles": 1790,
-      "bytes": 24180,
+      "bytes": 31756,
       "bones": [
         "spine_0",
         "spine_1",
@@ -16711,7 +16776,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23572796354216308
       },
-      "sha256": "54c62fd972b37a6d8e548f00a700dc78816490d408ca6d46118e0318330adb95",
+      "sha256": "b814127fe309317b2c708b7886d5256fb32e0b608fc8b515206f16fe7cc7b162",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -16724,7 +16789,8 @@
         },
         "uncompressedBytes": 132404,
         "uncompressedSha256": "10f319928a1968eec0ac4e0b1f33e35365a8c279da0728701cd239b169e8263c"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_masu_salmon": {
       "kind": "fish",
@@ -16732,7 +16798,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_masu_salmon.glb",
       "triangles": 1826,
-      "bytes": 26048,
+      "bytes": 34304,
       "bones": [
         "spine_0",
         "spine_1",
@@ -16789,7 +16855,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23549300396848122
       },
-      "sha256": "c70ccfa119b0b13cf87547d6d57c075f4797d92fe01d86144516461dff1cddfc",
+      "sha256": "21d7944a6e8203ecf6bca2f902488a294ddacad1f6542581b3aa3b2969b201c4",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -16802,7 +16868,8 @@
         },
         "uncompressedBytes": 135320,
         "uncompressedSha256": "29ef640c961c96a7b38a4c3b3c4096dfda930df8d7dbb27523a31ce0d47709f0"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "snakehead": {
       "kind": "fish",
@@ -17746,7 +17813,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/lenok.glb",
       "triangles": 1890,
-      "bytes": 29100,
+      "bytes": 37404,
       "bones": [
         "spine_0",
         "spine_1",
@@ -17803,7 +17870,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23582019194799433
       },
-      "sha256": "ed2e004abd94d685d9a25e747bf2e06591f966e08d518f3af0d2f798a3df61d6",
+      "sha256": "5616279bb4547344702dc8e32b61c92057193c016198598e67ea200c8b2f59cf",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -17816,7 +17883,8 @@
         },
         "uncompressedBytes": 143620,
         "uncompressedSha256": "6a8de6d99a33a6974553e391af94f749db39de97f89e15e28b817291032e468e"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "fry_lenok": {
       "kind": "fish",
@@ -17824,7 +17892,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_lenok.glb",
       "triangles": 1802,
-      "bytes": 24984,
+      "bytes": 31908,
       "bones": [
         "spine_0",
         "spine_1",
@@ -17881,7 +17949,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2356366863917929
       },
-      "sha256": "3f34411c6cda3dad09912142a79c1680008fd77104b61a1a113017c2080f59cd",
+      "sha256": "ea662ef6c9ae93061c229d94bb32d079fb6dfcf145c531cc0a10b408fa64bfc0",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -17894,7 +17962,8 @@
         },
         "uncompressedBytes": 135304,
         "uncompressedSha256": "28b474a2ce4de96c57812272c61122819a336d2f864d5e477192d9eda318b438"
-      }
+      },
+      "floatingRepair": "2026-11-17"
     },
     "juv_lenok": {
       "kind": "fish",
@@ -31381,7 +31450,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_seahorse.glb",
       "triangles": 2218,
-      "bytes": 31508,
+      "bytes": 38980,
       "bones": [
         "spine_0",
         "spine_1",
@@ -31474,8 +31543,9 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.2361227771780605
       },
-      "sha256": "1104715b2ee388455374a00e9424a95993843a4d357989e41eb6e1043d1eed2f",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "sha256": "dc5067d5383e78f3db6278e1c3ec71826172fb4d34f79993792dc6d9a42ea1e0",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "juv_seahorse": {
       "kind": "fish",
@@ -42850,7 +42920,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 41476,
+      "bytes": 52996,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42872,7 +42942,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d44a99dcc3658322e16898cb19d7a745aaeff341af027de30d902b80383ca249",
-      "sha256": "3cccc6c679c004f80bad9d8dd01513ca0478e4b7a56eb1acb202c65b335a4531",
+      "sha256": "a8c330eba7ff117400b85fe03b0190160bc6184fa5454ad757155a105b8c9c77",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -42922,7 +42992,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.19357442843785042
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "juv_cherry_shrimp": {
       "kind": "fish",
@@ -42930,7 +43001,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 48556,
+      "bytes": 61932,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42952,7 +43023,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "59bd7ea4ebfa07a324c3ed8ac7219d3131fbcb90544d8f6e06ce1f8c4ae981bc",
-      "sha256": "9dfd15d344f023a9dc1b1bbdeb7e25bc294dd9b63e8c324c811eaff7cf43f369",
+      "sha256": "1cbe5320ebf8d4dfb793bfb196fc31306969e3da62a24643bf72e7fbbde3768d",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43002,7 +43073,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.19528863406994199
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "cherry_shrimp": {
       "kind": "fish",
@@ -43010,7 +43082,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 52988,
+      "bytes": 68464,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43032,7 +43104,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "20869b16e6a53d5c835b648ccdaefaa3ffeef88c686151bca9503099339d4a9e",
-      "sha256": "f31c6c20c8963e2555f3a46dc323f2da253e8c0731c90135fbf49cc278fc3cfe",
+      "sha256": "9279707668e74bb6dc84ddb8d991a11e7e76481658f7412055c067f5beb55219",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43082,7 +43154,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.19650439146101306
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "fry_fleshy_prawn": {
       "kind": "fish",
@@ -43090,7 +43163,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 40056,
+      "bytes": 52952,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43112,7 +43185,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "2635f09fe509f82e79ce1c8f711fe89dfed399d8744582f0ae2899516333191f",
-      "sha256": "4d85b0c68e851ed06d716e9d8d3dbeb4c9109d17980d54772fb76062a863c6d6",
+      "sha256": "3fd18859e88f404c1f19c432d8f5398fc90abf022916b2af56133ae4887d845e",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43162,7 +43235,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.1860724191648985
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "juv_fleshy_prawn": {
       "kind": "fish",
@@ -43170,7 +43244,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 40852,
+      "bytes": 50888,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43192,7 +43266,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1582f8ce14c93f304cac4072cbb68a20e5d4d64a0d494ec87a5e6d058f2c3cba",
-      "sha256": "0ebe32cf775c85fac39cc4040705bb4deb5bf9ad8d60e76896ea3b112329c502",
+      "sha256": "47abd14403fe36a74ae9b9d6acd1b0a2c507e726a5555b2b1664d12d75b6fab1",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43242,7 +43316,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.18613637189186358
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "fleshy_prawn": {
       "kind": "fish",
@@ -43250,7 +43325,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 42540,
+      "bytes": 53008,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43272,7 +43347,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f0fe917ab2856bbb257b00d20f788782688061c9fdd2f7a049e7bd2123d93c41",
-      "sha256": "7a096177883989c56a0176ecf7dfed519e61be21675a3ff6f890b3ecc8ad0a9c",
+      "sha256": "8e2d62bb24569c122c2aeebbc70403639105aeb71289c7c94a4240174c7897ca",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43322,7 +43397,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.1861788865082032
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "fry_dokdo_shrimp": {
       "kind": "fish",
@@ -43330,7 +43406,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 40376,
+      "bytes": 52264,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43352,7 +43428,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4e1355c988ef47d10a11f48f2cb55a0af325c8296afacd4882840add3d397bca",
-      "sha256": "9939d15bafe1b2379c946a03d08777b6cfdd763b27a992ee85e0ed1a101f0943",
+      "sha256": "c1a6c87c2aab32cc5d18f004c9de14b282c5acef5bd290b78a5730b767cb3c9e",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43402,7 +43478,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.17962486141368605
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "juv_dokdo_shrimp": {
       "kind": "fish",
@@ -43410,7 +43487,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 43468,
+      "bytes": 56064,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43432,7 +43509,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ed5baadc56cc3d49d1f7fee0126d005ca6d8cd15823c4aa33c5f6fc5693efc6c",
-      "sha256": "b6ac725a1a9d5fe58b75e382191611000abf5c276cc15371c9915a4f16866e0f",
+      "sha256": "ccc091fdb4ba6573e38647701303c61445da9bcbac174c09571d0aff122f87b1",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43482,7 +43559,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.17846452904839435
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "dokdo_shrimp": {
       "kind": "fish",
@@ -43490,7 +43568,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 43392,
+      "bytes": 54296,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43512,7 +43590,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8880138431a7aae040f2989553d54a342ffb0e59d11d9ae42cd3691492c777a2",
-      "sha256": "e750a601b081e05b6da2fd150d637e8cea747b2a685ddc7ad6e081d7692fd7f8",
+      "sha256": "a3c1b4875845badcfec3b7d01a5c4817963bda7de1022c21571ed39f594a85a8",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43562,7 +43640,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.17763971017168792
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "floatingRepair": "2026-11-17"
     },
     "orca": {
       "kind": "fish",

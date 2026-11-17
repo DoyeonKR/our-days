@@ -4,6 +4,18 @@
 export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({
  whale_shark:'c45f42015733',
  oceanic_manta:'614cceae533e',
+ // 2026-11-17 떠 있던 지느러미 · 수염 · 다리 · 촉수를 몸에 붙임(floating-repair.mjs)
+ altum_angel:'cb12839e5704',blue_discus:'9daf1439d243',bullhead:'a16b65b0667e',catfish:'bc30bfdd18bb',cherry_shrimp:'9279707668e7',coelacanth:'f7cced81fbb0',
+ crown_betta:'8006fb324375',dokdo_shrimp:'a3c1b4875845',fleshy_prawn:'8e2d62bb2456',fry_angel:'a7590e67930d',fry_anglerfish:'ad39a515025c',fry_catfish:'dfbbc0aee5bf',
+ fry_cherry_shrimp:'a8c330eba7ff',fry_coelacanth:'7a3e3b5a41c0',fry_dokdo_shrimp:'c1a6c87c2aab',fry_fleshy_prawn:'3fd18859e88f',fry_gulper_eel:'3064930fd175',fry_guppy:'acfe3fb4ec5b',
+ fry_hammerhead:'f8a79952025a',fry_jellyfish:'313d00bbe601',fry_lenok:'ea662ef6c9ae',fry_masu_salmon:'b814127fe309',fry_oarfish:'b1513d088add',fry_rising:'8dcc3542cd6a',
+ fry_seahorse:'dc5067d5383e',fry_smelt:'15b2dc7622ca',fullred_guppy:'fe4c03a15f2d',genesis_fish:'70f886f3e4d3',hammerhead:'df0577fdc8c6',jellyfish:'63675c300cfa',
+ juv_angel:'6aa2021b09d6',juv_astral:'b54b05b2d432',juv_bullhead:'1b4530858ad4',juv_catfish:'c65b88cd43eb',juv_cherry_shrimp:'1cbe5320ebf8',juv_clown:'8daaf879d5ca',
+ juv_coelacanth:'a31732140cc9',juv_dokdo_shrimp:'ccc091fdb4ba',juv_fleshy_prawn:'47abd14403fe',juv_gulper_eel:'d6a3e3e73b66',juv_guppy:'730e7d32090b',juv_hammerhead:'68201f8a5081',
+ juv_jellyfish:'0f728a54baa4',juv_masu_salmon:'21d7944a6e82',juv_oarfish:'eafe3db21da5',juv_smelt:'545d95bcce11',juv_sweetfish:'db23f68fd9e7',lenok:'5616279bb454',
+ leopard_discus:'2dc03f7cca7b',moon_jelly:'fb473ccf69fa',mosaic_guppy:'af66393c53c4',oarfish:'ccfd9a986e49',pearl_carp:'3440a4705933',percula_clown:'58fa4a2c26ce',
+ pigeon_discus:'fa54cd3233d0',platinum_angel:'16e19036a0b9',red_arowana:'3b2537b7e904',silver_angel:'f6e3c22af6fd',smelt:'0f3d2b414814',sweetfish:'dd39a7b80218',
+ turquoise_discus:'2924452b5c72',tuxedo_guppy:'b6a048b8dd3a',
  imugi_fish:'75bd0d776b1b',
  golden_dragonfish:'8174a89a7cb9',
  azure_dragonfish:'56a1eaafd996',
