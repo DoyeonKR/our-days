@@ -13,7 +13,7 @@
 3. **뼈를 입힌 채로 본다.** 정지 자세 꼭짓점만 보면 맞아도, 게임이 뼈를 입히는 순간 부품이 밀릴 수 있다 — 저장 전에 뼈 world 행렬을 계산하고(`bones[0].updateMatrixWorld(true)`) 바인드가 '뼈 world × 역바인드 = 단위'인지 본다(`bindpose.test`). 2026-11-17 해파리 입팔이 이것 때문에 갓과 떨어졌다. 검수 렌더는 three 로 뼈째 그린다.
 4. **떠 있는 부품이 없어야 한다.** 다리 · 지느러미 · 수염 · 촉수 · 장식 조각이 몸에 닿아 있는지(`floating-parts-node.mjs` — 0 이어야 한다, 일부러 떨어진 거품 · 먹이 알갱이만 예외). 떠 있으면 `floating-repair.mjs` 로 붙이거나 다시 짓는다. 몸과 이어지지 않는 작은 조각(끊긴 더듬이 토막)은 붙이지 말고 버린다.
 5. **기준 이미지와 견준다.** 윤곽(`silhouette-score.html` — 옆 IoU, 보통 물고기 0.97 안팎)과 색 · 무늬. 반투명한 원화(해파리 등)는 투명한 곳을 물빛으로 칠하지 않는다 — 물속에서 안 보여 부품이 떨어져 보인다(몸빛 바탕에 굽는다).
-7. **게(2026-11-18) `snow_crab`(대게) · `king_crab`(킹크랩)** — 그림 세션 없이 Claude 세션이 지었다. 기준은 NOAA Fisheries 등쪽 일러스트(퍼블릭 도메인 · `design/aqua3d-review/crabs/reference`), 2D 는 머리 오른쪽으로 돌린 것(`crabs/make-art.mjs` — 새끼 · 어린 것은 옅게), 3D 는 위에서 본 그림을 둥글게 부풀린 입체(`crab-build.mjs` — 단면 √(d·(2R−d)), 다리 끝은 바닥으로 처진다). 위에서 그린 그림이라 위 · 비스듬히가 가장 원화에 가깝다. 다시 그릴 때의 설명은 `scripts/aqua-art-prompts.mjs` 의 CRAB.
+7. **게 · 가재(2026-11-18) `snow_crab`(대게) · `king_crab`(킹크랩) · `lobster`(바닷가재)** — 그림 세션 없이 Claude 세션이 지었다. 기준은 NOAA Fisheries 등쪽 일러스트(퍼블릭 도메인 · `design/aqua3d-review/crabs/reference`), 2D 는 머리 오른쪽으로 돌린 것(`crabs/make-art.mjs` — 새끼 · 어린 것은 옅게), 3D 는 위에서 본 그림을 둥글게 부풀린 입체(`crab-build.mjs` — 단면 √(d·(2R−d)), 다리 끝은 바닥으로 처진다). 위에서 그린 그림이라 위 · 비스듬히가 가장 원화에 가깝다. 다시 그릴 때의 설명은 `scripts/aqua-art-prompts.mjs` 의 CRAB.
 6. **규격**: +X 머리 · 길이 2 · 뼈 10개 이름 그대로 · 삼각형 8,000 안 · 16비트 색인(꼭짓점 65,535 안) · 바뀐 물고기는 `model-revisions.ts` 에 새 해시.
 
 ## 지금 그릴 것

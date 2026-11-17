@@ -48,6 +48,9 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   // 킹크랩 — 울릉분지 심해의 영웅(찬 깊은 바다)
   { key: "king_crab", name: "킹크랩", grade: "영웅", price: 23500, hours: 204.5, minTank: 4, size: 30, cm: 120, fresh: false, ornamental: false,
     spots: [["abyss", 1.5, "viperfish"]], habit: crawl({ lane: 1, speed: 0.03, rest: 0.72, hop: 0.7, dart: 0.05, hug: 0.05 }) },
+  // 바닷가재(2026-11-18 [사용자: "가재류도 넣어주거"]) — NOAA 미국 바닷가재 일러스트(퍼블릭 도메인). 통영 항구의 고급(대하 바로 뒤). 놀라면 꼬리를 배 쪽으로 쳐 뒤로 휙(dart)
+  { key: "lobster", name: "바닷가재", grade: "고급", price: 2420, hours: 75, minTank: 2, size: 24, cm: 45, fresh: false, ornamental: false,
+    spots: [["harbor", 1.5, "fleshy_prawn"]], habit: crawl({ lane: 0.8, speed: 0.045, rest: 0.6, hop: 0.7, dart: 0.3, hug: 0.06 }) },
 ];
 
 /** 켜졌을 때만 — 다른 표가 펼쳐 넣는다 */

@@ -1681,6 +1681,18 @@
     "king_crab": {
       "sourceHash": "7f14269b712087664f0e272a4a8d34aa226519d055fa42bfeee1e5e8662dd51f",
       "sheet": "design/aqua3d-review/crabs/review.webp"
+    },
+    "fry_lobster": {
+      "sourceHash": "7047b60d90071c4955af8e7344e291eff3652b4b40cd2f51d476081746c837ab",
+      "sheet": "design/aqua3d-review/crabs/review-lobster.webp"
+    },
+    "juv_lobster": {
+      "sourceHash": "f462fd295880c871d1d7cda975cdeaab256bd0075648ba0e075fe7cda2cf1bdd",
+      "sheet": "design/aqua3d-review/crabs/review-lobster.webp"
+    },
+    "lobster": {
+      "sourceHash": "cc688daeac65456cf3fb151aa128865b2a588fd18d27d7667fc5f258cfde3154",
+      "sheet": "design/aqua3d-review/crabs/review-lobster.webp"
     }
   }
 }

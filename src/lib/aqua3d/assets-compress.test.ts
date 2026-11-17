@@ -48,7 +48,7 @@ test("수조 GLB 430개 전부 배포 형식(meshopt · 양자화 · 512px 이�
   for(const key of shrimpKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   const orcaKeys=['fry_orca','juv_orca','orca'];for(const key of orcaKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   // 게(2026-11-18 — crab-build.mjs)
-  const crabKeys=['fry_snow_crab','juv_snow_crab','snow_crab','fry_king_crab','juv_king_crab','king_crab'];for(const key of crabKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
+  const crabKeys=['fry_snow_crab','juv_snow_crab','snow_crab','fry_king_crab','juv_king_crab','king_crab','fry_lobster','juv_lobster','lobster'];for(const key of crabKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length+shrimpKeys.length+orcaKeys.length+crabKeys.length);
   assert.equal(files.filter(f=>f.kind==='decor').length,37);
   for (const { key, path } of files) {

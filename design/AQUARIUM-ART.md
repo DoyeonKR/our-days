@@ -1,7 +1,7 @@
 # 우리 수조 그림 목록 · 프롬프트
 
 > 이 파일은 `scripts/aqua-art-prompts.mjs` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **469장**: 치어 · 어린 물고기 256 · 최종 물고기 164 · 악세사리 40 · 수조 배경 9.
+> 모두 **472장**: 치어 · 어린 물고기 258 · 최종 물고기 165 · 악세사리 40 · 수조 배경 9.
 
 ## 넣는 법
 
@@ -41,7 +41,7 @@ Photorealistic aquarium decoration product photography, physically realistic cer
 Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280). Empty underwater interior filling the frame edge to edge: bright water upper area, physically believable caustics and soft light shafts, sandy floor in bottom 18%. NO animals, NO movable decorations in the middle; center open for compositing swimming animals and decorations. No text, UI, border, or front-glass reflections covering the center. Natural materials and realistic water, not cartoon or painted illustration; fantasy architecture only as distant realistic scenery.
 ```
 
-## 치어 · 어린 물고기 (256장)
+## 치어 · 어린 물고기 (258장)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -125,6 +125,8 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `juv_orca` | 범고래 어린 물고기 | Real juvenile killer whale (Orcinus orca), about one third grown: longer body than the calf, white patches now clean white, small upright dorsal fin not yet tall, faint grey saddle. Exact side view, head RIGHT. |
 | `fry_snow_crab` | 대게 치어 | Newborn-sized young snow crab seen from above, head RIGHT: pale peach shell, short legs, tiny claws. |
 | `juv_snow_crab` | 대게 어린 물고기 | Juvenile snow crab seen from above, head RIGHT: lighter orange shell, legs not yet full length. |
+| `fry_lobster` | 바닷가재 치어 | Newborn-sized young lobster, head RIGHT: pale translucent orange-brown, thin claws. |
+| `juv_lobster` | 바닷가재 어린 물고기 | Juvenile lobster, head RIGHT: lighter red-brown, claws not yet full size. |
 | `fry_king_crab` | 킹크랩 치어 | Newborn-sized young red king crab seen from above, head RIGHT: pale pinkish shell, spines just starting, short legs. |
 | `juv_king_crab` | 킹크랩 어린 물고기 | Juvenile red king crab seen from above, head RIGHT: lighter red shell, legs not yet full length. |
 | `fry_bitterling` | 각시붕어 치어 | Very young free-living Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult. |
@@ -302,7 +304,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `fry_astral` | 별무리어 치어 | Biologically plausible newborn cosmic star fish spirit, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, translucent deep-indigo body filled with tiny stars, soft glow, little comet tail. A real newborn animal, not a baby cartoon. |
 | `juv_astral` | 별무리어 어린 물고기 | Juvenile cosmic star fish spirit: young teenage fish, body starting to take adult shape, fins half grown, indigo-violet translucent body with a small swirl of galaxy inside, wispy glowing fins. Clearly not yet fully grown, less ornate than the adult. |
 
-## 최종 물고기 (164장)
+## 최종 물고기 (165장)
 
 | key | 이름 | 등급 | 설명 |
 |---|---|---|---|
@@ -399,6 +401,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `fleshy_prawn` | 대하 | 고급 | Subject: Fenneropenaeus chinensis, living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp. Adult, fully developed species anatomy. Clearly separate cephalothorax, six abdominal segments, broad telson and paired uropod tail fan, two pairs of antennae, walking legs and abdominal swimmerets. Antennae curve BACK from the head along the body and down toward the tail, contained inside the canvas, never straight forward needles. All appendages legible, belly downward. Override common wet highlights: NO white reflection stripes, glare, hard rim light, dark outline or blurred edge; even diffuse illumination. Actual transparent alpha, no painted checkerboard. |
 | `dokdo_shrimp` | 독도새우 | 희귀 | Subject: Pandalus hypsinotus, living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster. Adult, fully developed species anatomy. Clearly separate cephalothorax, six abdominal segments, broad telson and paired uropod tail fan, two pairs of antennae, walking legs and abdominal swimmerets. Antennae curve BACK from the head along the body and down toward the tail, contained inside the canvas, never straight forward needles. All appendages legible, belly downward. Override common wet highlights: NO white reflection stripes, glare, hard rim light, dark outline or blurred edge; even diffuse illumination. Actual transparent alpha, no painted checkerboard. |
 | `snow_crab` | 대게 | 희귀 | Real snow crab (Chionoecetes opilio) seen exactly from above, head RIGHT: round orange-red carapace with fine bumps, long slender flattened walking legs spread wide, two slim claws. Natural-history illustration, transparent background. |
+| `lobster` | 바닷가재 | 고급 | Real American lobster (Homarus americanus) seen from above at a slight angle, head RIGHT: dark red-brown mottled shell, two big unequal claws, long red antennae, segmented tail ending in a fan. Natural-history illustration, transparent background. |
 | `king_crab` | 킹크랩 | 영웅 | Real red king crab (Paralithodes camtschaticus) seen exactly from above, head RIGHT: spiny heart-shaped red carapace, thick spiny walking legs with white undersides, right claw larger than the left. Natural-history illustration, transparent background. |
 | `orca` | 범고래 | 신화 | Real adult killer whale (Orcinus orca): powerful streamlined black body, rounded blunt head with closed mouth, white oval eye patch behind and above a tiny dark eye, white lower jaw and belly with sweeping flank marking, grey saddle patch behind a tall dorsal fin, broad paddle-shaped pectoral flippers, horizontal tail flukes. Exact side view, head RIGHT, neutral straight swimming pose, matte skin with no white specular streaks. |
 | `nurse_shark` | 수염상어 | 희귀 | Fully grown adult. Real nurse shark (Ginglymostoma cirratum), tawny-brown flattened body, two small nasal barbels, rounded dorsal and pectoral fins, long asymmetric upper tail lobe. |
