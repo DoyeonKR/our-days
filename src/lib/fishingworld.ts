@@ -75,7 +75,7 @@ export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: N
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 /** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
  *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
-export const TIMED_ONLY: ReadonlySet<string> = new Set(["jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
+export const TIMED_ONLY: ReadonlySet<string> = new Set(["minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
 export const TIMED_FISH: readonly TimedFish[] = [
   { species: "sweetfish", spot: "seomjin", time: "dawn" },
   { species: "crucian", spot: "dumulmeori", time: "dawn" },
@@ -113,6 +113,14 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "steller_sea_lion", spot: "ocean", wx: "snow", side: true },
   // 범고래(2026-11-14) — 울릉도 앞바다 비 오는 날의 곁 칸 손님
   { species: "orca", spot: "ocean", wx: "rain", side: true },
+  // 고래 5종 · 톱상어(2026-11-18) — 때 손님(곁 칸)으로만. 밍크고래는 울릉도 새벽, 귀신고래 · 혹등고래는 기장(울산 앞바다 — 귀신고래 회유로) 낮 · 해 질 녘,
+  //   향유고래는 깊은 밤바다, 흰수염고래는 고성 거진항 새벽, 톱상어는 심해 새벽
+  { species: "minke_whale", spot: "ocean", time: "dawn", side: true },
+  { species: "gray_whale", spot: "palace", time: "day", side: true },
+  { species: "humpback_whale", spot: "palace", time: "dusk", side: true },
+  { species: "sperm_whale", spot: "abyss", time: "night", side: true },
+  { species: "blue_whale", spot: "starsea", time: "dawn", side: true },
+  { species: "sawshark", spot: "abyss", time: "dawn", side: true },
   { species: "sunfish", spot: "starsea", time: "day", side: true },
   { species: "butterflyfish", spot: "reef", time: "dawn", side: true },
   { species: "boxfish", spot: "reef", wx: "clear", side: true },

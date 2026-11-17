@@ -38,7 +38,7 @@ const webpSize = (b: Buffer): [number, number] => {
   throw new Error(`모르는 WebP ${chunk}`);
 };
 
-test("수조 GLB 430개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
+test("수조 GLB 448개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
   await MeshoptDecoder.ready;
   const mammalKeys=JSON.parse(readFileSync('design/aqua3d-review/mammals-status.json','utf8')).keys as string[];
   assert.equal(new Set(mammalKeys).size,18);
@@ -49,7 +49,9 @@ test("수조 GLB 430개 전부 배포 형식(meshopt · 양자화 · 512px 이�
   const orcaKeys=['fry_orca','juv_orca','orca'];for(const key of orcaKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   // 게(2026-11-18 — crab-build.mjs)
   const crabKeys=['fry_snow_crab','juv_snow_crab','snow_crab','fry_king_crab','juv_king_crab','king_crab','fry_lobster','juv_lobster','lobster'];for(const key of crabKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
-  assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length+shrimpKeys.length+orcaKeys.length+crabKeys.length);
+  // 고래 5종 · 톱상어(2026-11-18 — whales/build.mjs)
+  const whaleKeys=['minke_whale','gray_whale','humpback_whale','sperm_whale','blue_whale','sawshark'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of whaleKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
+  assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length+shrimpKeys.length+orcaKeys.length+crabKeys.length+whaleKeys.length);
   assert.equal(files.filter(f=>f.kind==='decor').length,37);
   for (const { key, path } of files) {
     const b = readFileSync(path), { json: j, bin } = parse(b);

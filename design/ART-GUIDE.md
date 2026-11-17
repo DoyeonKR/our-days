@@ -92,6 +92,20 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **게임 쪽 뼈대는 이미 들어가 있다** — `src/lib/shrimp.ts`(계열 값 · 몸길이 · 낚시터 자리 · 바닥을 기다 뒤로 튀는 습성)가 `SHRIMP_ON = false` 로 꺼져 있다. 그림 세션은 그림 · 모델만 만들고, 켜는 순서는 그 파일 머리 주석대로 Claude 세션이 한다.
 **검수**: `design/aqua3d-review/shrimp-*.webp`(그림 9장 · 위 · 비스듬히 · 옆) · `shrimp-validation.json` · `models.json` 기록 · `visualApproval: "pending"`. 켜는 건 Claude 세션(계열 표 · 낚시터 · 습성 · 서버 `fish_family_ok` migration).
 
+### D2. 고래 5종 · 톱상어 — 그림 18장 + 3D 모델 18개 (2026-11-18, Claude 세션이 만들었다 — 다시 그릴 때의 기록)
+
+| key | 이름 | 등급 | 다 큰 몸길이 | 기준 그림(퍼블릭 도메인) |
+|---|---|---|---|---|
+| `minke_whale` | 밍크고래 | 영웅 | 8m | NOAA *Balaenoptera acutorostrata* |
+| `gray_whale` | 귀신고래 | 전설 | 13m | NOAA *Eschrichtius robustus* |
+| `humpback_whale` | 혹등고래 | 전설 | 15m | NOAA *Megaptera novaeangliae* |
+| `sperm_whale` | 향유고래 | 신화 | 16m | NOAA *Physeter macrocephalus* |
+| `blue_whale` | 흰수염고래 | 태초 | 25m | NOAA *Balaenoptera musculus* |
+| `sawshark` | 톱상어 | 영웅 | 1.5m | *Pristiophorus cirratus* 옛 채색 도판(같은 속) |
+
+**그림**: `design/aqua3d-review/whales/make-art.mjs` — 흰 바탕을 가장자리에서 채워 지우고, 흑백 원화는 밝기를 종의 몸빛으로 물들인다(머리 오른쪽 · 512 투명 · sm 192). 새끼 · 어린 것은 옅게.
+**3D**: `whales/build.mjs` — 원화에서 잰 중심선 · 반두께의 둥근 몸통 + 가슴지느러미는 fin 뼈. **고래 꼬리지느러미는 수평**이라 원화의 세로 꼬리 판을 빼고 갈래 둘 · 가운데 홈의 수평 꼬리를 따로 짓는다(톱상어는 세로 꼬리). 검수 `whales/review.webp`(기준 | 옆 · 위 · 앞 · 비스듬히), 떠 있는 부품 0.
+
 ### F. 범고래 새끼 · 어린 개체 — 그림 2장 + 3D 모델 2개 (2026-11-14)
 
 다 큰 범고래(`orca`)는 켜졌다(사용자 메시 → `design/aqua3d-review/orca-build.mjs`). `fry_orca` · `juv_orca` 는 지금 다 큰 그림 · 모델을 그대로 쓴다.

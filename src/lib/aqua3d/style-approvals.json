@@ -1693,6 +1693,78 @@
     "lobster": {
       "sourceHash": "cc688daeac65456cf3fb151aa128865b2a588fd18d27d7667fc5f258cfde3154",
       "sheet": "design/aqua3d-review/crabs/review-lobster.webp"
+    },
+    "fry_minke_whale": {
+      "sourceHash": "e0415cb8f91d1c692b26553dd3be7815cab4ac0d0f73e76eef31a1e0fee0078a",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "juv_minke_whale": {
+      "sourceHash": "c462f885527d248d75ed1f9185f3f3b79e4dac1f57c5439d3f57e117d1e9bbf4",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "minke_whale": {
+      "sourceHash": "951bcf878bb26a075c88fce2ce28d7cf64afda99f8a0ee7e8ed56c9eb0cb7d22",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "fry_gray_whale": {
+      "sourceHash": "1656fdae782a8521d588f8278db259da4fe1c3c1624ee8b0a5362ba074cec59b",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "juv_gray_whale": {
+      "sourceHash": "1fb19e61bd65a09d311ac0eddd8054aa212ec6da43e164b2952666e4fb395786",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "gray_whale": {
+      "sourceHash": "e3f3f715c961460a0acf1439d1a15e4d40d3917c82838377d5085ebd982e7f99",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "fry_humpback_whale": {
+      "sourceHash": "fece5d3faa9c8cb4c0242969ec9095eee0d37d84b6298150187c6685032a880a",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "juv_humpback_whale": {
+      "sourceHash": "830f64439c16c98ea49d762928eb2af113e3485bc6bcadf3dff72d188129f272",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "humpback_whale": {
+      "sourceHash": "603f37daf3edfa3b25ceffa57394995a82c7b0fefd91256ad41ecb5a1ff1e2c1",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "fry_sperm_whale": {
+      "sourceHash": "649eb5d0a309dca05265035016df1e120176e694246aa707bd0d924725769fa4",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "juv_sperm_whale": {
+      "sourceHash": "bc57669655a37a44f346d6ae446830e81435919e09ae1b22e03a351925fa1293",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "sperm_whale": {
+      "sourceHash": "9e6fe74b4a8a32af197670208588e84713f529160cb52484619fde8e7819e028",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "fry_blue_whale": {
+      "sourceHash": "084c9060e5760994269f0548c5f19787b8f8cf83f7a0ad9a4fd373a11ea2adc0",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "juv_blue_whale": {
+      "sourceHash": "b6d4f5d8e0a92fed39511399fa72209fc4fe9541611861aac2bd1c5360473478",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "blue_whale": {
+      "sourceHash": "055167797f71bf0fe75eb7bf2926757d11593b3ac93481074a5298237dff5eae",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "fry_sawshark": {
+      "sourceHash": "5afebdb0cb7f0f79b98526f55b65c899196962dd71a1d713ba7c870454814cc7",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "juv_sawshark": {
+      "sourceHash": "cdcd53d8f0aa8be8d1d295b05edd902fac40f942f285c92e4416d2ea44fa8d5e",
+      "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "sawshark": {
+      "sourceHash": "840d2d3bb1da37033a051e93367064d9ac9bbcc1fb8db436d0a01e882cf8f1bc",
+      "sheet": "design/aqua3d-review/whales/review.webp"
     }
   }
 }

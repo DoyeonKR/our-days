@@ -102,7 +102,7 @@ test("피라루쿠 · 전기뱀장어 — 생태원에서 쓰는 가장 높은 �
 
 test("때 손님 — 4차 손님은 곁 칸(side)이라 원래 손님의 몫이 그대로다 · 합쳐도 15% 를 넘지 않는다", () => {
   const fourth = TIMED_FISH.filter((t) => t.side);
-  assert.equal(fourth.length, 22, "4차 때 손님 열여덟 + 해양 포유류 셋(해달 · 독도 강치 · 큰바다사자) + 범고래");
+  assert.equal(fourth.length, 28, "4차 때 손님 열여덟 + 해양 포유류 셋(해달 · 독도 강치 · 큰바다사자) + 범고래 + 고래 다섯 · 톱상어(2026-11-18)");
   for (const t of fourth) assert.ok(TIMED_ONLY.has(t.species), `${t.species} 는 pool 밖 손님`);
   assert.ok(TIMED_CHANCE + TIMED_SIDE_CHANCE <= 0.15 + 1e-9);
   const rate = (key: string, when: FishMoment, hitOf: (c: ReturnType<typeof rollCatch>) => boolean) => {
@@ -112,7 +112,7 @@ test("때 손님 — 4차 손님은 곁 칸(side)이라 원래 손님의 몫이 
   };
   // 울릉도 맑은 새벽 — 고래상어는 4차 전처럼 10%(새벽 손님 만새기 · 꽁치는 곁 칸을 나눈다)
   const clearDawn: FishMoment = { time: "dawn", wx: "clear" };
-  assert.deepEqual(timedAt("ocean", clearDawn).map((t) => t.species), ["whale_shark", "dolphinfish", "saury"]);
+  assert.deepEqual(timedAt("ocean", clearDawn).map((t) => t.species), ["whale_shark", "minke_whale", "dolphinfish", "saury"]);
   const ws = rate("ocean", clearDawn, (c) => c.species === "whale_shark");
   assert.ok(Math.abs(ws - TIMED_CHANCE) < 0.02, `고래상어 ${ws}`);
   // 문섬 비 오는 밤 — 해파리 · 블랙아이스 흰동가리는 4차 전처럼 각 5%, 쏠배감펭은 곁 칸

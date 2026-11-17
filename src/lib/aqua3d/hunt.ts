@@ -140,6 +140,7 @@ export const HUNT: Readonly<Record<string, HuntProfile>> = {
   dolphinfish: { style: "charge", jaw: J("needle", 40, 0.14, 0.95, 0.2) },
   viperfish: { style: "ambush", jaw: J("fang", 18, 0.4, 1, 0.3) },
   frilled_shark: { style: "strike", jaw: J("needle", 40, 0.14, 0.95, 0.22) },
+  sawshark: { style: "strike", jaw: J("needle", 44, 0.12, 0.9, 0.2) },
   // 해양 포유류(2026-11-13) — 짐승의 이빨: 드문드문 큰 송곳니
   spotted_seal: { style: "gulp", jaw: J("fang", 22, 0.3, 0.95, 0.2) },
   fur_seal: { style: "charge", jaw: J("fang", 22, 0.32, 1, 0.18) },

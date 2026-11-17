@@ -16,7 +16,7 @@ import type { FishHabit } from "./aqua3d/habits.ts";
 export const SHRIMP_ON = true;
 
 export type StagedFamily = {
-  key: string; name: string; grade: "흔함" | "보통" | "고급" | "희귀" | "영웅";
+  key: string; name: string; grade: "흔함" | "보통" | "고급" | "희귀" | "영웅" | "전설" | "신화" | "태초";
   /** 계열 표 값(aquarium.ts 의 AquaFamily) — 값어치 순서 · 다 크는 시간 · 담을 수 있는 수조 단계 · 화면 크기(%) */
   price: number; hours: number; minTank: number; size: number;
   /** 다 큰 몸길이(cm) */
@@ -51,6 +51,21 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   // 바닷가재(2026-11-18 [사용자: "가재류도 넣어주거"]) — NOAA 미국 바닷가재 일러스트(퍼블릭 도메인). 통영 항구의 고급(대하 바로 뒤). 놀라면 꼬리를 배 쪽으로 쳐 뒤로 휙(dart)
   { key: "lobster", name: "바닷가재", grade: "고급", price: 2420, hours: 75, minTank: 2, size: 24, cm: 45, fresh: false, ornamental: false,
     spots: [["harbor", 1.5, "fleshy_prawn"]], habit: crawl({ lane: 0.8, speed: 0.045, rest: 0.6, hop: 0.7, dart: 0.3, hug: 0.06 }) },
+  // 고래 5종 · 톱상어(2026-11-18 [사용자: "고래 종류 5가지 와 톱상어 추가해줘"]) — 그림 · 3D 는 NOAA 고래 일러스트 · 톱상어 옛 채색 도판(둘 다 퍼블릭 도메인)을
+  //   기준으로 Claude 세션이 지었다(design/aqua3d-review/whales/). 낚시터 pool 에는 안 넣고 때 손님(곁 칸)으로만 온다 — 미끼 1% 규칙 · 전설 몫(fishingworld 의 TIMED_FISH).
+  //   고래는 숨 쉬러 수면에 오르고(breathe) 꼬리를 위아래로 친다(anatomy 의 CETACEAN). 톱상어는 바닥 가까이 톱 주둥이로 모래를 훑는다
+  { key: "sawshark", name: "톱상어", grade: "영웅", price: 36500, hours: 258, minTank: 4, size: 32, cm: 150, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -5, hi: -3.5, speed: 0.07, reach: 0.85, depth: 1.4, hug: 0.16, tilt: 0, pace: 0.75, lane: 0.85, bob: 0.06 } },
+  { key: "minke_whale", name: "밍크고래", grade: "영웅", price: 50500, hours: 309, minTank: 5, size: 44, cm: 800, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -1, hi: 2.6, speed: 0.22, reach: 1, depth: 2, breathe: 70, breathOnly: true, pace: 0.6, tilt: 0.25 } },
+  { key: "gray_whale", name: "귀신고래", grade: "전설", price: 58200, hours: 331, minTank: 5, size: 46, cm: 1300, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -1.8, hi: 2.2, speed: 0.15, reach: 1, depth: 2, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.25 } },
+  { key: "humpback_whale", name: "혹등고래", grade: "전설", price: 58600, hours: 332, minTank: 5, size: 47, cm: 1500, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -1, hi: 2.6, speed: 0.18, reach: 1, depth: 2, breathe: 70, breathOnly: true, pace: 0.5, tilt: 0.3 } },
+  { key: "sperm_whale", name: "향유고래", grade: "신화", price: 59700, hours: 335, minTank: 5, size: 48, cm: 1600, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -2, hi: 2, speed: 0.15, reach: 1, depth: 2, breathe: 110, breathOnly: true, pace: 0.45, tilt: 0.25 } },
+  { key: "blue_whale", name: "흰수염고래", grade: "태초", price: 100000, hours: 450, minTank: 6, size: 50, cm: 2500, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -1, hi: 2.6, speed: 0.17, reach: 1, depth: 2, breathe: 90, breathOnly: true, pace: 0.45, tilt: 0.2 } },
 ];
 
 /** 켜졌을 때만 — 다른 표가 펼쳐 넣는다 */

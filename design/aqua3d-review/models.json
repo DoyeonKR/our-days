@@ -44555,6 +44555,1320 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "remodel": "2026-11-18 crab-build.mjs (NOAA public-domain American lobster illustration, rounded inflation)"
+    },
+    "fry_minke_whale": {
+      "kind": "fish",
+      "family": "minke_whale",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_minke_whale.glb",
+      "triangles": 6296,
+      "bytes": 62584,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "e0415cb8f91d1c692b26553dd3be7815cab4ac0d0f73e76eef31a1e0fee0078a",
+      "sha256": "a8cca747b37f67e19ab7e760d83a6ab6d1f59e101fadd521a198f1bbf9d5014d",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "juv_minke_whale": {
+      "kind": "fish",
+      "family": "minke_whale",
+      "form": "juv",
+      "file": "public/aqua/models/fish/juv_minke_whale.glb",
+      "triangles": 6296,
+      "bytes": 65104,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "c462f885527d248d75ed1f9185f3f3b79e4dac1f57c5439d3f57e117d1e9bbf4",
+      "sha256": "01b66e49866d92b062f31450c67cb297cd6c0a07181cead6ff910365a06c3bc0",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "minke_whale": {
+      "kind": "fish",
+      "family": "minke_whale",
+      "form": "adult",
+      "file": "public/aqua/models/fish/minke_whale.glb",
+      "triangles": 6296,
+      "bytes": 68244,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "951bcf878bb26a075c88fce2ce28d7cf64afda99f8a0ee7e8ed56c9eb0cb7d22",
+      "sha256": "4678c20ffcab0a6b7d305abe9275e88a72d41fea72533dfbfa072d79166c33e6",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "fry_gray_whale": {
+      "kind": "fish",
+      "family": "gray_whale",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_gray_whale.glb",
+      "triangles": 6720,
+      "bytes": 90128,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "1656fdae782a8521d588f8278db259da4fe1c3c1624ee8b0a5362ba074cec59b",
+      "sha256": "d4c564e7d9f3a5d44c8a023dd97f9c4c9b6d5c64279507165a72def6e4d712ca",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "juv_gray_whale": {
+      "kind": "fish",
+      "family": "gray_whale",
+      "form": "juv",
+      "file": "public/aqua/models/fish/juv_gray_whale.glb",
+      "triangles": 6720,
+      "bytes": 94640,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "1fb19e61bd65a09d311ac0eddd8054aa212ec6da43e164b2952666e4fb395786",
+      "sha256": "80913d440a9e8e460cc696ccb2c5510694dc0aebbcbe02872dc0164f8f456e11",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "gray_whale": {
+      "kind": "fish",
+      "family": "gray_whale",
+      "form": "adult",
+      "file": "public/aqua/models/fish/gray_whale.glb",
+      "triangles": 6720,
+      "bytes": 98844,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "e3f3f715c961460a0acf1439d1a15e4d40d3917c82838377d5085ebd982e7f99",
+      "sha256": "118dfa3a36fe48b7ecfab2f9aee79e1909950e4d578298b943d59f2d1ac72be7",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "fry_humpback_whale": {
+      "kind": "fish",
+      "family": "humpback_whale",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_humpback_whale.glb",
+      "triangles": 6872,
+      "bytes": 74200,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "fece5d3faa9c8cb4c0242969ec9095eee0d37d84b6298150187c6685032a880a",
+      "sha256": "7d8a48b6237d79d4eae70087b5f0f653440ee8dfa7f59d2a2cd70117d2c2234d",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "juv_humpback_whale": {
+      "kind": "fish",
+      "family": "humpback_whale",
+      "form": "juv",
+      "file": "public/aqua/models/fish/juv_humpback_whale.glb",
+      "triangles": 6872,
+      "bytes": 78280,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "830f64439c16c98ea49d762928eb2af113e3485bc6bcadf3dff72d188129f272",
+      "sha256": "e23fe9f5e3ef8c3d0c9b97f276e7457b2fdea6491b3e16d074341401ac065e55",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "humpback_whale": {
+      "kind": "fish",
+      "family": "humpback_whale",
+      "form": "adult",
+      "file": "public/aqua/models/fish/humpback_whale.glb",
+      "triangles": 6872,
+      "bytes": 81240,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "603f37daf3edfa3b25ceffa57394995a82c7b0fefd91256ad41ecb5a1ff1e2c1",
+      "sha256": "9633bb82a11932d87000780d83e0805c9572e3e90bf93639ad610c21744ca330",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "fry_sperm_whale": {
+      "kind": "fish",
+      "family": "sperm_whale",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_sperm_whale.glb",
+      "triangles": 5088,
+      "bytes": 49100,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "649eb5d0a309dca05265035016df1e120176e694246aa707bd0d924725769fa4",
+      "sha256": "527d6689c6ca993d3936342fd8a95a38862e9077d64f357c4f7c579f1cf7cbf1",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "juv_sperm_whale": {
+      "kind": "fish",
+      "family": "sperm_whale",
+      "form": "juv",
+      "file": "public/aqua/models/fish/juv_sperm_whale.glb",
+      "triangles": 5088,
+      "bytes": 51272,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "bc57669655a37a44f346d6ae446830e81435919e09ae1b22e03a351925fa1293",
+      "sha256": "3c5794fad23c4ffbbd39a6fa82b371bd513e64dbb02ede5e08442a05356428c4",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "sperm_whale": {
+      "kind": "fish",
+      "family": "sperm_whale",
+      "form": "adult",
+      "file": "public/aqua/models/fish/sperm_whale.glb",
+      "triangles": 5088,
+      "bytes": 53720,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "9e6fe74b4a8a32af197670208588e84713f529160cb52484619fde8e7819e028",
+      "sha256": "eeb154842a45af0a440531acb4ddf5f36a5ab07d3772e1d66ffa0f35b3fa98eb",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "fry_blue_whale": {
+      "kind": "fish",
+      "family": "blue_whale",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_blue_whale.glb",
+      "triangles": 4800,
+      "bytes": 49096,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "084c9060e5760994269f0548c5f19787b8f8cf83f7a0ad9a4fd373a11ea2adc0",
+      "sha256": "3ea044dc44eb60f41ea74a6b0a264e03fa9442d80a94c01ad1dededc70d909b3",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "juv_blue_whale": {
+      "kind": "fish",
+      "family": "blue_whale",
+      "form": "juv",
+      "file": "public/aqua/models/fish/juv_blue_whale.glb",
+      "triangles": 4800,
+      "bytes": 53412,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "b6d4f5d8e0a92fed39511399fa72209fc4fe9541611861aac2bd1c5360473478",
+      "sha256": "7ef668d24931083ff09c2d1d5e3cf33fffaf4d538cf442ea46f0b8d59a6618be",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "blue_whale": {
+      "kind": "fish",
+      "family": "blue_whale",
+      "form": "adult",
+      "file": "public/aqua/models/fish/blue_whale.glb",
+      "triangles": 4800,
+      "bytes": 53376,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "cetacean",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "055167797f71bf0fe75eb7bf2926757d11593b3ac93481074a5298237dff5eae",
+      "sha256": "82c8160a1f4657193c49f1b9c82ab923eedd5a5f1fda436abc8075322e4d6ffa",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube + horizontal flukes)"
+    },
+    "fry_sawshark": {
+      "kind": "fish",
+      "family": "sawshark",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_sawshark.glb",
+      "triangles": 5752,
+      "bytes": 69848,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shark",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "5afebdb0cb7f0f79b98526f55b65c899196962dd71a1d713ba7c870454814cc7",
+      "sha256": "963467cf3b1d05ffd910da79d8b050ba8c9510f8ce48c921a80cf30c2b293ef3",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)"
+    },
+    "juv_sawshark": {
+      "kind": "fish",
+      "family": "sawshark",
+      "form": "juv",
+      "file": "public/aqua/models/fish/juv_sawshark.glb",
+      "triangles": 5752,
+      "bytes": 72584,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shark",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "cdcd53d8f0aa8be8d1d295b05edd902fac40f942f285c92e4416d2ea44fa8d5e",
+      "sha256": "bf986c8295b3559a59b71df854c43b7288e60e513c06deff42839709e0eedaa7",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)"
+    },
+    "sawshark": {
+      "kind": "fish",
+      "family": "sawshark",
+      "form": "adult",
+      "file": "public/aqua/models/fish/sawshark.glb",
+      "triangles": 5752,
+      "bytes": 75820,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "shark",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "840d2d3bb1da37033a051e93367064d9ac9bbcc1fb8db436d0a01e882cf8f1bc",
+      "sha256": "8138f0dadb417ef7aee8d6b73b13eb3fa4ccaf755947e874607dbcb451ee0e2f",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "visualApproval": "pending",
+      "approval": "user_requested_2026-11-18",
+      "activation": "not enabled",
+      "geometryAuthoring": "reference-traced-tube-v1",
+      "validation": {
+        "errors": 0,
+        "decodedErrors": 0,
+        "warnings": 0,
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.19650439146101306
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)"
     }
   },
   "structuralValidation": "passed",

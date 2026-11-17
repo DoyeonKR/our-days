@@ -122,6 +122,33 @@ function bakeSand(size: number) {
   return { color, height };
 }
 
+/** 모래 단면(2026-11-18 [사용자: "어항 해변가도 실제와 비슷한 퀄리티를 줘"]) — 모래사장을 앞유리가 자른 면. 예전엔 바닥 모래 무늬를 세로로 늘여 붙여
+ *  늘어진 결의 벽으로 보였다. 실제 수족관 단면처럼 가로 지층(고운 모래 · 굵은 모래 · 자갈 줄 · 짙은 진흙 띠)이 물결치며 쌓인다. 가로로 이어지게 감는다 */
+export function strataMap(size = 256) {
+  return dataMaps(cachedPixels(`strata/${size}`, () => bakeStrata(size)), size);
+}
+function bakeStrata(size: number) {
+  const color = new Uint8Array(size * size * 4), height = new Uint8Array(color.length);
+  // 띠 여섯 — [두께 비율, 밝기, 따뜻함, 자갈 비율]
+  const bands = [[.24, .8, .05, .03], [.1, .72, .08, .22], [.18, .83, .04, .02], [.05, .64, .1, .06], [.27, .78, .06, .05], [.16, .73, .03, .28]];
+  const total = bands.reduce((a, b) => a + b[0], 0);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const u = x / size, grain = random(x + y * size * 1.13 + 7), fine = random(x * 2.7 + y * size * .9 + 3);
+    // 경계가 가로로 물결친다(가로로만 감기는 잡음)
+    const wave = (tileNoise(u, .37, 6, 4) - .5) * .06 + (tileNoise(u, .71, 17, 5) - .5) * .02;
+    const v = (y / size + wave + 1) % 1; let t = v * total, k = 0;
+    while (k < bands.length - 1 && t > bands[k][0]) { t -= bands[k][0]; k++; }
+    const [th, lum, warm, grav] = bands[k], edge = Math.min(t, th - t) / th;
+    const soft = .94 + .06 * Math.min(1, edge * 6);
+    const pebble = grain < grav * .35 ? (fine < .5 ? .55 : 1.3) : 1;
+    const tone = clamp(lum * soft * pebble * (.86 + (fine - .5) * .3) * (.92 + tileNoise(u, v, 9, 6) * .16), 0, 1);
+    const i = (y * size + x) * 4;
+    color[i] = clamp(tone * (1 + warm), 0, 1) * 255; color[i + 1] = clamp(tone * (1 + warm * .35), 0, 1) * 255; color[i + 2] = clamp(tone * (1 - warm) * .93, 0, 1) * 255; color[i + 3] = 255;
+    const h = clamp(.5 + (pebble - 1) * .4 + (grain - .5) * .2, 0, 1) * 255; height[i] = height[i + 1] = height[i + 2] = h; height[i + 3] = 255;
+  }
+  return { color, height };
+}
+
 /** rock = 수조 바위 — stone 무늬를 밝은 쪽으로 눌렀다. stone(평균 sRGB .51 → 선형 .22)에 짙은 바위색까지 곱하면
  *  큰 바위 둘이 거의 검정(선형 .03)이라 구멍처럼 보였다(2026-11-05 화면). */
 export function surfaceMap(kind: "sand" | "stone" | "wood" | "rock", size = 256) {
@@ -254,7 +281,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     // 모래사장(2026-11-15) — 경사 · 모래사장은 가장자리 어둡게(bank)를 끄고 밝은 모래색, 물 밖(수면 5.56 위) 마른 모래는 더 밝고 따뜻하게. 없으면 x0 = 99
     shader.uniforms.aquaBeachX0 = { value: beach ? beachStart(beach) : 99 };
     shader.vertexShader = `varying vec3 vAquaPosition;\n${shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAquaPosition = position;");
-    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaClarity; uniform float aquaBankStrength; uniform float aquaBeachX0;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
+    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaClarity; uniform float aquaBankStrength; uniform float aquaBeachX0; float aquaWet=0.;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
       .replace("#include <color_fragment>", `#include <color_fragment>
         float bank=smoothstep(1.15,2.7,abs(vAquaPosition.x+.58*sin(vAquaPosition.z*.8)));
         float beachK=smoothstep(aquaBeachX0,aquaBeachX0+.8,vAquaPosition.x);
@@ -262,9 +289,21 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
         diffuseColor.rgb *= mix(vec3(1.),vec3(1.18,1.12,1.0),beachK);
         float dry=beachK*smoothstep(5.45,5.7,vAquaPosition.y);
         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(1.55,1.42,1.18), dry);
+        // 물가(2026-11-18) — 물 밑 경사엔 물가와 나란한 모래 물결, 수면 바로 위는 젖어 짙고 매끈한 띠, 물이 닿는 선엔 오르내리는 거품
+        float sub=beachK*(1.-smoothstep(5.4,5.56,vAquaPosition.y));
+        float rip=sin(vAquaPosition.x*15.+sin(vAquaPosition.z*2.3)*1.6+sin(vAquaPosition.z*5.1)*.4);
+        diffuseColor.rgb *= 1.+rip*.075*sub;
+        float lap=5.585+.03*sin(aquaTime*.9+vAquaPosition.z*1.7)+.012*sin(aquaTime*2.3+vAquaPosition.z*4.9);
+        float wet=beachK*smoothstep(5.5,5.56,vAquaPosition.y)*(1.-smoothstep(lap+.03,lap+.16,vAquaPosition.y));
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(.62,.6,.56), wet*.85);
+        float foamN=.5+.5*sin(vAquaPosition.z*23.+aquaTime*1.3)*sin(vAquaPosition.z*9.7-aquaTime*.7);
+        float foam=beachK*(1.-smoothstep(.0,.028,abs(vAquaPosition.y-lap)))*(.55+.45*foamN);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.93,.95,.94), foam*.8);
+        aquaWet=wet;
         // 물 밑 모래는 곳곳이 축축하게 짙다 — 넓은 얼룩이 있어야 타일 반복이 안 보인다
         float damp=.5+.5*sin(vAquaPosition.x*.9+sin(vAquaPosition.z*1.3)*1.4)*sin(vAquaPosition.z*1.1+vAquaPosition.x*.35);
         diffuseColor.rgb *= mix(.8,1.06,damp);`)
+      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n        roughnessFactor = mix(roughnessFactor, .32, aquaWet);")
       .replace("#include <dithering_fragment>", `
       gl_FragColor.rgb += vec3(.085,.115,.095)*aquaCaustic(vAquaPosition.xz,aquaTime)*aquaClarity;
       #include <dithering_fragment>`);
@@ -272,14 +311,33 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const terrain = new T.PlaneGeometry(10, 6, bed.nx, bed.nz); terrain.rotateX(-Math.PI / 2);
   const pos = terrain.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, bed.values[i]);
+  // 가파른 모래사장 경사에서 무늬가 세로로 늘어지지 않게 — 가로 무늬 좌표를 x 가 아니라 면을 따라 잰 길이로(평평한 곳은 예전과 같다)
+  if (beach) { const uvA = terrain.attributes.uv, cols = bed.nx + 1;
+    for (let r = 0; r < pos.count / cols; r++) { let len = 0; for (let c = 0; c < cols; c++) { const i = r * cols + c; if (c) { const j = i - 1; len += Math.hypot(pos.getX(i) - pos.getX(j), pos.getY(i) - pos.getY(j)); } uvA.setX(i, len / 10); } } }
   terrain.computeVertexNormals(); const floor = new T.Mesh(terrain, sand); floor.name = "contoured-substrate"; root.add(floor);
   // 모래사장 앞면 — 높이 지도는 앞유리(z = 3)에서 끝나 솟은 경사 밑이 비어 보였다. 앞 · 오른쪽 끝을 모래 벽으로 막는다(같은 모래 재질)
   if (beach) {
     const n = 48, wall = (edge: (t: number) => [number, number]) => {
       const g = new T.BufferGeometry(), p: number[] = [], uv: number[] = [], idx: number[] = [];
-      for (let i = 0; i <= n; i++) { const [x, z] = edge(i / n); const top = bed.sample(x, z); p.push(x, top, z, x, WORLD.floor - .02, z); uv.push(i / n * 3, (top - WORLD.floor) / 6, i / n * 3, 0); if (i < n) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); } }
+      // 지층 무늬는 월드 길이 그대로(가로 · 세로 같은 배율) — 늘어지지 않는다
+      for (let i = 0; i <= n; i++) { const [x, z] = edge(i / n); const top = bed.sample(x, z); p.push(x, top, z, x, WORLD.floor - .02, z); uv.push(x * .3, (top - WORLD.floor) * .3, x * .3, -.006); if (i < n) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); } }
       g.setAttribute("position", new T.Float32BufferAttribute(p, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
-      const m = new T.Mesh(g, sand); m.material = sand; root.add(m); return m;
+      const m = new T.Mesh(g, strataMat); root.add(m); return m;
+    };
+    // 단면 재질 — 지층 그림, 물 밖(수면 위)은 마르고 밝게, 수면 바로 아래는 젖어 짙게, 물속은 물빛이 조금 스민다
+    const strata = strataMap(256);
+    const strataMat = new T.MeshStandardMaterial({ color: theme.sand, map: strata.map, bumpMap: strata.bump, bumpScale: .03, roughness: .92 });
+    strataMat.onBeforeCompile = shader => {
+      shader.uniforms.aquaTime = time;
+      shader.vertexShader = `varying vec3 vAquaPosition;\n${shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAquaPosition = position;");
+      shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime;\n${shader.fragmentShader}`.replace("#include <color_fragment>", `#include <color_fragment>
+        float lap=5.585+.03*sin(aquaTime*.9+vAquaPosition.z*1.7);
+        float above=smoothstep(lap,lap+.12,vAquaPosition.y);
+        float wet=(1.-above)*smoothstep(lap-.9,lap-.05,vAquaPosition.y);
+        diffuseColor.rgb *= mix(vec3(.9,.97,1.02),vec3(1.32,1.24,1.08),above);
+        diffuseColor.rgb *= 1.-wet*.3;
+        float deep=1.-smoothstep(-4.,4.,vAquaPosition.y);
+        diffuseColor.rgb *= 1.-deep*.28;`);
     };
     const x0 = beachStart(beach);
     wall((t) => [x0 - .3 + t * (5 - x0 + .3), 2.995]).name = "beach-front-face";

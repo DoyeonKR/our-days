@@ -13,6 +13,8 @@ export const PREDATORS: ReadonlySet<string> = new Set([
   "bluefin", "yellowtail", "hairtail", "coelacanth",
   "sleeper", "skygazer", "rainbow_trout", "largemouth_bass", "char", "arapaima", "oscar", "redtail_catfish", "piranha", "electric_eel", "moray", "lionfish", "grouper", "marlin", "spanish_mackerel", "cod", "scorpionfish", "goosefish", "swordfish", "barracuda", "dolphinfish", "viperfish", "frilled_shark",
   "spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "otter",
+  // 톱상어(2026-11-18) — 톱 주둥이로 모래 속 작은 물고기를 쳐서 잡는다. 고래(수염고래 · 향유고래)는 수조의 물고기를 안 먹는다
+  "sawshark",
 ]);
 /** 먹이 크기 — 사냥꾼 몸 길이의 이 비율 이하 */
 export const PREY_RATIO = 0.5;
