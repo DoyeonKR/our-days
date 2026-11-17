@@ -6,6 +6,6 @@ const r=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});r.setSi
 const sc=new T.Scene();sc.background=new T.Color(0xa9b7bc);sc.add(new T.HemisphereLight(0xe8f3ff,0x666953,1.6));const l=new T.DirectionalLight(0xfff0dc,2.2);l.position.set(2,6,3);sc.add(l);const f=new T.DirectionalLight(0xa2d8e2,.7);f.position.set(-3,2,-5);sc.add(f);
 const m=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('./kingcrab.glb?'+Date.now())).scene;sc.add(m);const c=new T.Box3().setFromObject(m).getCenter(new T.Vector3());
 const views={top:[0,1,.001],oblique:[1.2,1.1,1.4],side:[0,.15,1],front:[1,.25,0]};
-window.shoot=async()=>{for(const [k,v]of Object.entries(views)){const cam=new T.OrthographicCamera(-1.25,1.25,1.25,-1.25,.01,100);if(k==='top'){cam.up.set(1,0,0);}cam.position.copy(c).add(new T.Vector3(...v).normalize().multiplyScalar(10));cam.lookAt(c);r.render(sc,cam);await fetch('/__save?name=kc-'+k,{method:'POST',body:r.domElement.toDataURL()});}return 'ok';};
+window.shoot=async()=>{for(const [k,v]of Object.entries(views)){const cam=new T.OrthographicCamera(-1.6,1.6,1.6,-1.6,.01,100);if(k==='top'){cam.up.set(1,0,0);}cam.position.copy(c).add(new T.Vector3(...v).normalize().multiplyScalar(10));cam.lookAt(c);r.render(sc,cam);await fetch('/__save?name=kc-'+k,{method:'POST',body:r.domElement.toDataURL()});}return 'ok';};
 document.querySelector('#s').textContent='ready';
 </script></body></html>

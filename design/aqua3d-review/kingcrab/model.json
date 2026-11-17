@@ -1,6 +1,8 @@
 {
  "key": "king_crab",
- "triangles": 4840,
- "bytes": 71700,
- "parts": 177
+ "triangles": 6192,
+ "bytes": 100340,
+ "parts": 11,
+ "reference": "https://commons.wikimedia.org/wiki/File:Paralithodes_camtschaticus_dorsal_illustration_NOAA_Fisheries.png",
+ "license": "Public domain (work of a U.S. federal government employee, NOAA Fisheries)"
 }
