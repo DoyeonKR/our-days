@@ -10,7 +10,7 @@ export const WHALES={
  gray_whale:[R+'src-gray.jpg',true,236,[52,58,64],[205,208,206]],
  humpback_whale:[R+'src-humpback.png',true,236,[22,28,38],[226,230,234]],
  sperm_whale:[R+'src-sperm.png',false,236,[40,38,40],[170,160,154]],
- blue_whale:[R+'src-blue.png',false,240,[28,46,74],[118,148,176]],
+ blue_whale:[R+'src-blue.png',false,240,[20,32,52],[100,128,154]],
  sawshark:[R+'src-sawshark.png',false,232,null,null],
 };
 export const STAGE={fry:{k:.3,rgb:[205,214,222]},juv:{k:.14,rgb:[205,214,222]},adult:null};

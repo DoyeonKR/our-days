@@ -15,6 +15,8 @@ export type Splash = {
   rings: T.Group;
   /** x · z — 수면 위 자리, surface — 수면 높이, size — 몸길이, enter — 들어가는 물보라(더 크다) */
   burst(x: number, z: number, surface: number, size: number, now: number, enter: boolean, dir?: number, amount?: number): void;
+  /** 고래 숨 — 수면에 오른 머리(숨구멍)에서 물안개 기둥이 솟는다. lean 은 기울기(향유고래는 앞 왼쪽으로 비스듬히), twin 은 두 갈래(귀신고래 · 혹등고래는 V 자) */
+  spout(x: number, z: number, surface: number, size: number, now: number, lean?: number, twin?: boolean): void;
   /** 물속 거품 줄 — 몸이 지나간 자리에 */
   trail(x: number, y: number, z: number, size: number, now: number, surface: number): void;
   step(now: number, pxScale: number): void;
@@ -93,6 +95,15 @@ export function makeSplash(): Splash {
         rings.add(m); ringList.push({ m, t0: now + delay, r: rr * L * big, life: lf });
       }
       if (ringList.length > 6) { for (const o of ringList.splice(0, ringList.length - 6)) { o.m.removeFromParent(); (o.m.material as T.Material).dispose(); } }
+    },
+    spout(x, z, surface, L, now, lean = 0, twin = false) {
+      const H = Math.max(.6, L * .38), arms = twin ? [-.18, .18] : [0];
+      for (const arm of arms) for (let n = 0; n < 34; n++) {
+        const s = seq++, f = n / 33, hh = H * (.25 + .85 * f + .1 * h(s, 1));
+        add(2, now + f * .35 + h(s, 2) * .08, x + (h(s, 3) - .5) * .06 * L, surface + .05, z + (h(s, 4) - .5) * .06 * L, (lean + arm) * hh, hh / .8, arm * .4 * hh, (.035 + .05 * f) * L, 2.6 + h(s, 5), surface);
+      }
+      // 흩날리는 물방울
+      for (let n = 0; n < 26; n++) { const s = seq++, a = h(s, 1) * Math.PI * 2; add(0, now + .15 + h(s, 2) * .3, x, surface + H * (.5 + .4 * h(s, 3)), z, Math.cos(a) * .6 + lean * 2, .6 + h(s, 4), Math.sin(a) * .4, (.012 + .018 * h(s, 5)) * L, 1.8, surface); }
     },
     trail(x, y, z, L, now, surface) {
       for (let n = 0; n < 4; n++) {

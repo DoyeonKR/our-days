@@ -37,6 +37,8 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_japanese_sea_lion:'5882612d1bb0',juv_japanese_sea_lion:'964738eb643b',japanese_sea_lion:'59ffdcd3cc5f',
  fry_sea_otter:'1fcf994a560f',juv_sea_otter:'fe7e38188675',sea_otter:'c7f59208f47f',
  fry_otter:'5db371757b5b',juv_otter:'99367d3d0e71',otter:'8955d591c457',
+ // 2026-11-18 고래 다섯 · 톱상어 — 가슴지느러미를 몸 밖으로 벌리고 꼬리 윗면을 등 색으로(whales/build.mjs)
+ fry_minke_whale:'094d7d7fd82b',juv_minke_whale:'5da28e4b90b5',minke_whale:'5fb2fe89a218',fry_gray_whale:'664e8098f77a',juv_gray_whale:'e31beacf6436',gray_whale:'f9dc50614899',fry_humpback_whale:'07b66434abcf',juv_humpback_whale:'6c68ac1104a0',humpback_whale:'95a94d730ad5',fry_sperm_whale:'92072c39c2d6',juv_sperm_whale:'e61f420476d9',sperm_whale:'aabb90da7dfb',fry_blue_whale:'128389807ff9',juv_blue_whale:'9de94fa42a98',blue_whale:'6800e8739dbd',fry_sawshark:'3b001221d971',juv_sawshark:'598d5dd7831a',sawshark:'2ed5a2e7438f',
 });
 /** 주인 모델(public/aqua/models/boss/, 2026-11-15) — 같은 규칙(바이트 해시) */
 export const BOSS_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({

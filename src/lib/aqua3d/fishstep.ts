@@ -46,7 +46,7 @@ export type StepWorld = {
 export type StepBuffers = {
   positions: Float32Array; heading: Float32Array; lengths: Float32Array; pinned: Float32Array; offsets: Float32Array; rolls: Float32Array;
   courses: Course[]; count: number;
-  /** 모래사장(8단계부터, habitat.shoreX) — 높이 y 의 물가 가로 위치(월드). 물고기는 그 안쪽에서만 헤엄친다 */ shore?: (y: number) => number;
+  /** 모래사장(8단계부터, habitat.shoreX) — 높이 y 의 물가 가로 위치(월드). 물고기는 그 안쪽에서만 헤엄친다 */ shore?: (y: number, z?: number) => number;
   /** 모래사장 쉼터(kind "beach" — x 월드 · h 길 좌표) — 있으면 포유류는 바위 대신 여기서 쉰다 */ beach?: Obstacle;
 };
 const FP = { pitch: 0, roll: 0, slope: 0, ground: 0 };
@@ -144,7 +144,7 @@ function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: num
     const s = escortSlot(i, WL, L, elapsed), c = b.courses[k];
     let tx = W.x - fx * s.back - fz * s.side, tz = W.z - fz * s.back + fx * s.side, ty = W.y + s.up;
     const mx = 5 * wide - 0.1 - L / 2, mz = 3 * deep - 0.1 - L / 2;
-    tx = Math.max(-mx, Math.min(mx, tx)); tz = Math.max(-mz, Math.min(mz, tz)); ty = Math.max(WORLD.floor + 0.3 + L * 0.2, Math.min(top - L * 0.2, ty));
+    tx = Math.max(-mx, Math.min(mx, tx)); tz = Math.max(-mz, Math.min(mz, tz)); if (b.shore) tx = Math.min(tx, b.shore(ty - L * 0.2, tz) - L * 0.45); ty = Math.max(WORLD.floor + 0.3 + L * 0.2, Math.min(top - L * 0.2, ty));
     const w = WHALE_ESCORT;
     c.x += (tx - c.x) * w; c.y += (ty - c.y) * w; c.z += (tz - c.z) * w;
     // 고래상어와 같은 쪽을 본다 — 제 빠르기는 남긴다
@@ -244,7 +244,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (mz > 0) z = Math.max(-mz, Math.min(mz, z));
     }
     // 모래사장 경사 — 물가(shore) 안쪽에서만. 머리(몸 반)까지 모래에 안 닿게, 쉬러 올라가는 포유류는 쉬는 만큼 풀어 준다
-    if (b.shore) { const lim = b.shore(y - L * 0.2) - L * 0.45, give = fishes[k].swim!.haul ? fishes[k].swim!.rest : 0; if (x > lim) x = lim + (x - lim) * give; }
+    if (b.shore) { const lim = b.shore(y - L * 0.2, z) - L * 0.45, give = fishes[k].swim!.haul ? fishes[k].swim!.rest : 0; if (x > lim) x = lim + (x - lim) * give; }
     FP.roll = 0;
     // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
     if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * hyp2(c.dx, c.dz); FP.roll *= c.ground; }

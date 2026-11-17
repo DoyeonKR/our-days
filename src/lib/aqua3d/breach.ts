@@ -139,9 +139,12 @@ const unit = (x: number, y: number, z: number) => { const l = Math.hypot(x, y, z
 const finished = (x: number, y: number, z: number, d: number): TrickState => ({ x, y, z, hx: d, hy: 0, hz: 0, w: 0, air: false, beat: 1, roll: 0, phase: "done", trail: false });
 
 /** 재주 계획 — 몸 가운데는 늘 수조 가로 안(끝에서 원래 길로 돌아가며 조금 더 가던 것이 벽을 넘었다) */
-export function planTrick(kind: TrickKind, start: { x: number; y: number; z: number; hx: number }, surface: number, floor: number, halfW: number, L: number, zFront: number): TrickPlan {
-  const p = planTrickRaw(kind, start, surface, floor, halfW, L, zFront), raw = p.at;
-  return { ...p, at: (t) => { const s = raw(t); s.x = clampN(s.x, -halfW, halfW); return s; } };
+/** 재주 빠르기(2026-11-18 [사용자: "포유류들도 터치했을때 움직임이 너무 빨라 실제 동물과 비슷하게"]) — 시간을 늘인다(1 = 예전).
+ *  물범 · 물개류 · 수달은 1.6배 천천히, 큰 고래는 몸만큼 더 천천히(큰 몸은 물을 밀어내는 데 오래 걸린다). 범고래는 예전 그대로 */
+export const trickSlow = (family: string) => family === "orca" ? 1 : /whale$/.test(family) ? 1.7 : 1.6;
+export function planTrick(kind: TrickKind, start: { x: number; y: number; z: number; hx: number }, surface: number, floor: number, halfW: number, L: number, zFront: number, slow = 1): TrickPlan {
+  const p = planTrickRaw(kind, start, surface, floor, halfW, L, zFront), raw = p.at, k = Math.max(1, slow);
+  return { ...p, total: p.total * k, splashes: p.splashes.map((s) => ({ ...s, t: s.t * k })), at: (t) => { const s = raw(t / k); s.x = clampN(s.x, -halfW, halfW); return s; } };
 }
 function planTrickRaw(kind: TrickKind, start: { x: number; y: number; z: number; hx: number }, surface: number, floor: number, halfW: number, L: number, zFront: number): TrickPlan {
   const len = Math.max(.3, L), lo = floor + len * .45;

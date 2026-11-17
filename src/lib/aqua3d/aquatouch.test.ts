@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { HAUL_REST, haulAssign, haulBlend, haulRest, habitOf, type Course, type Obstacle } from "./habits.ts";
-import { STARTLE_S, startleDir, startleKind, startlePose } from "./startle.ts";
+import { STARTLE_S, startleDir, startleDuration, startleKind, startlePose } from "./startle.ts";
 import { WORLD } from "./world.ts";
 
 const MAMMALS = ["spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "sea_otter", "otter"];
@@ -48,7 +48,9 @@ test("쉬는 동안 바위 꼭대기에 있다 · 둘이 한 바위면 양옆으
 test("놀라는 몸짓은 종마다 다르다 · 끝나면 원래 길로 돌아온다 · 처음엔 빠르게 튀어 나간다", () => {
   assert.equal(startleKind("puffer"), "inflate");
   assert.equal(startleKind("octopus"), "ink");
-  assert.equal(startleKind("spotted_seal"), "roll");
+  assert.equal(startleKind("spotted_seal"), "glide");
+  assert.equal(startleKind("spotted_seal", "spotted_seal", true), "galumph");
+  assert.equal(startleKind("humpback_whale"), "dive");
   assert.equal(startleKind("flounder"), "burrow");
   assert.equal(startleKind("jellyfish"), "pulse");
   assert.equal(startleKind("guppy"), "dart");
@@ -114,4 +116,19 @@ test("mammals glide to and from their rest spot slowly and are never pushed in o
   assert.match(step, /lim = Math\.max\(0\.01, b\.lengths\[k\] \* CONTACT_MAX_SPEED \* dt\)/);
   const habits = readFileSync(new URL("./habits.ts", import.meta.url), "utf8");
   assert.match(habits, /const Ry = o \? Math\.sqrt\(R\) : R, Rx = o \? R \* R : R;/);
+});
+
+// 2026-11-18 [사용자: "포유류들도 터치했을때 움직임이 너무 빨라 실제 동물과 비슷하게 … 땅에서 통통 튀며 움직이는거"]
+test("포유류는 놀라도 천천히 — 물속은 초당 몸길이 1배 아래, 고래는 0.4배 아래 · 땅에선 통통 튀며 몇 걸음", () => {
+  const peak = (k: "glide" | "dive" | "galumph") => { let m = 0; for (let t = 0; t < startleDuration(k); t += 0.02) m = Math.max(m, Math.abs(startlePose(k, t + 0.02).dash - startlePose(k, t).dash) / 0.02); return m; };
+  assert.ok(peak("glide") < 1.8, `glide ${peak("glide")}`);
+  assert.ok(peak("dive") < 0.5, `dive ${peak("dive")}`);
+  assert.ok(peak("galumph") < 1, `galumph ${peak("galumph")}`);
+  // 예전 roll 은 처음 1초에 몸길이 1.6배(초당 4.8배 고점)
+  let hops = 0, prev = 0; for (let t = 0; t < startleDuration("galumph"); t += 0.01) { const h = startlePose("galumph", t).hop; if (h > 0.1 && prev <= 0.1) hops++; prev = h; }
+  assert.ok(hops >= 6, `땅에서 여러 번 통통 ${hops}`);
+  for (const k of ["glide", "dive", "galumph"] as const) assert.equal(startlePose(k, startleDuration(k)).dash, 0);
+  const scene = readFileSync(new URL("./scene.ts", import.meta.url), "utf8");
+  assert.ok(scene.includes("onLand=!!sw?.haul&&sw.rest>.5"), "쉬는 중이면 땅의 몸짓");
+  assert.ok(scene.includes("if(!onLand&&trickOf"), "땅에선 물속 재주를 안 한다");
 });

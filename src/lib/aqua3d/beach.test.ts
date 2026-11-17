@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { BEACH_TOP, beachStart, hardscapeStones, hasBeach, shoreLocal, substrateHeight } from "./habitat.ts";
+import { BEACH_TOP, beachShift, beachStart, hardscapeStones, hasBeach, shoreLocal, substrateHeight } from "./habitat.ts";
+import { tankAxes } from "./tiers.ts";
+import { tankTall } from "./world.ts";
+import { tankDeep } from "./tunnel.ts";
 import { haulBlend, type Course } from "./habits.ts";
 import { WORLD } from "./world.ts";
 
@@ -17,18 +20,29 @@ test("beach appears from the deep-sea aquarium (tier 8) up", () => {
 test("floor rises to the right into a beach above the water and stays clear of the tunnel and dome", () => {
   for (const beach of [true, "hall"] as const) {
     const x0 = beachStart(beach);
-    for (const z of [-2.5, 0, 2.5]) {
+    // 2026-11-18 — 해변은 뒤쪽 오른편. 앞유리 쪽으로 올수록 물러나 앞유리 앞엔 물만 남는다(beachShift)
+    for (const z of [-2.5, -1.2]) {
       assert.equal(substrateHeight(-3, z, 6, beach), substrateHeight(-3, z, 6), "left side unchanged");
       let prev = -Infinity;
-      for (let x = x0; x <= 4.3; x += 0.1) { const h = substrateHeight(x, z, 6, beach); assert.ok(h >= prev - 0.06, `${beach} rises at ${x.toFixed(1)}`); prev = h; }
+      for (let x = x0; x <= 4.3 + beachShift(z); x += 0.1) { const h = substrateHeight(x, z, 6, beach); assert.ok(h >= prev - 0.06, `${beach} rises at ${x.toFixed(1)}`); prev = h; }
       assert.ok(substrateHeight(4.6, z, 6, beach) > SURFACE + 0.1, "beach top above water");
     }
     // 터널 · 돔(가운데 반지름 .9 안)은 그대로
     if (beach === "hall") for (const x of [-0.9, 0, 0.9]) assert.equal(substrateHeight(x, 0, 6, beach), substrateHeight(x, 0, 6));
     // 물가 — 그 높이에서 모래가 시작하는 자리
+    assert.ok(substrateHeight(4.9, 2.9, 6, beach) < SURFACE - 3, "앞유리 쪽엔 모래사장이 없다 — 물이 앞을 채운다");
     for (const y of [-2, 0, 3, 5]) { const sx = shoreLocal(y, 0, beach); assert.ok(Math.abs(substrateHeight(sx, 0, 6, beach) - y) < 0.05 || sx === x0, `shore ${y}`); }
   }
   assert.ok(BEACH_TOP > SURFACE);
+});
+
+// 2026-11-18 [사용자: "수조도 좀 더 와이드하게 만들어서 경사를 완만하게 하고 해변을 사용자가 더 편하게 볼 수 있게"] — 물가 경사가 35 ~ 42° 였다
+test("the waterline slope is gentle (≤ 25°) in world space on every beach tier", () => {
+  for (const t of [8, 9, 10, 11]) {
+    const b = hasBeach(t), a = tankAxes(t, tankTall(t), tankDeep(t)), z = -1.5, sx = shoreLocal(SURFACE, z, b), d = 0.05;
+    const slope = (substrateHeight(sx + d, z, 6, b) - substrateHeight(sx - d, z, 6, b)) / (2 * d), deg = Math.atan(slope * a.tall / a.x) * 180 / Math.PI;
+    assert.ok(deg < 25, `tier ${t} waterline ${deg.toFixed(1)}°`);
+  }
 });
 
 test("stones on the slope are removed (they would be buried)", () => {
@@ -46,7 +60,7 @@ test("marine mammals rest on the beach top facing the water", () => {
 
 test("fish stay on the water side of the shore; the scene passes the shore and beach", () => {
   const step = readFileSync(new URL("./fishstep.ts", import.meta.url), "utf8");
-  assert.match(step, /if \(b\.shore\) \{ const lim = b\.shore\(y - L \* 0\.2\) - L \* 0\.45/);
+  assert.match(step, /if \(b\.shore\) \{ const lim = b\.shore\(y - L \* 0\.2, z\) - L \* 0\.45/);
   assert.match(step, /if \(beach\) \{ const map/);
   const scene = readFileSync(new URL("./scene.ts", import.meta.url), "utf8");
   assert.match(scene, /motion\.shore=habitat\?\.shoreX;motion\.beach=habitat\?\.beachRest\?/);

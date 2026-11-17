@@ -17,7 +17,7 @@ test("decorations between the camera and the chosen body fade, then restore thei
   assert.match(src, /\(o\.material as T\.Material\|T\.Material\[\]\)=ud\.fadeOrig/);
   assert.ok(OCCLUDE_ALPHA > 0.05 && OCCLUDE_ALPHA < 0.5);
 });
-test("the beach resting spot sits toward the front glass", () => {
+test("the beach resting spot sits on the back-right beach (2026-11-18 — the beach no longer reaches the front glass)", () => {
   assert.match(src, /z:3\*deep\*BEACH_REST_FRONT/);
-  assert.ok(BEACH_REST_FRONT > 0.2 && BEACH_REST_FRONT < 0.8);
+  assert.ok(BEACH_REST_FRONT < -0.2 && BEACH_REST_FRONT > -0.8);
 });

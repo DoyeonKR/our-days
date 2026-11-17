@@ -6,13 +6,13 @@ import { decorPose, fishArtKey, fishCm, fishMorph, type AquaFish, type AquaNews,
 import type { Morph } from "../aquamorph.ts";
 import { morphMaterials } from "./morphlook.ts";
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
-import { stepFish } from "./fishstep.ts";
+import { stepFish, type StepFish } from "./fishstep.ts";
 import { makeSandPuffs } from "./sandpuff.ts";
-import { planTrick, trickOf, type TrickPlan } from "./breach.ts";
+import { planTrick, trickOf, trickSlow, type TrickPlan } from "./breach.ts";
 import { makeSplash } from "./splash.ts";
 import { bossLookOf } from "./bosslook.ts";
 import { turtleGlbMotion } from "./turtle.ts";
-import { STARTLE_S, startleDir, startleKind, startlePose, type StartleKind, type StartlePose } from "./startle.ts";
+import { startleDir, startleDuration, startleKind, startlePose, type StartleKind, type StartlePose } from "./startle.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
 import { addJaw, type Jaw, calmSpecular, fishShading, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
 import { makeGiants, type Giants } from "./giants.ts";
@@ -45,6 +45,7 @@ import { captureRatio, clampPhotoCam, photoDistance, photoGrade, pinchZoom, type
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null;
   /** 이 기기에서 이미 본 사냥 장면의 소식 번호 — 화면이 기억해 넘긴다(장면은 저장소를 안 만진다) */ mealSeen?: number;
   /** 안에서 보기 — 10단계 터널 · 11단계 돔만. 꾸미는 동안은 밖에서 본다 */ tunnel?: boolean;
+  /** 해변 보기(2026-11-18) — 모래사장 쪽으로 다가가 수면 위에서 내려다본다(밖에서 볼 때만) */ beach?: boolean;
   /** 계절 수조 행사(2026-11-13, lib/aquaevent) — 지금 열린 행사 · 한정 장식 빛깔(놓인 장식 id → 행사). 그림만 바뀐다 */
   season?: { keys: readonly AquaEventKey[]; tints: Readonly<Record<number, AquaEventKey>> } };
 /** lost · restored · ready 가 없으면 예전처럼 error 로 알린다 */
@@ -107,7 +108,9 @@ type Swimmer = AnimalModel & { key: string; family: string; length: number; phas
 /** 자란 물고기의 크기 · 자리를 잇는 시간(초) · 새 몸을 기다리는 상한(초, 수조 시계) */
 const GROW_S = 1, GROW_WAIT = 8, HANDOFF_S = 1;
 /** 고른 몸을 가리는 장식의 불투명도 · 모래사장 쉼터를 앞유리 쪽으로 미는 몫(앞뒤 반폭 대비) — 2026-11-17 */
-export const OCCLUDE_ALPHA = 0.22, BEACH_REST_FRONT = 0.45, ABOVE_ELEV = 0.42;
+export const OCCLUDE_ALPHA = 0.22, BEACH_REST_FRONT = -0.5, ABOVE_ELEV = 0.42;
+/** 해변 보기의 내려다보는 각(rad) — 수면 위 모래사장을 위에서 비스듬히 본다 */
+export const BEACH_VIEW_ELEV = 0.5, BEACH_VIEW_YAW = 0.5;
 /** 지금 보이는 몸길이 — 자라는 동안은 옛 몸 · 키우는 중의 크기(그림자 · 고른 표시 · 따라가기 거리가 한 프레임에 뛰지 않게) */
 const shownLength = (m: Swimmer) => { const g = m.grow, v = g?.old ?? m; return g ? v.length * (v.root.scale.x / Math.max(1e-6, v.scale)) : m.length; };
 type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string; /** 한정 장식 빛깔(seasonfx) */ tint: AquaEventKey | null };
@@ -212,7 +215,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const swimmers = new Map<number,Swimmer>(), decorations = new Map<number,Decoration>();
   // 고른 물고기를 가리는 장식 흐리게(2026-11-17 [사용자: "포유류는 물 위에서 생활하는데 너무 잘 보이지가 않아 선택을해도 주변 조형물에 가려져"]) —
   //   카메라 → 고른 몸 사이 선분이 장식의 경계 구를 지나면 그 장식만 재질을 복제해 반투명(OCCLUDE_ALPHA)으로, 비키면 천천히 되돌린 뒤 원래 재질로
-  let aboveK=0;
+  let aboveK=0,beachK=0;
   const fadeSeg=new T.Vector3(),fadeTo=new T.Vector3(),fadeC=new T.Vector3(),fadeBox=new T.Box3(),fadeSphere=new T.Sphere();
   function fadeOccluders(target:Swimmer|undefined,dt:number){
     if(target){fadeTo.copy(target.root.position);fadeSeg.copy(fadeTo).sub(camera.position);}
@@ -370,13 +373,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // 2026-11-15 — 범고래만이 아니라 포유류마다 재주 하나(breach.ts 의 planTrick): 물개류 세 번 뛰기 · 물범 머리 내밀기 · 해달 누워 조개 깨기 · 수달 빙글 돌기
   const breaches=new Map<number,{plan:TrickPlan;t0:number;fired:number;trailAt:number;holdPhase:number}>();
   const waterTop=()=>tallY(5.56,tall);
+  const SPOUTERS=/^(orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/,spouted=new Map<number,number>(),spoutFwd=new T.Vector3();
   function startBreach(id:number,m:Swimmer){
     if(breaches.has(id))return true;
     const p=m.root.position,L=shownLength(m),h=motion.hall,hallTop=h?WORLD.floor+h.h*tall+.4+L*.3:-Infinity;
     const kind=trickOf(m.family);if(!kind)return false;
     // 모래사장 단계 — 재주는 물가 안쪽에서(뛰어올라 모래 경사를 뚫지 않게)
     const halfW=Math.min(5*wide-L*.55,habitat?.shoreX?habitat.shoreX(waterTop()-L*1.2)-L*.6:Infinity);
-    const plan=planTrick(kind,{x:p.x,y:p.y,z:p.z,hx:m.course.dx},waterTop(),Math.max(heightAt(Math.min(p.x,halfW),p.z),hallTop),halfW,L,3*deep-L*.5);
+    const plan=planTrick(kind,{x:p.x,y:p.y,z:p.z,hx:m.course.dx},waterTop(),Math.max(heightAt(Math.min(p.x,halfW),p.z),hallTop),halfW,L,3*deep-L*.5,trickSlow(m.family));
     breaches.set(id,{plan,t0:elapsed,fired:0,trailAt:0,holdPhase:m.phase});startles.delete(id);
     if(!active)draw(0);return true;
   }
@@ -384,9 +388,11 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const m=swimmers.get(id);if(!m||reduced.matches)return;
     if(meal&&(id===meal.predId||id===meal.ghostId))return;
     if(breaches.has(id))return;
-    if(trickOf(m.family)&&!inTunnel&&!inDome&&startBreach(id,m))return;
-    const kind=startleKind(m.family,m.key),side=Math.random()<.5?-1:1,p=m.root.position;
-    const dir=startleDir(kind,p.x-camera.position.x,p.z-camera.position.z,m.course.dx,m.course.dz,side);
+    // 모래사장 · 바위에서 쉬는 중이면(2026-11-18) 물속 재주 대신 땅에서 통통 튀며 몇 걸음 옮겨 간다(galumph)
+    const sw=(m as unknown as StepFish).swim,onLand=!!sw?.haul&&sw.rest>.5;
+    if(!onLand&&trickOf(m.family)&&!inTunnel&&!inDome&&startBreach(id,m))return;
+    const kind=startleKind(m.family,m.key,onLand),side=Math.random()<.5?-1:1,p=m.root.position;
+    const dir=kind==="galumph"?{x:0,y:0,z:side}:startleDir(kind,p.x-camera.position.x,p.z-camera.position.z,m.course.dx,m.course.dz,side);
     startles.set(id,{t0:elapsed,kind,side,dir});
     // 먹물 · 모래 — 놀란 자리에 한 번 피어오른다
     if(kind==="ink"){warmBursts();lingeringBursts.push(makeBurst(p.x,p.y,p.z,Math.max(.7,m.length*1.4),"ink",new T.Color(0,0,0),elapsed));}
@@ -729,15 +735,19 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 깊이 안개 — 수조는 camD±3 에 있다. 예전 camD+1 ~ +19 는 뒤쪽에도 11% 밖에 안 걸려 깊이가 안 보였다
     // 고른 물고기 따라가기(2026-11-10) — 물고기를 누르면 카메라가 천천히 다가가 따라간다. 수조 전체에선 구피가 몇 픽셀이라 무엇을 골랐는지 안 보였다.
     // 멈춘 그리기(draw(0) — 움직임 줄이기 · 숨김)에선 바로 그 자리로
-    const goal=sel?1:0;
+    // 해변 보기(2026-11-18 [사용자: "해변을 사용자가 더 편하게 볼 수 있게"]) — 물고기를 고르지 않았으면 모래사장 물가로 다가가 수면 위에서 내려다본다
+    const beachOn=!sel&&!!state.beach&&!state.editing&&!inTunnel&&!inDome&&!!habitat?.beachRest;
+    const goal=sel||beachOn?1:0;
     // 깊은 수조(10 · 11단계 깊이 2.4배)는 물고기가 앞뒤 ±6.6 까지 간다 — ±2.4 로 자르면 뒤쪽 물고기 대신 빈 물을 따라갔다. 수조 앞뒤 끝(3·깊이)에서 조금 안쪽까지
     const zReach=3*deep-.6;
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
     const selBreach=sel?breaches.get(sel.root.userData.id):undefined;
     // 2026-11-17 — 바위 · 모래사장(수면 위)에서 쉬는 포유류를 고르면 예전엔 4.6 까지만 봐서 그 아래 물속을 봤다
     if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,selBreach?(selBreach.plan.surface+selBreach.plan.peak)/2:Math.max(tallY(4.6,tall),Math.min(sel.root.position.y+.15,tallY(4.6,tall)+2.4)));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
+    if(beachOn&&habitat?.beachRest){const bz=3*deep*BEACH_REST_FRONT*.75,sx=habitat.shoreX?habitat.shoreX(tallY(5.56,tall),bz):4*wide,rx=habitat.beachRest.x*wide;focusGoal.set(Math.min(4.6*wide,(sx+rx)/2),tallY(5.8,tall),bz);focusLen=camD*.55/3.4;}
+    beachK=dt>0?beachK+((beachOn?1:0)-beachK)*Math.min(1,dt*1.8):beachOn?1:0;
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
-    {const up=sel&&!state.editing&&sel.root.position.y>tallY(4.4,tall)?1:0;aboveK=dt>0?aboveK+(up-aboveK)*Math.min(1,dt*1.8):up;}
+    {const up=(sel&&!state.editing&&sel.root.position.y>tallY(4.4,tall))||beachOn?1:0;aboveK=dt>0?aboveK+(up-aboveK)*Math.min(1,dt*1.8):up;}
     // 사냥 장면 — 먹이 한 마리가 아니라 사냥꾼의 입과 먹이의 가운데를, 둘이 다 들어오는 거리에서, 둘을 잇는 선의 옆에서(hunt.ts 의 huntShot)
     let shotAng:number|null=null,shotElev=0;
     if(meal&&meal.t0>=0&&mealPredS&&mealGhost&&!state.editing){const Pp=mealPredS.root.position,G=mealGhost.root.position,r=mealPredS.length*mouthReach(mealPredS.family);mealFwd.set(1,0,0).applyQuaternion(mealPredS.root.quaternion);
@@ -758,7 +768,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 자유롭게 보기의 끝(2026-11-14) — 많이 돌리고 다가가면 카메라가 앞유리 안 · 옆벽 밖으로 나가 벽 뒷면만 보였다. 시선이 늘 앞유리로 들어오게 각을 묶는다
     //   (앞유리 앞 2 칸에 서고, 옆벽 끝 모서리보다 바깥으로 돌지 않는다). 터널 · 돔은 따로 본다
     if(!inTunnel&&!inDome){const lim=Math.min(1.1,Math.atan((5*wide)/(3*deep))*.92,Math.acos(clamp((3*deep+2)/Math.max(1,camD),-1,1)));angle=clamp(angle,-lim,lim);}
-    const camA=angle+(mealAng-angle)*mealK;
+    const camA=angle+(mealAng-angle)*mealK-beachK*BEACH_VIEW_YAW;
     const near=Math.min(camD*.65,Math.max(3.6,focusLen*3.4));let dist=camD+(near-camD)*focusK;
     // 사진 모드 확대(밖) — 앞유리 안으로는 못 들어간다(photo.ts photoDistance). 안개도 이 거리를 따라간다
     if(photoOn&&!inTunnel)dist=photoDistance({dist,zoom:photoZoom,angle:camA,deep,following:focusK>.5});
@@ -779,7 +789,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       camera.position.set(0,eye,walkZ);
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,walkZ-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
-    }else{const el=mealK*mealElev+aboveK*ABOVE_ELEV,ce=Math.cos(el);camera.position.set(lookAt.x+Math.sin(camA)*camD*scale*ce, lookAt.y+(1+pitch*10)*scale+(meal&&meal.t0>=0?mealK*dist*.07:0)+Math.sin(el)*dist,lookAt.z+Math.cos(camA)*camD*scale*ce);} // 사냥 장면은 조금 위에서 — 바닥 장식 너머로
+    }else{const el=mealK*mealElev+aboveK*ABOVE_ELEV+beachK*(BEACH_VIEW_ELEV-ABOVE_ELEV),ce=Math.cos(el);camera.position.set(lookAt.x+Math.sin(camA)*camD*scale*ce, lookAt.y+(1+pitch*10)*scale+(meal&&meal.t0>=0?mealK*dist*.07:0)+Math.sin(el)*dist,lookAt.z+Math.cos(camA)*camD*scale*ce);} // 사냥 장면은 조금 위에서 — 바닥 장식 너머로
     // 사냥꾼 시점(다시 보기) — 사냥꾼 눈 자리(머리 옆)에서 먹이를 본다. 사냥꾼의 주둥이 · 벌어지는 턱이 화면 한쪽에 걸린다
     // 시점으로 들어가고 나올 때 부드럽게(povK) — 예전엔 장면이 끝나는 순간 카메라가 밖으로 툭 튀었다
     // 사냥꾼이 제 길로 돌아가기 시작하면(back) 시점에서 빠진다 — 돌아가는 길이 빨라(초당 10 칸 남짓) 카메라가 못 따라가 빈 물만 보였다
@@ -843,10 +853,13 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 만지면 놀란다 — 길 위의 자리에 달아난 만큼을 더하고(유리 · 모래 · 수면 안), 머리를 달아나는 쪽으로, 꼬리를 세게
     startleNow.clear();
     if(startles.size){let j=0;for(const[id,m]of swimmers){const st=startles.get(id);if(st&&j<motion.count){const t=elapsed-st.t0;
-      if(t>=STARTLE_S||reduced.matches||(meal&&(id===meal.predId||id===meal.ghostId)))startles.delete(id);
+      if(t>=startleDuration(st.kind)||reduced.matches||(meal&&(id===meal.predId||id===meal.ghostId)))startles.delete(id);
       else{const pose=startlePose(st.kind,t,st.side),L=motion.lengths[j],P=motion.positions,H=motion.heading,k=j*3;
         let x=P[k]+st.dir.x*pose.dash*L,y=P[k+1]+st.dir.y*pose.dash*L,z=P[k+2]+st.dir.z*pose.dash*L;
-        const mx=5*wide-L*.5,mz=3*deep-L*.4;x=clamp(x,-mx,mx);z=clamp(z,-mz,mz);y=clamp(y,heightAt(x,z)+L*.06,tallY(4.6,tall));
+        const mx=5*wide-L*.5,mz=3*deep-L*.4;x=clamp(x,-mx,mx);z=clamp(z,-mz,mz);
+        // 땅에서 — 쉬던 높이(땅에서 뜬 만큼)를 지키며 모래 위를 따라가고 통통 튄다. 물가 밖(뭍)에 남는다
+        if(st.kind==="galumph"){const lift=P[k+1]-heightAt(P[k],P[k+2]);if(habitat?.shoreX)x=Math.max(x,habitat.shoreX(waterTop(),z)+L*.5);y=heightAt(x,z)+Math.max(0,lift)+pose.hop*L;}
+        else y=clamp(y,heightAt(x,z)+L*.06,tallY(4.6,tall));
         P[k]=x;P[k+1]=y;P[k+2]=z;
         if(st.kind!=="ink"&&st.kind!=="pulse"&&pose.rush>0){const w=pose.rush*.85;H[k]=H[k]*(1-w)+st.dir.x*w;H[k+1]=H[k+1]*(1-w)+st.dir.y*w*.5;H[k+2]=H[k+2]*(1-w)+st.dir.z*w;}
         if(dt>0)m.phase+=dt*Math.max(.6,m.course.effort)*(pose.beat-1);
@@ -866,6 +879,11 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         while(br.fired<pl.splashes.length&&t>=pl.splashes[br.fired].t){const sp=pl.splashes[br.fired++];splash.burst(sp.x,sp.z,pl.surface,L*sp.scale,elapsed,sp.enter,Math.sign(b.hx)||1,sp.amount);}
         // 솟구칠 때 · 들어온 뒤 · 빙글 돌 때 꼬리에서 거품 줄
         if(b.trail&&elapsed>=br.trailAt){br.trailAt=elapsed+.05;splash.trail(P[k]-b.hx*L*.45,P[k+1]-b.hy*L*.45,P[k+2],L,elapsed,pl.surface);}}}j++;}}
+    // 고래 숨(2026-11-18 [사용자: "고래들 움직임 특성을 줘야해"]) — 숨 쉬러 수면에 머리가 닿으면 숨구멍에서 물안개 기둥이 솟는다. 고래마다 10초에 한 번까지.
+    //   혹등 · 귀신고래는 두 갈래(V 자), 향유고래는 앞 왼쪽으로 비스듬히, 나머지는 곧게. 움직임 줄이기 · 터널 · 돔 안에선 안 한다
+    if(dt>0&&!reduced.matches&&!inTunnel&&!inDome){const top=waterTop();for(const[id,m]of swimmers){if(!SPOUTERS.test(m.family))continue;const L=shownLength(m),p=m.root.position;spoutFwd.set(1,0,0).applyQuaternion(m.root.quaternion);
+      const hx=p.x+spoutFwd.x*L*.32,hy=p.y+spoutFwd.y*L*.32+L*.08,hz=p.z+spoutFwd.z*L*.32;
+      if(hy>top-L*.12&&hy<top+L*.6&&elapsed-(spouted.get(id)??-99)>10){spouted.set(id,elapsed);splash.spout(hx,hz,top,L,elapsed,m.family==="sperm_whale"?-.35:0,m.family==="humpback_whale"||m.family==="gray_whale");}}}
     if(splash.active)splash.step(elapsed,renderer.domElement.height*.9);
     // 먹이 알갱이 — 새 먹이면 물고기가 모이는 자리에 뿌리고, 먹이 쪽으로 온 물고기 입에 닿은 알은 먹힌다(food.ts). 움직임 줄이기면 한 장면
     if(motion.feed&&motion.feed!==foodFeed){foodFeed=motion.feed;food.drop(motion.feed.t,motion.feed.x,{top:tallY(4.75,tall),deep,floorAt:foodFloor});}
@@ -1053,6 +1071,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaTime?:()=>number;__aquaCourse?:()=>unknown}).__aquaTime=()=>elapsed;(host as HTMLElement&{__aquaCourse?:()=>unknown}).__aquaCourse=()=>[...swimmers.values()].map((m)=>({family:m.family,jet:m.course.jet??0,rev:m.course.rev??0,amp:m.course.amp,stand:m.course.stand??0,pos:m.root.position.toArray().map(v=>+v.toFixed(2)),len:+m.length.toFixed(2)}));if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaRocks?:()=>unknown}).__aquaRocks=()=>motion.obstacles.map(o=>({...o})); // 개발 전용: 지금 수조 시각(장면을 정해진 순간으로 넘겨 찍을 때)
   // 개발 전용: 범고래(등 뛰어오르는 물고기)를 누른 것처럼 — host.__aquaBreach() 는 뛰어오른 물고기 id, 없으면 -1
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaBreach?:(family?:string)=>number}).__aquaBreach=(family?:string)=>{for(const[id,m]of swimmers)if(trickOf(m.family)&&(!family||m.family===family)){startleFish(id);events.fish(id);return id;}return -1;};(host as HTMLElement&{__aquaBreachPlan?:()=>unknown}).__aquaBreachPlan=()=>({tall,wide,deep,plans:[...breaches.values()].map(b=>b.plan)});
+  // 개발 빌드 — 그 계열 첫 물고기를 누른 것처럼 놀라게 한다(땅에서 쉬는 중이면 통통 걷기). 돌려주는 값은 놀란 몸짓 종류
+  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStartle?:(family:string)=>string}).__aquaStartle=(family:string)=>{for(const[id,m]of swimmers)if(m.family===family){startleFish(id);return startles.get(id)?.kind??(breaches.has(id)?"trick":"none");}return "missing";};
+  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaCam?:()=>unknown}).__aquaCam=()=>({look:lookAt.toArray(),cam:camera.position.toArray(),focusK,beachK,goal:focusGoal.toArray(),tall,wide,deep,fish:[...swimmers.values()].map(m=>[m.family,m.root.position.toArray().map(v=>+v.toFixed(2)),m.root.visible])});
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{if(swaps.length)flushSwaps();for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
   // 점은 장면 그림에 찍힌다 — 계단 3(장면 그림 0.75배)이면 그만큼 작게

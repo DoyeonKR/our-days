@@ -399,8 +399,12 @@ export function rockEscape(px: number, py: number, pz: number, rad: number, rock
   out[0] = 0; out[1] = up; out[2] = 0; return up;
 }
 const ROCK_OUT = [0, 0, 0], ROCK_W = { x: 0, z: 0, r: 0, h: 0 };
+let Y_START = new Float32Array(64);
 export function resolveContacts(pos: Float32Array, lengths: ArrayLike<number>, n: number, o: ContactOptions): number {
   const H = o.heading, S = o.scale ?? 1, D = o.deep ?? 1, top = o.top ?? 4.7, iters = o.iters ?? 4;
+  // 이미 수면 위(모래사장 · 바위)에 있는 몸은 위로 누르지 않는다(2026-11-18 — 만지면 놀라는 동안 모래사장에서 쉬던 포유류가 모래 속으로 끌려 내려갔다)
+  if (Y_START.length < n) Y_START = new Float32Array(n * 2);
+  for (let k = 0; k < n; k++) Y_START[k] = pos[k * 3 + 1];
   let moved = 0;
   for (let it = 0; it < iters; it++) {
     let any = false;
@@ -466,7 +470,7 @@ export function resolveContacts(pos: Float32Array, lengths: ArrayLike<number>, n
       const L = lengths[k], mx = 5 * S - L * 0.4, mz = 3 * D - L * 0.25;
       if (mx > 0) pos[k * 3] = clamp(pos[k * 3], -mx, mx);
       if (mz > 0) pos[k * 3 + 2] = clamp(pos[k * 3 + 2], -mz, mz);
-      pos[k * 3 + 1] = clamp(pos[k * 3 + 1], WORLD.floor + L * 0.04, top);
+      pos[k * 3 + 1] = clamp(pos[k * 3 + 1], WORLD.floor + L * 0.04, Math.max(top, Y_START[k]));
     }
     if (!any) break;
   }

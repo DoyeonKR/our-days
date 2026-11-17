@@ -37,11 +37,15 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const app=relief(art,{depth:.02,round:.015,step:2,alpha:A,inside:outside,targetTris:1500});const appStart=P.length/3,APP=[];
  for(const side of[-1,1]){const base=P.length/3,n=app.P.length/3;for(let i=0;i<n;i++){const x=app.P[i*3],y=app.P[i*3+1],z=app.P[i*3+2],inBody=x>=bx0&&x<=bx1,below=inBody&&y>cAt(x),off=inBody?rAt(x)*(below?.45:.3):0;APP.push([vtx(x,y,z+side*off,...refUV(x,y)),side,x,y]);}for(const k of app.I)I.push(base+k);}
  const mid=(bx0+bx1)/2,front=APP.filter(([, ,x,y])=>x>mid&&x<=bx1&&y>cAt(x));let fx=0,fy=0,rx=0;for(const [, ,x,y]of front){fx+=x;fy+=y;}const nf=Math.max(1,front.length);fx/=nf;fy/=nf;rx=fx+ (bx1-bx0)*.04;const rootY=cAt(rx)+rAt(rx)*.6;
+ // 가슴지느러미를 몸 밖으로 벌린다(2026-11-18 — 앞에서 보면 몸 옆에 붙은 말뚝 둘이었다). 실제 고래 · 상어는 몸 옆에서 아래 · 바깥으로 비스듬히 뻗는다.
+ //   몸 아래 붙는 선(가운데 + 반두께 .6)보다 아래로 나온 만큼 바깥(z)으로 옮기고 조금 들어 올린다. 상어(톱상어)는 더 수평으로
+ const splayZ=whale?.85:1,splayY=whale?.4:.7,attach=x=>cAt(x)+rAt(x)*.6;
+ for(const [v,side,x,y]of APP){if(!(x>mid&&x<=bx1))continue;const dy=y-attach(x);if(dy<=0)continue;P[v*3+2]+=side*dy*splayZ;P[v*3+1]-=dy*splayY;}
  // 수평 꼬리지느러미(고래) — 갈래 둘 · 가운데 홈 · 앞 가장자리는 뒤로 젖혀진다. 윗면은 등 색, 아랫면은 배 색(혹등고래는 흰 아랫면)
  if(whale){let xl=bx0;for(let x=0;x<bx0;x++){let on=false;for(let y=0;y<H;y++)if(mask[y*W+x]){on=true;break;}if(on){xl=x;break;}}
   const xr=bx0+(bx1-bx0)*.03,tl=Math.max(8,xr-xl),span=(bx1-bx0)*.115,yc=cAt(bx0),th=rAt(bx0)*.4,NA=14,NS=6,top=[],bot=[];
   const xf=a=>xr-(xr-xl)*.97*Math.pow(Math.abs(a),1.6),xb=a=>xl+tl*.3*Math.pow(1-Math.abs(a),.8);
-  for(const [arr,sg,v]of[[top,-1,.5/511],[bot,1,127.5/511]])for(let i=0;i<=NA;i++){const a=-1+2*i/NA,row=[];for(let j=0;j<=NS;j++){const s=j/NS,x=xb(a)+(xf(a)-xb(a))*s,t=th*(1-Math.abs(a)*.85)*Math.sin(Math.PI*(.15+.85*s));row.push(vtx(x,yc+sg*t,a*span,.06,v));}arr.push(row);}
+  for(const [arr,sg,v]of[[top,-1,.5/511],[bot,1,127.5/511]])for(let i=0;i<=NA;i++){const a=-1+2*i/NA,row=[];for(let j=0;j<=NS;j++){const s=j/NS,x=xb(a)+(xf(a)-xb(a))*s,t=th*(1-Math.abs(a)*.85)*Math.sin(Math.PI*(.15+.85*s));row.push(vtx(x,yc+sg*t,a*span,.3,v));}arr.push(row);}
   for(let i=0;i<NA;i++)for(let j=0;j<NS;j++){const a=top[i][j],b=top[i][j+1],c=top[i+1][j],d=top[i+1][j+1];I.push(a,b,c,b,d,c);const e=bot[i][j],f=bot[i][j+1],g=bot[i+1][j],h=bot[i+1][j+1];I.push(e,g,f,f,g,h);}
   // 가장자리 띠(윗면 · 아랫면 이음) — 떠 있는 판이 아니라 닫힌 날개
   const rim=[];for(let i=0;i<=NA;i++)rim.push([top[i][0],bot[i][0]]);for(let j=1;j<=NS;j++)rim.push([top[NA][j],bot[NA][j]]);for(let i=NA-1;i>=0;i--)rim.push([top[i][NS],bot[i][NS]]);for(let j=NS-1;j>=1;j--)rim.push([top[0][j],bot[0][j]]);
@@ -50,7 +54,7 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const n=P.length/3,pos=new Float32Array(n*3);let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(let i=0;i<n;i++){x0=Math.min(x0,P[i*3]);x1=Math.max(x1,P[i*3]);y0=Math.min(y0,P[i*3+1]);y1=Math.max(y1,P[i*3+1]);}const S=2/(x1-x0),mx=(x0+x1)/2,my=(y0+y1)/2;for(let i=0;i<n;i++){pos[i*3]=(P[i*3]-mx)*S;pos[i*3+1]=(my-P[i*3+1])*S;pos[i*3+2]=P[i*3+2]*S;}
  if(n>65535)throw Error('vertices '+n);
  const names=['spine_0','spine_1','spine_2','spine_3','spine_4','spine_5','fin_L','fin_L_tip','fin_R','fin_R_tip'],BX=[.75,.45,.15,-.15,-.45,-.8],bones=names.map(m=>{const b=new T.Bone();b.name=m;return b;});
- for(let i=0;i<6;i++){bones[i].position.set(i?BX[i]-BX[i-1]:BX[0],0,0);if(i)bones[i-1].add(bones[i]);}bones[1].add(bones[6]);bones[6].add(bones[7]);bones[1].add(bones[8]);bones[8].add(bones[9]);const G=(px,py,pz)=>[(px-mx)*S,(my-py)*S,pz*S],root=G(rx,rootY,0),tip=G(fx,fy,0),zr=rAt(rx)*.6*S;bones[6].position.set(root[0]-BX[1],root[1],zr);bones[7].position.set(tip[0]-root[0],tip[1]-root[1],zr*.4);bones[8].position.set(root[0]-BX[1],root[1],-zr);bones[9].position.set(tip[0]-root[0],tip[1]-root[1],-zr*.4);
+ for(let i=0;i<6;i++){bones[i].position.set(i?BX[i]-BX[i-1]:BX[0],0,0);if(i)bones[i-1].add(bones[i]);}bones[1].add(bones[6]);bones[6].add(bones[7]);bones[1].add(bones[8]);bones[8].add(bones[9]);const G=(px,py,pz)=>[(px-mx)*S,(my-py)*S,pz*S],root=G(rx,rootY,0),tip=G(fx,fy,0),zr=rAt(rx)*.6*S;bones[6].position.set(root[0]-BX[1],root[1],zr);const tipOut=Math.max(0,fy-attach(fx));bones[7].position.set(tip[0]-root[0],tip[1]-root[1]+tipOut*splayY*S,zr*.4+tipOut*splayZ*S);bones[8].position.set(root[0]-BX[1],root[1],-zr);bones[9].position.set(tip[0]-root[0],tip[1]-root[1]+tipOut*splayY*S,-(zr*.4+tipOut*splayZ*S));
  bones[0].updateMatrixWorld(true);
  const finOf=new Map();for(const [v,side,x,y]of APP)if(x>mid&&x<=bx1&&y>cAt(x)){const d=Math.hypot(x-rx,y-rootY),f=Math.min(1,d/Math.max(4,Math.hypot(fx-rx,fy-rootY)*1.6));finOf.set(v,[side>0?6:8,f]);}
  const J=new Uint16Array(n*4),Wt=new Float32Array(n*4);for(let i=0;i<n;i++){const x=pos[i*3];const fb=finOf.get(i);if(fb){J[i*4]=fb[0];J[i*4+1]=fb[0]+1;Wt[i*4]=1-fb[1];Wt[i*4+1]=fb[1];continue;}if(x>=BX[0]){Wt[i*4]=1;continue;}let k=0;while(k<4&&x<BX[k+1])k++;const f=Math.max(0,Math.min(1,(BX[k]-x)/(BX[k]-BX[k+1])));J[i*4]=k;J[i*4+1]=k+1;Wt[i*4]=1-f;Wt[i*4+1]=f;}

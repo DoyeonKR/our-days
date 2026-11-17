@@ -6,7 +6,7 @@ import { CloseButton } from "@/components/AppButtons";
 import type { TankHandle, TankView } from "@/lib/aqua3d/scene";
 import { fishArtKey, fishName } from "@/lib/aquarium";
 import { isFishModelApproved } from "@/lib/aqua3d/quality";
-import { DOME_TIER, TUNNEL_TIER } from "@/lib/aqua3d/tiers";
+import { BEACH_VIEW_TIER, DOME_TIER, TUNNEL_TIER } from "@/lib/aqua3d/tiers";
 import { useBackClose } from "@/lib/useBackClose";
 
 /** 사진 도구는 누를 때 받는다(공유 · 카드 그리기) — 수조 화면 첫 조각을 키우지 않게 */
@@ -36,7 +36,10 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   // 이 기기에서 이미 본 사냥 장면(lib/predation · scene.ts) — 다시 열어도 같은 장면을 또 그리지 않게.
   //   수조를 지을 때마다 그때 값을 읽는다(2026-11-13): 예전엔 처음 붙을 때 한 번만 읽어, 연결이 끊겨 새로 지으면 방금 본 사냥을 또 그렸다. 저장이 막힌 기기는 ref 가 기억한다
   const mealSeenRef = useRef(0);
-  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside }), [given, canTunnel, outside]);
+  // 해변 보기(2026-11-18) — 모래사장이 있는 단계(8 ~)에서 밖에서 볼 때만
+  const [beachView, setBeachView] = useState(false);
+  const canBeach = given.aquarium.tank >= BEACH_VIEW_TIER && !given.editing && !(canTunnel && !outside);
+  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside, beach: canBeach && beachView }), [given, canTunnel, outside, canBeach, beachView]);
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef({ view, onFish, onDecor, onPlace });
   const controller = useRef<TankHandle | null>(null);
@@ -151,6 +154,7 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
     {photoNote && <p className="aqua-replay-note" role="status">{photoNote}</p>}
     {replaying && ready && !error && <CloseButton onClose={() => { if (!controller.current?.stopReplay()) onReplay?.("stopped"); }} label="그만 보기" ariaLabel="다시 보기 그만 보기" className="aqua-replay-stop" />}
     {replayNote && <p className="aqua-replay-note" role="status">{replayNote}</p>}
+    {chrome && canBeach && ready && !error && <CloseButton onClose={() => setBeachView((b) => !b)} label={beachView ? "수조 전체" : "해변 보기"} ariaLabel={beachView ? "수조 전체 보기로 돌아가기" : "모래사장 가까이 보기"} className="aqua-beach-btn" />}
     {chrome && canTunnel && ready && !error && <CloseButton onClose={() => setOutside((o) => !o)} label={outside ? inside : "밖에서 보기"} className="aqua-tunnel-btn" />}
     {!ready && !error && <p className="aqua-empty" role="status">입체 수조를 준비하고 있어요…</p>}
     {error && <div className="aqua-3d-error" role="alert"><p>{error}</p><button type="button" className="tap aqua-btn" onClick={() => { recovered.current = 0; setError(null); setReady(false); setAttempt(n=>n+1); }}>다시 시도</button></div>}

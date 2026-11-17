@@ -832,6 +832,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 /* 전체 보기는 페이지가 안 움직인다 — pan-y 를 두면 위아래로 끌어 시점을 숙이는 동작을 브라우저가 스크롤로 가져가 취소했다 */
 .aqua-tank-3d.is-full .aqua-webgl canvas { touch-action: none; }
 .aqua-photo-btn { position: absolute; z-index: 6; top: 62px; right: 10px; }
+.aqua-beach-btn { position: absolute; z-index: 6; top: 114px; right: 10px; }
+.aqua-tank-3d.is-full .aqua-beach-btn { top: calc(var(--game-safe-top) + 112px); }
 .aqua-tank-3d.is-full .aqua-photo-btn { top: calc(var(--game-safe-top) + 60px); }
 /* 수조 사진 모드(2026-11-13) — 전체 보기 틀(is-full)에 펼치고 머리 단추 · 안내를 걷는다. 아래 판은 필터 · 확대 · 이름표 · 찍기, 찍으면 카드 미리보기 · 다시 찍기 · 공유하기 */
 .aqua-photo { position: absolute; inset: 0; z-index: 8; pointer-events: none; color: #eaf7f6; }
