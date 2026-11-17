@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {FISH_MODEL_REVISIONS,fishRevisionQuery} from './model-revisions.ts';
 test('revised GLBs have content-addressed cache keys matching actual bytes',()=>{
  assert.ok(Object.keys(FISH_MODEL_REVISIONS).length>=48);
- for(const key of ['imugi_fish','golden_dragonfish','oceanic_manta','whale_shark'])assert.ok(FISH_MODEL_REVISIONS[key],key);
+ for(const key of ['imugi_fish','golden_dragonfish','azure_dragonfish','oceanic_manta','whale_shark'])assert.ok(FISH_MODEL_REVISIONS[key],key);
  for(const [key,revision]of Object.entries(FISH_MODEL_REVISIONS)){
   const hash=createHash('sha256').update(readFileSync(`public/aqua/models/fish/${key}.glb`)).digest('hex').slice(0,12);
   assert.equal(revision,hash,key);assert.equal(fishRevisionQuery(key),'?v='+hash,key);

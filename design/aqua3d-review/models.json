@@ -5577,8 +5577,8 @@
       "family": "rising",
       "form": "adult",
       "file": "public/aqua/models/fish/azure_dragonfish.glb",
-      "triangles": 3319,
-      "bytes": 48008,
+      "triangles": 6844,
+      "bytes": 115748,
       "bones": [
         "spine_0",
         "spine_1",
@@ -5600,7 +5600,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f04ac78f6c91f023c6879faef5046064ad8fa79a7df846aa5f9f8def337938c7",
-      "approval": "user_approved_2026-11-05",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -5635,7 +5635,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.22526715681529488
       },
-      "sha256": "97c6532d04b3c48b21c0bd9517d0fd4cc07476fa118b575da8d1dcd6badf4b39",
+      "sha256": "56a1eaafd99639144a5eb96221d34aec9275b594f5e6f75490686d78336b2a47",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -5648,7 +5648,8 @@
         },
         "uncompressedBytes": 237600,
         "uncompressedSha256": "b42ef99d4284fd6679a140c1b7c4b8f0713ad8c038471db92f442132dc5cd5e5"
-      }
+      },
+      "remodel": "design/aqua3d-review/azure-v2/model.json"
     },
     "golden_dragonfish": {
       "kind": "fish",

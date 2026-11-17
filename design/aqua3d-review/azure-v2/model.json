@@ -1,0 +1,495 @@
+{
+  "key": "azure_dragonfish",
+  "file": "public/aqua/models/fish/azure_dragonfish.glb",
+  "oldFile": "design/aqua3d-review/azure-v2/old.glb",
+  "sha256": "56a1eaafd99639144a5eb96221d34aec9275b594f5e6f75490686d78336b2a47",
+  "oldSHA256": "97c6532d04b3c48b21c0bd9517d0fd4cc07476fa118b575da8d1dcd6badf4b39",
+  "sourceSHA256": "f04ac78f6c91f023c6879faef5046064ad8fa79a7df846aa5f9f8def337938c7",
+  "triangles": 6844,
+  "bytes": 115748,
+  "bones": [
+    "spine_0",
+    "spine_1",
+    "spine_2",
+    "spine_3",
+    "spine_4",
+    "spine_5",
+    "fin_L",
+    "fin_L_tip",
+    "fin_R",
+    "fin_R_tip"
+  ],
+  "parts": [
+    {
+      "name": "golden-serpentine-body",
+      "role": "body",
+      "triangles": 1368,
+      "vertices": 743
+    },
+    {
+      "name": "skull",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "cheek",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "snout",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "lower-jaw",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "nose",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "brow--1",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "eye--1",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "mouth--1",
+      "role": "head",
+      "triangles": 72,
+      "vertices": 38
+    },
+    {
+      "name": "antler-a--1",
+      "role": "head",
+      "triangles": 180,
+      "vertices": 92
+    },
+    {
+      "name": "antler-a-b1--1",
+      "role": "head",
+      "triangles": 108,
+      "vertices": 56
+    },
+    {
+      "name": "antler-a-b2--1",
+      "role": "head",
+      "triangles": 84,
+      "vertices": 44
+    },
+    {
+      "name": "antler-b--1",
+      "role": "head",
+      "triangles": 156,
+      "vertices": 80
+    },
+    {
+      "name": "whisker-long--1",
+      "role": "head",
+      "triangles": 170,
+      "vertices": 87
+    },
+    {
+      "name": "whisker-down--1",
+      "role": "head",
+      "triangles": 170,
+      "vertices": 87
+    },
+    {
+      "name": "mane--1-0",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane--1-1",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane--1-2",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane--1-3",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane--1-4",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane--1-5",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane--1-6",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "pectoral--1",
+      "role": "finR",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "pectoral2--1",
+      "role": "finR",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "pelvic--1",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "brow-1",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "eye-1",
+      "role": "head",
+      "triangles": 120,
+      "vertices": 88
+    },
+    {
+      "name": "mouth-1",
+      "role": "head",
+      "triangles": 72,
+      "vertices": 38
+    },
+    {
+      "name": "antler-a-1",
+      "role": "head",
+      "triangles": 180,
+      "vertices": 92
+    },
+    {
+      "name": "antler-a-b1-1",
+      "role": "head",
+      "triangles": 108,
+      "vertices": 56
+    },
+    {
+      "name": "antler-a-b2-1",
+      "role": "head",
+      "triangles": 84,
+      "vertices": 44
+    },
+    {
+      "name": "antler-b-1",
+      "role": "head",
+      "triangles": 156,
+      "vertices": 80
+    },
+    {
+      "name": "whisker-long-1",
+      "role": "head",
+      "triangles": 170,
+      "vertices": 87
+    },
+    {
+      "name": "whisker-down-1",
+      "role": "head",
+      "triangles": 170,
+      "vertices": 87
+    },
+    {
+      "name": "mane-1-0",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane-1-1",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane-1-2",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane-1-3",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane-1-4",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane-1-5",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "mane-1-6",
+      "role": "head",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "pectoral-1",
+      "role": "finL",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "pectoral2-1",
+      "role": "finL",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "pelvic-1",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "dorsal-0",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "dorsal-1",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "dorsal-2",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "dorsal-3",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "dorsal-4",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "dorsal-5",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "dorsal-6",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "anal-0",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "anal-1",
+      "role": "body",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "tail-0",
+      "role": "tail",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "tail-1",
+      "role": "tail",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "tail-2",
+      "role": "tail",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "tail-3",
+      "role": "tail",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "tail-4",
+      "role": "tail",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "tail-5",
+      "role": "tail",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "tail-6",
+      "role": "tail",
+      "triangles": 68,
+      "vertices": 36
+    },
+    {
+      "name": "tail-7",
+      "role": "tail",
+      "triangles": 68,
+      "vertices": 36
+    }
+  ],
+  "controlPixels": [
+    [
+      459,
+      236,
+      4,
+      4
+    ],
+    [
+      443,
+      232,
+      9,
+      8
+    ],
+    [
+      422,
+      226,
+      13,
+      12
+    ],
+    [
+      400,
+      232,
+      14,
+      12
+    ],
+    [
+      385,
+      250,
+      13,
+      11
+    ],
+    [
+      373,
+      272,
+      13,
+      11
+    ],
+    [
+      352,
+      291,
+      14,
+      12
+    ],
+    [
+      325,
+      294,
+      15,
+      12
+    ],
+    [
+      295,
+      283,
+      15,
+      13
+    ],
+    [
+      262,
+      264,
+      16,
+      13
+    ],
+    [
+      228,
+      248,
+      16,
+      13
+    ],
+    [
+      196,
+      240,
+      15,
+      12
+    ],
+    [
+      166,
+      243,
+      13,
+      11
+    ],
+    [
+      143,
+      254,
+      11,
+      9
+    ],
+    [
+      127,
+      272,
+      9,
+      7
+    ],
+    [
+      118,
+      292,
+      6,
+      5
+    ],
+    [
+      112,
+      309,
+      3,
+      3
+    ]
+  ],
+  "method": "Same path as imugi-v2: closed-volume curved centerline with cylindrical original-image texture bake, solid antlers, whiskers, mane, flame fins and fan tail traced from the original art; no external asset"
+}
