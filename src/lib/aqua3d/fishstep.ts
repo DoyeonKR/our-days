@@ -111,6 +111,44 @@ const CONTACT = { heading: new Float32Array(0) as ArrayLike<number>, mass: MASS 
 const discAt = (n: number) => { if (DISC.length <= n) { const d = new Float32Array(DISC.length * 2); d.set(DISC); DISC = d; } return DISC; };
 // 길 옵션 — 프레임마다 · 물고기마다 새 객체를 안 만든다(2026-11-12)
 const OPTS = { obstacles: undefined as readonly Obstacle[] | undefined, feed: null as Feed | null, deep: 1, tall: 1, hall: null as Hall | null, leaderLength: 0 as number | undefined, out: undefined as Course | undefined };
+/** 고래상어의 기믹(2026-11-17 [사용자: "자기보다 몸집이 작은 개체들이 모두 자기를 따라오도록"]) — 수조에 고래상어가 있으면 그보다 몸이 작은 물고기는
+ *  제 길 대신 고래상어 뒤쪽 둘레(원뿔 대형 · 동갈방어 · 빨판상어처럼)에 자리를 잡고 같은 쪽을 보며 따라간다. 자리는 물고기 id 의 황금각으로 정해 겹치지 않고,
+ *  자리마다 천천히 흔들려 줄 맞춘 것처럼 굳지 않는다. 빼는 것: 불가사리 · 굴 속(곰치) · 쉬는 포유류(바위 · 모래사장 위). 길 자체(저장 · habits)는 그대로 — 그리기 전용.
+ *  WHALE_ESCORT 만큼 섞는다(1 이면 전부 대형). 여러 마리면 가장 큰 고래상어를 따른다. 유리 · 바닥 · 수면 안쪽으로 묶는다. */
+export const WHALE_ESCORT = 0.88;
+export function escortSlot(i: number, whaleL: number, L: number, elapsed: number): { back: number; side: number; up: number } {
+  const ring = Math.floor(Math.sqrt(i)), a = i * 2.39996, wob = Math.sin(elapsed * 0.6 + i * 1.7);
+  const back = whaleL * (0.35 + 0.22 * ring) + L * 0.6 + wob * whaleL * 0.04;
+  const rad = whaleL * (0.22 + 0.09 * ring) + L * 0.5;
+  return { back, side: Math.cos(a) * rad, up: Math.sin(a) * rad * 0.6 + Math.cos(elapsed * 0.45 + i) * whaleL * 0.03 };
+}
+function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: number, dt: number, wide: number, deep: number, tall: number) {
+  let wk = -1;
+  for (let k = 0; k < n; k++) if (fishes[k].family === "whale_shark" && (wk < 0 || b.lengths[k] > b.lengths[wk])) wk = k;
+  if (wk < 0) return;
+  const W = b.courses[wk], WL = b.lengths[wk], hx = W.dx, hz = W.dz, hl = Math.sqrt(hx * hx + hz * hz) || 1, fx = hx / hl, fz = hz / hl;
+  const top = tallY(4.7, tall);
+  let i = 0;
+  for (let k = 0; k < n; k++) {
+    if (k === wk) continue;
+    const m = fishes[k], st = m.swim!, L = b.lengths[k];
+    if (L >= WL || m.family === "starfish" || st.den || (st.haul && st.rest > 0.05)) continue;
+    const s = escortSlot(i++, WL, L, elapsed), c = b.courses[k];
+    let tx = W.x - fx * s.back - fz * s.side, tz = W.z - fz * s.back + fx * s.side, ty = W.y + s.up;
+    const mx = 5 * wide - 0.1 - L / 2, mz = 3 * deep - 0.1 - L / 2;
+    tx = Math.max(-mx, Math.min(mx, tx)); tz = Math.max(-mz, Math.min(mz, tz)); ty = Math.max(WORLD.floor + 0.3 + L * 0.2, Math.min(top - L * 0.2, ty));
+    const w = WHALE_ESCORT;
+    c.x += (tx - c.x) * w; c.y += (ty - c.y) * w; c.z += (tz - c.z) * w;
+    // 고래상어와 같은 쪽을 본다 — 제 빠르기는 남긴다
+    const mag = Math.sqrt(c.dx * c.dx + c.dz * c.dz) || 1;
+    c.dx += (fx * mag - c.dx) * w; c.dz += (fz * mag - c.dz) * w; c.dy += (W.dy * mag / hl - c.dy) * w;
+    c.ground *= 1 - w; c.turn *= 1 - w;
+    st.yaw = Math.atan2(-c.dz, c.dx);
+    b.positions[k * 3] = c.x; b.positions[k * 3 + 1] = c.y; b.positions[k * 3 + 2] = c.z;
+    b.heading[k * 3] = c.dx; b.heading[k * 3 + 1] = c.dy; b.heading[k * 3 + 2] = c.dz; b.pinned[k] = c.ground;
+  }
+  void dt;
+}
 /** 한 프레임 — swimmers 의 순서가 buffers 의 순서다. elapsed 는 수조 시계(초), dt 는 이번 프레임(초, 0 이면 멈춘 그리기) */
 export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: ReadonlyMap<number, { leader: number; slot: number }>, lengthOf: (id: number) => number | undefined,
   elapsed: number, dt: number, w: StepWorld, b: StepBuffers) {
@@ -166,6 +204,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     n++;
   }
   b.count = n;
+  whaleEscort(n, fishes, b, elapsed, dt, wide, deep, tall);
   // 2) 물고기끼리 깊이 겹치지 않게 — 보정값이 천천히 따라간다(떨림 없음, world.separate). 깊은 수조는 앞뒤 유리도 깊다
   const off = b.offsets.length >= n * 3 ? b.offsets : null;
   // 몸 방향(heading) · 둥근 판(DISC)을 주면 긴 몸 · 바닥 물고기는 몸통 캡슐 사이 거리로도 본다. 장애물을 주면 장식 · 바위 속으로는 안 민다

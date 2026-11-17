@@ -8908,7 +8908,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/jellyfish.glb",
       "triangles": 2720,
-      "bytes": 94328,
+      "bytes": 89896,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8961,7 +8961,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.1677456614674888
       },
-      "sha256": "9a82e8a35d80b928cf663a87ba39832bb2fcd51c72fab6b1332e6a2ad2c8c6ea",
+      "sha256": "090b7c35e524d514043b7002b6295382bd4cb8a53e961d127934714ee55ed64d",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -42947,7 +42947,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d44a99dcc3658322e16898cb19d7a745aaeff341af027de30d902b80383ca249",
-      "sha256": "4233f27e050fde090f1506a4d9ff43f00a2db899c10830d77855285af56e7906",
+      "sha256": "807c2a662bb6459302e367313098a9ec868db8971d7b082545c8c7ca6dd3a874",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43029,7 +43029,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "59bd7ea4ebfa07a324c3ed8ac7219d3131fbcb90544d8f6e06ce1f8c4ae981bc",
-      "sha256": "52d668378d8d32268ccc6917105edd50284be94a01ecb2e7b29f1f081670f3d9",
+      "sha256": "cb3402b4797c9ad23dfd85b588a0a36f23a52d99a1e84fb553831b4e343cb813",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43111,7 +43111,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "20869b16e6a53d5c835b648ccdaefaa3ffeef88c686151bca9503099339d4a9e",
-      "sha256": "252df761f95f359c8550af95bc71d8d0f553220e0c3784414337926750dffd98",
+      "sha256": "ac9c221faa0ebea9817b6a1c5b153177d15b298873bca00f7920b98e04563956",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43193,7 +43193,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "2635f09fe509f82e79ce1c8f711fe89dfed399d8744582f0ae2899516333191f",
-      "sha256": "0c6fbdbf628f3aab54f4c4f31828a6a32a327d0badf2fe6e1d7f7d3a42f27771",
+      "sha256": "08af76a7566973896550296e53b6b6f1de71e3bbd09bf63c1cbd04fba1f98a74",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43275,7 +43275,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1582f8ce14c93f304cac4072cbb68a20e5d4d64a0d494ec87a5e6d058f2c3cba",
-      "sha256": "8f6c07947b25f5abe50aebcb16af768ab9068e4f97f5a3d80f99c9e1c7f93e41",
+      "sha256": "e4dcbd487efcae14481d96ce43727fa02bbfc9e132f6a2db7510d5af19488a27",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43357,7 +43357,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f0fe917ab2856bbb257b00d20f788782688061c9fdd2f7a049e7bd2123d93c41",
-      "sha256": "1973ddb97698a1bef8f6d50a1b971be14948cb03b9606930c6ad2da83f58b0b9",
+      "sha256": "abe5aa6d264d01bec9cfe1d22f1856c291919cc091d4539f44429012573595ca",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43439,7 +43439,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4e1355c988ef47d10a11f48f2cb55a0af325c8296afacd4882840add3d397bca",
-      "sha256": "e0aba88b7265a1e24d026e41415334b80ffe5bace2026e194a4b9655e747ef6b",
+      "sha256": "985a4537ea916fbc29b5b79ecd6ab2592e920ee9d40f088a7e016b12d181042c",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43521,7 +43521,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ed5baadc56cc3d49d1f7fee0126d005ca6d8cd15823c4aa33c5f6fc5693efc6c",
-      "sha256": "1dce684bc27b8a869bb5d55af23239460f86c04c3cc93e4656d5ff6e20a86f6d",
+      "sha256": "fa2512fcf46d5bc2904c828819d14a99943c120d9386172d49d68bf13977330e",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43603,7 +43603,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8880138431a7aae040f2989553d54a342ffb0e59d11d9ae42cd3691492c777a2",
-      "sha256": "3c38a52f8d3529e749882977d45312c45788db877f42b2d1988ada7e09631db8",
+      "sha256": "8842636ccefd098e62edf8d109628c51d2c4a88cd8f7e9163fb4005f63abfa2d",
       "limits": {
         "triangles": 3000,
         "bytes": 300000

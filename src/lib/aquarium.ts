@@ -159,7 +159,7 @@ const BASE_FAMILIES: readonly AquaFamily[] = [
   { key: "steller_sea_lion", name: "큰바다사자", price: 47500, hours: 298, minTank: 5, size: 40, youngName: "새끼", finals: [s("steller_sea_lion", "큰바다사자", "전설")] },
   { key: "hammerhead", name: "귀상어", price: 48000, hours: 300, minTank: 5, size: 38, youngName: "새끼", finals: [s("hammerhead", "귀상어", "전설")] },
   { key: "marlin", name: "청새치", price: 50000, hours: 306, minTank: 5, size: 36, finals: [s("marlin", "청새치", "전설")] },
-  { key: "whale_shark", name: "고래상어", price: 52000, hours: 312, minTank: 5, size: 45, youngName: "새끼", finals: [s("whale_shark", "고래상어", "신화")] },
+  { key: "whale_shark", name: "고래상어", price: 52000, hours: 312, minTank: 5, size: 45, youngName: "새끼", finals: [s("whale_shark", "고래상어", "태초")] },
   { key: "great_white", name: "백상아리", price: 54000, hours: 318, minTank: 5, size: 42, youngName: "새끼", finals: [s("great_white", "백상아리", "전설")] },
   { key: "manta", name: "만타가오리", price: 56000, hours: 324, minTank: 5, size: 43, youngName: "새끼", finals: [s("oceanic_manta", "만타가오리", "전설")] },
   { key: "swordfish", name: "황새치", price: 56500, hours: 325, minTank: 5, size: 36, finals: [s("swordfish", "황새치", "전설")] },
