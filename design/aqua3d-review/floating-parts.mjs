@@ -38,3 +38,9 @@ export async function renderPNG(file){const bytes=await(await fetch('/'+file,{ca
  const rd=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});rd.setSize(900,300);rd.setScissorTest(true);
  [[1,0,0],[1,.6,1.3],[0,0,1]].forEach((v,i)=>{const cam=new T.OrthographicCamera(-L,L,L,-L,.01,100);cam.position.copy(c).add(new T.Vector3(...v).normalize().multiplyScalar(10));cam.lookAt(c);rd.setViewport(i*300,0,300,300);rd.setScissor(i*300,0,300,300);rd.render(sc,cam);});
  const u=rd.domElement.toDataURL();rd.dispose();return u;}
+// 네 방향(옆 · 위 · 앞 · 비스듬히) — 위에서 본 모습까지 검수(2026-11-17 새우가 위에서 무너졌다). 뼈는 게임처럼 입힌 채로 그린다
+export async function render4PNG(file){const bytes=await(await fetch('/'+file,{cache:'no-store'})).arrayBuffer(),scene=(await loader.parseAsync(bytes,'/')).scene;scene.updateMatrixWorld(true);const box=new T.Box3().setFromObject(scene),c=box.getCenter(new T.Vector3()),L=box.getSize(new T.Vector3()).length()*.5;
+ const sc=new T.Scene();sc.background=new T.Color(0xa9b7bc);sc.add(new T.HemisphereLight(0xffffff,0x555555,2.2));const d=new T.DirectionalLight(0xffffff,1.2);d.position.set(2,4,3);sc.add(d);sc.add(scene);
+ const rd=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});rd.setSize(1200,300);rd.setScissorTest(true);
+ [[0,0,1],[0,1,.001],[1,0,0],[1,.6,1.3]].forEach((v,i)=>{const cam=new T.OrthographicCamera(-L,L,L,-L,.01,100);if(i===1)cam.up.set(0,0,-1);cam.position.copy(c).add(new T.Vector3(...v).normalize().multiplyScalar(10));cam.lookAt(c);rd.setViewport(i*300,0,300,300);rd.setScissor(i*300,0,300,300);rd.render(sc,cam);});
+ const u=rd.domElement.toDataURL();rd.dispose();return u;}

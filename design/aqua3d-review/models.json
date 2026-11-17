@@ -42925,7 +42925,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 76360,
+      "bytes": 102984,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42947,7 +42947,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d44a99dcc3658322e16898cb19d7a745aaeff341af027de30d902b80383ca249",
-      "sha256": "807c2a662bb6459302e367313098a9ec868db8971d7b082545c8c7ca6dd3a874",
+      "sha256": "1771bca5b1ba9d42227ae34f7e952c8af8f77d5bc57af8f7bafd338701dc591b",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -42999,7 +42999,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "juv_cherry_shrimp": {
       "kind": "fish",
@@ -43007,7 +43007,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 86328,
+      "bytes": 118464,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43029,7 +43029,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "59bd7ea4ebfa07a324c3ed8ac7219d3131fbcb90544d8f6e06ce1f8c4ae981bc",
-      "sha256": "cb3402b4797c9ad23dfd85b588a0a36f23a52d99a1e84fb553831b4e343cb813",
+      "sha256": "0910fe4d1d2231996acf3b3b83158deb50e677ef90ca45543ecc4e6178cf2222",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43081,7 +43081,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "cherry_shrimp": {
       "kind": "fish",
@@ -43089,7 +43089,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 88912,
+      "bytes": 125764,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43111,7 +43111,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "20869b16e6a53d5c835b648ccdaefaa3ffeef88c686151bca9503099339d4a9e",
-      "sha256": "ac9c221faa0ebea9817b6a1c5b153177d15b298873bca00f7920b98e04563956",
+      "sha256": "dfbfefc06354701be3a7ebb458b882a47ca48da52be246619061a003dd5ab350",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43163,7 +43163,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "fry_fleshy_prawn": {
       "kind": "fish",
@@ -43171,7 +43171,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 74236,
+      "bytes": 93572,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43193,7 +43193,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "2635f09fe509f82e79ce1c8f711fe89dfed399d8744582f0ae2899516333191f",
-      "sha256": "08af76a7566973896550296e53b6b6f1de71e3bbd09bf63c1cbd04fba1f98a74",
+      "sha256": "385ebf72be4d6af299193c63ca7450f4b3f406d60ad7a75778a7a33e3b959169",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43245,7 +43245,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "juv_fleshy_prawn": {
       "kind": "fish",
@@ -43253,7 +43253,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 70776,
+      "bytes": 92432,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43275,7 +43275,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1582f8ce14c93f304cac4072cbb68a20e5d4d64a0d494ec87a5e6d058f2c3cba",
-      "sha256": "e4dcbd487efcae14481d96ce43727fa02bbfc9e132f6a2db7510d5af19488a27",
+      "sha256": "d5483545537d88278aa6e48104704eb2ec8442761e705bbc99ce7c3ed2d22889",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43327,7 +43327,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "fleshy_prawn": {
       "kind": "fish",
@@ -43335,7 +43335,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 73200,
+      "bytes": 97980,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43357,7 +43357,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f0fe917ab2856bbb257b00d20f788782688061c9fdd2f7a049e7bd2123d93c41",
-      "sha256": "abe5aa6d264d01bec9cfe1d22f1856c291919cc091d4539f44429012573595ca",
+      "sha256": "98083cfa8c8ebd2102fd1fdfd28ac934e50368d14e90737ec36f791b3129e8de",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43409,7 +43409,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "fry_dokdo_shrimp": {
       "kind": "fish",
@@ -43417,7 +43417,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 77812,
+      "bytes": 98964,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43439,7 +43439,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4e1355c988ef47d10a11f48f2cb55a0af325c8296afacd4882840add3d397bca",
-      "sha256": "985a4537ea916fbc29b5b79ecd6ab2592e920ee9d40f088a7e016b12d181042c",
+      "sha256": "ed34ac436b6c2d9eb6fce1ddb8f9538ee865daea20e7f181c68b954ac8b41fd8",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43491,7 +43491,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "juv_dokdo_shrimp": {
       "kind": "fish",
@@ -43499,7 +43499,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 82028,
+      "bytes": 104792,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43521,7 +43521,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ed5baadc56cc3d49d1f7fee0126d005ca6d8cd15823c4aa33c5f6fc5693efc6c",
-      "sha256": "fa2512fcf46d5bc2904c828819d14a99943c120d9386172d49d68bf13977330e",
+      "sha256": "3423eb8026434471155bff5b1c5ebd895a195e06b755ee37a53cb33185e49eeb",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43573,7 +43573,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "dokdo_shrimp": {
       "kind": "fish",
@@ -43581,7 +43581,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 83416,
+      "bytes": 111272,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43603,7 +43603,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8880138431a7aae040f2989553d54a342ffb0e59d11d9ae42cd3691492c777a2",
-      "sha256": "8842636ccefd098e62edf8d109628c51d2c4a88cd8f7e9163fb4005f63abfa2d",
+      "sha256": "524f97cb7adafe48d963f035fb59314170bb1d2f91187ef72521814f2dc78a20",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43655,7 +43655,7 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "floatingRepair": "2026-11-17",
-      "remodel": "2026-11-17 reference relief"
+      "remodel": "2026-11-17 traced round body (shrimp-tube-build.mjs)"
     },
     "orca": {
       "kind": "fish",
