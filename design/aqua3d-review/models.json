@@ -6811,7 +6811,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/feeder_3.glb",
       "triangles": 2536,
-      "bytes": 40512,
+      "bytes": 113196,
       "bones": [],
       "textureSize": [
         512,
@@ -6823,7 +6823,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "c52745e49c18a3dfe9ac6691201d04ba9c9861ed44e0cc3a15a58decbfda6114",
-      "approval": "user_approved_2026-11-03",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6841,7 +6841,7 @@
           }
         ]
       },
-      "sha256": "c99e59218cc410498e6d8c7ce706a9ec905d8a0a4b3f8c3032c790f6566b4d9e",
+      "sha256": "213b4491d529dbb3865ae281a905fb2c6bf15ac45105c4b2a4a78315e1034923",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -6861,7 +6861,8 @@
         },
         "uncompressedBytes": 232356,
         "uncompressedSha256": "d321a68771f1555dca2a1a25ba994c681c2959b9028c9f881dba7b6fefdc6194"
-      }
+      },
+      "remodel": "2026-11-17 reference relief"
     },
     "moss_ball": {
       "kind": "decor",
@@ -7875,7 +7876,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/windmill.glb",
       "triangles": 3484,
-      "bytes": 75416,
+      "bytes": 97784,
       "bones": [],
       "textureSize": [
         512,
@@ -7887,7 +7888,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "eb8e48d1d5614b525ba66b6145067ba5e0f82dd0ed18a09ef7dc58df61f2c97a",
-      "approval": "user_approved_2026-11-03",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -7905,7 +7906,7 @@
           }
         ]
       },
-      "sha256": "84608998265daffe184b5e3f0e66aadcfdf4b86d307c79c27dbc9563a0e605f8",
+      "sha256": "8b8faefccaff97ddb78710160c067247d83ac64646641f71cc8b7688efd00a72",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -7926,7 +7927,8 @@
         "uncompressedBytes": 297628,
         "uncompressedSha256": "6d74c22f40cebb461252590178d46d7876909ccf06d04dca08a2ad99b0d2e9c1"
       },
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "treasure": {
       "kind": "decor",
@@ -8046,7 +8048,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/stone_pagoda.glb",
       "triangles": 4956,
-      "bytes": 69512,
+      "bytes": 82872,
       "bones": [],
       "textureSize": [
         512,
@@ -8056,7 +8058,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "67c4ca22146b7f9dc1f3f3242ece46ea6b6488e2abe5ab9fa3c8aec064db0a3c",
-      "approval": "user_approved_2026-11-03",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -8074,7 +8076,7 @@
           }
         ]
       },
-      "sha256": "61a67c30678477b94e2518ce684f39e180edcc81db090ed4488385b979acc0cc",
+      "sha256": "f1633ccb82a739287c37dee4c6b4c500e252e7f3fb48b02cc9b5e470c3b7644e",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -8095,7 +8097,8 @@
         "uncompressedBytes": 305436,
         "uncompressedSha256": "016fb5bf3d578cec391d5a9f25a61d41386f1be38782ac20933744c1adb6353a"
       },
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "sunken_ship": {
       "kind": "decor",
@@ -8374,7 +8377,7 @@
       "kind": "decor",
       "file": "public/aqua/models/decor/star_gate.glb",
       "triangles": 4188,
-      "bytes": 79772,
+      "bytes": 108460,
       "bones": [],
       "textureSize": [
         512,
@@ -8384,7 +8387,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "c4135f3d506e47ed6d4ff903b073255c71c43935e6bb335129fe0a810dc16ea9",
-      "approval": "user_approved_2026-11-03",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 15000,
         "bytes": 1500000
@@ -8402,7 +8405,7 @@
           }
         ]
       },
-      "sha256": "81a09434d281108777ea99e19173393e4fbfc785ce0499f52dcd455f6733f46f",
+      "sha256": "943940a533349e9b9eb86691a5d69c813bbf7484a2986907377edef031eece05",
       "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
@@ -8423,7 +8426,8 @@
         "uncompressedBytes": 315320,
         "uncompressedSha256": "26cd9e82b80a9feef4951ec155a953604d0445480eb22e6a8a643e6ca495a111"
       },
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "sweetfish": {
       "kind": "fish",
@@ -8904,7 +8908,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/jellyfish.glb",
       "triangles": 2720,
-      "bytes": 45128,
+      "bytes": 94328,
       "bones": [
         "spine_0",
         "spine_1",
@@ -8926,7 +8930,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "13a40d3f27877e1cac6eb4e4a578832c0feeb4c9b7d45946074762dc1a49cab1",
-      "approval": "user_approved_2026-11-05",
+      "approval": "pending_visual_review",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8957,7 +8961,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.1677456614674888
       },
-      "sha256": "63675c300cfa50c5af7e033c2c4844dd2dc10ac134c4263b193bf292ae3137d3",
+      "sha256": "9a82e8a35d80b928cf663a87ba39832bb2fcd51c72fab6b1332e6a2ad2c8c6ea",
       "compression": {
         "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
         "tool": "design/aqua3d-review/glb-compress.mjs",
@@ -8971,7 +8975,8 @@
         "uncompressedBytes": 176584,
         "uncompressedSha256": "978bc0388970aa135f32a41190ca2c967005c50ee417844fcacdb11eea59883a"
       },
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "fry_jellyfish": {
       "kind": "fish",
@@ -42920,7 +42925,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 52996,
+      "bytes": 76360,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42942,7 +42947,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d44a99dcc3658322e16898cb19d7a745aaeff341af027de30d902b80383ca249",
-      "sha256": "a8c330eba7ff117400b85fe03b0190160bc6184fa5454ad757155a105b8c9c77",
+      "sha256": "4233f27e050fde090f1506a4d9ff43f00a2db899c10830d77855285af56e7906",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -42966,7 +42971,7 @@
         "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -42993,7 +42998,8 @@
         "maximumDisplacement": 0.19357442843785042
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "juv_cherry_shrimp": {
       "kind": "fish",
@@ -43001,7 +43007,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 61932,
+      "bytes": 86328,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43023,7 +43029,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "59bd7ea4ebfa07a324c3ed8ac7219d3131fbcb90544d8f6e06ce1f8c4ae981bc",
-      "sha256": "1cbe5320ebf8d4dfb793bfb196fc31306969e3da62a24643bf72e7fbbde3768d",
+      "sha256": "52d668378d8d32268ccc6917105edd50284be94a01ecb2e7b29f1f081670f3d9",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43047,7 +43053,7 @@
         "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -43074,7 +43080,8 @@
         "maximumDisplacement": 0.19528863406994199
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "cherry_shrimp": {
       "kind": "fish",
@@ -43082,7 +43089,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/cherry_shrimp.glb",
       "triangles": 2508,
-      "bytes": 68464,
+      "bytes": 88912,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43104,7 +43111,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "20869b16e6a53d5c835b648ccdaefaa3ffeef88c686151bca9503099339d4a9e",
-      "sha256": "9279707668e74bb6dc84ddb8d991a11e7e76481658f7412055c067f5beb55219",
+      "sha256": "252df761f95f359c8550af95bc71d8d0f553220e0c3784414337926750dffd98",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43128,7 +43135,7 @@
         "description": "red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -43155,7 +43162,8 @@
         "maximumDisplacement": 0.19650439146101306
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "fry_fleshy_prawn": {
       "kind": "fish",
@@ -43163,7 +43171,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 52952,
+      "bytes": 74236,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43185,7 +43193,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "2635f09fe509f82e79ce1c8f711fe89dfed399d8744582f0ae2899516333191f",
-      "sha256": "3fd18859e88f404c1f19c432d8f5398fc90abf022916b2af56133ae4887d845e",
+      "sha256": "0c6fbdbf628f3aab54f4c4f31828a6a32a327d0badf2fe6e1d7f7d3a42f27771",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43209,7 +43217,7 @@
         "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -43236,7 +43244,8 @@
         "maximumDisplacement": 0.1860724191648985
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "juv_fleshy_prawn": {
       "kind": "fish",
@@ -43244,7 +43253,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 50888,
+      "bytes": 70776,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43266,7 +43275,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1582f8ce14c93f304cac4072cbb68a20e5d4d64a0d494ec87a5e6d058f2c3cba",
-      "sha256": "47abd14403fe36a74ae9b9d6acd1b0a2c507e726a5555b2b1664d12d75b6fab1",
+      "sha256": "8f6c07947b25f5abe50aebcb16af768ab9068e4f97f5a3d80f99c9e1c7f93e41",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43290,7 +43299,7 @@
         "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -43317,7 +43326,8 @@
         "maximumDisplacement": 0.18613637189186358
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "fleshy_prawn": {
       "kind": "fish",
@@ -43325,7 +43335,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/fleshy_prawn.glb",
       "triangles": 2544,
-      "bytes": 53008,
+      "bytes": 73200,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43347,7 +43357,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f0fe917ab2856bbb257b00d20f788782688061c9fdd2f7a049e7bd2123d93c41",
-      "sha256": "8e2d62bb24569c122c2aeebbc70403639105aeb71289c7c94a4240174c7897ca",
+      "sha256": "1973ddb97698a1bef8f6d50a1b971be14948cb03b9606930c6ad2da83f58b0b9",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43371,7 +43381,7 @@
         "description": "living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -43398,7 +43408,8 @@
         "maximumDisplacement": 0.1861788865082032
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "fry_dokdo_shrimp": {
       "kind": "fish",
@@ -43406,7 +43417,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 52264,
+      "bytes": 77812,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43428,7 +43439,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4e1355c988ef47d10a11f48f2cb55a0af325c8296afacd4882840add3d397bca",
-      "sha256": "c1a6c87c2aab32cc5d18f004c9de14b282c5acef5bd290b78a5730b767cb3c9e",
+      "sha256": "e0aba88b7265a1e24d026e41415334b80ffe5bace2026e194a4b9655e747ef6b",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43452,7 +43463,7 @@
         "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -43479,7 +43490,8 @@
         "maximumDisplacement": 0.17962486141368605
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "juv_dokdo_shrimp": {
       "kind": "fish",
@@ -43487,7 +43499,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 56064,
+      "bytes": 82028,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43509,7 +43521,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ed5baadc56cc3d49d1f7fee0126d005ca6d8cd15823c4aa33c5f6fc5693efc6c",
-      "sha256": "ccc091fdb4ba6573e38647701303c61445da9bcbac174c09571d0aff122f87b1",
+      "sha256": "1dce684bc27b8a869bb5d55af23239460f86c04c3cc93e4656d5ff6e20a86f6d",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43533,7 +43545,7 @@
         "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -43560,7 +43572,8 @@
         "maximumDisplacement": 0.17846452904839435
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "dokdo_shrimp": {
       "kind": "fish",
@@ -43568,7 +43581,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/dokdo_shrimp.glb",
       "triangles": 2652,
-      "bytes": 54296,
+      "bytes": 83416,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43590,7 +43603,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8880138431a7aae040f2989553d54a342ffb0e59d11d9ae42cd3691492c777a2",
-      "sha256": "a3c1b4875845badcfec3b7d01a5c4817963bda7de1022c21571ed39f594a85a8",
+      "sha256": "3c38a52f8d3529e749882977d45312c45788db877f42b2d1988ada7e09631db8",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -43614,7 +43627,7 @@
         "description": "living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster"
       },
       "visualApproval": "pending",
-      "approval": "user_approved_2026-11-14",
+      "approval": "pending_visual_review",
       "activation": "not enabled",
       "geometryAuthoring": "shrimp-volume-v1",
       "validation": {
@@ -43641,7 +43654,8 @@
         "maximumDisplacement": 0.17763971017168792
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "floatingRepair": "2026-11-17"
+      "floatingRepair": "2026-11-17",
+      "remodel": "2026-11-17 reference relief"
     },
     "orca": {
       "kind": "fish",
