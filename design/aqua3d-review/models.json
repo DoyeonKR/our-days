@@ -41197,7 +41197,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_spotted_seal.glb",
       "triangles": 2800,
-      "bytes": 53448,
+      "bytes": 78840,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41219,7 +41219,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "034406ac4ac3b70ecfb57963c15e1e1c1baf6129415bd7387e69003d7896f9b9",
-      "sha256": "c828e1336d1fc5f7954dfabed5a5bfca46a76972eb1dbb995ee06b1594269252",
+      "sha256": "9d6e6bc346b7242863163571da69b1cde4e0bc02844d303449766a118ad3955a",
       "authoringProfile": {
         "key": "spotted_seal",
         "name": "점박이물범",
@@ -41285,7 +41285,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "juv_spotted_seal": {
       "kind": "fish",
@@ -41293,7 +41294,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_spotted_seal.glb",
       "triangles": 2924,
-      "bytes": 61764,
+      "bytes": 82316,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41315,7 +41316,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0e0f07d800170267f6a9ee86d23d81244f04781bbc1d38c72e41a23928e5a42e",
-      "sha256": "b53158ce7368eb1e11ebbc0e9812bce5690c5e2eee4f550667239da58fd685c2",
+      "sha256": "1a5d119ceb58ae0c65670d858db10d658fe673ba8987d1d739f22ea8b7b6a49f",
       "authoringProfile": {
         "key": "spotted_seal",
         "name": "점박이물범",
@@ -41381,7 +41382,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "spotted_seal": {
       "kind": "fish",
@@ -41389,7 +41391,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/spotted_seal.glb",
       "triangles": 2784,
-      "bytes": 61184,
+      "bytes": 98688,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41411,7 +41413,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "01737bb9cc1dc536e4d65033f50a0720d104de762918928cfa52e4f8ddc67a9d",
-      "sha256": "e39b32845c6d026504e27a61a845ec926fea8db79106f48846a1fee5c0265e89",
+      "sha256": "a6f51cbb02e97ece207aaee044f7dc8b9fded3b493e7a1b475399ab8cc5caa43",
       "authoringProfile": {
         "key": "spotted_seal",
         "name": "점박이물범",
@@ -41477,7 +41479,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "fry_fur_seal": {
       "kind": "fish",
@@ -41485,7 +41488,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_fur_seal.glb",
       "triangles": 2728,
-      "bytes": 54468,
+      "bytes": 88468,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41507,7 +41510,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d3c4a518540f1a54819e11e3e876ada6d8a94e6a0aae20d443ea73d6f1148ee3",
-      "sha256": "1a442b2b648b39508d46d8a50de65584648166f698dc2673be95185ae171112d",
+      "sha256": "6b9f47306e1233ee3296e4906e53dbf27da225410f3294bb429fd58cbfabd89d",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -41573,7 +41576,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "juv_fur_seal": {
       "kind": "fish",
@@ -41581,7 +41585,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_fur_seal.glb",
       "triangles": 2756,
-      "bytes": 55384,
+      "bytes": 94880,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41603,7 +41607,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "94d969f0a0514b57102a5c7faf903ac095c4479451bf5fbaf05fb5779c7d38c8",
-      "sha256": "4f7fe5a1fb596c0c1fc431a5d275e5372dd027986768b6e914c5df86110b8177",
+      "sha256": "f71ee326bb7763607f6a750c43f11706d974a11d0015987d15f8c5adb156210f",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -41669,7 +41673,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "fur_seal": {
       "kind": "fish",
@@ -41677,7 +41682,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/fur_seal.glb",
       "triangles": 2764,
-      "bytes": 57676,
+      "bytes": 93624,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41699,7 +41704,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "af738988edbf9455274738494d51a9bffc6a065b35bac471b23e14f3cf221a43",
-      "sha256": "185ecd63178ecf5190cc548e90ec15a019cd26f8c66946abed838f96003f5117",
+      "sha256": "6f87260a1d3a706f84462bb59b6722df3b268878a6caea60529b4518c5e90a15",
       "authoringProfile": {
         "key": "fur_seal",
         "name": "물개",
@@ -41765,7 +41770,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "fry_steller_sea_lion": {
       "kind": "fish",
@@ -41773,7 +41779,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_steller_sea_lion.glb",
       "triangles": 2752,
-      "bytes": 56452,
+      "bytes": 86700,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41795,7 +41801,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "a400dcd59d21309b110fadff13dceacb058ced63d5d29711d3748e1415c0f999",
-      "sha256": "f8179fe04a91eec932c6f38614a79f957f43b52e5b0af126da10a4c74dcf1ae2",
+      "sha256": "3ad1cc78ea5011843e7aae7e0c390381ce696c6fad218a6bc44723e87bb50afb",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -41861,7 +41867,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "juv_steller_sea_lion": {
       "kind": "fish",
@@ -41869,7 +41876,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_steller_sea_lion.glb",
       "triangles": 2764,
-      "bytes": 58192,
+      "bytes": 83436,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41891,7 +41898,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "9fbdcd70b60e7cbc320fcbfb96300608aeb969b98e347824e79f92c0bfa48327",
-      "sha256": "d54b107219b96d8cf46a30a1704a8112531dd9a8ddb312f14d0d763da35f2ed4",
+      "sha256": "f6fe70beafc07486c792e1d94de3f188951b85e1e2c197e8124d6bad26bf9bf7",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -41957,7 +41964,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "steller_sea_lion": {
       "kind": "fish",
@@ -41965,7 +41973,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/steller_sea_lion.glb",
       "triangles": 2736,
-      "bytes": 63776,
+      "bytes": 91284,
       "bones": [
         "spine_0",
         "spine_1",
@@ -41987,7 +41995,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "47ae0114d38fc066f447ae13e2fce9fc030ddce062db1b17506da1783ee8c4db",
-      "sha256": "f87b60ca9f2d104aa65b2db83f72c173c8d582eb75abe5af2f76c3f9fc608195",
+      "sha256": "d4133724dd768248252da44e28069451f86af035469964e38dc2d95c5039bca8",
       "authoringProfile": {
         "key": "steller_sea_lion",
         "name": "큰바다사자",
@@ -42053,7 +42061,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "fry_japanese_sea_lion": {
       "kind": "fish",
@@ -42061,7 +42070,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_japanese_sea_lion.glb",
       "triangles": 2740,
-      "bytes": 56480,
+      "bytes": 85916,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42083,7 +42092,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "969e13df5e130cf5788ae3dacb988e03b5a8118981d4e1b46fb51f829ff40f82",
-      "sha256": "eef92c3f670a4f0ded55c04c71d94a6fbe8d0e52785b041e9e1cc593a3df3de2",
+      "sha256": "5882612d1bb0f704dc6496ea1d02c0f4f93797b9d7034d4bd2903c0a2c170daf",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",
@@ -42149,7 +42158,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "juv_japanese_sea_lion": {
       "kind": "fish",
@@ -42157,7 +42167,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_japanese_sea_lion.glb",
       "triangles": 2748,
-      "bytes": 55744,
+      "bytes": 83952,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42179,7 +42189,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "935153d7be828522737f8d97f52799306ff091199ee18e6eb1bac8e7c0c72768",
-      "sha256": "a1454c82204ed589e4723b26de4ec6e4e9f6e86dbd991a0d050f705a25f9ef13",
+      "sha256": "964738eb643bfe93cd8acae1fad9d9b3fdc7f46a65bea8ebaf0e441389a1c4ac",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",
@@ -42245,7 +42255,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "japanese_sea_lion": {
       "kind": "fish",
@@ -42253,7 +42264,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/japanese_sea_lion.glb",
       "triangles": 2752,
-      "bytes": 55136,
+      "bytes": 85016,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42275,7 +42286,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ea35320730f9f06b763e8959249925322615e6c7a5caea1bc85806a8b2dabfea",
-      "sha256": "ad5e44b0016fbf0e558e927baaae5d82786c34fe9e0963a94484647da5c88dd7",
+      "sha256": "59ffdcd3cc5fe241e06b34951f1212a1c883712469800d3d40f686e74728460d",
       "authoringProfile": {
         "key": "japanese_sea_lion",
         "name": "독도 강치",
@@ -42341,7 +42352,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24656352168275972
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "fry_sea_otter": {
       "kind": "fish",
@@ -42349,7 +42361,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_sea_otter.glb",
       "triangles": 2808,
-      "bytes": 61004,
+      "bytes": 97004,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42371,7 +42383,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "74c635d544d96df8fcbacc2b56bb63f917e46c9479e4520cf20cc5433f1b489b",
-      "sha256": "983c226b8a339dd9d9a6847473915ab0ae2aedde1714f5ab80db147f736b5763",
+      "sha256": "1fcf994a560f35ef7c1a70225257a8bb5b08c4aa000654ea01c93973c3711b08",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -42437,7 +42449,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24812474455382802
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "juv_sea_otter": {
       "kind": "fish",
@@ -42445,7 +42458,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_sea_otter.glb",
       "triangles": 2928,
-      "bytes": 60380,
+      "bytes": 97760,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42467,7 +42480,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4b6eaf769d847239f04036855397654abe623f7633324481a5ef5ec2fbe33e29",
-      "sha256": "62417a0bda85f2b070ba255442c92cf6190bd943872ac751d39471caff0e9a4c",
+      "sha256": "fe7e3818867569fbb9b9f6a6f262d47aefe6a55caec1018b0fff93c7067fabcb",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -42533,7 +42546,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24812474455382802
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "sea_otter": {
       "kind": "fish",
@@ -42541,7 +42555,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/sea_otter.glb",
       "triangles": 2930,
-      "bytes": 61656,
+      "bytes": 89348,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42563,7 +42577,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "5f2329fc5ef00cfec2063a761ac3ef5fbb0b4bf48b6af1b256e05f51dbaff72d",
-      "sha256": "fde7ebd7da798fedc0859645ea7a48ad9ff3a6fb0f36a90ccedfca979d49a0ef",
+      "sha256": "c7f59208f47f18222daf3c89055cf2c5b53ba64f2d2e151e1a1d95bf51d9ff53",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -42629,7 +42643,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.24812474455382802
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "fry_otter": {
       "kind": "fish",
@@ -42637,7 +42652,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_otter.glb",
       "triangles": 2772,
-      "bytes": 55800,
+      "bytes": 98884,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42659,7 +42674,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "be4cc17b751dd31873ca024b0412623e63a37c8ad4365030e3b8949c5b14279b",
-      "sha256": "0b44aa44ef3338af00ad50519c40011e08404acee1fc8f67369be1b38c1fb945",
+      "sha256": "5db371757b5b71b9aee116801ddc6cbf9210132b2517393172889efcddae9a4e",
       "authoringProfile": {
         "key": "otter",
         "name": "수달",
@@ -42725,7 +42740,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23370647968030767
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "juv_otter": {
       "kind": "fish",
@@ -42733,7 +42749,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_otter.glb",
       "triangles": 2904,
-      "bytes": 58308,
+      "bytes": 98888,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42755,7 +42771,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "91bc95accd956c677a9f03af80d1998edca5d9f4e750c938818262a3b750a11a",
-      "sha256": "37d609359971a06e22c5cbc27b3f48591240179bfd6b50c9724c30bf3a58728b",
+      "sha256": "99367d3d0e71fc91e8c1c1979039cf4428e1bbc77387d32d78f5c171fc7e4e71",
       "authoringProfile": {
         "key": "otter",
         "name": "수달",
@@ -42821,7 +42837,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23369723995158176
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "otter": {
       "kind": "fish",
@@ -42829,7 +42846,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/otter.glb",
       "triangles": 2808,
-      "bytes": 53220,
+      "bytes": 89348,
       "bones": [
         "spine_0",
         "spine_1",
@@ -42851,7 +42868,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4983d27081ee274c7ef6fc2f7d40804d344e6732c4af239eed6e8ebccb8d011d",
-      "sha256": "e2681cba355242809e9dac60198ed6936625641517315ee7ccc2a836d0b7fe34",
+      "sha256": "8955d591c4574c345099697ffed85dc61f6976984d5096cb1f27188e85d07195",
       "authoringProfile": {
         "key": "otter",
         "name": "수달",
@@ -42917,7 +42934,8 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23369118261458424
       },
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     },
     "fry_cherry_shrimp": {
       "kind": "fish",

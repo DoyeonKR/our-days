@@ -31,12 +31,12 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_barracuda:'d72e86246bc9',juv_barracuda:'354c073a7b35',barracuda:'8207053b34a1',
  fry_frilled_shark:'5c580463f82b',juv_frilled_shark:'2dd008da6992',frilled_shark:'afbd12a5e186',
  // 2026-11-15 포유류 V3(네 방향 그림 → 입체) — 18모습
- fry_spotted_seal:'c828e1336d1f',juv_spotted_seal:'b53158ce7368',spotted_seal:'e39b32845c6d',
- fry_fur_seal:'1a442b2b648b',juv_fur_seal:'4f7fe5a1fb59',fur_seal:'185ecd63178e',
- fry_steller_sea_lion:'f8179fe04a91',juv_steller_sea_lion:'d54b107219b9',steller_sea_lion:'f87b60ca9f2d',
- fry_japanese_sea_lion:'eef92c3f670a',juv_japanese_sea_lion:'a1454c82204e',japanese_sea_lion:'ad5e44b0016f',
- fry_sea_otter:'983c226b8a33',juv_sea_otter:'62417a0bda85',sea_otter:'fde7ebd7da79',
- fry_otter:'0b44aa44ef33',juv_otter:'37d609359971',otter:'e2681cba3552',
+ fry_spotted_seal:'9d6e6bc346b7',juv_spotted_seal:'1a5d119ceb58',spotted_seal:'a6f51cbb02e9',
+ fry_fur_seal:'6b9f47306e12',juv_fur_seal:'f71ee326bb77',fur_seal:'6f87260a1d3a',
+ fry_steller_sea_lion:'3ad1cc78ea50',juv_steller_sea_lion:'f6fe70beafc0',steller_sea_lion:'d4133724dd76',
+ fry_japanese_sea_lion:'5882612d1bb0',juv_japanese_sea_lion:'964738eb643b',japanese_sea_lion:'59ffdcd3cc5f',
+ fry_sea_otter:'1fcf994a560f',juv_sea_otter:'fe7e38188675',sea_otter:'c7f59208f47f',
+ fry_otter:'5db371757b5b',juv_otter:'99367d3d0e71',otter:'8955d591c457',
 });
 /** 주인 모델(public/aqua/models/boss/, 2026-11-15) — 같은 규칙(바이트 해시) */
 export const BOSS_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({
