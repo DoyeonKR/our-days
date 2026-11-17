@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import * as T from "three";
-import { makeHabitat, substrateHeight, leafGeometry, HABITAT_THEMES } from "./habitat.ts";
+import { makeHabitat, substrateHeight, leafGeometry, HABITAT_THEMES, BUILTIN_PROPS, BUILTIN_PROP_NAMES } from "./habitat.ts";
 import { decorToWorld, worldToDecor, WORLD } from "./world.ts";
 
 test("six aquascapes have real substrate, glass, lighting, hardscape, foliage, equipment and different compositions", () => {
@@ -11,7 +11,7 @@ test("six aquascapes have real substrate, glass, lighting, hardscape, foliage, e
   assert.ok(makeHabitat(9).floor.geometry.attributes.position.count > 3000, "상위 어항은 6단계 지형 + 다른 색");
   for (let tier = 1; tier <= 6; tier++) {
     const h = makeHabitat(tier); h.animate(0);
-    for (const name of ["contoured-substrate", "substrate-strata", "bottom-plinth", "side-glass", "glass-corner", "lighting-canopy", "rippling-water-surface", "waterline-meniscus", "weathered-hardscape", "ribbon-planting", "broadleaf-planting", "foreground-grass-tufts", "filter-glass-pipe", "diffuser-bubbles", "suspended-water-particles"]) assert.ok(h.root.getObjectByName(name), `${tier}: ${name}`);
+    for (const name of ["contoured-substrate", "substrate-strata", "bottom-plinth", "side-glass", "glass-corner", "lighting-canopy", "rippling-water-surface", "waterline-meniscus", "weathered-hardscape", "ribbon-planting", "broadleaf-planting", "foreground-grass-tufts", "filter-glass-pipe", "diffuser-bubbles", "suspended-water-particles"].filter(n => BUILTIN_PROPS || !BUILTIN_PROP_NAMES.includes(n))) assert.ok(h.root.getObjectByName(name), `${tier}: ${name}`);
     assert.ok(h.floor.geometry.attributes.position.count > 3000);
     let triangles = 0;
     const names: string[] = [];
@@ -25,14 +25,16 @@ test("six aquascapes have real substrate, glass, lighting, hardscape, foliage, e
     });
     // 2026-11-12 GPU 점검 — 화면에서 작은 자갈 · 잔디 · 빛 안 받는 배경 벽의 격자를 줄여 82k → 33k(1단계). 예전 예산(15만)으로 되돌아가지 않게 잠근다
     assert.ok(triangles < 60000, `environment triangle budget: ${tier} = ${triangles}`);
-    const plants = h.root.getObjectByName("ribbon-planting") as T.InstancedMesh;
-    signatures.add(`${plants.count}:${names.filter(n => n === "gnarled-driftwood").length}:${names.filter(n => n === "aged-palace-column").length}:${HABITAT_THEMES[tier - 1].rock}`);
+    const plants = h.root.getObjectByName("ribbon-planting") as T.InstancedMesh | undefined;
+    signatures.add(`${plants?.count ?? 0}:${names.filter(n => n === "gnarled-driftwood").length}:${names.filter(n => n === "aged-palace-column").length}:${HABITAT_THEMES[tier - 1].rock}`);
     // 2026-11-05 — 거품은 공 메시 인스턴스(CPU 가 매 프레임 행렬을 올렸다)에서 점 입자 한 묶음으로 바뀌었다. 위치는 셰이더가 시간으로 계산한다
     const bubble = h.root.getObjectByName("diffuser-bubbles") as T.Points<T.BufferGeometry, T.ShaderMaterial>;
+    if (BUILTIN_PROPS) {
     assert.ok(bubble instanceof T.Points);
     assert.ok(bubble.geometry.attributes.position.count >= 100 && bubble.geometry.attributes.position.count <= 200);
     const before = bubble.material.uniforms.uTime.value; h.animate(.7);
     assert.notEqual(bubble.material.uniforms.uTime.value, before);
+    }
     const background = h.root.getObjectByName("deep-water-backdrop") as T.Mesh<T.BufferGeometry, T.ShaderMaterial>;
     const depth = background.geometry.attributes.position;
     assert.ok(Math.max(...Array.from(depth.array).filter((_, i) => i % 3 === 2)) - Math.min(...Array.from(depth.array).filter((_, i) => i % 3 === 2)) > .8);

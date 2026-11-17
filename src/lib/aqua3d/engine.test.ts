@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as T from "three";
-import { makeHabitat, sandMap, softShadowTexture, surfaceMap, HABITAT_THEMES } from "./habitat.ts";
+import { makeHabitat, sandMap, softShadowTexture, surfaceMap, HABITAT_THEMES, BUILTIN_PROPS, BUILTIN_PROP_NAMES } from "./habitat.ts";
 import { GlbLibrary, disposeGlbScene, flushGlbCache, glbCacheState, setGlbSource } from "./glb.ts";
 import { ModelKit } from "./models.ts";
 import { waterLit, CAUSTIC_GLSL } from "./waterlight.ts";
@@ -126,6 +126,7 @@ test("어두운 바위 — 큰 바위가 구멍처럼 검게 보이지 않는다
   const stone = linear(surfaceMap("stone").map.image.data as Uint8Array), rock = linear(surfaceMap("rock").map.image.data as Uint8Array);
   for (let tier = 1; tier <= 6; tier++) {
     const h = makeHabitat(tier), m = h.root.getObjectByName("weathered-hardscape") as T.Mesh<T.BufferGeometry, T.MeshStandardMaterial>;
+    if (!BUILTIN_PROPS) { assert.equal(m, undefined, "놓지 않은 바위가 남았다"); h.dispose(); continue; }
     const c = m.geometry.attributes.color; let s = 0; for (let i = 0; i < c.count; i++) s += c.getY(i);
     const now = m.material.color.g * rock * (s / c.count), before = new T.Color(HABITAT_THEMES[tier - 1].rock).g * stone * .83;
     t.diagnostic(`tier ${tier}: ${before.toFixed(3)} → ${now.toFixed(3)}`);
@@ -144,12 +145,14 @@ test("수조 그리기 호출 — 돌 · 접지 그림자 · 유목 · 흡입구
       if (o instanceof T.Mesh || o instanceof T.Points) { const k = o instanceof T.InstancedMesh || o instanceof T.Points ? o.uuid : o.geometry.uuid + (o.material as T.Material).uuid; groups.set(k, (groups.get(k) ?? 0) + 1); } });
     const drawables = [...groups.values()].reduce((n, c) => n + (c >= 3 ? 1 : c), 0);
     t.diagnostic(`tier ${tier}: 그리기 ${drawables}`);
-    for (const n of ["weathered-hardscape", "soft-contact-shadow", "filter-glass-pipe"]) assert.equal(names.filter(x => x === n).length, 1, `${tier}: ${n}`);
+    for (const n of ["weathered-hardscape", "soft-contact-shadow", "filter-glass-pipe"]) assert.equal(names.filter(x => x === n).length, BUILTIN_PROPS ? 1 : 0, `${tier}: ${n}`);
+    // 2026-11-18 — 사용자가 놓지 않은 기본 장식(바위 · 유목 · 기둥 · 수초 · 여과기 · 거품)은 수조에 없다
+    if (!BUILTIN_PROPS) for (const n of BUILTIN_PROP_NAMES) assert.equal(names.includes(n), false, `${tier}: ${n}`);
     assert.ok(names.filter(x => x === "gnarled-driftwood").length <= 1);
     assert.equal(names.includes("filter-intake-ring"), false);
     assert.equal(auto, 0, "수조 안 물건 행렬이 매 프레임 다시 계산된다");
     const bubbles = h.root.getObjectByName("diffuser-bubbles") as T.Points;
-    assert.ok(bubbles instanceof T.Points && bubbles.geometry.attributes.position.count >= 100 && bubbles.geometry.attributes.position.count <= 200);
+    if (BUILTIN_PROPS) assert.ok(bubbles instanceof T.Points && bubbles.geometry.attributes.position.count >= 100 && bubbles.geometry.attributes.position.count <= 200);
     const shafts = h.root.getObjectByName("light-shafts") as T.InstancedMesh;
     assert.ok(shafts instanceof T.InstancedMesh && shafts.count >= 4 && shafts.count <= 6, "빛줄기");
     assert.ok(drawables < 60, `${tier}: ${drawables}`);
@@ -161,6 +164,7 @@ test("수조 그리기 호출 — 돌 · 접지 그림자 · 유목 · 흡입구
     // 톤 매핑 · 색 공간 — 빠지면 수면 · 떠다니는 입자만 탁하다
     for (const name of ["rippling-water-surface", "suspended-water-particles", "diffuser-bubbles", "light-shafts"]) {
       const o = h.root.getObjectByName(name) as T.Mesh<T.BufferGeometry, T.ShaderMaterial>;
+      if (!o && !BUILTIN_PROPS && name === "diffuser-bubbles") continue;
       assert.match(o.material.fragmentShader, /#include <tonemapping_fragment>[\s\S]*#include <colorspace_fragment>/, name);
     }
     // 스넬의 창 · 흐르는 반짝임

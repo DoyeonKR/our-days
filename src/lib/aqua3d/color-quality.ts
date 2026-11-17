@@ -43,7 +43,7 @@ export function modelColorTree(root:T.Object3D):void {
 /** Small mobile-safe cap: keep scales and fin markings readable obliquely.
  * No texture upscaling or extra allocations. Call when a model is installed. */
 export function modelTextureQuality(root:T.Object3D,deviceMaximum:number):void {
-  const quality=Number.isFinite(deviceMaximum)?Math.max(1,Math.min(4,deviceMaximum)):1;
+  const quality=Number.isFinite(deviceMaximum)?Math.max(1,Math.min(8,deviceMaximum)):1;
   root.traverse(o=>{if(!(o instanceof T.Mesh))return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
     if(!(m instanceof T.MeshStandardMaterial)||!m.map||m.map.anisotropy===quality)continue;
     m.map.anisotropy=quality;m.map.needsUpdate=true;

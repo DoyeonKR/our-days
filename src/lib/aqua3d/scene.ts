@@ -22,7 +22,7 @@ import { DOME_R, domeObstacles, makeDome, type Dome } from "./dome.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
-import { MIN_FRAME_MS, createPacer, ratioFloor } from "./framepace.ts";
+import { MIN_FRAME_MS, RENDER_RATIO_MAX, createPacer, ratioFloor } from "./framepace.ts";
 import { type Course, type Hall, type Obstacle as CourseObstacle } from "./habits.ts";
 import { resolveContacts } from "./world.ts";
 import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
@@ -133,7 +133,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const renderer = new T.WebGLRenderer({ antialias: false, alpha: false, depth: false, stencil: false, powerPreference: "high-performance" });
   const dpr = window.devicePixelRatio || 1;
   // 해상도 바닥은 기기 배율을 따른다(DPR 2 이상은 CSS 픽셀 1:1) — framepace.ts
-  const pacer = createPacer(Math.min(dpr, 1.5), ratioFloor(dpr));
+  const pacer = createPacer(Math.min(dpr, RENDER_RATIO_MAX), ratioFloor(dpr));
   const canvas = renderer.domElement;
   let disposed = false, lost = false, frame = 0, swapFrame = 0;
   /** 닫힐 때 진행 중인 사냥 장면이 있으면 끝났다고 알린다(장면 변수가 아래 try 안에 있어 거기서 채운다) */

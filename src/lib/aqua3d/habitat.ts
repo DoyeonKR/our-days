@@ -175,7 +175,12 @@ export function leafGeometry(broad = false, rows = 16, cols = 4): T.BufferGeomet
 export type HardStone = { at: [number, number, number]; size: [number, number, number]; seed: number; shadow: [number, number] };
 const stoneRotation=(seed:number):[number,number,number]=>[Math.sin(seed)*.08,seed*.71,Math.sin(seed*.7)*.07];
 /** 단계별 바닥 바위 — 그리기(makeHabitat)와 물고기 장애물(rockObstacles)이 같은 표를 쓴다(2026-11-11 — 예전엔 바위가 장애물이 아니어서 흰동가리 · 우럭이 12~19% 시간 바위 속을 지났다) */
+/** 수조에 저절로 깔리던 장식(바위 · 유목 · 궁전 기둥 · 수초 · 잔디 · 필터 관 · 산소 거품) — 2026-11-18 [사용자: "어항에서 배치하지 않은 악세사리들은 모두 제거해"] 끈다.
+ *  바위가 없으면 바위를 쓰던 동작은 이미 있던 '바위 없을 때' 길로 간다(포유류 쉼터 · 곰치 굴 = 뒤 유리 앞 모래, 물고기 길은 장식만 비킨다). 바닥 모래 · 자갈 · 지층 · 빛줄기는 장식이 아니라 그대로 */
+export const BUILTIN_PROPS = false;
+export const BUILTIN_PROP_NAMES = ["weathered-hardscape", "soft-contact-shadow", "gnarled-driftwood", "aged-palace-column", "column-carved-capital", "palace-stone-step", "sunken-lintel", "carved-lintel-relief", "ribbon-planting", "broadleaf-planting", "foreground-grass-tufts", "filter-glass-pipe", "diffuser-bubbles"];
 export function hardscapeStones(tierInput: number, beach: boolean | "hall" = hasBeach(tierInput)): HardStone[] {
+  if (!BUILTIN_PROPS) return [];
   const tier = Math.min(clamp(Math.round(tierInput), 1, HABITAT_THEMES.length), 6), out: HardStone[] = [];
   const ground = (x: number, z: number) => substrateHeight(x, z, tier, beach);
   const stoneCount = tier === 1 ? 9 : tier === 5 ? 16 : 14;
@@ -415,8 +420,8 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const contact=(x:number,z:number,w:number,d:number)=>{const g=new T.PlaneGeometry(w,d,4,4);g.rotateX(-Math.PI/2);const p=g.attributes.position;for(let i=0;i<p.count;i++){const px=x+p.getX(i),pz=z+p.getZ(i);p.setXYZ(i,px,heightAt(px,pz)+.012,pz);}g.computeVertexNormals();shadows.push(g);};
   // 돌 자리는 hardscapeStones 한 곳 — 물고기 길의 장애물(rockObstacles)도 같은 표를 읽는다
   for (const st of hardscapeStones(tier, beach)) { stone(st.at, st.size, st.seed); contact(st.at[0], st.at[2], st.shadow[0], st.shadow[1]); }
-  root.add(Object.assign(new T.Mesh(mergeGeometries(stones), rockMat), { name: "weathered-hardscape" }));
-  root.add(Object.assign(new T.Mesh(mergeGeometries(shadows), shadowMat), { name: "soft-contact-shadow" }));
+  if (stones.length) root.add(Object.assign(new T.Mesh(mergeGeometries(stones), rockMat), { name: "weathered-hardscape" }));
+  if (shadows.length) root.add(Object.assign(new T.Mesh(mergeGeometries(shadows), shadowMat), { name: "soft-contact-shadow" }));
   stones.forEach(g => g.dispose()); shadows.forEach(g => g.dispose());
   // 자갈 — 한 알이 화면에서 몇 픽셀(반지름 .012~.11)이라 세분 1(80면 × 260 = 20.8k 삼각형)은 보이지 않는 면이었다 → 세분 0(20면, 2026-11-12 GPU 점검).
   // 세분 0 은 면마다 꼭짓점이 따로라 그대로면 각진 주사위가 된다 — 꼭짓점을 이어 매끈한 법선으로(바위와 같은 방법) 둥근 조약돌로 읽히게. 무늬 좌표는 위치에서
@@ -532,6 +537,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const ALGAE=new T.Color(0x3d4c37),algaeLow=ALGAE.clone().multiplyScalar(.5),waterLow=new T.Color(theme.water).multiplyScalar(.48),waterHigh=new T.Color(theme.top);
   // 물가 — 월드 높이 → root 안 높이 → 물가(root 안) → 월드 x(넓힌 만큼)
   const shoreX = beach ? (y: number) => shoreLocal(WORLD.floor + (y - WORLD.floor) / root.scale.y, 0, beach) * root.scale.x : undefined;
+  if (!BUILTIN_PROPS) for (const o of [...root.children]) if (BUILTIN_PROP_NAMES.includes(o.name)) { root.remove(o); o.traverse((m) => { if (m instanceof T.Mesh || m instanceof T.Points) { m.geometry.dispose(); } }); }
   return { root, floor, heightAt, ...(beach ? { shoreX, beachRest: { x: 4.65, top: BEACH_TOP } } : {}), setWater(cleanliness) {
     // 물이 갈리는 동안 프레임마다 불린다 — 색을 새로 만들지 않는다(2026-11-12)
     const murk=clamp((60-cleanliness)/100,0,.55);

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { WHALE_ESCORT, escortSlot } from "./fishstep.ts";
+import { WHALE_ESCORT, WHALE_ESCORT_MAX, escortSlot } from "./fishstep.ts";
 import { FAMILIES } from "../aquarium.ts";
 
 test("whale shark is the top grade (태초)", () => {
@@ -31,4 +31,13 @@ test("every frame runs the escort after the paths and only for smaller fish (sta
   assert.match(src, /b\.count = n;\n {2}whaleEscort\(n, fishes, b, elapsed, dt, wide, deep, tall\);/);
   assert.match(src, /if \(L >= WL \|\| m\.family === "starfish" \|\| st\.den \|\| \(st\.haul && st\.rest > 0\.05\)\) continue;/);
   assert.ok(WHALE_ESCORT > 0.5 && WHALE_ESCORT <= 1);
+});
+
+// 2026-11-18 [사용자: "고래상어 끌고다니는 무리들은 크기작은 개체 오름차순 최대 5마리만"]
+test("only the five smallest eligible fish follow the whale, smallest first", () => {
+  assert.equal(WHALE_ESCORT_MAX, 5);
+  const src = readFileSync(new URL("./fishstep.ts", import.meta.url), "utf8");
+  assert.ok(src.includes("ESCORT.sort((a, c) => b.lengths[a] - b.lengths[c] || a - c);"), "작은 몸부터");
+  assert.ok(src.includes("if (ESCORT.length > WHALE_ESCORT_MAX) ESCORT.length = WHALE_ESCORT_MAX;"), "최대 5마리");
+  assert.ok(src.includes("const k = ESCORT[i], st = fishes[k].swim!, L = b.lengths[k];") && src.includes("escortSlot(i, WL, L, elapsed)"), "작은 순서대로 자리");
 });

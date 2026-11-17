@@ -27,6 +27,8 @@ export const framesPerDraw = (vsyncMs: number) => Math.max(1, Math.ceil((MIN_FRA
 export const ratioFloor = (dpr: number) => Math.max(0.75, Math.min(1, dpr * 0.5));
 /** 해상도 바닥 아래의 후처리 계단 수 — post.ts 의 setLevel 과 같은 뜻(0 전부 · 1 색 갈라짐 끔 · 2 빛 번짐 끔 · 3 장면 그림 0.75배) */
 export const POST_LEVELS = 3;
+/** 해상도 상한 — 1.5 였을 때 DPR 3 폰에서 기기 픽셀의 절반으로 그려 흐렸다(2026-11-18 [사용자: "어항 퀄리티를 높여줘 선명하지 않아"]). 느리면 pacer 가 바닥까지 내린다 */
+export const RENDER_RATIO_MAX = 2;
 
 export type Pacer = {
   ratio: () => number;

@@ -115,7 +115,8 @@ const OPTS = { obstacles: undefined as readonly Obstacle[] | undefined, feed: nu
  *  제 길 대신 고래상어 뒤쪽 둘레(원뿔 대형 · 동갈방어 · 빨판상어처럼)에 자리를 잡고 같은 쪽을 보며 따라간다. 자리는 물고기 id 의 황금각으로 정해 겹치지 않고,
  *  자리마다 천천히 흔들려 줄 맞춘 것처럼 굳지 않는다. 빼는 것: 불가사리 · 굴 속(곰치) · 쉬는 포유류(바위 · 모래사장 위). 길 자체(저장 · habits)는 그대로 — 그리기 전용.
  *  WHALE_ESCORT 만큼 섞는다(1 이면 전부 대형). 여러 마리면 가장 큰 고래상어를 따른다. 유리 · 바닥 · 수면 안쪽으로 묶는다. */
-export const WHALE_ESCORT = 0.88;
+export const WHALE_ESCORT = 0.88, WHALE_ESCORT_MAX = 5;
+const ESCORT: number[] = [];
 export function escortSlot(i: number, whaleL: number, L: number, elapsed: number): { back: number; side: number; up: number } {
   const ring = Math.floor(Math.sqrt(i)), a = i * 2.39996, wob = Math.sin(elapsed * 0.6 + i * 1.7);
   const back = whaleL * (0.35 + 0.22 * ring) + L * 0.6 + wob * whaleL * 0.04;
@@ -128,12 +129,19 @@ function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: num
   if (wk < 0) return;
   const W = b.courses[wk], WL = b.lengths[wk], hx = W.dx, hz = W.dz, hl = Math.sqrt(hx * hx + hz * hz) || 1, fx = hx / hl, fz = hz / hl;
   const top = tallY(4.7, tall);
-  let i = 0;
+  // 2026-11-18 [사용자: "크기작은 개체 오름차순 최대 5마리만"] — 따를 수 있는 몸 중 가장 작은 것부터 WHALE_ESCORT_MAX 마리만(같은 크기면 수조 순서)
+  ESCORT.length = 0;
   for (let k = 0; k < n; k++) {
     if (k === wk) continue;
     const m = fishes[k], st = m.swim!, L = b.lengths[k];
     if (L >= WL || m.family === "starfish" || st.den || (st.haul && st.rest > 0.05)) continue;
-    const s = escortSlot(i++, WL, L, elapsed), c = b.courses[k];
+    ESCORT.push(k);
+  }
+  ESCORT.sort((a, c) => b.lengths[a] - b.lengths[c] || a - c);
+  if (ESCORT.length > WHALE_ESCORT_MAX) ESCORT.length = WHALE_ESCORT_MAX;
+  for (let i = 0; i < ESCORT.length; i++) {
+    const k = ESCORT[i], st = fishes[k].swim!, L = b.lengths[k];
+    const s = escortSlot(i, WL, L, elapsed), c = b.courses[k];
     let tx = W.x - fx * s.back - fz * s.side, tz = W.z - fz * s.back + fx * s.side, ty = W.y + s.up;
     const mx = 5 * wide - 0.1 - L / 2, mz = 3 * deep - 0.1 - L / 2;
     tx = Math.max(-mx, Math.min(mx, tx)); tz = Math.max(-mz, Math.min(mz, tz)); ty = Math.max(WORLD.floor + 0.3 + L * 0.2, Math.min(top - L * 0.2, ty));

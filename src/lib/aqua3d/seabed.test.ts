@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {sampledBed,seabedRelief} from './seabed.ts';
-import {makeHabitat} from './habitat.ts';
+import {makeHabitat,BUILTIN_PROPS} from './habitat.ts';
 import {WORLD} from './world.ts';
 
 test('seabed relief is bounded, deterministic and has no sharp crawling ledges',()=>{
@@ -19,6 +19,6 @@ test('ground height matches floor raycasts throughout all eleven enlarged habita
  for(let tier=1;tier<=11;tier++){
   const h=makeHabitat(tier);h.root.scale.set(1.7,1.3,1.6);h.root.position.y=WORLD.floor*(1-1.3);h.root.updateMatrix();h.root.updateMatrixWorld(true);
   for(let n=0;n<40;n++){const x=Math.sin(n*2.399)*7.5,z=Math.cos(n*1.17)*4.5,ray=new T.Raycaster(new T.Vector3(x,30,z),new T.Vector3(0,-1,0)),hit=ray.intersectObject(h.floor)[0];assert.ok(hit);assert.ok(Math.abs(hit.point.y-h.heightAt(x,z))<2e-5,`${tier}: exact terrain contact`);}
-  const shadow=h.root.getObjectByName('soft-contact-shadow') as T.Mesh;assert.ok(shadow.geometry.attributes.position.count>100,'shadows conform to terrain instead of floating cards');h.dispose();
+  const shadow=h.root.getObjectByName('soft-contact-shadow') as T.Mesh;if(BUILTIN_PROPS)assert.ok(shadow.geometry.attributes.position.count>100,'shadows conform to terrain instead of floating cards');h.dispose();
  }
 });

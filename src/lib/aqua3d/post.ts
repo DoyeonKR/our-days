@@ -124,9 +124,11 @@ float ign(vec2 p){return fract(52.9829189*fract(dot(p,vec2(.06711056,.00583715))
 void main(){
   vec2 uv=vUv;
   vec2 d=uv-.5;float r2=dot(d,d);
-  uv+=vec2(sin(uv.y*24.+time*1.25),cos(uv.x*19.+time*1.05))*(.0007+r2*.002);
+  uv+=vec2(sin(uv.y*24.+time*1.25),cos(uv.x*19.+time*1.05))*(.00015+r2*.0007);
   vec3 c=fxaa(uv);
-  if(split>.5){vec2 ca=d*r2*.014;float k=smoothstep(.04,.2,r2);c.r=mix(c.r,fix(uv+ca).r,k);c.b=mix(c.b,fix(uv-ca).b,k);}
+  vec3 nb=fix(uv+vec2(texel.x,0.))+fix(uv-vec2(texel.x,0.))+fix(uv+vec2(0.,texel.y))+fix(uv-vec2(0.,texel.y));
+  c=max(c+(c-nb*.25)*.35,vec3(0.));
+  if(split>.5){vec2 ca=d*r2*.006;float k=smoothstep(.04,.2,r2);c.r=mix(c.r,fix(uv+ca).r,k);c.b=mix(c.b,fix(uv-ca).b,k);}
   if(aperture>.001){float r0=coc(uv);c=mix(c,texture2D(tBlur,uv).rgb,.75*smoothstep(.1,.7,r0));}
   if(xray>.5){float h=hidden(vUv);if(h>0.){vec2 o=px*2.;float e=4.-hidden(vUv+vec2(o.x,0.))-hidden(vUv-vec2(o.x,0.))-hidden(vUv+vec2(0.,o.y))-hidden(vUv-vec2(0.,o.y));
     c=c*.82+vec3(.05,.09,.12)*(.35+.65*clamp(e,0.,1.))+vec3(.02,.03,.035);}}

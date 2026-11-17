@@ -32,6 +32,6 @@ test('418개 GLB와 신규·기존 코드 모델을 같은 공통 물빛 진입�
 });
 test('사선 텍스처 선명도는 기기 한도와 모바일 상한 4를 넘지 않고 원본 맵을 유지한다',()=>{
  const map=new T.Texture(),m=new T.MeshStandardMaterial({map}),mesh=new T.Mesh(new T.BoxGeometry(),m);
- modelTextureQuality(mesh,16);assert.equal(map.anisotropy,4);assert.equal(m.map,map);modelTextureQuality(mesh,2);assert.equal(map.anisotropy,2);modelTextureQuality(mesh,NaN);assert.equal(map.anisotropy,1);
+ modelTextureQuality(mesh,16);assert.equal(map.anisotropy,8);assert.equal(m.map,map);modelTextureQuality(mesh,2);assert.equal(map.anisotropy,2);modelTextureQuality(mesh,NaN);assert.equal(map.anisotropy,1);
  mesh.geometry.dispose();m.dispose();map.dispose();
 });
