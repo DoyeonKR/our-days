@@ -321,9 +321,10 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
     const reward = releaseReward(f), xp = releaseXp(f);
     // 보내 주면 그 낚시터 주인이 빨리 온다(2026-11-18, lib/bosscall) — 몇 시간인지 · 왜 효과가 없는지 미리 말한다(저장도 같은 계산)
     const plan = view && f.stage === 2 ? releaseBossPlan(view.state, f.id, gameNow()) : null;
+    // 24시간을 모아야 하루 일찍 온다 — '몇 시간 빨리'만 말하면 다시 나타나는 날이 그대로인데 거짓말이 된다(2026-11-18 화면 확인)
     const call = !plan ? "" : "total" in plan
-      ? ` 바다에서 소문이 퍼져 ${josa(plan.name, "이/가")} ${plan.add}시간 빨리 와요(이번에 모은 ${plan.total}시간${plan.days > 0 ? ` · 하루 당겨져 ${plan.left}일 뒤` : ""}).`
-      : ` ${plan.name} — ${plan.why}라 빨리 오게 하진 못해요.`;
+      ? ` 바다에서 소문이 퍼져 ${plan.name}에게 ${plan.add}시간이 모여요 — 24시간마다 하루 일찍 와요(지금 ${plan.total % 24 === 0 && plan.days > 0 ? 24 : plan.total % 24}/24${plan.days > 0 ? ` · 이번에 하루 당겨져 ${plan.left}일 뒤` : ""}).`
+      : ` (${plan.name}: ${plan.why})`;
     const ok = await confirmDialog(f.crown ? {
       // 주인은 며칠을 겨뤄 잡았고, 다시 나타나기까지 7일이 걸린다 — 흔한 물고기와 같은 확인창으로 보내면 안 된다
       message: `${f.crown} — 낚시터의 주인이에요. 정말 보내 줄까요?`,

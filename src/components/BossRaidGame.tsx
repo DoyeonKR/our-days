@@ -81,6 +81,8 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
     const away = () => {
       if (!readyRef.current) { quit(); return; }
       if (sent.current) return;
+      // 앱이 숨어 끝난 판 표시 — 시작 직후면 보상 단계 평균에서 뺀다(raidInterrupted). 그만하기(close)는 달지 않는다
+      raid.current.away = true;
       finishNow();
       setFrame((n) => n + 1);
     };

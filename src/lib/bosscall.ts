@@ -61,11 +61,13 @@ export function planBossCall(st: Pick<IslandState, "bossCall" | "fishing">, key:
   const boss = bossOf(key);
   if (!boss) return null;
   const rec = st.fishing?.bosses?.[key];
-  if (!rec || !bossResting(rec, today)) return { key, name: boss.name, add: 0, why: rec && rec.caught > 0 ? "지금 낚시터에 있어요" : "아직 잡은 적이 없어요" };
+  // 아직 안 잡은 주인은 말하지 않는다(주인 시트가 '???' 로 숨기는 이름일 수 있다)
+  if (!rec || rec.caught <= 0) return null;
+  if (!bossResting(rec, today)) return { key, name: boss.name, add: 0, why: "지금 낚시터에 있어 부를 수 없어요" };
   const have = bossCallHours(st, key, rec);
   const room = Math.min(bossCallDayLeft(st, today), BOSS_CALL_MAX - have);
   const add = Math.max(0, Math.min(BOSS_CALL_HOURS[Math.max(0, Math.min(BOSS_CALL_HOURS.length - 1, grade))] ?? 0, room));
-  if (add <= 0) return { key, name: boss.name, add: 0, why: have >= BOSS_CALL_MAX ? `이번엔 ${BOSS_CALL_MAX}시간을 다 당겼어요` : `오늘은 ${BOSS_CALL_DAY_CAP}시간을 다 썼어요` };
+  if (add <= 0) return { key, name: boss.name, add: 0, why: have >= BOSS_CALL_MAX ? `이번 쉬는 동안 ${BOSS_CALL_MAX}시간을 다 모았어요` : `오늘 부를 수 있는 ${BOSS_CALL_DAY_CAP}시간을 다 썼어요` };
   const total = have + add, before = Math.floor(have / 24), after = Math.floor(total / 24);
   return { key, name: boss.name, add, total, days: after - before, left: Math.max(0, dayDiff(today, rec.until) - (after - before)) };
 }

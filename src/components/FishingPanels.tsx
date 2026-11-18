@@ -359,7 +359,7 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
       {couple && <BossRaid rec={rec} who={who} today={today} />}
       <p className="aqua-note">다 깎으면 끌어올려요 · 잡으면 왕관을 쓰고 수조에 들어와요 · 보상 <Coin /> {bossReward(boss, rec?.caught ?? 0).toLocaleString()} · {BOSS_RETURN_DAYS}일 뒤 다시 나타나요</p>
       {bossReward(boss, rec?.caught ?? 0) > 0 && <p className="aqua-note">보상은 이번 출현의 레이드 점수 평균으로 ×0.8 ~ ×1.25{tier && tier.key !== "none" ? <b> · 지금 {tier.name} ×{tier.mult}</b> : null}</p>}
-      <p className="aqua-note">수조에서 다 키운 이 낚시터 물고기를 바다로 보내 주면 쉬는 주인이 빨리 와요(등급마다 1 ~ 6시간 · 하루 {BOSS_CALL_DAY_CAP}시간 · 한 번 쉴 때 {BOSS_CALL_MAX}시간까지){called > 0 ? <b> · 지금까지 {called}시간 당겼어요</b> : null}</p>
+      <p className="aqua-note">수조에서 다 키운 이 낚시터 물고기를 바다로 보내 주면 쉬는 주인에게 시간이 모여요 — 24시간마다 하루 일찍(등급마다 1 ~ 6시간 · 하루 {BOSS_CALL_DAY_CAP}시간 · 한 번 쉴 때 {BOSS_CALL_MAX}시간까지){called > 0 ? <b> · 이번에 {called}시간 모았어요({Math.floor(called / 24)}일 당김 · 다음 하루까지 {called >= BOSS_CALL_MAX ? "상한" : `${called % 24}/24`})</b> : null}</p>
       {why ? <p className="aqua-msg">{why}</p> : <ActionButton main wide className="mt-3" onClick={onStart}>주인 레이드 시작 · 오늘 {left}번 남음</ActionButton>}
       <h3 className="fish-sheet-title">모든 주인 · {beaten}/{BOSSES.length}</h3>
       <ul className="fish-timed fish-boss-list">

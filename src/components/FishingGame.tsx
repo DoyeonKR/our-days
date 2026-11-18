@@ -1232,7 +1232,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     raidSave.current = act((s) => bossLost(s, cur.key, dealt, day, who, cur.seen, cur.seed, raidInterrupted(r) ? undefined : raidScore(r)), true).then((res) => {
       const rec = res?.ok ? bossRecOf(res.state, cur.key) : undefined;
       const left = rec ? bossHp(rec, day) : Math.max(0.03, raidLeft(cur.hp, cur.chunk, r));
-      return { res, win: null, note: res?.ok ? `${cur.name} 체력을 ${Math.round(cur.hp * 100)}% → ${Math.round(left * 100)}%로 깎았어요` : res ? res.reason : "깎은 체력을 저장하지 못했어요" };
+      return { res, win: null, note: res?.ok ? (dealt <= 0.0005 ? `${cur.name} 체력을 깎지 못했어요` : `${cur.name} 체력을 ${Math.round(cur.hp * 100)}% → ${Math.round(left * 100)}%로 깎았어요`) : res ? res.reason : "깎은 체력을 저장하지 못했어요" };
     });
   }
   /** 안내 화면에서 나갔다 — 아직 겨루지 않았으니 쓴 도전을 돌려준다 */

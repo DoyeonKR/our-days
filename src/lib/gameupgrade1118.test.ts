@@ -92,7 +92,8 @@ test("⑥ 토벌 판의 빠르기 — 10초 넘게 싸운 토벌 판만, 30초�
   assert.equal(raidKillPace({ ...r, end: "kill", t: 12, dealt: tune.need * 0.9 }), 1, "1 을 넘지 않는다");
   assert.equal(raidTier(0.8).mult, 1);
   // 시작 직후 앱이 숨어 끝난 판은 평균에 안 넣는다 · 줄이 다 끊긴 판 · 30초를 다 싸운 판은 넣는다
-  assert.equal(raidInterrupted({ ...r, end: "time", t: 0.4 }), true);
+  assert.equal(raidInterrupted({ ...r, end: "time", t: 0.4, away: true }), true);
+  assert.equal(raidInterrupted({ ...r, end: "time", t: 0.4 }), false, "그만하기로 끝낸 판은 진짜 점수");
   assert.equal(raidInterrupted({ ...r, end: "down", t: 3 }), false);
   assert.equal(raidInterrupted({ ...r, end: "time", t: 30 }), false);
 });
@@ -139,6 +140,7 @@ test("④ 효과 없음 — 낚시터에 있는 주인 · 안 잡은 주인 · �
   const here = withBoss(rich(), "dolsoe", { hp: 0.5, at: DAY, tries: {}, caught: 1, until: "2026-11-10" });
   const p = planBossCall(here, "dolsoe", 7, DAY)!;
   assert.ok(!("total" in p) && p.why.includes("낚시터"));
+  assert.equal(planBossCall(withBoss(rich(), "dolsoe", { hp: 1, at: DAY, tries: {}, caught: 0, until: "" }), "dolsoe", 7, DAY), null, "안 잡은 주인은 말하지 않는다");
   assert.equal(applyBossCall(here, "dolsoe", 7, DAY).state, here);
   let st = applyBossCall(withBoss(rich(), "dolsoe", resting(1)), "dolsoe", 7, DAY).state;
   st = withBoss(st, "dolsoe", resting(2)); // 그 사이 다시 잡혔다
@@ -162,7 +164,7 @@ test("④ releaseToSea — 같은 저장에서 주인을 부르고 문구에 남
   const plan = releaseBossPlan(st, id, T0)!;
   assert.ok(plan && "total" in plan);
   const r = ok(releaseToSea(st, id, T0));
-  assert.match(r.note ?? "", /돌쇠가 \d시간 빨리 와요/);
+  assert.match(r.note ?? "", /돌쇠에게 \d시간 모였어요\(\d+\/24\)/);
   assert.equal(bossCallOf(r.state).b.dolsoe.h, plan.add);
 });
 

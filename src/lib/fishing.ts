@@ -1053,7 +1053,7 @@ export function releaseToSea(st: IslandState, id: number, now: number): { ok: tr
   // 같은 저장에서 주인을 부른다 — 보내기와 따로 저장하면 한쪽만 들어가는 길이 생긴다
   const key = releaseBoss(f, synced.life);
   const call = key ? applyBossCall(r0.state, key, adultGrade(f), kstDate(now)) : null;
-  const callNote = call?.plan && "total" in call.plan ? ` · ${josa(call.plan.name, "이/가")} ${call.plan.add}시간 빨리 와요` : "";
+  const callNote = call?.plan && "total" in call.plan ? ` · ${call.plan.name}에게 ${call.plan.add}시간${call.plan.days > 0 ? ` — 하루 일찍 와요(${call.plan.left}일 뒤)` : ` 모였어요(${call.plan.total % 24}/24)`}` : "";
   const r = { ...r0, state: call ? call.state : r0.state, note: `${r0.note ?? "보내 줬어요"}${callNote}` };
   const xp = releaseXp(f);
   if (xp <= 0) return { ...r, xp: 0, levelUp: 0 };

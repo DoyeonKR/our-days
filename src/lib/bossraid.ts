@@ -82,6 +82,8 @@ export type Raid = {
   /** 다 깎으면 끝나는 양(남은 체력 ÷ chunk × need) — 그 이상은 의미가 없다 */
   killAt: number;
   end: RaidEnd | null;
+  /** 앱이 숨어(전화 · 다른 앱) 화면이 판을 그 자리에서 끝냈다(BossRaidGame) — 그만하기로 끝낸 판과 가른다(2026-11-18) */
+  away?: boolean;
   events: RaidEvent[];
 };
 
@@ -112,10 +114,10 @@ export function raidKillPace(r: Pick<Raid, "dealt" | "tune" | "t" | "end">): num
   if (r.end !== "kill" || r.t < KILL_PACE_MIN) return null;
   return Math.min(1, (r.dealt / r.tune.need) / (r.t / r.tune.dur));
 }
-/** 판 시작 직후 끊긴 판 — 앱이 숨어(전화 · 다른 앱) 판을 그 자리에서 끝냈는데(BossRaidGame) 거의 못 싸웠다. 깎은 양은 남기지만
+/** 판 시작 직후 끊긴 판 — 앱이 숨어(전화 · 다른 앱) 판을 그 자리에서 끝냈는데(BossRaidGame 이 away 를 단다) 거의 못 싸웠다. 그만하기로 끝낸 판은 해당 없다(못한 판을 빼는 길이 된다). 깎은 양은 남기지만
  *  보상 단계의 평균엔 넣지 않는다(2026-11-18 화면 확인: 숨은 탭에서 연 판이 0점으로 평균을 끌어내렸다). 줄이 다 끊긴 판(down)은 진짜 점수다 */
 export const INTERRUPT_SEC = 8;
-export const raidInterrupted = (r: Pick<Raid, "end" | "t" | "tune">) => r.end === "time" && r.t < Math.min(INTERRUPT_SEC, r.tune.dur - 0.5);
+export const raidInterrupted = (r: Pick<Raid, "end" | "t" | "tune" | "away">) => !!r.away && r.end === "time" && r.t < Math.min(INTERRUPT_SEC, r.tune.dur - 0.5);
 /** 주인 기세 — fishing.bossPhase 와 같은 경계(2/3 · 1/3) */
 const phaseOf = (hp: number) => (hp <= 1 / 3 ? 2 : hp <= 2 / 3 ? 1 : 0);
 /** 판 도중 분노로 빨라진 배율 */
