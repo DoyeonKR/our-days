@@ -27,7 +27,9 @@ import { islandSnapshot, refreshIsland, useIslandStore } from "@/lib/islandstore
 // 섬 화면과 같은 시각(서버 시각에 맞춘 지금) — 기기 시계면 홈은 "수확 N칸", 섬은 아직이라고 했다(2026-11-11 2차)
 import { gameNow } from "@/lib/islandsync";
 // 시즌 미션(2026-11-13) — 카드는 가벼운 읽기만(lib/season 은 kst 하나만 부른다). 시트 · 보상 코드는 열 때 받는다
-import { TIERS, seasonBoard, titleText } from "@/lib/season";
+import { TIERS, monthOf, seasonBoard } from "@/lib/season";
+// 시즌 순위(2026-11-18) — 카드가 보일 때 이번 달 채운 수가 늘었으면 올린다(couple · merge 는 허브가 이미 부른다)
+import { syncSeasonRank } from "@/lib/seasonrank";
 import {
   islandRating,
   islandSummary,
@@ -177,9 +179,18 @@ export default function GameArcade({
 
   /* 이번 시즌 — 이 기기에서 센 내 모험 수(아직 섬에 못 올린 몫)도 바로 보이게 겹쳐 본다 */
   const season = s && now ? seasonBoard(s, now) : null;
-  const seasonReady = season ? season.tiers.some((t) => t.reached && !t.got) : false;
+  // 받을 보상 — 이번 달 단계 또는 지난 달 못 받은 단계(다음 달 1~7일, 2026-11-18)
+  const seasonReady = season ? season.tiers.some((t) => t.reached && !t.got) || !!season.missed?.tiers.some((t) => t.reached && !t.got) : false;
   const seasonNext = season?.tiers.find((t) => !t.reached);
-  const petTitle = season?.titles[season.titles.length - 1];
+  // 섬 카드의 칭호 — 고른 칭호(s.petTitle.on), 없으면 가장 최근 달. 섬 화면 이름표와 같은 값(lib/season wornOf)
+  const petTitle = season?.worn ?? null;
+  const seasonMonth = season?.month ?? "";
+  const seasonDone = season?.done ?? 0;
+  const nowMonth = now ? monthOf(now) : "";
+  /* 시즌 순위에 올리기 — 수가 늘면 한 번(이 기기에서 보낸 수보다 클 때만 · 서버가 커플 중복을 거른다). 연동 없으면 아무 일도 안 한다 */
+  useEffect(() => {
+    if (seasonMonth && nowMonth) void syncSeasonRank(coupleId, seasonMonth, nowMonth, seasonDone);
+  }, [coupleId, seasonMonth, nowMonth, seasonDone]);
 
   /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음).
      아이콘은 섬의 '지금 할 일' 칩과 같은 도트(TodoIcon) — 키도 같은 이름을 쓴다. */
@@ -271,7 +282,7 @@ export default function GameArcade({
               ? `${s.pet.name} · ${petForm(s.pet.form).name} Lv.${sum.pet.level}`
               : "펫을 키우고 정원 · 섬을 가꿔요"}
           </span>
-          {petTitle && <span className="season-title-chip is-card">{titleText(petTitle.m)}</span>}
+          {petTitle && <span className="season-title-chip is-card">{petTitle.text}</span>}
           {sum && (
             <span className="game-card-bars">
               <Bar label="포만" v={sum.pet.stats.hunger} c="#fb923c" />

@@ -11,6 +11,12 @@
  *   (모험은 2026-11-15 앱에서 걷었다 — 모험 미션도 뺐다. 옛 기록의 adv 칸은 읽지 않고 그대로 흘려보낸다)
  *   got    — 이번 달 받은 단계(1 · 2 · 3) — 한 커플이 한 달에 한 번씩
  *   titles — 다 채운 달의 칭호(최근 TITLES_MAX 개)
+ *   prev   — (2026-11-18) 달을 넘길 때 지난 달의 { m, done, got } 를 남긴다 — 다음 달 첫 7일(KST) 동안 못 받은 단계를 받게.
+ *            진행 칸(n · kinds)은 그대로 비운다. 넘긴 뒤엔 지난 달 수를 다시 셀 수 없으니 넘기는 순간의 채운 미션 수를 적어 둔다.
+ *
+ * 펫 칭호(2026-11-18)는 새 최상위 칸 s.petTitle = { list: [{m, t, at}], on? } — 단계(t 1 · 2 · 3)를 받을 때 그 달 칭호가 오른다.
+ *   on: 달고 있는 달("YYYY-MM") · ""(숨김) · 없음(가장 최근 달). s.season 안에 안 둔 이유: 고른 칭호는 달이 바뀌어도 남아야 하고,
+ *   옛 앱의 달 넘김이 s.season 을 다시 쓰므로 거기 둔 새 칸이 살아남는지는 옛 앱 코드에 달린다 — 최상위 칸은 옛 앱도 ...st 로 흘린다.
  *
  * ⚠ 이 파일은 가볍게 — 런타임 import 는 lib/kst 하나다(게임 허브 · 홈이 부른다, firstload.test).
  *   엔진(island · fishing · aquarium · merge)은 이 파일을 불러 자기 동작이 끝난 상태에 수를 더한다. 거꾸로 부르지 않는다.
@@ -55,6 +61,10 @@ export const TIER_REWARD: readonly TierReward[] = ["decor", "bobber", "title"];
 export const SEASON_DECOR: readonly string[] = ["heart_bubbler", "mailbox", "sand_castle", "windmill", "pearl_clam", "diver"];
 /** 2단계 시즌 찌(fishlooks 의 LIMITED_LOOKS) — 이미 가졌으면 그 달 장식을 하나 더 */
 export const SEASON_BOBBER = "bob_season";
+/** 지난 달 못 받은 보상 — 다음 달 1~7일(KST)에만, 단계마다 한 번. 채운 만큼만(새 보상을 만들지 않는다) */
+export const MISSED_DAYS = 7;
+/** 한 달 미션 수 — 서버 submit_season 의 상한(1~12)과 같아야 한다(seasonboard.test 가 견준다) */
+export const MISSION_COUNT = 12;
 
 export const KINDS_MAX = 30;
 export const TITLES_MAX = 12;
@@ -100,6 +110,14 @@ export function missionsFor(month: string): Mission[] {
 export const seasonDecorFor = (month: string) => SEASON_DECOR[hash(`decor:${month}`) % SEASON_DECOR.length];
 /** 칭호 글 — "11월 시즌 완주" */
 export const titleText = (month: string) => `${Number(month.slice(5, 7))}월 시즌 완주`;
+/** 단계별 칭호 — 1 · 2 · 3단계(미션 4 · 8 · 12개). 3단계는 옛 칭호 글 그대로(옛 앱 · 카드가 같은 글을 보인다) */
+const TIER_TITLE = ["시즌 새싹", "시즌 열매"] as const;
+export const tierTitleText = (month: string, t: number) => (t >= 3 ? titleText(month) : `${Number(month.slice(5, 7))}월 ${TIER_TITLE[Math.max(0, t - 1)]}`);
+/** 바로 앞 달 "YYYY-MM" */
+export function prevMonth(month: string): string {
+  const y = Number(month.slice(0, 4)), m = Number(month.slice(5, 7));
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+}
 
 export type SeasonTitle = { m: string; who: string; at: number };
 export type SeasonView = {
@@ -136,16 +154,25 @@ export function seasonOf(st: object, month: string): SeasonView {
   const n: SeasonView["n"] = {};
   if (isObj(raw.n)) for (const [k, v] of Object.entries(raw.n)) if (num(v) > 0) n[k as CountStat] = num(v);
   const kinds = Array.isArray(raw.kinds) ? [...new Set(raw.kinds.filter((x): x is string => typeof x === "string"))].slice(0, KINDS_MAX) : [];
-  const got = Array.isArray(raw.got) ? [...new Set(raw.got.filter((x): x is number => typeof x === "number" && x >= 1 && x <= TIERS.length))] : [];
+  const got = readGot(raw.got);
   return { month, n, kinds, got, titles };
 }
 
-/** 쓰기 대상 — at 의 달과 저장된 달 중 늦은 쪽. 새 달이면 진행 칸을 비운다(칭호 · 모르는 칸은 남긴다) */
+/** 그 달 기록에서 채운 미션 수 */
+const doneIn = (v: SeasonView) => missionsFor(v.month).filter((ms) => missionValue(v, ms) >= ms.goal).length;
+
+/** 쓰기 대상 — at 의 달과 저장된 달 중 늦은 쪽. 새 달이면 진행 칸을 비운다(칭호 · 모르는 칸은 남긴다).
+ *  비우기 전에 저장된 달의 채운 수 · 받은 단계를 prev 로 남긴다 — 지난 달 못 받은 보상(missedBoard)이 읽는다 */
 function target(st: object, at: number | string): { raw: Record<string, unknown>; month: string } {
   const raw = rawOf(st), stored = storedMonth(raw), m = monthAt(at);
   if (!isMonth(m)) return { raw: { ...raw }, month: stored };
   if (stored && stored >= m) return { raw: { ...raw }, month: stored };
-  return { raw: { ...raw, m, n: {}, kinds: [], got: [] }, month: m };
+  const next: Record<string, unknown> = { ...raw, m, n: {}, kinds: [], got: [] };
+  if (stored) {
+    const old = seasonOf(st, stored);
+    next.prev = { m: stored, done: doneIn(old), got: old.got };
+  }
+  return { raw: next, month: m };
 }
 const put = <S extends object>(st: S, raw: Record<string, unknown>): S => ({ ...st, season: raw }) as S;
 
@@ -180,13 +207,44 @@ export function missionValue(v: SeasonView, ms: Mission): number {
   return v.n[ms.stat] ?? 0;
 }
 
+export type TierRow = { tier: number; need: number; reward: TierReward; reached: boolean; got: boolean };
+const tierRows = (done: number, got: number[]): TierRow[] =>
+  TIERS.map((need, i) => ({ tier: i + 1, need, reward: TIER_REWARD[i], reached: done >= need, got: got.includes(i + 1) }));
+
+/** 지난 달 못 받은 보상 — 지금(KST) 달의 1~MISSED_DAYS 일, 바로 앞 달 기록이 남아 있을 때만.
+ *  저장된 달이 아직 지난 달(이번 달에 동작이 없었다)이면 그 기록을 그대로, 이미 넘겼으면 prev 를 읽는다.
+ *  저장된 달이 지금보다 뒤면(시계가 빨랐던 폰) 열지 않는다 — 날짜는 앞으로만(§10.25). */
+export type MissedBoard = { month: string; done: number; daysLeft: number; tiers: TierRow[] };
+export function missedBoard(st: object, now: number): MissedBoard | null {
+  const cur = monthOf(now);
+  if (activeMonth(st, now) !== cur) return null;
+  const day = Number(kstDate(now).slice(8, 10));
+  if (day > MISSED_DAYS) return null;
+  const pm = prevMonth(cur), raw = rawOf(st);
+  let done: number, got: number[];
+  if (storedMonth(raw) === pm) {
+    const v = seasonOf(st, pm);
+    done = doneIn(v);
+    got = v.got;
+  } else if (isObj(raw.prev) && raw.prev.m === pm) {
+    done = Math.min(MISSION_COUNT, num(raw.prev.done));
+    got = readGot(raw.prev.got);
+  } else return null;
+  return { month: pm, done, daysLeft: MISSED_DAYS - day + 1, tiers: tierRows(done, got) };
+}
+
 export type SeasonBoard = {
   month: string;
   daysLeft: number;
   rows: { m: Mission; value: number; done: boolean }[];
   done: number;
-  tiers: { tier: number; need: number; reward: TierReward; reached: boolean; got: boolean }[];
+  tiers: TierRow[];
   titles: SeasonTitle[];
+  /** 지난 달 못 받은 보상(받을 단계가 없어도 창이 열려 있으면 있다) */
+  missed: MissedBoard | null;
+  /** 펫 칭호 — 받은 것 모두(달마다 가장 높은 단계)와 지금 단 것 */
+  petTitles: PetTitle[];
+  worn: PetTitle | null;
 };
 /** 허브 카드 · 시트가 그리는 값 — 섬 상태와 시각만 본다(가벼운 계산, 엔진을 부르지 않는다) */
 export function seasonBoard(st: object, now: number): SeasonBoard {
@@ -197,19 +255,32 @@ export function seasonBoard(st: object, now: number): SeasonBoard {
     return { m, value, done: value >= m.goal };
   });
   const done = rows.filter((r) => r.done).length;
+  const petTitles = petTitlesOf(st);
   return {
     month,
     daysLeft: month === monthOf(now) ? daysLeft(now) : 0,
     rows,
     done,
-    tiers: TIERS.map((need, i) => ({ tier: i + 1, need, reward: TIER_REWARD[i], reached: done >= need, got: v.got.includes(i + 1) })),
+    tiers: tierRows(done, v.got),
     titles: v.titles,
+    missed: missedBoard(st, now),
+    petTitles,
+    worn: wornOf(st, petTitles),
   };
 }
 
-/** 받기 판정 — 그 달 · 그 단계 · 아직 안 받음 · 채운 미션 수. 순수. 보상을 붙이는 건 seasonclaim(수조 · 찌 엔진을 부른다) */
-export function claimBlock(st: object, tier: number, now: number): string | null {
+/** 받기 판정 — 그 달 · 그 단계 · 아직 안 받음 · 채운 미션 수. 순수. 보상을 붙이는 건 seasonclaim(수조 · 찌 엔진을 부른다)
+ *  missed = 지난 달 못 받은 보상(다음 달 첫 7일 · 단계마다 한 번 — 받음 표시가 지난 달 기록에 남는다) */
+export function claimBlock(st: object, tier: number, now: number, missed = false): string | null {
   if (!Number.isInteger(tier) || tier < 1 || tier > TIERS.length) return "없는 단계예요";
+  if (missed) {
+    const m = missedBoard(st, now);
+    if (!m) return `지난 달 보상은 이번 달 ${MISSED_DAYS}일까지만 받을 수 있어요`;
+    const t = m.tiers[tier - 1];
+    if (t.got) return "지난 시즌에 이미 받았어요";
+    if (!t.reached) return `지난 달에 미션을 ${t.need}개 채우지 못했어요`;
+    return null;
+  }
   const b = seasonBoard(st, now);
   const t = b.tiers[tier - 1];
   if (t.got) return "이번 시즌에 이미 받았어요";
@@ -217,13 +288,82 @@ export function claimBlock(st: object, tier: number, now: number): string | null
   return null;
 }
 
-/** 받음 표시 — 보상과 같은 저장에 넣는다(두 폰이 같이 눌러도 늦은 쪽은 claimBlock 에 걸린다). 칭호는 3단계만 */
-export function markClaimed<S extends object>(st: S, tier: number, now: number, who: string): S {
-  const month = activeMonth(st, now);
-  const { raw } = target(st, month);
-  const got = Array.isArray(raw.got) ? [...raw.got] : [];
-  if (!got.includes(tier)) got.push(tier);
-  let titles = Array.isArray(raw.titles) ? [...raw.titles] : [];
+/** 보상을 붙일 달 — 이번 달 또는(missed) 지난 달 */
+export const claimMonth = (st: object, now: number, missed = false) => (missed ? prevMonth(monthOf(now)) : activeMonth(st, now));
+
+/** 받음 표시 — 보상과 같은 저장에 넣는다(두 폰이 같이 눌러도 늦은 쪽은 claimBlock 에 걸린다). 옛 칭호 칸(titles)은 3단계만.
+ *  펫 칭호(s.petTitle)는 어느 단계든 그 달 칭호를 올린다. missed 면 지난 달 기록(저장된 달이 지난 달이면 그 got, 아니면 prev.got)에 적는다 */
+export function markClaimed<S extends object>(st: S, tier: number, now: number, who: string, missed = false): S {
+  const month = claimMonth(st, now, missed);
+  const raw0 = rawOf(st);
+  let next: Record<string, unknown>;
+  if (missed && storedMonth(raw0) !== month) {
+    // 이미 이번 달로 넘겼다 — prev 의 받음 표시만 고친다(진행 칸은 이번 달 것)
+    const prev = isObj(raw0.prev) ? raw0.prev : {};
+    const got = readGot(prev.got);
+    if (!got.includes(tier)) got.push(tier);
+    next = { ...raw0, prev: { ...prev, got } };
+  } else {
+    // 이번 달 받기 · 아직 넘기지 않은 지난 달 받기 — 저장된 달 기록의 got 에 적는다(지난 달이면 넘기지 않는다)
+    const raw = missed ? { ...raw0 } : target(st, month).raw;
+    const got = Array.isArray(raw.got) ? [...raw.got] : [];
+    if (!got.includes(tier)) got.push(tier);
+    next = { ...raw, m: month, got };
+  }
+  let titles = Array.isArray(next.titles) ? [...next.titles] : [];
   if (TIER_REWARD[tier - 1] === "title" && !readTitles(titles).some((t) => t.m === month)) titles = [...titles, { m: month, who, at: now } satisfies SeasonTitle].slice(-TITLES_MAX);
-  return put(st, { ...raw, m: month, got, titles });
+  return grantPetTitle(put(st, { ...next, titles }), month, tier, now);
+}
+
+// ── 펫 칭호(2026-11-18) — 새 최상위 칸 s.petTitle ─────────────────
+export type PetTitle = { m: string; t: number; text: string };
+type Titled = { petTitle?: unknown };
+const titleRaw = (st: object): Record<string, unknown> => {
+  const v = (st as Titled).petTitle;
+  return isObj(v) ? v : {};
+};
+function readGot(v: unknown): number[] {
+  return Array.isArray(v) ? [...new Set(v.filter((x): x is number => typeof x === "number" && Number.isInteger(x) && x >= 1 && x <= TIERS.length))] : [];
+}
+
+/** 받은 칭호 — s.petTitle.list 에 더해 옛 기록에서도 읽는다: s.season.titles(3단계) · 저장된 달 got · prev.got.
+ *  그래서 이 버전 전에(또는 옛 앱에서) 받은 단계도 칭호가 된다. 달마다 가장 높은 단계 하나, 오래된 달 먼저, 최근 TITLES_MAX 개 */
+export function petTitlesOf(st: object): PetTitle[] {
+  const best = new Map<string, number>();
+  const up = (m: unknown, t: number) => {
+    if (isMonth(m) && t >= 1 && t <= TIERS.length && t > (best.get(m) ?? 0)) best.set(m, t);
+  };
+  const list = titleRaw(st).list;
+  if (Array.isArray(list)) for (const x of list) if (isObj(x)) up(x.m, num(x.t));
+  const raw = rawOf(st);
+  for (const x of readTitles(raw.titles)) up(x.m, 3);
+  const sm = storedMonth(raw);
+  for (const t of readGot(raw.got)) up(sm, t);
+  if (isObj(raw.prev)) for (const t of readGot(raw.prev.got)) up(raw.prev.m, t);
+  return [...best.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).slice(-TITLES_MAX).map(([m, t]) => ({ m, t, text: tierTitleText(m, t) }));
+}
+
+/** 지금 단 칭호 — on 이 ""이면 숨김, 받은 달이면 그것, 아니면 가장 최근 달 */
+export function wornOf(st: object, titles = petTitlesOf(st)): PetTitle | null {
+  const on = titleRaw(st).on;
+  if (on === "") return null;
+  return titles.find((x) => x.m === on) ?? titles[titles.length - 1] ?? null;
+}
+
+function grantPetTitle<S extends object>(st: S, month: string, tier: number, now: number): S {
+  const raw = titleRaw(st);
+  const list = Array.isArray(raw.list) ? raw.list.filter(isObj) : [];
+  const had = list.find((x) => x.m === month);
+  if (had && num(had.t) >= tier) return st;
+  const next = [...list.filter((x) => x.m !== month), { m: month, t: tier, at: now }]
+    .sort((a, b) => (String(a.m) < String(b.m) ? -1 : 1)).slice(-TITLES_MAX);
+  return { ...st, petTitle: { ...raw, list: next } } as S;
+}
+
+/** 칭호 고르기 — 받은 달("YYYY-MM") 또는 ""(숨기기). 받지 않은 달이면 그대로. 저장된 그대로에서 on 만 고친다 */
+export function wearTitle<S extends object>(st: S, month: string): S {
+  if (month !== "" && !petTitlesOf(st).some((x) => x.m === month)) return st;
+  const raw = titleRaw(st);
+  if (raw.on === month) return st;
+  return { ...st, petTitle: { ...raw, on: month } } as S;
 }
