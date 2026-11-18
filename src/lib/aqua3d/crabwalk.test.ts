@@ -6,7 +6,7 @@ import * as T from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { CRAB_ART, GAIT, IDLE, KIND, crabDisplace, crabGlsl, crabLegData, legPhase, walkOf, type CrabPose } from "./crabwalk.ts";
-import { FISH_GLB, fishMotion } from "./glb.ts";
+import { FISH_GLB, GlbLibrary, fishMotion, flushGlbCache, setGlbSource } from "./glb.ts";
 import { bendProfile } from "./anatomy.ts";
 import { WATER_LIGHT } from "./waterlight.ts";
 
@@ -140,4 +140,45 @@ test("셰이더는 ASCII 만 · CPU 식과 같은 상수를 쓴다", () => {
   assert.ok(/^[\x00-\x7f]*$/.test(all));
   for (const v of [GAIT.swing, GAIT.lift, GAIT.rootBlend, IDLE.claw, IDLE.clawLift, IDLE.tail]) assert.ok(all.includes(String(v)), String(v));
   assert.ok(all.includes("aquaCrabRoot") && all.includes("10 * 4"));
+});
+
+test("수조가 쓰는 길(GlbLibrary — 물속 빛 재질 · 뼈째 복제)을 지나도 다리 번호가 남고 걸음이 켜진다", async () => {
+  setGlbSource(async (url) => open(url.match(/fish\/([a-z_]+)\.glb/)![1]));
+  try {
+    for (const key of ["snow_crab", "lobster"]) {
+      const lib = new GlbLibrary(), src = await lib.load("fish", key);
+      assert.ok(src, key);
+      const inner = new T.Group(); inner.add(lib.instance(src!));
+      const mesh = meshOf(inner);
+      assert.ok(mesh.geometry.attributes._aqua_part, `${key} 다리 번호가 복제본에 남는다`);
+      fishMotion(inner, key, key);
+      const a = mesh.geometry.attributes.aquaCrab;
+      assert.ok(a, key);
+      // 구운 번호로 나눈 결과(가려진 다리 채움까지 제 다리) — 그림 자리로 다시 나누면 채움이 위 다리로 잘못 간다
+      let legs = 0; for (let i = 0; i < a.count; i++) if (a.getX(i) === KIND.leg) legs++;
+      assert.ok(legs > 300, `${key} 다리 정점 ${legs}`);
+      lib.dispose();
+    }
+  } finally { setGlbSource(null); flushGlbCache(); }
+});
+
+test("쉬는 동안 집게는 흔들리고 바닷가재 꼬리는 들썩인다(움직임 줄이기면 0) — 몸길이에 견줘 작게", async () => {
+  for (const key of ["snow_crab", "lobster"]) {
+    const { P, n, d } = await legsOf(key), o = [0, 0, 0];
+    let span = 0; for (let i = 0; i < n; i++) span = Math.max(span, Math.abs(P[i * 3]));
+    let claw = 0, tail = 0;
+    for (let s = 0; s < 40; s++) {
+      const p = pose(0, 0, 1, s * 0.5);
+      for (let i = 0; i < n; i++) {
+        const k = d.a[i * 4];
+        if (k !== KIND.claw && k !== KIND.tail) continue;
+        crabDisplace(P[i * 3], P[i * 3 + 1], P[i * 3 + 2], d.a, d.b, i, p, o);
+        const m = Math.hypot(o[0] - P[i * 3], o[1] - P[i * 3 + 1], o[2] - P[i * 3 + 2]);
+        if (k === KIND.claw) claw = Math.max(claw, m); else tail = Math.max(tail, o[1] - P[i * 3 + 1]);
+      }
+    }
+    // 몸길이(머리 → 꼬리 2 × span)의 1% 넘게 움직이되 8% 는 안 넘는다
+    assert.ok(claw > 0.02 * span && claw < 0.16 * span, `${key} 집게 ${(claw / span / 2).toFixed(3)}`);
+    if (key === "lobster") assert.ok(tail > 0.01 * span && tail < 0.16 * span, `꼬리 ${(tail / span / 2).toFixed(3)}`);
+  }
 });
