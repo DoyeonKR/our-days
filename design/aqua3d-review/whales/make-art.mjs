@@ -7,7 +7,8 @@ const R='design/aqua3d-review/whales/reference/';
 // [원본, 머리가 왼쪽이면 뒤집기, 바탕 문턱(밝기), 어두운 색, 밝은 색(null = 원래 색)]
 export const WHALES={
  minke_whale:[R+'src-minke.png',false,236,[38,46,58],[238,240,242]],
- gray_whale:[R+'src-gray.jpg',true,236,[52,58,64],[205,208,206]],
+ // 귀신고래는 2026-11-18 사용자 사진(옆 · 위 · 앞)이 기준 — 오려낸 옆 사진을 그대로 쓴다(gray-cut.mjs, 'cut'). 옛 NOAA 흑백 일러스트(src-gray.jpg)는 실제와 달랐다
+ gray_whale:[R+'gray-cut-side.png','cut'],
  humpback_whale:[R+'src-humpback.png',true,236,[22,28,38],[226,230,234]],
  sperm_whale:[R+'src-sperm.png',false,236,[40,38,40],[170,160,154]],
  blue_whale:[R+'src-blue.png',false,240,[20,32,52],[100,128,154]],
@@ -32,9 +33,11 @@ export async function cutout(src,flip,thr,dark,light){
   out[i*4]=r;out[i*4+1]=g;out[i*4+2]=b;out[i*4+3]=edge?(lum[i]>200?60:170):255;}
  return sharp(out,{raw:{width:W,height:H,channels:4}}).extract({left:x0,top:y0,width:x1-x0+1,height:y1-y0+1}).png().toBuffer();
 }
+// 오려낸 사진의 물빛 비침 걷기(gray-build.mjs 의 nearest 와 같은 식) — 가장자리 · 배 아래의 청록 기를 회색 쪽으로
+async function uncast(src){const {data,info}=await sharp(src).ensureAlpha().raw().toBuffer({resolveWithObject:true});for(let i=0;i<info.width*info.height;i++){const r=data[i*4],g=data[i*4+1],b=data[i*4+2],c=Math.max(0,Math.min(1,(b-r-12)/30));if(!c)continue;const l=(r+g+b)/3;data[i*4]=Math.round(r+(l*1.02-r)*c);data[i*4+1]=Math.round(g+(l-g)*c);data[i*4+2]=Math.round(b+(l*.97-b)*c);}return sharp(data,{raw:{width:info.width,height:info.height,channels:4}}).png().toBuffer();}
 async function tint(png,t){if(!t)return png;const {data,info}=await sharp(png).raw().toBuffer({resolveWithObject:true});for(let i=0;i<info.width*info.height;i++)for(let c=0;c<3;c++)data[i*4+c]=Math.round(data[i*4+c]*(1-t.k)+t.rgb[c]*t.k);return sharp(data,{raw:{width:info.width,height:info.height,channels:4}}).png().toBuffer();}
 if(process.argv[1]&&process.argv[1].split(String.fromCharCode(92)).join('/').endsWith('whales/make-art.mjs')){const only=process.argv.slice(2);
- for(const [key,[src,flip,thr,dark,light]]of Object.entries(WHALES)){if(only.length&&!only.includes(key))continue;const cut=await cutout(src,flip,thr,dark,light);
+ for(const [key,[src,flip,thr,dark,light]]of Object.entries(WHALES)){if(only.length&&!only.includes(key))continue;const cut=flip==='cut'?await uncast(src):await cutout(src,flip,thr,dark,light);
   await writeFile(`design/aqua3d-review/whales/reference/${key}-cut.png`,cut);
   for(const [stage,t]of Object.entries(STAGE)){const name=stage==='adult'?key:`${stage}_${key}`;const png=await tint(cut,t);
    const big=await sharp(png).resize(470,470,{fit:'contain',background:{r:0,g:0,b:0,alpha:0}}).extend({top:21,bottom:21,left:21,right:21,background:{r:0,g:0,b:0,alpha:0}}).webp({quality:90,alphaQuality:100}).toBuffer();

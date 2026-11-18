@@ -1707,16 +1707,16 @@
       "sheet": "design/aqua3d-review/whales/review.webp"
     },
     "fry_gray_whale": {
-      "sourceHash": "1656fdae782a8521d588f8278db259da4fe1c3c1624ee8b0a5362ba074cec59b",
-      "sheet": "design/aqua3d-review/whales/review.webp"
+      "sourceHash": "63828741ae92f493a915ca3ce50e739ac7c082d44f1aa65ef0a0c68859a6d95a",
+      "sheet": "design/aqua3d-review/whales/gray-review.webp"
     },
     "juv_gray_whale": {
-      "sourceHash": "1fb19e61bd65a09d311ac0eddd8054aa212ec6da43e164b2952666e4fb395786",
-      "sheet": "design/aqua3d-review/whales/review.webp"
+      "sourceHash": "228bdca690a008f4b22cfb92048625523f161fe7312e34eba80e5c439778a0e3",
+      "sheet": "design/aqua3d-review/whales/gray-review.webp"
     },
     "gray_whale": {
-      "sourceHash": "e3f3f715c961460a0acf1439d1a15e4d40d3917c82838377d5085ebd982e7f99",
-      "sheet": "design/aqua3d-review/whales/review.webp"
+      "sourceHash": "192ccae6b764eb7818f6694459173f439a5c1f2f6b647901b845943305ee81da",
+      "sheet": "design/aqua3d-review/whales/gray-review.webp"
     },
     "fry_humpback_whale": {
       "sourceHash": "fece5d3faa9c8cb4c0242969ec9095eee0d37d84b6298150187c6685032a880a",
