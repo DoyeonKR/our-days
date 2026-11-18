@@ -447,7 +447,10 @@ test("F8 focusPhotoId — 사진을 찾아(안 불러온 페이지면 한 장 �
 test("★ 마이그레이션 — schema.sql 끝에 한 덩어리 · 멱등 · 지우는 것 없음 · 정책은 집합 규약 · 함수는 authenticated 만", () => {
   const schema = read("supabase/schema.sql");
   assert.ok(schema.includes(migRaw), "schema.sql 끝의 복사본이 migration 과 다르다");
-  assert.ok(schema.trimEnd().endsWith(migRaw) || schema.indexOf(migRaw) > schema.length / 2, "복사본이 끝에 있어야 한다");
+  // '끝에 붙였다'는 바로 앞 migration 복사본 뒤에 있다는 뜻으로 본다 — 예전엔 '파일 절반보다 뒤'로 쟀는데,
+  // 뒤에 migration 이 쌓일수록 이 복사본이 절반 앞으로 밀려 2026-11-18(season_board 를 붙인 날) 그대로 깨졌다
+  const prevRaw = read("supabase/migrations/20261106010000_log_review.sql").trim();
+  assert.ok(schema.trimEnd().endsWith(migRaw) || schema.indexOf(migRaw) > schema.indexOf(prevRaw), "복사본이 끝에 있어야 한다");
   assert.doesNotMatch(mig, /\bdrop\s+(table|column|schema|function)\b|\btruncate\b|\bdelete\s+from\b/i, "운영에 push 하는 순간 적용된다 — 지우는 문장 금지");
   assert.match(mig, /^begin;/m);
   assert.match(mig, /^commit;/m);

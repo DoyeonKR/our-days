@@ -3619,6 +3619,31 @@ export async function submitMergeWeekly(week: string, rule: string, nickname: st
   return row ? { runId: Number(row.run_id), myBest: row.my_best ?? 0, coupleScore: row.couple_score ?? 0, coupleRank: row.couple_rank ?? 0, couples: row.couples ?? 0 } : null;
 }
 
+// 시즌 순위(2026-11-18) — 이번 달 시즌 미션을 채운 수로 커플 순위. migrations/20261114110000_season_board.sql
+// 커플 점수 = 지금도 그 커플인 두 사람이 올린 수 중 가장 큰 것(섬의 시즌 진행은 둘이 같이 본다 — 합이 아니다). 같은 수면 먼저 닿은 커플.
+export type SeasonRankRow = { month: string; rank: number; names: string; done: number; is_mine: boolean; couples: number; ended: boolean };
+export type SeasonSubmit = { runId: number | null; coupleDone: number; coupleRank: number; couples: number };
+
+/** month: "YYYY-MM"(서버의 KST 달이어야 한다 — 아니면 PT422). 우리 커플이 이미 그 수 이상이면 서버가 넣지 않는다(runId null) */
+export async function submitSeasonDone(month: string, nickname: string, done: number): Promise<SeasonSubmit | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("submit_season", { p_month: `${month}-01`, p_nickname: nickname, p_done: Math.round(done) });
+  // PT422(지난 달 · 범위 밖 · 닉네임) · PT403(커플 없음)은 다시 보내지 않고, PT429 는 잠시 뒤 — 부르는 쪽이 코드를 가른다
+  if (error) throw Object.assign(new Error(humanError(error.message)), { code: error.code });
+  const row = (Array.isArray(data) ? data[0] : data) as { run_id: number | null; couple_done: number; couple_rank: number; couples: number } | undefined;
+  return row ? { runId: row.run_id == null ? null : Number(row.run_id), coupleDone: row.couple_done ?? 0, coupleRank: row.couple_rank ?? 0, couples: row.couples ?? 0 } : null;
+}
+
+/** month: "YYYY-MM"(null 이면 이번 달). 서버는 이번 달 · 지난 달만 답한다. 1~20위 + 우리 줄 — 닉네임 · 채운 수만 */
+export async function getSeasonBoard(month: string | null): Promise<SeasonRankRow[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("season_board", { p_month: month ? `${month}-01` : null });
+  if (error) throw Object.assign(new Error(humanError(error.message)), { code: error.code });
+  return ((data ?? []) as SeasonRankRow[]).map((r) => ({ ...r, month: String(r.month).slice(0, 7) }));
+}
+
 /** week: 그 주의 월요일 'YYYY-MM-DD'(null 이면 이번 주). 서버는 이번 주 · 지난 주만 답한다(그 밖은 빈 목록). */
 export async function getMergeWeeklyBoard(week: string | null): Promise<MergeWeeklyRow[]> {
   const sb = getSupabase();

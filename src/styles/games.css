@@ -1707,6 +1707,26 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .season-title-chip { display: inline-flex; align-items: center; padding: 0 9px; border-radius: 999px; background: #e6f6f1; color: #14564a; font-size: 12px; line-height: 18px; font-weight: 800; }
 .season-title-chip.is-card { background: rgba(255, 255, 255, .94); color: #14564a; }
 @media (prefers-reduced-motion: reduce) { .season-track b, .season-bar b { transition: none; } }
+/* 시즌 2026-11-18 — 지난 달 보상 · 순위 · 칭호 고르기 · 섬 이름표 칭호.
+   칭호 칩은 눌러 고르는 버튼이 됐다(is-pick) — 고른 것만 진하게(is-on). 글자 크기 · 줄 높이는 위 칩 그대로 */
+.season-missed { display: grid; gap: 6px; padding: 10px; border: 1px dashed #2fa98c; border-radius: 14px; background: color-mix(in srgb, #2fa98c 6%, transparent); }
+.season-title-chip.is-pick { min-height: 32px; border: 1px solid color-mix(in srgb, #2fa98c 30%, transparent); }
+.season-title-chip.is-pick.is-on { background: #2fa98c; color: #fff; border-color: #2fa98c; }
+.season-title-chip.is-pick:disabled { opacity: .6; }
+.season-nick { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.season-nick input { min-width: 0; height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-size: 16px; }
+.season-nick button { height: 40px; padding: 0 12px; border-radius: 10px; background: #2fa98c; color: #fff; font-size: 14px; font-weight: 800; white-space: nowrap; }
+.season-nick button:disabled { opacity: .5; }
+.season-nick small { grid-column: 1 / -1; }
+.season-retry { text-decoration: underline; font-weight: 800; }
+.season-rank { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.season-rank li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; background: color-mix(in srgb, var(--line) 30%, transparent); }
+.season-rank li.is-mine { background: color-mix(in srgb, #2fa98c 16%, transparent); outline: 1px solid #2fa98c; }
+.season-rank-no { font-size: 15px; line-height: 24px; font-weight: 900; color: var(--ink); text-align: center; }
+.season-rank-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 24px; color: var(--ink); }
+.season-rank-done { font-size: 12px; line-height: 18px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+/* 섬 화면 이름표의 칭호 — 어두운 이름표 위라 밝은 민트 바탕 + 진한 글자. 이름이 줄어도 칭호는 줄지 않는다 */
+.pet-title-chip { flex-shrink: 0; padding: 0 6px; border-radius: 999px; background: #c9f2e6; color: #0f4a3f; font-size: 11px; line-height: 16px; font-weight: 800; white-space: nowrap; }
 /* ── 색 변이 품종 · 개체 이야기(2026-11-13) — 그림은 그대로, 색만 CSS filter(DOM 이라 캔버스 규칙과 무관). 오로라도 움직이지 않는 filter */
 .aqua-morph { display: block; width: 100%; height: 100%; }
 .aqua-morph-albino { filter: grayscale(.85) brightness(1.35) sepia(.18) hue-rotate(-28deg) saturate(1.6); }

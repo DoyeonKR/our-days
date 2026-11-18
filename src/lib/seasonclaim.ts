@@ -10,7 +10,7 @@
 import type { IslandState } from "./island.ts";
 import { decorOf, grantDecor } from "./aquarium.ts";
 import { josa } from "./josa.ts";
-import { SEASON_BOBBER, TIER_REWARD, activeMonth, claimBlock, markClaimed, seasonDecorFor, titleText } from "./season.ts";
+import { SEASON_BOBBER, TIER_REWARD, claimBlock, claimMonth, markClaimed, seasonDecorFor, tierTitleText } from "./season.ts";
 
 export type ClaimResult = { ok: true; state: IslandState; note: string } | { ok: false; reason: string };
 
@@ -36,16 +36,18 @@ function giveDecor(st: IslandState, month: string, now: number): ClaimResult {
   return { ok: true, state: g.state, note: `${josa(decorOf(key)?.name ?? "장식", "을/를")} 수조 보관함에 넣었어요` };
 }
 
-/** 받기 — tier 1 · 2 · 3. who = 누른 사람(칭호에 남는다) */
-export function claimSeason(st: IslandState, tier: number, now: number, who: string): ClaimResult {
-  const why = claimBlock(st, tier, now);
+/** 받기 — tier 1 · 2 · 3. who = 누른 사람(칭호에 남는다).
+ *  missed = 지난 달 못 받은 보상(2026-11-18) — 다음 달 첫 7일에 지난 달 장식 · 찌 · 칭호를 그대로 받는다.
+ *  지난 달에 채운 단계만 · 단계마다 한 번이라 새 보상을 만들지 않는다(받을 수 있던 것을 늦게 받을 뿐). 하트는 여전히 없다 */
+export function claimSeason(st: IslandState, tier: number, now: number, who: string, missed = false): ClaimResult {
+  const why = claimBlock(st, tier, now, missed);
   if (why) return { ok: false, reason: why };
-  const month = activeMonth(st, now);
+  const month = claimMonth(st, now, missed);
   const reward = TIER_REWARD[tier - 1];
   let res: ClaimResult;
   if (reward === "decor") res = giveDecor(st, month, now);
   else if (reward === "bobber") res = ownsSeasonBobber(st) ? giveDecor(st, month, now) : { ok: true, state: giveSeasonBobber(st), note: "시즌 찌를 받았어요 — 낚시 장비 꾸미기에서 낄 수 있어요" };
-  else res = { ok: true, state: st, note: `펫 칭호 '${titleText(month)}'을 받았어요` };
+  else res = { ok: true, state: st, note: `펫 칭호 '${tierTitleText(month, 3)}'을 받았어요` };
   if (!res.ok) return res;
-  return { ...res, state: markClaimed(res.state, tier, now, who) };
+  return { ...res, state: markClaimed(res.state, tier, now, who, missed) };
 }

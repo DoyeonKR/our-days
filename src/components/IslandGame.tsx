@@ -187,6 +187,7 @@ import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import { useSharedAppearance } from "@/components/SharedAppearanceProvider";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
+import { wornOf } from "@/lib/season";
 
 type Tab = "pet" | "farm" | "craft" | "decor" | "more";
 /* 못 보낸 초안의 주인(2026-11-11) — 섬을 닫은 뒤에도 그 화면은 몇 번 더 다시 보낸다. 그사이 섬을 다시 열어 같은 초안을
@@ -959,6 +960,7 @@ export default function IslandGame({
 
   const sum = islandSummary(s, now);
   const pf = petForm(s.pet.form);
+  const petTitle = wornOf(s); // 섬 최상위 s.petTitle(+ 옛 s.season 기록) — 저장만 읽는다(엔진 동작 없음)
   const stage = petStage(s.pet.form);
   // 도트 전용 폼(계보 폼 — 일러스트 원화가 없다)은 일러스트 모드여도 픽셀 무대로 그린다.
   // 일러스트 무대(PetYard)는 petArt(form) 을 쓰는데 원화가 없는 키는 **알**로 나온다 [2026-10-04 펫 개편].
@@ -1168,6 +1170,8 @@ export default function IslandGame({
                 <div className="pet-nameplate">
                   <p className="flex items-center gap-1 text-sm font-black">
                     <span className="truncate">{s.pet.name}</span>
+                    {/* 시즌 칭호(2026-11-18) — 게임 탭 시즌 시트에서 고른 것(s.petTitle). 이름은 줄여도 칭호는 줄이지 않는다 */}
+                    {petTitle && <span className="pet-title-chip" title={`시즌 칭호 · ${petTitle.text}`}>{petTitle.text}</span>}
                     <button
                       onClick={() => { setRenameTo(s.pet.name); setRenameOpen(true); }}
                       aria-label="히어로 이름 바꾸기"
