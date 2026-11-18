@@ -13619,8 +13619,8 @@
       "family": "octopus",
       "form": "adult",
       "file": "public/aqua/models/fish/octopus.glb",
-      "triangles": 2388,
-      "bytes": 45504,
+      "triangles": 5572,
+      "bytes": 121492,
       "bones": [
         "spine_0",
         "spine_1",
@@ -13690,6 +13690,14 @@
         },
         "uncompressedBytes": 189184,
         "uncompressedSha256": "b23c024f728cef8d7ae0b9f43b455d1c7347dea26511eb16a96069da8d330ee4"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "ed3538cb8af19c0aa0f3210e1c1646a0ad5580bef1bef7234d005de5d8276b06",
+        "review": "design/aqua3d-review/ceph-v3/review-octopus-2.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/octopus.glb",
+        "note": "2차(그림 팔 길 · 그림 팔 띠 · 빨판 구슬, 아틀라스를 1024 로 그려 압축기가 512 로 줄인다). validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "fry_octopus": {
@@ -13697,8 +13705,8 @@
       "family": "octopus",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_octopus.glb",
-      "triangles": 2416,
-      "bytes": 40460,
+      "triangles": 2512,
+      "bytes": 87740,
       "bones": [
         "spine_0",
         "spine_1",
@@ -13766,6 +13774,14 @@
         },
         "uncompressedBytes": 170908,
         "uncompressedSha256": "fa61ba81af46d9957acce78101119b76a10e1617ff2c3bfbaa721780180d5d7d"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "151ee01ccf7238da2e4b250ba7a1f33056e4553d6fd1805297ed71b03200f120",
+        "review": "design/aqua3d-review/ceph-v3/review-octopus-2.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/fry_octopus.glb",
+        "note": "2차(그림 팔 길 · 그림 팔 띠 · 빨판 구슬, 아틀라스를 1024 로 그려 압축기가 512 로 줄인다). validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "juv_octopus": {
@@ -13773,8 +13789,8 @@
       "family": "octopus",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_octopus.glb",
-      "triangles": 2376,
-      "bytes": 37672,
+      "triangles": 5537,
+      "bytes": 105496,
       "bones": [
         "spine_0",
         "spine_1",
@@ -13844,6 +13860,14 @@
         },
         "uncompressedBytes": 162128,
         "uncompressedSha256": "2946216b76713cbede9750b0026cd363bb49dc13739a3310706ece7ceb8683aa"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "368731f67977469f75c951b423e9e875e7531cf48a3cd34d9a1c60bf1102e146",
+        "review": "design/aqua3d-review/ceph-v3/review-octopus-2.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/juv_octopus.glb",
+        "note": "2차(그림 팔 길 · 그림 팔 띠 · 빨판 구슬, 아틀라스를 1024 로 그려 압축기가 512 로 줄인다). validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "gulper_eel": {

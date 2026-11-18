@@ -46,14 +46,15 @@ test("물 뿜기는 출발이 빠르고 미끄러지며 선다 · 문어는 바�
 
 await MeshoptDecoder.ready;
 const webp = { name: "EXT_texture_webp", loadTexture: () => Promise.resolve(new T.Texture()) };
-const open = (key: string) => {
-  const b = readFileSync(`public/aqua/models/fish/${key}.glb`);
+// dir: 문어는 2026-11-18 2차부터 v3 라, 옛 판 경로(크라켄이 아직 탄다)의 굽힘은 보관한 옛 문어 판(ceph-v3/old)으로 잰다
+const open = (key: string, dir = "public/aqua/models/fish") => {
+  const b = readFileSync(`${dir}/${key}.glb`);
   return new Promise<T.Group>((res, rej) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(() => webp as never).parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, "", (g) => res(g.scene), rej));
 };
 
 type Arm = NonNullable<ReturnType<typeof cephArmData>>;
-async function armsOf(key: string) {
-  const sc = await open(key); let m: T.SkinnedMesh | null = null; sc.traverse((o) => { if (!m && o instanceof T.SkinnedMesh) m = o; });
+async function armsOf(key: string, dir?: string) {
+  const sc = await open(key, dir); let m: T.SkinnedMesh | null = null; sc.traverse((o) => { if (!m && o instanceof T.SkinnedMesh) m = o; });
   const mesh = m as unknown as T.SkinnedMesh, pos = mesh.geometry.attributes.position, uv = mesh.geometry.attributes.uv, n = pos.count;
   const P = new Float32Array(n * 3), U = new Float32Array(n * 2);
   for (let k = 0; k < n; k++) { P[k * 3] = pos.getX(k); P[k * 3 + 1] = pos.getY(k); P[k * 3 + 2] = pos.getZ(k); U[k * 2] = uv.getX(k); U[k * 2 + 1] = uv.getY(k); }
@@ -66,7 +67,7 @@ const ang = (A: Arms, x: number, y: number) => Math.atan2(y - A.d.hub[1], x - A.
 const wrap = (d: number) => Math.atan2(Math.sin(d), Math.cos(d));
 
 test("팔은 저마다 따로 움직인다 — 팔 끝끼리 움직임의 상관이 낮다(하나의 꼬리처럼 같이 휘지 않는다)", async () => {
-  for (const key of ["octopus", "kraken", "juv_octopus"]) {
+  for (const key of ["kraken", "fry_kraken", "juv_kraken"]) {
     const A = await armsOf(key), o = [0, 0, 0];
     // 팔 하나 = 위상 하나(cephArmData 가 이어진 정점을 한 팔로 묶는다) — 팔마다 가장 먼 정점을 끝으로
     const byArm = new Map<number, number>();
@@ -86,7 +87,7 @@ test("팔은 저마다 따로 움직인다 — 팔 끝끼리 움직임의 상관
 });
 
 test("굽힘은 팔 뿌리에서 끝으로 지나가고, 끝이 뿌리 쪽보다 훨씬 크게 움직인다 · 외투막 · 머리는 그대로", async () => {
-  const A = await armsOf("octopus"), o = [0, 0, 0];
+  const A = await armsOf("octopus", "design/aqua3d-review/ceph-v3/old"), o = [0, 0, 0];
   let mid = -1, tip = -1;
   // 같은 팔(같은 위상) — 가운데쯤(rr 0.45 ~ 0.55)과 그 팔의 가장 먼 끝
   for (let k = 0; k < A.n; k++) if (A.d.attr[k * 4] > 0.95 && Math.abs(A.d.attr[k * 4 + 1] - 0.5) < 0.05) { mid = k; break; }
@@ -108,7 +109,7 @@ test("굽힘은 팔 뿌리에서 끝으로 지나가고, 끝이 뿌리 쪽보다
 
 test("물 뿜기 — 팔을 외투막 반대쪽으로 모으고 물결을 거의 끈다 · 미끄러짐 끝엔 편다 · 어느 팔도 외투막을 뚫고 돌지 않는다", async () => {
   // 2026-11-18 — 오징어 · 대왕오징어는 v3 입체 모델이 되어 이 옛 판 경로를 안 탄다(cephmotion3d.test 가 잰다). 옛 판으로 남은 문어 · 크라켄만
-  for (const key of ["octopus", "kraken", "juv_octopus"]) {
+  for (const key of ["kraken", "fry_kraken", "juv_kraken"]) {
     const A = await armsOf(key), o = [0, 0, 0];
     const tips = Array.from({ length: A.n }, (_, k) => k).filter((k) => A.d.attr[k * 4] > 0.9 && A.d.attr[k * 4 + 1] > 0.55);
     // 퍼진 폭 = 팔 끝들이 '늘어뜨리는 축'에서 옆으로 떨어진 거리(보이는 다발의 굵기). 외투막 쪽 팔은 돌리지 않고 몸 뒤로 끌어당기므로 각이 아니라 거리로 잰다

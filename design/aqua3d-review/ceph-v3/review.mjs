@@ -9,7 +9,9 @@ const VIEWS = {side: [0, 0, 1], top: [0, 1, .001], front: [1, 0, 0], oblique: [1
 const renderer = new T.WebGLRenderer({antialias: true, preserveDrawingBuffer: true}); renderer.setSize(CELL, CELL); renderer.toneMapping = T.NeutralToneMapping; renderer.outputColorSpace = T.SRGBColorSpace;
 const errors = []; const origErr = console.error; console.error = (...a) => { errors.push(a.join(' ').slice(0, 300)); origErr(...a); };
 function scene() { const s = new T.Scene(); s.background = new T.Color(0x8fa9b4); s.add(new T.HemisphereLight(0xe8f3ff, 0x666953, 1.6)); const d = new T.DirectionalLight(0xfff0dc, 2); d.position.set(2, 5, 4); s.add(d); const f = new T.DirectionalLight(0xa2d8e2, .7); f.position.set(-3, 2, -5); s.add(f); return s; }
-async function load(url) { const bytes = await (await fetch(url, {cache: 'no-store'})).arrayBuffer(); return (await loader.parseAsync(bytes, '/')).scene; }
+// 게임과 같은 텍스처 비등방 필터(scene.ts applyTweak → color-quality modelTextureQuality, 최대 8) — 빼면 길쭉한 팔 띠 uv 가 밉맵에서 뭉개져 실제보다 밋밋하게 보였다(2026-11-18 2차)
+const ANISO = Math.max(1, Math.min(8, renderer.capabilities.getMaxAnisotropy()));
+async function load(url) { const bytes = await (await fetch(url, {cache: 'no-store'})).arrayBuffer(), sc = (await loader.parseAsync(bytes, '/')).scene; sc.traverse((o) => { if (o.material?.map) { o.material.map.anisotropy = ANISO; o.material.map.needsUpdate = true; } }); return sc; }
 function shot(sc, center, dir, half = 1.2) {
   const cam = new T.OrthographicCamera(-half, half, half, -half, .01, 100); if (dir[1] > .9) cam.up.set(0, 0, -1);
   cam.position.copy(center).add(new T.Vector3(...dir).normalize().multiplyScalar(10)); cam.lookAt(center); renderer.render(sc, cam); return renderer.domElement;
