@@ -25,7 +25,7 @@
 |---|---|---|---|
 | A. 해양 포유류(물범 · 물개 · 바다사자 · 강치 · 해달 · 수달) | 그림 18 · 3D 모델 18 | `design/aqua3d-review/mammals-prompts.json` | `public/aqua/fish` · `public/aqua/models/fish` |
 | B. 낚시 2D — 꽝 쓰레기 8 · 보물 · 유물 조각 18 · 만든 미끼 4 | 그림 30 | `design/FISHING-ART.md` 의 해당 표 | `node scripts/fishing-art.mjs sync <폴더>` |
-| C. 두족류 3D 모델 다시 짓기(진짜 입체) — **오징어류 켬(2026-11-18) · 문어 · 크라켄은 후보** | 3D 모델 12 | 아래 C | 오징어류 `public/aqua/models/fish` · 문어 · 크라켄 후보 `design/aqua3d-review/ceph-v3/octopus-candidates`(옛 판은 `ceph-v3/old`) |
+| C. 두족류 3D 모델 다시 짓기(진짜 입체) — **오징어류 · 문어 켬(2026-11-18) · 크라켄은 후보** | 3D 모델 12 | 아래 C | 오징어류 · 문어 `public/aqua/models/fish` · 크라켄 후보 `design/aqua3d-review/ceph-v3/octopus-candidates`(옛 판은 `ceph-v3/old`) |
 | D. 새우류 3계열(체리새우 · 대하 · 독도새우) | 그림 9 · 3D 모델 9 | 아래 D | `public/aqua/fish` · `public/aqua/models/fish` |
 | E. 해초 꾸미기 3종(파래 · 미역 · 다시마) — 그림은 2026-11-14 교체 끝, 3D 는 코드 모델(잎 색만 그림에 맞춤, 2026-11-18) | 그림 3(+ 선택: 3D 모델 3) | `design/AQUARIUM-ART.md` 의 `sea_lettuce` · `sea_mustard` · `dasima` 줄 | `public/aqua/decor`(+ `sm`) · 모델은 `public/aqua/models/decor` |
 
@@ -117,6 +117,8 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 
 ### C. 두족류 3D 모델 다시 짓기 — 12개(문어 · 크라켄 · 살오징어 · 대왕오징어 × 새끼 · 어린 · 다 큰)
 
+> **2차(2026-11-18): 문어 3모습도 켬 · 크라켄은 여전히 후보** — 팔을 그림에서 따라 그린 길로 짓고 팔 텍스처를 그 길을 편 띠로 · 빨판 구슬 · 크라켄 혹 머리 · 등 줄무늬 고침(README §14.4.6 '두족류 v3 2차', 검수 `ceph-v3/review-octopus-2.webp` · `review-kraken-2.webp`). 크라켄은 수조 카메라에서 옛 판의 빽빽한 촉수보다 성겨 켜지 않았다.
+>
 > **오징어 · 대왕오징어 켬(2026-11-18) · 문어 · 크라켄 v3 는 후보(Claude 세션 — v3)**: 오징어류는 옛 것과 비슷하거나 나아 켰다. 문어 · 크라켄 v3 는 위 · 앞에선 낫지만 수조 카메라에선 옛 그림 판보다 팔 · 텍스처가 단순하고, 크라켄은 혹투성이 머리를 잃고, 위에서 보면 몸 무늬가 줄무늬로 늘어져 `design/aqua3d-review/ceph-v3/octopus-candidates` 에만 두었다 — 게임은 옛 판 + 옛 팔 경로(`cephalopod.ts`)다. 다시 할 때는 팔 결(빨판 · 주름) · 크라켄 머리 혹 · 위쪽 몸 텍스처부터. 아래 설계와 다른 점 — 팔마다 뼈 사슬(`arm_<a>_<j>`)을 더하지 않고 뼈 10개 계약을 지켰다. 팔은 uv 의 팔 띠(`CEPH_UV`)로 팔 번호 · 뿌리→끝을 읽어 정점 셰이더가 팔마다 3D 로 굽힌다(`src/lib/aqua3d/cephalopod3d.ts`). 몸은 그림에서 잰 둥근 관에 그림을 굽고, 문어 팔은 바닥에 펼친 별이 아니라 몸 아래로 늘어진 아치(옆모습이 그림과 닮게 — v2 는 수평으로 펼쳐 옆에서 막대였다). 빨판은 텍스처만(법선 굴곡 없음), 켠 파일은 `fish-v2` 를 거치지 않고 바로 `public/aqua/models/fish`. 검수 `design/aqua3d-review/ceph-v3/review-*.webp`. 아래는 처음 설계 기록.
 
 **왜** — 지금 두족류 GLB 는 옆에서 본 그림 한 장을 두께 있게 세운 판이고 뼈가 몸길이 사슬 여섯뿐이다. 게임이 정점 셰이더로 팔을 하나씩 굽히고(2026-11-13, `src/lib/aqua3d/cephalopod.ts`) 물 뿜기 · 숨 · 기기를 흉내 내지만, 위 · 앞에서 보면 납작한 판이라 진짜 문어처럼(팔 여덟이 사방으로 퍼지고 바닥을 짚는다) 보일 수 없다. 이게 두족류 움직임의 남은 상한이다.

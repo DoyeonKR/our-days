@@ -1,4 +1,4 @@
-// 두족류 v3 입체 모델의 팔(2026-11-18, cephalopod3d.ts) — 오징어 · 대왕오징어 6모습만 게임에 켰다(문어 · 크라켄 v3 는 design/aqua3d-review/ceph-v3/octopus-candidates 의 후보).
+// 두족류 v3 입체 모델의 팔(2026-11-18, cephalopod3d.ts) — 오징어 · 대왕오징어 6모습(1차) · 문어 3모습(2차 — 그림에서 따라 그린 팔 길)을 게임에 켰다(크라켄 v3 는 design/aqua3d-review/ceph-v3/octopus-candidates 의 후보).
 // 팔은 uv 의 팔 띠에서 읽고 3D 로 돈다(옆 흔들기 · 들기/말기 · 모으기/펴기). 2026-11-13 옛 판 경로(cephmotion.test)의 뜻 — 팔끼리 따로 · 끝이 크고 늦게 · 몸은 그대로 ·
 // 뿜으면 모이고 물결을 끈다 · 끝에 편다 · 지나치게 돌지 않는다 — 을 같은 문턱으로 실제 v3 GLB 에서 잰다. 길(habits · 물 뿜기 방향)은 cephmotion.test 가 잰다.
 import { test } from "node:test";
@@ -15,8 +15,8 @@ const open = (key: string) => {
   const b = readFileSync(`public/aqua/models/fish/${key}.glb`);
   return new Promise<T.Group>((res, rej) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(() => webp as never).parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, "", (g) => res(g.scene), rej));
 };
-const KEYS = ["squid", "fry_squid", "juv_squid", "giant_squid", "fry_giant_squid", "juv_giant_squid"];
-const PLATE = ["octopus", "fry_octopus", "juv_octopus", "kraken", "fry_kraken", "juv_kraken"];
+const KEYS = ["squid", "fry_squid", "juv_squid", "giant_squid", "fry_giant_squid", "juv_giant_squid", "octopus", "fry_octopus", "juv_octopus"];
+const PLATE = ["kraken", "fry_kraken", "juv_kraken"];
 type Arm = NonNullable<ReturnType<typeof cephArmData>>;
 async function armsOf(key: string) {
   const sc = await open(key); let m: T.SkinnedMesh | null = null; sc.traverse((o) => { if (!m && o instanceof T.SkinnedMesh) m = o; });
@@ -50,11 +50,11 @@ const corr = (a: number[], b: number[]) => {
   return ab / Math.sqrt(aa * bb);
 };
 
-test("v3 입체 모델 — 오징어 6모습은 표시가 있고 팔 띠에서 팔 10개(팔 8 · 촉완 2)를 찾는다 · 문어 · 크라켄은 옛 판(표시 없음 → 옛 팔 경로)", async () => {
+test("v3 입체 모델 — 오징어 6모습은 팔 10개(팔 8 · 촉완 2) · 문어 3모습은 팔 8개를 팔 띠에서 찾는다 · 크라켄은 옛 판(표시 없음 → 옛 팔 경로)", async () => {
   for (const key of KEYS) {
     const A = await armsOf(key);
     assert.equal(A.mesh.userData.aquaGeometry, CEPH_V3, key);
-    assert.equal(A.d.arms, 10, key);
+    assert.equal(A.d.arms, /octopus/.test(key) ? 8 : 10, key);
   }
   for (const key of PLATE) {
     const sc = await open(key); let tag: unknown = "none"; sc.traverse((o) => { if (o instanceof T.SkinnedMesh) tag = o.userData.aquaGeometry; });
@@ -63,7 +63,7 @@ test("v3 입체 모델 — 오징어 6모습은 표시가 있고 팔 띠에서 �
 });
 
 test("팔은 저마다 따로 움직인다 — 팔 끝끼리 옆 움직임의 상관이 낮다(하나의 꼬리처럼 같이 휘지 않는다)", async () => {
-  for (const key of ["squid", "juv_squid", "giant_squid"]) {
+  for (const key of ["squid", "juv_squid", "giant_squid", "octopus", "fry_octopus", "juv_octopus"]) {
     const A = await armsOf(key), o = [0, 0, 0], tips = [...A.tip.values()];
     const series = tips.map((k) => Array.from({ length: 200 }, (_, j) => { move(A, k, pose(j * 0.05, { walk: 1 }), o); return sideOf(A, k, o); }));
     let sum = 0, cnt = 0;
@@ -73,7 +73,7 @@ test("팔은 저마다 따로 움직인다 — 팔 끝끼리 옆 움직임의 �
 });
 
 test("굽힘은 팔 뿌리에서 끝으로 지나가고, 끝이 가운데보다 훨씬 크게 움직인다 · 외투막 · 머리는 그대로", async () => {
-  for (const key of ["squid", "giant_squid"]) {
+  for (const key of ["squid", "giant_squid", "octopus", "juv_octopus"]) {
     const A = await armsOf(key), o = [0, 0, 0];
     // 팔 여덟만 — 대왕오징어 촉완(팔 8 · 9)은 아래 · 뒤로 U 자로 늘어져 끝이 뿌리 가까이 돌아와 있다(뿌리를 축으로 돌리면 가운데가 끝보다 크게 움직이는 게 맞다)
     for (const [a, tip] of A.tip) {
@@ -93,7 +93,8 @@ test("굽힘은 팔 뿌리에서 끝으로 지나가고, 끝이 가운데보다 
 });
 
 test("물 뿜기 — 팔을 +X(외투막 반대쪽)로 모으고 물결을 거의 끈다 · 미끄러짐 끝엔 편다 · 어느 팔도 지나치게 돌지 않는다", async () => {
-  for (const key of ["squid", "juv_squid", "giant_squid"]) {
+  // 문어 3모습은 팔이 사방으로 퍼져 이미 +X 에서 멀다 — 그래도 같은 문턱(builder 의 fan 을 이 문턱이 넘는 값으로 골랐다)
+  for (const key of ["squid", "juv_squid", "giant_squid", "octopus", "fry_octopus", "juv_octopus"]) {
     const A = await armsOf(key), o = [0, 0, 0], all = [...A.tip.values()], tips = [...A.tip].filter(([a]) => a < 8).map(([, k]) => k);
     // 퍼진 폭 · 편 각은 팔 여덟로(촉완은 늘어진 자세가 쉬는 모습이라 따로 — 대신 '지나치게 돌지 않는다'는 촉완까지 본다)
     // 퍼진 폭 = 팔 끝들이 팔 고리를 지나는 X 축에서 떨어진 거리(보이는 다발의 굵기)
