@@ -143,6 +143,12 @@ export async function compressGLB(glb, options = {}) {
         const q = quantizeWeights(readAccessor(src, bin, p.attributes.WEIGHTS_0));
         attributes.WEIGHTS_0 = accessor({bufferView: compressed(new Uint8Array(q.buffer), n, 8, 'ATTRIBUTES', 34962), componentType: 5123, normalized: true, count: n, type: 'VEC4'});
       }
+      if (p.attributes._AQUA_PART !== undefined) {
+        // 게 · 바닷가재 다리 번호(2026-11-18, crab-build.mjs) — uint8 ×4 그대로(정수라 양자화할 것이 없다). 게임은 _aqua_part 로 읽는다
+        const A = readAccessor(src, bin, p.attributes._AQUA_PART);
+        if (!(A instanceof Uint8Array)) throw new Error('_AQUA_PART 는 uint8 VEC4');
+        attributes._AQUA_PART = accessor({bufferView: compressed(A, n, 4, 'ATTRIBUTES', 34962), componentType: 5121, count: n, type: 'VEC4'});
+      }
       for (const k of Object.keys(p.attributes)) if (!(k in attributes)) throw new Error(`모르는 속성 ${k}`);
       const I = readAccessor(src, bin, p.indices), wide = n > 65535, idx = wide ? new Uint32Array(I) : new Uint16Array(I);
       const indices = accessor({bufferView: compressed(new Uint8Array(idx.buffer), idx.length, wide ? 4 : 2, 'TRIANGLES', 34963), componentType: wide ? 5125 : 5123, count: idx.length, type: 'SCALAR'});

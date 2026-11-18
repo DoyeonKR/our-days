@@ -1,4 +1,4 @@
-// 게 6모습 GLB — 그림과 같은 기준 · 같은 색(make-art.mjs 의 TINT)으로 crab-build 를 돌린다
+// 게 6모습 · 바닷가재 3모습 GLB — 그림과 같은 기준 · 같은 색(make-art.mjs 의 TINT)으로 crab-build 를 돌린다. 다시 지으면 model-revisions.ts 의 해시도 바꾼다(2026-11-18 다리 번호 · 자르기 · 채움)
 import {writeFile} from 'node:fs/promises';
 import {crabGLB} from '../crab-build.mjs';
 import {CRABS,TINT,DOME} from './make-art.mjs';

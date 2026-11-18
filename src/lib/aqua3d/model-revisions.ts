@@ -43,6 +43,8 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_orca:'8acf0d5ebcd3',juv_orca:'f7ef99a634e6',
  // 2026-11-18 오징어 · 대왕오징어 6모습 v3(문어 · 크라켄 v3 는 후보로만 — ceph-v3/octopus-candidates) — 그림을 세운 판 → 진짜 입체(design/aqua3d-review/ceph-v3-build.mjs, 옛 판은 ceph-v3/old)
  squid:'f0d61bb4f4ef',fry_squid:'dbb560d407e9',juv_squid:'672cb9888bb5',giant_squid:'b20f33b91910',fry_giant_squid:'49ac264f7958',juv_giant_squid:'6e5ef195a1fd',
+ // 2026-11-18 게 · 바닷가재 — 다리마다 따로 걷게 다리 번호(_AQUA_PART)를 굽고, 겹친 다리 사이를 자르고 가려진 다리를 채움(crab-build.mjs · crabwalk.ts)
+ fry_snow_crab:'64ac1b27db8c',juv_snow_crab:'ba52799067f7',snow_crab:'a78443b606a3',fry_king_crab:'45b0a57fefd4',juv_king_crab:'a49bb2e4c99b',king_crab:'ffa49cad52e6',fry_lobster:'96f41f943e80',juv_lobster:'b87ac4beb466',lobster:'3fffaada39d9',
 });
 /** 주인 모델(public/aqua/models/boss/, 2026-11-15) — 같은 규칙(바이트 해시) */
 export const BOSS_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({

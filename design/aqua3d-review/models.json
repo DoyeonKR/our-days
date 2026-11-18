@@ -43881,7 +43881,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_snow_crab.glb",
       "triangles": 7000,
-      "bytes": 132284,
+      "bytes": 135772,
       "bones": [
         "spine_0",
         "spine_1",
@@ -43962,7 +43962,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_snow_crab.glb",
       "triangles": 7000,
-      "bytes": 138992,
+      "bytes": 142480,
       "bones": [
         "spine_0",
         "spine_1",
@@ -44043,7 +44043,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/snow_crab.glb",
       "triangles": 7000,
-      "bytes": 148308,
+      "bytes": 151796,
       "bones": [
         "spine_0",
         "spine_1",
@@ -44124,7 +44124,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_king_crab.glb",
       "triangles": 7000,
-      "bytes": 134044,
+      "bytes": 136084,
       "bones": [
         "spine_0",
         "spine_1",
@@ -44205,7 +44205,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_king_crab.glb",
       "triangles": 7000,
-      "bytes": 140452,
+      "bytes": 142492,
       "bones": [
         "spine_0",
         "spine_1",
@@ -44286,7 +44286,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/king_crab.glb",
       "triangles": 7000,
-      "bytes": 147796,
+      "bytes": 149836,
       "bones": [
         "spine_0",
         "spine_1",
@@ -44367,7 +44367,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_lobster.glb",
       "triangles": 7000,
-      "bytes": 85592,
+      "bytes": 87660,
       "bones": [
         "spine_0",
         "spine_1",
@@ -44448,7 +44448,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_lobster.glb",
       "triangles": 7000,
-      "bytes": 89772,
+      "bytes": 91840,
       "bones": [
         "spine_0",
         "spine_1",
@@ -44529,7 +44529,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/lobster.glb",
       "triangles": 7000,
-      "bytes": 92308,
+      "bytes": 94376,
       "bones": [
         "spine_0",
         "spine_1",
