@@ -6,14 +6,14 @@
 //     오징어 · 대왕오징어는 팔 8개가 앞으로 모이고 촉완 2개는 길게(대왕오징어는 아래 · 뒤로 늘어진다), 외투막 끝엔 옆으로 편 지느러미 한 쌍(fin 뼈 — 게임이 지느러미를 젓는다).
 // 팔 움직임(src/lib/aqua3d/cephalopod.ts)은 uv 의 '팔 띠'에서 팔 번호 · 뿌리→끝을 읽는다(CEPH_UV) — 새 정점 속성 없이 기존 압축기 · 묶음기를 그대로 쓴다.
 // 규격: +X 팔 쪽 · 뼈 10개(spine_0 팔 끝 → spine_5 외투막 끝, 옛 모델과 같은 자리) · 길이 2(엔진은 max(x, z, 1.25y)로 잰다) · 삼각형 6,000 안 · 16비트 색인.
-// node design/aqua3d-review/ceph-v3-build.mjs [--install] [key...]   — 기본은 ceph-v3/stage 에, --install 이면 public/aqua/models/fish 에
+// node design/aqua3d-review/ceph-v3-build.mjs [--install] [key...]   — 오징어류: 기본은 ceph-v3/stage, --install 이면 public/aqua/models/fish · 문어 · 크라켄: 늘 ceph-v3/octopus-candidates
 import * as T from 'three';
 import sharp from 'sharp';
 import {writeFile,mkdir} from 'node:fs/promises';
 import {compressGLB} from './glb-compress.mjs';
 import {packAsset} from './shrimp-pack.mjs';
 import {loadArt,material} from './relief-build.mjs';
-import {CEPH_UV} from '../../src/lib/aqua3d/cephalopod.ts';
+import {CEPH_UV} from '../../src/lib/aqua3d/cephalopod3d.ts';
 
 /** 그림 좌표(u 오른쪽 · v 아래, 0~1)로 읽은 팔 고리(hub) · 팔 고리 반지름(crown) · 외투막 타원(가운데 u v · 반지름 u v) — 옛 cephalopod.ts 의 표(2026-11-13 그림에서 잰 값) */
 export const CEPH_ART = {
@@ -293,9 +293,10 @@ async function build(key) {
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/').split('/').pop())) {
   const args = process.argv.slice(2), install = args.includes('--install'), keys = args.filter((a) => !a.startsWith('--'));
-  const dir = install ? 'public/aqua/models/fish' : 'design/aqua3d-review/ceph-v3/stage';
-  await mkdir(dir, {recursive: true});
+  // 2026-11-18 — 게임에 켠 건 오징어 · 대왕오징어뿐. 문어 · 크라켄 v3 는 수조 카메라에서 옛 그림 판보다 단순해(팔 결 · 줄무늬 윗면 · 크라켄 머리) 늘 후보 폴더에만 쓴다
+  const dirOf = (key) => octo(key) ? 'design/aqua3d-review/ceph-v3/octopus-candidates' : install ? 'public/aqua/models/fish' : 'design/aqua3d-review/ceph-v3/stage';
   for (const key of keys.length ? keys : CEPH_KEYS) {
+    const dir = dirOf(key); await mkdir(dir, {recursive: true});
     const {glb, tris, verts, png} = await build(key);
     if (tris > (key.startsWith('fry_') ? 3000 : 6000)) throw Error(`${key} tris ${tris}`);
     if (glb.length > 400000) throw Error(`${key} bytes ${glb.length}`);
