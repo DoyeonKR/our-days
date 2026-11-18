@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import * as T from "three";
 import { CAUSTIC_GLSL, WATER_LIGHT, causticAt, waterLit } from "./waterlight.ts";
 import { GlbLibrary, SWAY_TIP, SWAY_VERTEX, flushGlbCache, prepareDecorSource, setGlbSource, swayOffset } from "./glb.ts";
-import { SARDINE_GLSL, makeShoal, sardineTurn } from "./shoal.ts";
 import { makeAnimal, ModelKit } from "./models.ts";
 
 const ascii = (s: string) => /^[\x00-\x7f]*$/.test(s);
@@ -120,41 +119,3 @@ test("거북 — 모래 위에서 쉬면 지느러미를 거의 안 젓고, 떠�
   } finally { WATER_LIGHT.aquaTime.value = saved; }
 });
 
-test("정어리 — 짙은 등 · 은빛 배 · 검은 눈, 마리마다 다른 꼬리 물결(묶음 속성 하나) · 가끔 몇 마리만 번쩍 · 그리기 호출 하나", () => {
-  const s = makeShoal(320, { halfX: 6.6, halfZ: 6.4, top: 10 });
-  const geo = s.mesh.geometry, mat = s.mesh.material as T.MeshStandardMaterial;
-  assert.ok(mat.vertexColors && mat.emissive.getHex() === 0, "스스로 내는 흰빛 없음(예전 0x3a6b80 × 0.9 가 빗줄기처럼 보였다)");
-  const pos = geo.attributes.position, col = geo.attributes.color;
-  let top = 0, nt = 0, belly = 0, nb = 0, dark = 0;
-  for (let i = 0; i < pos.count; i++) {
-    const l = col.getX(i) + col.getY(i) + col.getZ(i);
-    if (pos.getY(i) > 0.06) { top += l; nt++; } else if (pos.getY(i) < -0.06) { belly += l; nb++; }
-    if (l < 0.1) dark++;
-  }
-  assert.ok(top / nt < 0.4 * (belly / nb), `등 ${top / nt} · 배 ${belly / nb}`);
-  assert.ok(dark >= 6, "눈");
-  const swim = geo.getAttribute("aquaSwim") as T.InstancedBufferAttribute;
-  assert.ok(swim instanceof T.InstancedBufferAttribute && swim.count === 320 && swim.itemSize === 4);
-  const phases = new Set<number>(); for (let i = 0; i < 320; i++) phases.add(Math.round(swim.getX(i) * 100));
-  assert.ok(phases.size > 200, "꼬리 박자가 마리마다 다르다");
-  // 셰이더 — 물결 · 법선 · 번쩍임, ASCII
-  const sh = shaderOf(); mat.onBeforeCompile(sh as never, {} as never);
-  assert.match(sh.vertexShader, /transformed\.z \+= aquaBend/);
-  assert.match(sh.vertexShader, /objectNormal = normalize/);
-  assert.match(sh.fragmentShader, /vAquaFlash/);
-  for (const src of Object.values(SARDINE_GLSL)) assert.ok(ascii(src));
-  // 번쩍임 — 어느 순간이든 몇 마리만, 시간이 지나면 많은 마리가 한 번씩
-  let ever = 0;
-  const flashed = new Uint8Array(320);
-  for (let t = 0; t < 30; t += 0.1) {
-    s.animate(t);
-    let now = 0;
-    for (let i = 0; i < 320; i++) if (swim.getW(i) > 0.3) { now++; flashed[i] = 1; }
-    assert.ok(now < 320 * 0.15, `${t.toFixed(1)}초에 ${now}마리가 동시에 번쩍`);
-  }
-  for (const f of flashed) ever += f;
-  assert.ok(ever > 320 * 0.7, `30초 동안 번쩍인 정어리 ${ever}`);
-  assert.equal(sardineTurn(10, 0, 0.45), 1);
-  assert.equal(sardineTurn(10, 0, 5), 0);
-  s.dispose();
-});

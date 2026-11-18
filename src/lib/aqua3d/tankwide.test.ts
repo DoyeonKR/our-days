@@ -113,24 +113,6 @@ test("터널 수족관 — 7~9 는 점점 깊어지고 10 · 11 단계가 가장
   assert.match(hab, /z \/ root\.scale\.z/, "바닥 높이도 같은 배율");
 });
 
-test("정어리 떼 — 한 묶음(그리기 한 번) · 누를 수 없다 · 같은 시각이면 같은 자리 · 수조 안에 머문다", async () => {
-  const T = await import("three");
-  const { makeShoal } = await import("./shoal.ts");
-  const a = makeShoal(64, { halfX: 6, halfZ: 6.4, top: 10 }), b = makeShoal(64, { halfX: 6, halfZ: 6.4, top: 10 });
-  a.animate(37.5); b.animate(37.5);
-  const m = new T.Matrix4(), n = new T.Matrix4(), p = new T.Vector3();
-  for (let i = 0; i < 64; i++) {
-    a.mesh.getMatrixAt(i, m); b.mesh.getMatrixAt(i, n);
-    assert.ok(m.equals(n), "같은 시각 = 같은 자리");
-    p.setFromMatrixPosition(m);
-    assert.ok(Math.abs(p.x) < 8 && Math.abs(p.z) < 8 && p.y < 11 && p.y > -5.3, `${p.x},${p.y},${p.z}`);
-  }
-  const hits: unknown[] = [];
-  a.mesh.raycast(new T.Raycaster(), hits as never);
-  assert.equal(hits.length, 0);
-  a.dispose(); b.dispose();
-});
-
 test("먼 바다 — 고래는 수조 안에서만 지나가고(옆벽 밖으로 안 삐져나온다) · 같은 시각 = 같은 자리 · 셰이더 재질은 묶어 그리지 않는다", async () => {
   const T = await import("three");
   const { makeGiants } = await import("./giants.ts");
@@ -182,8 +164,8 @@ test("빛줄기 — 모든 수조에 있고, 기울어진 아래 끝도 옆벽 �
 test("단계별 볼거리 — 기준값은 tiers.ts 한곳(three 없음) · 정어리 8 · 고래 9 · 터널 10 · 돔 11 · 돔은 장애물로 비켜 간다", async () => {
   const tiers = readFileSync(join(import.meta.dirname, "tiers.ts"), "utf8");
   assert.doesNotMatch(tiers, /from "three"/, "화면이 읽으므로 three 를 부르지 않는다");
-  const { SHOAL_TIER, WHALE_TIER, TUNNEL_TIER, DOME_TIER } = await import("./tiers.ts");
-  assert.ok(SHOAL_TIER < WHALE_TIER && WHALE_TIER < TUNNEL_TIER && TUNNEL_TIER < DOME_TIER);
+  const { WHALE_TIER, TUNNEL_TIER, DOME_TIER } = await import("./tiers.ts");
+  assert.ok( WHALE_TIER < TUNNEL_TIER && TUNNEL_TIER < DOME_TIER);
   const { DOME_R, domeObstacles } = await import("./dome.ts");
   const o = domeObstacles(1.5)[0];
   assert.ok(o.x === 0 && o.z === 0 && o.r >= DOME_R);

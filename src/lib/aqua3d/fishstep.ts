@@ -157,6 +157,18 @@ function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: num
   }
   void dt;
 }
+/** 물가 쪽으로 길 줄이기(2026-11-18 [사용자: "수조 안의 개체들이 해변 절벽에서 계속 군집하는 경향이 있어 수영 알고리즘의 변경이 필요"]) —
+ *  길(habits)은 수조 가로 전체를 쓰는데, 모래사장 단계(8단계부터)는 오른쪽이 모래라 예전엔 물가(shore)를 넘은 자리를 물가 선에 그대로 붙였다.
+ *  그 결과 물가 너머로 가는 길은 전부 경사면 한 줄에 쌓였다(8 · 9단계 물고기-프레임의 44% 가 물가 몸길이 0.3 안 — 2026-11-18 측정).
+ *  이제 왼쪽 유리 ~ 오른쪽 유리의 길을 왼쪽 유리 ~ 그 높이의 물가로 비례해 줄인다 — 물 안에서 고르게 퍼지고, 머리 방향(dx)도 같은 비율로 줄여 몸이 가는 쪽을 본다.
+ *  물가가 오른쪽 유리보다 바깥이면(수면 가까이 · 앞유리 쪽) 그대로. give(0 ~ 1)만큼 원래 길로 풀어 준다(모래사장으로 올라가 쉬는 포유류) */
+export function shoreSquash(c: Course, L: number, wide: number, lim: number, give = 0) {
+  const right = 5 * wide - 0.1 - L / 2, left = -right;
+  if (!(lim < right) || right <= 0) return;
+  const s = Math.max(0.05, (Math.max(lim, left + 0.05) - left) / (right - left));
+  const x = left + (c.x - left) * s, dx = c.dx * s;
+  c.x = x + (c.x - x) * give; c.dx = dx + (c.dx - dx) * give;
+}
 /** 한 프레임 — swimmers 의 순서가 buffers 의 순서다. elapsed 는 수조 시계(초), dt 는 이번 프레임(초, 0 이면 멈춘 그리기) */
 export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: ReadonlyMap<number, { leader: number; slot: number }>, lengthOf: (id: number) => number | undefined,
   elapsed: number, dt: number, w: StepWorld, b: StepBuffers) {
@@ -183,6 +195,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     // 위로 늘리기 — 바닥에 붙은 만큼(ground)은 모래 높이만 따르고 몸 높이(hug)는 안 늘린다(2026-11-11 — 6단계에서 바닥 물고기가 몸 높이의 1.5배 떠 있었다). 헤엄치는 물고기는 그대로 tallY
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }
     if (deep !== 1) { c.z *= deep; c.dz *= deep; }
+    // 모래사장 단계 — 길을 물가에서 자르지 않고 그 높이의 물 폭에 맞춰 가로로 줄인다(shoreSquash). 쉬러 올라가는 포유류는 쉬는 만큼 풀어 준다
+    if (b.shore) { const sw = (m.swim ??= swimStateOf(m)); shoreSquash(c, m.length, wide, b.shore(c.y - m.length * 0.2, c.z) - m.length * 0.45, sw.haul ? sw.rest : 0); }
     // 몸이 도는 빠르기 — 무리 따라가는 물고기는 대장 길의 turn 이 아니라 제 머리 방향이 실제로 돈 빠르기(예전엔 대장의 C 자를 그대로 따라 했다)
     const st = (m.swim ??= swimStateOf(m));
     let yaw = Math.atan2(-c.dz, c.dx);

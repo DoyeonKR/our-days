@@ -11,7 +11,7 @@ export const TUNNEL_R = 2.3;
 export const TUNNEL_DEEP = 2.4;
 // 단계별 볼거리는 tiers.ts 한곳(화면도 읽는다 — three 없이)
 import { TUNNEL_TIER } from "./tiers.ts";
-export { DOME_TIER, SHOAL_TIER, TUNNEL_TIER, WHALE_TIER } from "./tiers.ts";
+export { DOME_TIER, TUNNEL_TIER, WHALE_TIER } from "./tiers.ts";
 export const tankDeep = (tier: number) => (tier >= TUNNEL_TIER ? TUNNEL_DEEP : tier >= 7 ? 1 + 0.2 * (tier - 6) : 1);
 /** 터널 앞 · 뒤 끝(월드 z) — 앞유리(z = 3 × 깊이)에서 시작해 뒤 바위 앞에서 끝난다 */
 export const tunnelSpan = (deep: number) => ({ front: 3 * deep, back: -3 * deep + 2.6 });

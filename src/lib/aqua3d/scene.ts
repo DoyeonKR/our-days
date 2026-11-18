@@ -13,10 +13,9 @@ import { makeSplash } from "./splash.ts";
 import { bossLookOf } from "./bosslook.ts";
 import { turtleGlbMotion } from "./turtle.ts";
 import { startleDir, startleDuration, startleKind, startlePose, type StartleKind, type StartlePose } from "./startle.ts";
-import { makeShoal, type Shoal } from "./shoal.ts";
 import { addJaw, type Jaw, calmSpecular, fishShading, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
 import { makeGiants, type Giants } from "./giants.ts";
-import { DOME_TIER, SHOAL_TIER, TUNNEL_R, TUNNEL_TIER, WHALE_TIER, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
+import { DOME_TIER, TUNNEL_R, TUNNEL_TIER, WHALE_TIER, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
 import { tankAxes } from "./tiers.ts";
 import { DOME_R, domeObstacles, makeDome, type Dome } from "./dome.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
@@ -160,7 +159,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 물 맑기는 모든 재질이 보는 값 하나 — 미리보기(decor-preview)가 탁한 채로 남지 않게 되돌린다
     WATER_LIGHT.aquaClarity.value=1;if(observer)observer.disconnect();intersection?.disconnect();
     for(const off of unbind.splice(0))off();
-    post?.dispose();envMap?.dispose();habitat?.dispose();tunnel?.dispose();dome?.dispose();shoal?.dispose();giants?.dispose();
+    post?.dispose();envMap?.dispose();habitat?.dispose();tunnel?.dispose();dome?.dispose();giants?.dispose();
     // 나눠 쓰는 GLB 형상 · 재질은 glb 가 센다(다른 수조 · 미리보기가 곧 다시 쓴다) — 여기선 지우지 않는다
     // ⚠ 단, 이 렌더러가 그것들에 단 dispose 리스너(three 내부 — 형상 · 재질 · 텍스처마다 렌더러의 닫힌 함수)는 renderer.dispose 가 안 뗀다.
     //   캐시가 들고 있는 형상이 닫은 렌더러를 끝까지 붙잡아(수조를 오갈 때마다 하나씩) WebGL 상태 · 프로그램이 통째로 남았다(2026-11-11).
@@ -180,7 +179,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const tintReg=decorTints();
   const collectBorrowed=(o:T.Object3D)=>{const mesh=o as T.Mesh;if(!mesh.isMesh||!o.userData.glbShared)return;borrowed.add(mesh.geometry);
     for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
-  let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
+  let tunnel:Tunnel|null=null,inTunnel=false,deep=1,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
   let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
   // 두 손가락 · 휠 당기기 배율 — 0.45 배까지 다가가고 1.5 배까지 물러난다
   const ZOOM_MIN=.45,ZOOM_MAX=1.5;let userZoom=1;
@@ -637,21 +636,17 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       seatDecor(m.root,(x,z)=>habitat?.heightAt(x,z)??WORLD.floor,4.9*(habitat?.root.scale.x??1));
     }
     // 터널 — 대수족관에서만, 넓힌 폭을 따라 길이가 바뀐다
-    // 단계별 볼거리 — 정어리 떼 8 · 고래 9 · 터널 10 · 돔 11(tunnel.ts 의 기준값 한곳)
-    const wantTunnel=habitatTier>=TUNNEL_TIER&&habitatTier<DOME_TIER,wantDome=habitatTier>=DOME_TIER,wantShoal=habitatTier>=SHOAL_TIER,wantWhale=habitatTier>=WHALE_TIER;
+    // 단계별 볼거리 — 고래 9 · 터널 10 · 돔 11(tunnel.ts 의 기준값 한곳). 정어리 떼(8)는 2026-11-18 걷었다 [사용자: "수조안의 작은 물고기떼 형상도 없애"]
+    const wantTunnel=habitatTier>=TUNNEL_TIER&&habitatTier<DOME_TIER,wantDome=habitatTier>=DOME_TIER,wantWhale=habitatTier>=WHALE_TIER;
     if(tunnel&&!wantTunnel){release(tunnel.root);tunnel.dispose();tunnel=null;topologyChanged=true;}
     if(wantTunnel&&!tunnel){tunnel=makeTunnel(deep);scene.add(tunnel.root);topologyChanged=true;}
     const domeKey=`${wide},${deep},${tall}`;
     if(dome&&(!wantDome||dome.root.userData.key!==domeKey)){release(dome.root);dome.dispose();dome=null;topologyChanged=true;}
     if(wantDome&&!dome){const th=HABITAT_THEMES[clamp(habitatTier-1,0,HABITAT_THEMES.length-1)];dome=makeDome({front:3*deep,wide,top:tallY(5.6,tall),water:th.water,high:th.top,art:9,scenery:()=>habitatScenery(habitat)});dome.root.userData.key=domeKey;scene.add(dome.root);topologyChanged=true;}
-    // 정어리 떼 — 대수족관의 배경 손님(한 묶음 320마리). 수조 크기가 바뀌면 새로 짓는다
-    const shoalKey=wantShoal?`${wide},${deep},${tall}`:"";
-    if(shoal&&shoal.mesh.userData.key!==shoalKey){shoal.dispose();shoal=null;}
     // 빛줄기는 모든 수조에, 고래 그림자는 대수족관에만
     const giantKey=`${wide},${deep},${tall},${wantWhale}`;
     if(giants&&giants.root.userData.key!==giantKey){giants.dispose();giants=null;}
     if(!giants&&habitat){giants=makeGiants({halfX:4.6*wide,backZ:deep>1?-3*deep+1.6:-2.2,glassZ:-3*deep,top:tallY(5.4,tall),whale:wantWhale});giants.root.userData.key=giantKey;scene.add(giants.root);}
-    if(wantShoal&&!shoal){shoal=makeShoal(320,{halfX:4.4*wide,halfZ:3*deep-.8,top:tallY(5.2,tall)});shoal.mesh.userData.key=shoalKey;scene.add(shoal.mesh);}
     const nextIn=!!next.tunnel&&!!(tunnel||dome)&&!next.editing;
     if(nextIn!==inTunnel){inTunnel=nextIn;camera.fov=inTunnel?72:44;camera.updateProjectionMatrix();angle=0;pitch=0;}
     inDome=inTunnel&&!!dome;dome?.setInside(inDome);
@@ -1035,7 +1030,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     placeCamera();
     fadeOccluders(sel&&!state.editing&&!photoOn?sel:undefined,dt);
     for(const d of decorations.values())d.animate(elapsed);
-    habitat?.animate(elapsed);tunnel?.animate(elapsed);dome?.animate(elapsed);shoal?.animate(elapsed);giants?.animate(elapsed);
+    habitat?.animate(elapsed);tunnel?.animate(elapsed);dome?.animate(elapsed);giants?.animate(elapsed);
     const selected=state.editing?decorations.get(state.preview?.id??state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
     halo.visible=!!selected&&state.editing&&!photoOn; // 물고기를 고르면 둥근 테두리를 안 그린다(2026-11-13 사용자: "물고기 선택했을때 라운드 테두리 없애") — 꾸미기의 장식 표시는 그대로
     if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar(shownLength(selected as Swimmer)*.65);}}

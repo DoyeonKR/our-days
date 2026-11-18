@@ -6,7 +6,10 @@ import { tankAxes } from "./tiers.ts";
 import { tankTall } from "./world.ts";
 import { tankDeep } from "./tunnel.ts";
 import { haulBlend, type Course } from "./habits.ts";
-import { WORLD } from "./world.ts";
+import { WORLD, fishLength, schoolsOf, wideScale } from "./world.ts";
+import { FISH_BASE_CM } from "../aquarium.ts";
+import { stepFish, type StepFish } from "./fishstep.ts";
+import { rockObstacles } from "./habitat.ts";
 
 // 모래사장(2026-11-15) — 8단계(심해 대수족관)부터 오른쪽으로 얕아지는 경사 · 수면 위 모래사장 · 포유류는 거기서 쉰다
 const SURFACE = 5.56;
@@ -64,4 +67,39 @@ test("fish stay on the water side of the shore; the scene passes the shore and b
   assert.match(step, /if \(beach\) \{ const map/);
   const scene = readFileSync(new URL("./scene.ts", import.meta.url), "utf8");
   assert.match(scene, /motion\.shore=habitat\?\.shoreX;motion\.beach=habitat\?\.beachRest\?/);
+});
+
+// 2026-11-18 [사용자: "수조 안의 개체들이 해변 절벽에서 계속 군집하는 경향이 있어 수영 알고리즘의 변경이 필요"] — 예전엔 물가를 넘은 길을 물가 선에 붙여
+// 8 · 9단계 물고기-프레임의 44% 가 물가 몸길이 0.3 안에 쌓였고(오른쪽 끝 10% 칸에 49%) 한 칸에 몸길이 33배/초로 튀었다. 이제 길을 물 폭에 맞춰 줄인다(fishstep.shoreSquash)
+const adult = (f: string) => fishLength(FISH_BASE_CM[f] ?? 20, "adult" as never);
+function measure(tier: number, families: string[], seconds: number) {
+  const ax = tankAxes(tier, tankTall(tier), tankDeep(tier)), wide = wideScale(0) * ax.x, tall = ax.tall, deep = ax.deep, beach = hasBeach(tier);
+  const heightAt = (x: number, z: number) => WORLD.floor + (substrateHeight(x / wide, z / deep, Math.min(tier, 6), beach) - WORLD.floor) * tall;
+  const shore = (y: number, z = 0) => shoreLocal(WORLD.floor + (y - WORLD.floor) / tall, z / deep, beach) * wide;
+  const obstacles = rockObstacles(tier, wide, deep);
+  const fish = families.map((family, i) => ({ id: 100 + i * 7, family, length: adult(family) }));
+  const n = fish.length, schools = schoolsOf(fish), byId = new Map(fish.map((f) => [f.id, f]));
+  const bodies = fish.map((f) => [f.id, { family: f.family, key: f.family, length: f.length, phase: 0, course: {} as Course }] as [number, StepFish]);
+  const b = { positions: new Float32Array(n * 3), heading: new Float32Array(n * 3), lengths: new Float32Array(n), pinned: new Float32Array(n), offsets: new Float32Array(n * 3), rolls: new Float32Array(n), courses: [] as Course[], count: 0, shore };
+  let fr = 0, nearShore = 0; const sp: number[] = []; const prev = new Float32Array(n * 3); const bins = new Array(10).fill(0);
+  for (let k = 0, t = 0; t < seconds; k++, t = k / 15) {
+    stepFish(bodies, schools, (id) => byId.get(id)?.length, t, k ? 1 / 15 : 0, { wide, tall, deep, heightAt, obstacles, feed: null, hall: null }, b);
+    for (let i = 0; i < n; i++) {
+      const x = b.positions[i * 3], y = b.positions[i * 3 + 1], z = b.positions[i * 3 + 2], L = b.lengths[i];
+      const lim = shore(y - L * 0.2, z) - L * 0.45, left = -5 * wide;
+      if (k > 0) sp.push(Math.hypot(x - prev[i * 3], y - prev[i * 3 + 1], z - prev[i * 3 + 2]) * 15 / L); prev[i * 3] = x; prev[i * 3 + 1] = y; prev[i * 3 + 2] = z;
+      fr++; if (lim - x < Math.max(0.12, L * 0.3)) nearShore++;
+      const u = Math.max(0, Math.min(0.999, (x - left) / Math.max(0.01, lim - left))); bins[Math.floor(u * 10)]++;
+    }
+  }
+  sp.sort((a, c) => a - c); return { p99: sp[Math.floor(sp.length * 0.99)].toFixed(2), max: sp[sp.length - 1].toFixed(2), nearShore: nearShore / fr, bins: bins.map((v) => +(v / fr).toFixed(3)) };
+}
+test("fish spread through the water instead of piling up on the beach slope", () => {
+  const mix = ["guppy", "guppy", "guppy", "tetra", "tetra", "tetra", "koi", "goldfish", "sea_bream", "rockfish", "flounder", "catfish", "ray", "octopus", "clown", "anchovy", "anchovy", "anchovy", "mackerel", "salmon"];
+  for (const tier of [8, 10]) {
+    const r = measure(tier, mix, 120);
+    assert.ok(r.nearShore < 0.05, `${tier}단계 물가에 붙은 몫 ${(r.nearShore * 100).toFixed(1)}%`);
+    assert.ok(Math.max(...r.bins) < 0.3, `${tier}단계 한 칸에 몰림 ${r.bins.join(" ")}`);
+    assert.ok(+r.max < 15, `${tier}단계 한 칸 최고 빠르기 ${r.max} L/s`);
+  }
 });

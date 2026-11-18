@@ -15,7 +15,6 @@ import { hardscapeStones, rockObstacles, substrateHeight } from "./habitat.ts";
 import { TUNNEL_R, tankDeep, tunnelObstacles, tunnelSpan } from "./tunnel.ts";
 import { DOME_R, domeObstacles } from "./dome.ts";
 import { starCourse } from "./invertebrates.ts";
-import { makeShoal } from "./shoal.ts";
 import { makeGiants } from "./giants.ts";
 import { makeSandPuffs } from "./sandpuff.ts";
 
@@ -238,32 +237,6 @@ test("거북 — 위로 늘린 수조에서도 수면 바로 밑까지 올라가
     for (let t = 0; t < 600; t += 0.25) top = Math.max(top, tallY(fishCourse(5, t, L, "sea_turtle", 1, { tall }).y, tall));
     assert.ok(surface - top < 0.56 + L * 0.12 + 0.12, `${tier}단계 수면까지 ${(surface - top).toFixed(2)}`);
     assert.ok(top < surface, "수면 위로 안 나간다");
-  }
-});
-
-test("정어리 떼 — 유리 밖으로 안 나가고(8단계 1%) · 서로 뚫지 않고 · 머리가 제가 가는 쪽을 본다", () => {
-  for (const [deep, wide] of [[1.4, 1], [2.4, 1.5]] as const) {
-    const halfX = 4.4 * wide, halfZ = 3 * deep - 0.8, s = makeShoal(200, { halfX, halfZ, top: tallY(5.2, 1.5) });
-    const m = new T.Matrix4(), p = new T.Vector3(), q = new T.Quaternion(), sc = new T.Vector3(), f = new T.Vector3();
-    const prev = new Float32Array(600);
-    let out = 0, close = 0, pairs = 0, crab = 0, moving = 0;
-    for (let k = 0; k < 120; k++) {
-      const t = k * 0.5;
-      s.animate(t);
-      const pos: number[] = [];
-      for (let i = 0; i < 200; i++) {
-        s.mesh.getMatrixAt(i, m); m.decompose(p, q, sc); f.set(1, 0, 0).applyQuaternion(q);
-        for (const e of [-0.5, 0.5]) if (Math.abs(p.x + f.x * e * sc.x) > 5 * wide || Math.abs(p.z + f.z * e * sc.x) > 3 * deep) { out++; break; }
-        pos.push(p.x, p.y, p.z);
-        if (k) { const v = new T.Vector3(p.x - prev[i * 3], p.y - prev[i * 3 + 1], p.z - prev[i * 3 + 2]); if (v.length() > 0.02) { moving++; if (v.normalize().dot(f) < Math.SQRT1_2) crab++; } }
-        prev[i * 3] = p.x; prev[i * 3 + 1] = p.y; prev[i * 3 + 2] = p.z;
-      }
-      if (k % 10 === 0) for (let i = 0; i < 200; i++) { let best = 1e9; for (let j = 0; j < 200; j++) if (j !== i) best = Math.min(best, Math.hypot(pos[i * 3] - pos[j * 3], pos[i * 3 + 1] - pos[j * 3 + 1], pos[i * 3 + 2] - pos[j * 3 + 2])); pairs++; if (best < 0.15) close++; }
-    }
-    assert.equal(out, 0, `유리 밖 ${out}`);
-    assert.ok(close / pairs < 0.03, `0.15 보다 가까운 이웃 ${(100 * close / pairs).toFixed(1)}%`);
-    assert.ok(crab / moving < 0.1, `옆으로 기는 정어리 ${(100 * crab / moving).toFixed(1)}%`);
-    s.dispose();
   }
 });
 
