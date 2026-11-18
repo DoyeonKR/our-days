@@ -6,12 +6,13 @@
 import { HUNGRY_BELOW } from "@/lib/predation";
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
-import { SPOTS, formsSeen, releaseToSea, releaseXp } from "@/lib/fishing";
+import { SPOTS, formsSeen, releaseBossPlan, releaseToSea, releaseXp } from "@/lib/fishing";
 import { fmtCm } from "@/lib/fishingworld";
 import { useBackClose } from "@/lib/useBackClose";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { getAuthInfo } from "@/lib/auth";
 import { josa } from "@/lib/josa";
+import { AQUA_LIGHTS, aquaLightRec, buyAquaLight, setAquaLight } from "@/lib/aqualight";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
 import Aquarium3D from "@/components/Aquarium3D";
@@ -270,6 +271,8 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   const a = view.a;
   const seenForms = formsSeen({ fishing: row?.state.fishing, aquarium: a });
   const coins = view.state.coins;
+  // 수조 조명(2026-11-18, lib/aqualight) — 산 것 · 켠 것. 장면(Aquarium3D)과 꾸미기 탭의 가게가 같이 본다
+  const lights = aquaLightRec(view.state);
   // 10 · 11단계는 하트만으론 못 산다 — 낚시 기록 조건과 진행을 버튼 위에 보인다(upgradeTank 와 같은 판정)
   const nextGate = tankGate(view.state, a, a.tank + 1);
   /** 상성이 안 맞는 짝(lib/predation) — 배가 고프면 잡아먹는다. 미리 알려 먹이로 지킬 수 있게 */
@@ -316,15 +319,20 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
 
   async function release(f: AquaFish) {
     const reward = releaseReward(f), xp = releaseXp(f);
+    // 보내 주면 그 낚시터 주인이 빨리 온다(2026-11-18, lib/bosscall) — 몇 시간인지 · 왜 효과가 없는지 미리 말한다(저장도 같은 계산)
+    const plan = view && f.stage === 2 ? releaseBossPlan(view.state, f.id, gameNow()) : null;
+    const call = !plan ? "" : "total" in plan
+      ? ` 바다에서 소문이 퍼져 ${josa(plan.name, "이/가")} ${plan.add}시간 빨리 와요(이번에 모은 ${plan.total}시간${plan.days > 0 ? ` · 하루 당겨져 ${plan.left}일 뒤` : ""}).`
+      : ` ${plan.name} — ${plan.why}라 빨리 오게 하진 못해요.`;
     const ok = await confirmDialog(f.crown ? {
       // 주인은 며칠을 겨뤄 잡았고, 다시 나타나기까지 7일이 걸린다 — 흔한 물고기와 같은 확인창으로 보내면 안 된다
       message: `${f.crown} — 낚시터의 주인이에요. 정말 보내 줄까요?`,
-      detail: `하트 ${reward.toLocaleString()}개를 받아요. 주인은 다시 잡으려면 며칠을 다시 겨뤄야 하고, 왕관 쓴 모습은 수조에서 사라져요.`,
+      detail: `하트 ${reward.toLocaleString()}개를 받아요. 주인은 다시 잡으려면 며칠을 다시 겨뤄야 하고, 왕관 쓴 모습은 수조에서 사라져요.${call}`,
       confirmText: "그래도 보내 주기",
       danger: true,
     } : {
       message: `${josa(fishName(f), "을/를")} 보내 줄까요?`,
-      detail: `하트 ${reward.toLocaleString()}개${xp > 0 ? ` · 낚시 경험치 +${xp}` : ""}를 받아요.${f.stage !== 2 ? " 다 키워서 보내면 더 받아요." : ""} 도감 기록은 남아요.`,
+      detail: `하트 ${reward.toLocaleString()}개${xp > 0 ? ` · 낚시 경험치 +${xp}` : ""}를 받아요.${f.stage !== 2 ? " 다 키워서 보내면 더 받고, 그 낚시터 주인도 빨리 와요." : ""}${call} 도감 기록은 남아요.`,
       confirmText: "보내 주기",
     });
     if (!ok) return;
@@ -376,7 +384,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
       {tab === "tank" && (
         <>
           <div ref={stageRef} className="aqua-stage">
-            <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft, season: { keys: events.map((e) => e.def.key), tints } }}
+            <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft, season: { keys: events.map((e) => e.def.key), tints }, light: lights.on }}
               onFish={id => setSelFish(selFish === id ? null : id)}
               onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} replaying={replaying} replayNote={replayNote}
               people={[myName, partnerName]} onPhoto={setPhotoOpen} />
@@ -626,6 +634,8 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
 
       {tab === "decor" && (
         <>
+          <LightShop owned={lights.owned} on={lights.on} coins={coins} busy={busy}
+            onBuy={(k) => void act((st) => buyAquaLight(st, k))} onSet={(k) => void act((st) => setAquaLight(st, k))} />
           {fx.beautyGrow >= BEAUTY_GROW_CAP && <p className="aqua-note mt-3">아름다움 성장 보너스가 가득 찼어요(+{Math.round(BEAUTY_GROW_CAP * 100)}%) — 장식을 더 놓으면 보기만 좋아져요. 조합은 따로 성장을 더해요.</p>}
           {(["gear", "plant", "rock", "ornament"] as const).map((kind) => (
             <section key={kind} className="aqua-card">
@@ -924,6 +934,36 @@ function FishStory({ f, a, who, couple }: { f: AquaFish; a: AquaState; who: stri
 }
 
 /** 추모 칸 — 떠난 물고기(잡아먹힘 · 보내 줌 · 옛 앱에서 떠남) 최근 30마리 */
+/** 수조 조명 가게(2026-11-18) — 다 산 뒤 쌓이는 하트를 받는 늦은 소모처. 빛 색만 바뀐다(능력치 없음 · 되팔기 없음).
+ *  사다리 순서대로 들인다 — 다음 하나만 '들이기', 그 뒤는 잠금. 가진 조명은 눌러 켜고 끈다(둘이 같이 보는 수조라 켠 것은 하나) */
+function LightShop({ owned, on, coins, busy, onBuy, onSet }: { owned: readonly string[]; on: string | null; coins: number; busy: boolean; onBuy: (key: string) => void; onSet: (key: string | null) => void }) {
+  const next = AQUA_LIGHTS.find((x) => !owned.includes(x.key));
+  return (
+    <section className="aqua-card aqua-light-shop">
+      <header><strong>수조 조명</strong><small>빛 색만 바뀌어요 · {owned.length}/{AQUA_LIGHTS.length}</small></header>
+      <ul className="aqua-shop is-flat">
+        {AQUA_LIGHTS.map((x) => {
+          const have = owned.includes(x.key), isOn = on === x.key, locked = !have && next?.key !== x.key;
+          return (
+            <li key={x.key} className={locked ? "is-locked" : ""}>
+              <i className={`aqua-light-swatch ${isOn ? "is-on" : ""}`} style={{ background: x.swatch }} aria-hidden />
+              <span className="min-w-0 flex-1">
+                <strong>{x.name}</strong>
+                <small>{x.desc}{locked && next ? ` · ${next.name} 다음에 들여요` : ""}</small>
+              </span>
+              {have ? (
+                <ActionButton main={isOn} disabled={busy} onClick={() => onSet(isOn ? null : x.key)}>{isOn ? "켜짐" : "켜기"}</ActionButton>
+              ) : (
+                <ActionButton disabled={busy || locked || coins < x.price} onClick={() => onBuy(x.key)}><span className="aqua-price"><Coin /> {x.price.toLocaleString()}</span></ActionButton>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function MemorialCard({ a }: { a: AquaState }) {
   const list = a.life?.memorial ?? [];
   return (

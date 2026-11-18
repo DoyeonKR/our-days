@@ -1377,6 +1377,14 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .boss-raid-end b { font-size: 24px; font-weight: 900; color: #fde68a; }
 .boss-raid-end p { font-size: 15px; font-weight: 800; }
 .boss-raid-end small { font-size: 12px; font-weight: 800; opacity: .8; }
+/* 토벌 보상 단계(2026-11-18) — 이번 출현 평균 점수의 칸만 밝힌다. 결과 창의 큰 b 규칙을 덮는다 */
+.boss-raid-tiers { display: grid; gap: 6px; width: 100%; }
+.boss-raid-tiers ol { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.boss-raid-tiers li { display: grid; gap: 1px; padding: 5px 2px; border-radius: 10px; border: 1px solid rgba(253,230,138,.25); opacity: .55; }
+.boss-raid-tiers li.is-on { opacity: 1; border-color: #fde68a; background: rgba(253,230,138,.18); }
+.boss-raid-end .boss-raid-tiers b { font-size: 14px; color: #fde68a; }
+.boss-raid-end .boss-raid-tiers small { font-size: 11px; opacity: .8; }
+.boss-raid-end .boss-raid-tiers p { font-size: 12px; font-weight: 800; line-height: 18px; margin: 0; }
 .boss-raid-btn { margin-top: 6px; min-height: 48px; padding: 0 22px; border-radius: 999px; font-size: 16px; font-weight: 900; color: #1e1b4b; background: #fde68a; }
 @keyframes pet-hud-blink {
   50% { border-color: #5b1f25; }
@@ -1827,3 +1835,7 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .fish-score p { margin: 0; color: #e8f4ff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
 @keyframes fish-score-pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .fish-score-side b { animation: none; } .fish-score-bar i { transition: none; } }
+
+/* 수조 조명 가게(2026-11-18, lib/aqualight) — 견본은 그 조명 빛을 그라디언트로. 켠 조명은 테두리로 알린다 */
+.aqua-light-swatch { flex: none; width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--line, rgba(0,0,0,.12)); box-shadow: inset 0 -8px 14px rgba(0,0,0,.18); }
+.aqua-light-swatch.is-on { border-color: var(--accent, #f472b6); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #f472b6) 30%, transparent), inset 0 -8px 14px rgba(0,0,0,.18); }

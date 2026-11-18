@@ -129,7 +129,8 @@ test("주인과는 레이드로 겨룬다 — 시트의 버튼이 레이드를 �
   assert.match(game, /onStart=\{\(\) => \{[\s\S]*?openRaid\(boss\)/);
   assert.doesNotMatch(game, /setBossPick\(boss\.key\)/, "찌낚시 주인전으로 들어가는 길");
   assert.match(game, /bossCatch\(b\)[\s\S]*?landRound\(1\)/);
-  assert.match(game, /bossLost\(s, cur\.key, dealt, day, who, cur\.seen, cur\.seed\)/, "깎은 양을 옛 길로 남긴다(연 때 본 출현 번호와 함께)");
+  // 2026-11-18: 이 판의 점수도 같은 저장에 싣는다(토벌 보상 단계 — lib/bossmark)
+  assert.match(game, /bossLost\(s, cur\.key, dealt, day, who, cur\.seen, cur\.seed, raidInterrupted\(r\) \? undefined : raidScore\(r\)\)/, "깎은 양을 옛 길로 남긴다(연 때 본 출현 번호와 함께)");
   assert.match(sheet, /주인 레이드 시작/);
   const ui = code("src/components/BossRaidGame.tsx");
   assert.match(ui, /createPortal\(/);
