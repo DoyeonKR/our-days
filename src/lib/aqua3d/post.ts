@@ -57,6 +57,8 @@ export type Post = {
   setWater: (murk: number, color: T.Color) => void;
   /** 사진 필터(photo.ts photoGrade, 2026-11-13) — 톤 매핑 · sRGB 뒤 화면 색에 건다. null · on 0 이면 끈다(평소 화면 그대로) */
   setGrade: (grade: PhotoGrade | null) => void;
+  /** 수조 조명(2026-11-18, lib/aqualight) — 장면 색에 곱하는 빛깔(1,1,1 = 기본). 사진 모드도 같은 그리기라 찍힌다 */
+  setLight: (r: number, g: number, b: number) => void;
   /** 장면 그림 크기 ÷ 화면 그림 크기(계단 3 이면 .75) — 점 입자 크기를 맞춘다 */
   scale: () => number;
   /** 지금 그림들이 쓰는 GPU 바이트(색 · 깊이) — 개발 진단용 */
@@ -102,7 +104,7 @@ void main(){vec4 m=texture2D(tHalf,vUv);float r0=m.a;vec3 acc=m.rgb;float wsum=1
 // the visible surface (a plant, rock or decoration covers it), mix in a soft light tint and a brighter rim, so a resting seal behind the weeds is still seen.
 export const XRAY_GAP = 0.9;
 export const FINAL_FRAG = `varying vec2 vUv;${COMMON}uniform sampler2D tBlur;uniform sampler2D tGlow;uniform float time;uniform float split;uniform float bloom;uniform float murk;uniform vec3 murkColor;
-uniform float gradeOn;uniform vec4 grade;uniform vec3 gradeTint;uniform vec3 gradeShade;uniform float gradeGrain;
+uniform vec3 lightMul;uniform float gradeOn;uniform vec4 grade;uniform vec3 gradeTint;uniform vec3 gradeShade;uniform float gradeGrain;
 uniform sampler2D tXray;uniform float xray;
 #include <packing>
 float fishZ(vec2 p){float d=unpackRGBAToDepth(texture2D(tXray,p));return d>.9999?1e4:(near*far)/(far-(far-near)*d);}
@@ -133,6 +135,7 @@ void main(){
   if(xray>.5){float h=hidden(vUv);if(h>0.){vec2 o=px*2.;float e=4.-hidden(vUv+vec2(o.x,0.))-hidden(vUv-vec2(o.x,0.))-hidden(vUv+vec2(0.,o.y))-hidden(vUv-vec2(0.,o.y));
     c=c*.82+vec3(.05,.09,.12)*(.35+.65*clamp(e,0.,1.))+vec3(.02,.03,.035);}}
   if(bloom>.5)c+=texture2D(tGlow,uv).rgb*(1.-.65*murk);
+  c*=lightMul;
   c*=mix(.84,1.1,smoothstep(.0,1.,uv.y));
   c*=1.-smoothstep(.12,.55,r2)*.42;
   if(murk>.001){
@@ -185,7 +188,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
   const down = pass(DOWN_FRAG), glow = pass(GLOW_FRAG), blur = pass(BLUR_FRAG);
   const mat = new T.ShaderMaterial({
     depthTest: false, depthWrite: false,
-    uniforms: { ...shared, tBlur: { value: blurT.texture }, tGlow: { value: glowT.texture }, tXray: { value: xrayT.texture }, xray: { value: 0 }, time: { value: 0 }, split: { value: 1 }, bloom: { value: 1 }, murk: { value: 0 }, murkColor: { value: new T.Color(0x2a3a24) },
+    uniforms: { ...shared, tBlur: { value: blurT.texture }, tGlow: { value: glowT.texture }, tXray: { value: xrayT.texture }, xray: { value: 0 }, time: { value: 0 }, split: { value: 1 }, bloom: { value: 1 }, murk: { value: 0 }, murkColor: { value: new T.Color(0x2a3a24) }, lightMul: { value: new T.Vector3(1, 1, 1) },
       gradeOn: { value: 0 }, grade: { value: new T.Vector4(1, 1, 0, 0) }, gradeTint: { value: new T.Vector3(1, 1, 1) }, gradeShade: { value: new T.Vector3(1, 1, 1) }, gradeGrain: { value: 0 } },
     vertexShader: QUAD_VERT, fragmentShader: FINAL_FRAG,
   });
@@ -260,6 +263,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
       (u.gradeShade.value as T.Vector3).set(g.shade[0], g.shade[1], g.shade[2]);
       u.gradeGrain.value = g.grain;
     },
+    setLight(r, g, b) { (mat.uniforms.lightMul.value as T.Vector3).set(r, g, b); },
     setWater(murk, color) { mat.uniforms.murk.value = Math.max(0, Math.min(1, murk)); (mat.uniforms.murkColor.value as T.Color).copy(color); },
     scale: sceneScale,
     bytes() {

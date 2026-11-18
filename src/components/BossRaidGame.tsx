@@ -10,7 +10,8 @@ import { createPortal } from "react-dom";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { CloseButton } from "@/components/AppButtons";
 import { useBackClose } from "@/lib/useBackClose";
-import { RAID_DIRS, RAID_DIR_NAME, raidLeft, raidScore, startRaid, stepRaid, swipeRaid, tapRaid, touchDown, touchMove, touchUp, type Raid, type RaidDir, type RaidGesture, type RaidTouch, type RaidTune } from "@/lib/bossraid";
+import { RAID_TIERS, avgOf, raidTier, tierReward } from "@/lib/bossmark";
+import { RAID_DIRS, RAID_DIR_NAME, raidInterrupted, raidKillPace, raidLeft, raidScore, startRaid, stepRaid, swipeRaid, tapRaid, touchDown, touchMove, touchUp, type Raid, type RaidDir, type RaidGesture, type RaidTouch, type RaidTune } from "@/lib/bossraid";
 import { DRAW_MS, frameGate } from "@/lib/advframe";
 import { CrownIcon } from "@/components/FishingIcons";
 
@@ -18,7 +19,9 @@ const buzz = (p: number | number[]) => navigator.vibrate?.(p);
 const READY_MS = 1600;
 
 /** bg — 그 낚시터 그림(어둡게 깔아 물속 무대로). 없으면 짙은 물빛만 */
-export type RaidSetup = { name: string; species: string; /** 그릴 그림(주인 전용 그림이 있으면) */ art?: string; seed: number; tune: RaidTune; hp: number; chunk: number; wound: number; duo: boolean; triesLeft: number; bg?: string };
+export type RaidSetup = { name: string; species: string; /** 그릴 그림(주인 전용 그림이 있으면) */ art?: string; seed: number; tune: RaidTune; hp: number; chunk: number; wound: number; duo: boolean; triesLeft: number; bg?: string;
+  /** 이번 출현에 둘이 이미 낸 점수들(0~1, 2026-11-18 — 토벌 보상 단계는 이 평균) · 토벌 기본 보상(배율 전). 빠지면 단계 줄을 안 그린다 */
+  marks?: readonly number[]; reward?: number };
 /** 크게 외치는 한마디(막았다 · 완벽 · 한 번 더 · 분노 · 토벌) */
 type Call = { id: number; text: string; tone: "good" | "gold" | "bad" | "rage" | "kill" };
 
@@ -78,6 +81,8 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
     const away = () => {
       if (!readyRef.current) { quit(); return; }
       if (sent.current) return;
+      // 앱이 숨어 끝난 판 표시 — 시작 직후면 보상 단계 평균에서 뺀다(raidInterrupted). 그만하기(close)는 달지 않는다
+      raid.current.away = true;
       finishNow();
       setFrame((n) => n + 1);
     };
@@ -242,11 +247,28 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
         <div className="boss-raid-end" role="dialog" aria-label="레이드 결과">
           <b>{r.end === "kill" ? `${setup.name} 토벌!` : r.end === "down" ? "줄이 다 끊겼어요" : "시간 끝"}</b>
           <p>{r.end === "kill" ? "마지막 일격! 끌어올려요" : `체력 ${Math.round(setup.hp * 100)}% → ${Math.round(left * 100)}% · 깎은 만큼 남아요`}</p>
-          <small>막기 {r.parried} · 완벽 {r.perfect} · 연타 {r.taps} · 최고 콤보 {r.maxCombo} · 점수 {Math.round(score * 100)}</small>
+          <small>막기 {r.parried} · 완벽 {r.perfect} · 연타 {r.taps} · 최고 콤보 {r.maxCombo} · 점수 {Math.round((r.end === "kill" ? raidKillPace(r) ?? score : score) * 100)}</small>
+          {setup.marks && <RaidTierRow marks={setup.marks} mine={r.end === "kill" ? raidKillPace(r) : raidInterrupted(r) ? null : score} kill={r.end === "kill"} reward={setup.reward ?? 0} />}
           <button type="button" className="tap boss-raid-btn" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onClose(); }}>{r.end === "kill" ? "끌어올리기" : setup.triesLeft > 0 ? `확인 · 오늘 ${setup.triesLeft}번 남음` : "확인"}</button>
         </div>
       )}
     </div>,
     document.body,
+  );
+}
+
+/** 토벌 보상 단계(2026-11-18) — 이번 출현에 둘이 낸 점수 평균으로 0.8 ~ 1.25배. 이 판을 더한 평균의 단계를 칸에 밝힌다.
+ *  토벌 판이 짧게 끝나 점수가 없으면(mine null) 앞 판들의 평균만. 점수가 하나도 없으면 1배(예전과 같다) */
+function RaidTierRow({ marks, mine, kill, reward }: { marks: readonly number[]; mine: number | null; kill: boolean; reward: number }) {
+  const avg = avgOf(mine === null ? marks : [...marks, mine]);
+  const t = raidTier(avg);
+  return (
+    <div className="boss-raid-tiers" aria-label={`토벌 보상 단계 — ${t.name}, ${t.mult}배`}>
+      <ol aria-hidden>
+        {RAID_TIERS.map((x) => <li key={x.key} className={x.key === t.key ? "is-on" : ""}><b>×{x.mult}</b><small>{Math.round(x.min * 100)}+</small></li>)}
+      </ol>
+      <p>{avg === null ? "점수가 아직 없어요 — 토벌 보상은 1배" : `이번 출현 평균 ${Math.round(avg * 100)}점 · ${t.name}`}
+        {kill && reward > 0 ? ` · 보상 ${tierReward(reward, t.mult).toLocaleString()}하트` : !kill ? " · 잡을 때 이 배율로 받아요" : ""}</p>
+    </div>
   );
 }

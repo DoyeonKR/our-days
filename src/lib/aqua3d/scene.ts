@@ -39,6 +39,7 @@ import { makeMotes, type Motes } from "./murk.ts";
 import { decorTints, makeDecorGlow, makeSurfaceFx, type DecorGlow, type SeasonLayer, type SurfaceFx } from "./seasonfx.ts";
 import { bubbleStream, type BubbleStream } from "./bubbles.ts";
 import { eventDef, swimPaceAt, visitWeight, visitWindow, visitorFor, VISIT_MIN_S, type AquaEventKey } from "../aquaevent.ts";
+import { AQUA_LIGHT_BASE, aquaLightOf } from "../aqualight.ts";
 import { captureRatio, clampPhotoCam, photoDistance, photoGrade, pinchZoom, type PhotoCam, type PhotoView } from "./photo.ts";
 
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null;
@@ -48,7 +49,9 @@ export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean
   /** 계절 수조 행사(2026-11-13, lib/aquaevent) — 지금 열린 행사 · 한정 장식 빛깔(놓인 장식 id → 행사). 그림만 바뀐다 */
   season?: { keys: readonly AquaEventKey[]; tints: Readonly<Record<number, AquaEventKey>>;
     /** 게임 시각(ms, 서버에 맞춘 지금 — islandsync.gameNow) — 계절 헤엄 빠르기 · 손님 물고기 시간표가 본다. 없으면 기기 시계 */ clock?: () => number;
-    /** 손님 물고기 시간표의 씨앗 — 두 사람이 같은 값(커플 id). 없으면 날짜 · 시각만 */ seed?: string } };
+    /** 손님 물고기 시간표의 씨앗 — 두 사람이 같은 값(커플 id). 없으면 날짜 · 시각만 */ seed?: string };
+  /** 수조 조명(2026-11-18, lib/aqualight) — 켠 조명 key. 없으면 기본 빛. 빛 색 · 세기만 바뀐다 */
+  light?: string | null };
 /** lost · restored · ready 가 없으면 예전처럼 error 로 알린다 */
 export type TankEvents = { fish: (id: number) => void; decor: (id: number) => void; place: (x: number, y: number) => void; error: (message: string) => void;
   /** WebGL 연결이 끊겼다 — 화면이 다시 보이면 새로 열어 본다(Aquarium3D) */
@@ -216,6 +219,15 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const hemi = new T.HemisphereLight(0xb7e4ed, 0x656442, 1.35); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffe3ad, 2.3); sun.position.set(-4,9,6); scene.add(sun);
   const fill = new T.PointLight(0x5ec8df, 20, 24, 2); fill.position.set(3,2,-1); scene.add(fill);
+  // 수조 조명(lib/aqualight) — 세 빛의 색을 갈고 세기 배율(lightK)을 applyWater 가 곱한다. 같은 key 면 다시 안 건드린다
+  // 빛만 바꾸면 물빛 그림(배경 · 환경광)에 묻혀 거의 안 보였다 — 마지막 그리기에서 장면 색에 그 조명 빛깔(tint)을 곱한다
+  let lightKey:string|null|undefined, lightK:readonly [number,number,number]=[1,1,1], lightTint:readonly [number,number,number]=[1,1,1];
+  function applyLight(key:string|null){
+    if(key===lightKey)return;lightKey=key;const L=aquaLightOf(key);
+    hemi.color.setHex(L?.sky??AQUA_LIGHT_BASE.sky);hemi.groundColor.setHex(L?.ground??AQUA_LIGHT_BASE.ground);
+    sun.color.setHex(L?.sun??AQUA_LIGHT_BASE.sun);fill.color.setHex(L?.fill??AQUA_LIGHT_BASE.fill);
+    lightK=L?.k??[1,1,1];lightTint=L?.tint??[1,1,1];fill.intensity=20*lightK[2];
+  }
   const swimmers = new Map<number,Swimmer>(), decorations = new Map<number,Decoration>();
   // 고른 물고기를 가리는 장식 흐리게(2026-11-17 [사용자: "포유류는 물 위에서 생활하는데 너무 잘 보이지가 않아 선택을해도 주변 조형물에 가려져"]) —
   //   카메라 → 고른 몸 사이 선분이 장식의 경계 구를 지나면 그 장식만 재질을 복제해 반투명(OCCLUDE_ALPHA)으로, 비키면 천천히 되돌린 뒤 원래 재질로
@@ -457,8 +469,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     fogBase.copy(waterTheme).lerp(ALGAE,m*.48);if(scene.fog instanceof T.Fog)scene.fog.color.copy(fogBase);
     WATER_LIGHT.aquaRimColor.value.copy(waterTopC).lerp(fogBase,.3+.35*m);
     WATER_LIGHT.aquaClarity.value=1-.75*m;
-    sun.intensity=2.3*(1-.4*m);hemi.intensity=1.35*(1-.18*m);
-    postNow.setWater(m,fogBase);motes?.setMurk(m);
+    sun.intensity=2.3*(1-.4*m)*lightK[1];hemi.intensity=1.35*(1-.18*m)*lightK[0];
+    postNow.setWater(m,fogBase);motes?.setMurk(m);postNow.setLight(lightTint[0],lightTint[1],lightTint[2]);
     if(habitat&&(force||Math.abs(w-waterHab)>=.5)){waterHab=w;habitat.setWater(w);}
   }
 
@@ -729,7 +741,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 물을 갈았다(물 값이 오른다) — 여기선 목표만 두고 draw 가 2~3초에 걸쳐 따라간다. 처음 · 수조가 바뀜 · 더러워지는 쪽 · 움직임 줄이기 · 멈춘 그리기는 바로
     const wGoal=clamp(next.aquarium.water,0,100);
     if(waterShown<0||rescaled||reduced.matches||!active||wGoal<=waterShown)waterShown=wGoal;
-    waterGoal=wGoal;applyWater(rescaled||waterHab<0);
+    const lightBefore=lightKey;applyLight(next.light??null);
+    waterGoal=wGoal;applyWater(rescaled||waterHab<0||lightBefore!==lightKey);
     if(topologyChanged)retopo(!rescaled);
     // 장식이 옮겨졌다 — 안 움직이는 묶음도 한 번 다시 올린다
     if(moved)for(const b of batches)b.ready=false;

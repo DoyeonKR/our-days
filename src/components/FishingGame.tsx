@@ -22,7 +22,9 @@ import FishCoopHelp from "@/components/FishCoopHelp";
 import { coopBonus, coopChance, coopRoundId, wantHelp } from "@/lib/fishcoop";
 import { useFishCoop } from "@/lib/usefishcoop";
 import BossRaidGame, { type RaidSetup } from "@/components/BossRaidGame";
-import { partnerWound, raidLeft, raidScore, raidTune, type Raid } from "@/lib/bossraid";
+import { paidMult, raidScores, raidTierOfMult, tierReward } from "@/lib/bossmark";
+import { bossCallHours } from "@/lib/bosscall";
+import { partnerWound, raidInterrupted, raidKillPace, raidLeft, raidScore, raidTune, type Raid } from "@/lib/bossraid";
 import FishRank, { readFishNick } from "@/components/FishRank";
 import FishCollect from "@/components/FishCollect";
 import FishGearPlus from "@/components/FishGearPlus";
@@ -35,7 +37,7 @@ import { noteTrophy, trophyCard, type TrophyCard } from "@/lib/fishtrophy";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
 import { NET_MAX, familyOf, fishArtKey, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
-import { TANK_FULL, bossRecOf, bossWhy as bossWhyOf, claimFishGoal, sellPrice, tryNet, tryStoreSwap } from "@/lib/fishing";
+import { TANK_FULL, bossRecOf, bossWhy as bossWhyOf, bossWinTier, claimFishGoal, sellPrice, tryNet, tryStoreSwap } from "@/lib/fishing";
 import { awakeBossAt, spotLookOf, spotStars, withMasteryLuck } from "@/lib/fishmastery";
 import { gearStats, wornLooks } from "@/lib/fishlooks";
 import { asset } from "@/lib/base";
@@ -660,14 +662,17 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   /** 주인 토벌 저장 — 보상 문구는 저장이 된 뒤에(먼저 띄우면 저장이 실패해도 '받았다'고 말하게 된다).
    *  seen = 판을 열 때 본 출현 번호. 레이드는 판이 끝나자마자 부르고, 찌낚시는 끌어올릴 때(landRound) 부른다 */
-  const saveBossWin = useCallback((beaten: FishBoss, seen: number): Promise<BossSaved> => {
-    let pay = 0, share = "", winShare = { me: 1, you: 0 }, paid = false;
+  const saveBossWin = useCallback((beaten: FishBoss, seen: number, kill?: { id: number; score: number }): Promise<BossSaved> => {
+    let pay = 0, share = "", winShare = { me: 1, you: 0 }, paid = false, tierNote = "";
     return act((s) => {
       const rec = bossRecOf(s, beaten.key), day = kstDate(clock());
-      const won = bossWon(s, beaten.key, who, day, seen);
-      // 이미 저장된 내 토벌(응답을 못 받아 다시 저장)이면 그대로 돌려받는다 — 보상 문구는 그때 값으로
+      const won = bossWon(s, beaten.key, who, day, seen, kill);
+      // 이미 저장된 내 토벌(응답을 못 받아 다시 저장)이면 그대로 돌려받는다 — 보상 문구는 그때 값으로(배율도 그때 남긴 것 — lib/bossmark 의 p)
       paid = won.ok && won.state !== s;
-      pay = bossReward(beaten, paid ? rec?.caught ?? 0 : Math.max(0, (rec?.caught ?? 1) - 1));
+      const after = paid ? (rec?.caught ?? 0) + 1 : rec?.caught ?? 0;
+      const mult = won.ok ? paidMult(won.state, beaten.key, after) : 1;
+      pay = tierReward(bossReward(beaten, after - 1 < 0 ? 0 : after - 1), mult);
+      tierNote = mult !== 1 ? ` · 레이드 ${raidTierOfMult(mult).name} ×${mult}` : "";
       // 둘이 깎은 몫 — 마지막 일격이 남은 체력을 가져간다(bossBeaten 이 last 에 남긴 값)
       const last = won.ok ? bossRecOf(won.state, beaten.key)?.last : undefined;
       share = "";
@@ -681,7 +686,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     }, true).then((r) => ({
       res: r,
       win: r?.ok ? { id: Date.now(), name: beaten.name, ...winShare } : null,
-      note: r?.ok ? `${josa(beaten.name, "을/를")} 잡았어요! 보상 ${pay.toLocaleString()}하트${share}` : r ? r.reason : `${josa(beaten.name, "을/를")} 잡았지만 보상을 저장하지 못했어요`,
+      note: r?.ok ? `${josa(beaten.name, "을/를")} 잡았어요! 보상 ${pay.toLocaleString()}하트${tierNote}${share}` : r ? r.reason : `${josa(beaten.name, "을/를")} 잡았지만 보상을 저장하지 못했어요`,
     }));
   }, [act, who, coupleId]);
 
@@ -1203,7 +1208,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       raidResult.current = null;
       raidSave.current = null;
       setBossNote(null);
-      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, art: bossArt(b), seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day), bg: FISHING_IMAGE_KEYS.has(spotArtKey(spot)) ? asset(`/fishing/${spotArtKey(spot)}.webp`) : undefined });
+      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, art: bossArt(b), seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, marks: raidScores(res.state, b.key, rec?.caught ?? 0), reward: bossReward(b, rec?.caught ?? 0), triesLeft: bossTriesLeft(rec, who, day), bg: FISHING_IMAGE_KEYS.has(spotArtKey(spot)) ? asset(`/fishing/${spotArtKey(spot)}.webp`) : undefined });
     }).finally(() => {
       raidOpening.current = false;
     });
@@ -1216,16 +1221,18 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const day = kstDate(clock());
     if (r.end === "kill") {
       const b = bossOf(cur.key);
-      if (b) raidSave.current = saveBossWin(b, cur.seen);
+      // 토벌 판도 오래 싸웠으면 그 빠르기를 점수로 한 줄(raidKillPace — 짧게 끝난 판은 null 이라 안 넣는다)
+      const pace = raidKillPace(r);
+      if (b) raidSave.current = saveBossWin(b, cur.seen, pace === null ? undefined : { id: cur.seed, score: pace });
       return;
     }
     // 깎은 양(chunk × 점수)을 저장한다 — 연 때의 체력이 아니라 저장할 때의 체력에서 뺀다(둘이 같은 때 싸워도 둘 다 남는다)
-    const dealt = cur.chunk * raidScore(r);
-    if (dealt <= 0.0005) return;
-    raidSave.current = act((s) => bossLost(s, cur.key, dealt, day, who, cur.seen, cur.seed), true).then((res) => {
+    // 거의 못 깎은 판도 저장한다(2026-11-18) — 그 점수가 토벌 보상의 평균에 들어가야 한다(못한 판만 빼는 길을 막는다)
+    const dealt = Math.max(0, cur.chunk * raidScore(r));
+    raidSave.current = act((s) => bossLost(s, cur.key, dealt, day, who, cur.seen, cur.seed, raidInterrupted(r) ? undefined : raidScore(r)), true).then((res) => {
       const rec = res?.ok ? bossRecOf(res.state, cur.key) : undefined;
       const left = rec ? bossHp(rec, day) : Math.max(0.03, raidLeft(cur.hp, cur.chunk, r));
-      return { res, win: null, note: res?.ok ? `${cur.name} 체력을 ${Math.round(cur.hp * 100)}% → ${Math.round(left * 100)}%로 깎았어요` : res ? res.reason : "깎은 체력을 저장하지 못했어요" };
+      return { res, win: null, note: res?.ok ? (dealt <= 0.0005 ? `${cur.name} 체력을 깎지 못했어요` : `${cur.name} 체력을 ${Math.round(cur.hp * 100)}% → ${Math.round(left * 100)}%로 깎았어요`) : res ? res.reason : "깎은 체력을 저장하지 못했어요" };
     });
   }
   /** 안내 화면에서 나갔다 — 아직 겨루지 않았으니 쓴 도전을 돌려준다 */
@@ -2199,7 +2206,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           {worldSheet === "moon" && <MoonSheet spot={spot} now={clock()} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "boss" && boss && (
-            <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} tries={BOSS_TRIES} couple={!!coupleId} all={fs.bosses} level={fs.level} onClose={() => { setWorldSheet(null); setAwakeView(false); }} onStart={() => {
+            <BossSheet boss={boss} rec={bossRec} today={today} called={bossCallHours(st, boss.key, bossRec)} tier={bossWinTier(st, boss.key, bossRec?.caught ?? 0)} who={who} why={bossWhy} tries={BOSS_TRIES} couple={!!coupleId} all={fs.bosses} level={fs.level} onClose={() => { setWorldSheet(null); setAwakeView(false); }} onStart={() => {
               // 주인과는 레이드로 겨룬다(2026-11-11) — 찌낚시 주인전(bossPick)은 화면에서 들어갈 길을 뺐다. 엔진은 옛 앱이 부르므로 남긴다
               setBossPick(null);
               setWorldSheet(null);

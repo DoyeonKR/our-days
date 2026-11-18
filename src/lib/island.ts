@@ -1650,6 +1650,13 @@ export type IslandState = {
   /** 같이 하는 습관 하트 정산 열쇠 링(최근 60, '날짜|습관 id') — 같은 습관 · 하루를 두 번 주지 않고 하루 상한을 센다(2026-11-13 §10.27).
    *  **클라이언트가 쓰는 칸**이다(서버는 모양 · 크기만 본다). 옵셔널 = 무마이그레이션. 쓰기는 lib/habits 의 settleHabitPay 한 곳. 엔진은 안 읽는다. */
   habitPay?: string[];
+  /** 주인 레이드 점수(2026-11-18) — 주인마다 이번 출현에 둘이 낸 점수 · 토벌 때 준 배율. 옵셔널 = 무마이그레이션. 읽기 · 쓰기는 lib/bossmark 한 곳.
+   *  s.fishing 안이 아니라 맨 위 칸인 이유: 옛 앱이 s.fishing 을 아는 칸으로 다시 지어 모르는 칸을 버린다 */
+  raidMark?: Record<string, unknown>;
+  /** 보내 준 물고기가 주인을 부른 시간(2026-11-18) — 오늘 쓴 시간 · 주인마다 이번 쉬는 동안 모은 시간. 옵셔널. 읽기 · 쓰기는 lib/bosscall 한 곳 */
+  bossCall?: Record<string, unknown>;
+  /** 수조 조명(2026-11-18) — 산 조명 · 켠 조명. 옵셔널. 하트로 산 것이라 옛 앱이 다시 짓는 s.aquarium · s.aquaPlus 가 아니라 맨 위 칸. 읽기 · 쓰기는 lib/aqualight 한 곳 */
+  aquaLight?: Record<string, unknown>;
   log: string[];
 };
 

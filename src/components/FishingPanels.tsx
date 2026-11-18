@@ -19,6 +19,8 @@ import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggo
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
 import { BOSS_DUO, bossArt, bossDuo, type BossHit } from "@/lib/fishingworld";
+import { BOSS_CALL_DAY_CAP, BOSS_CALL_MAX } from "@/lib/bosscall";
+import type { RaidTier } from "@/lib/bossmark";
 import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, MOON_FISH, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { REQUEST_ALL_BONUS, type FishRequest } from "@/lib/fishrequest";
@@ -339,7 +341,9 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 /** 주인 — 도전을 켜면 다음 판이 주인과의 싸움이다 */
-export function BossSheet({ boss, rec, today, who, why, tries, couple, all, level, onClose, onStart }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; tries: number; couple: boolean; all: Readonly<Record<string, BossRecord>>; level: number; onClose: () => void; onStart: () => void }) {
+export function BossSheet({ boss, rec, today, who, why, tries, couple, all, level, called = 0, tier, onClose, onStart }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; tries: number; couple: boolean; all: Readonly<Record<string, BossRecord>>; level: number;
+  /** 보내 준 물고기가 이번 쉬는 동안 당긴 시간(2026-11-18, lib/bosscall) · 이번 출현의 레이드 점수 단계(lib/bossmark) */
+  called?: number; tier?: RaidTier; onClose: () => void; onStart: () => void }) {
   const hp = bossHp(rec, today), left = bossTriesLeft(rec, who, today), phase = bossPhase(hp);
   const beaten = bossesBeaten(all);
   return (
@@ -354,6 +358,8 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
       {(rec?.caught ?? 0) > 0 && <p className="aqua-note">지금까지 {rec!.caught}번 잡았어요</p>}
       {couple && <BossRaid rec={rec} who={who} today={today} />}
       <p className="aqua-note">다 깎으면 끌어올려요 · 잡으면 왕관을 쓰고 수조에 들어와요 · 보상 <Coin /> {bossReward(boss, rec?.caught ?? 0).toLocaleString()} · {BOSS_RETURN_DAYS}일 뒤 다시 나타나요</p>
+      {bossReward(boss, rec?.caught ?? 0) > 0 && <p className="aqua-note">보상은 이번 출현의 레이드 점수 평균으로 ×0.8 ~ ×1.25{tier && tier.key !== "none" ? <b> · 지금 {tier.name} ×{tier.mult}</b> : null}</p>}
+      <p className="aqua-note">수조에서 다 키운 이 낚시터 물고기를 바다로 보내 주면 쉬는 주인에게 시간이 모여요 — 24시간마다 하루 일찍(등급마다 1 ~ 6시간 · 하루 {BOSS_CALL_DAY_CAP}시간 · 한 번 쉴 때 {BOSS_CALL_MAX}시간까지){called > 0 ? <b> · 이번에 {called}시간 모았어요({Math.floor(called / 24)}일 당김 · 다음 하루까지 {called >= BOSS_CALL_MAX ? "상한" : `${called % 24}/24`})</b> : null}</p>
       {why ? <p className="aqua-msg">{why}</p> : <ActionButton main wide className="mt-3" onClick={onStart}>주인 레이드 시작 · 오늘 {left}번 남음</ActionButton>}
       <h3 className="fish-sheet-title">모든 주인 · {beaten}/{BOSSES.length}</h3>
       <ul className="fish-timed fish-boss-list">

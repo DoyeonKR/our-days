@@ -160,8 +160,9 @@ test("낚시 연출은 120Hz 화면에서도 초당 60장까지만 그린다 · 
 test("화면 — 판 끝에 바로 저장 · 결과 창 닫기는 알리기만 · 앱을 떠나면 판을 끝낸다 · 여는 중엔 던지지 않는다", () => {
   const game = code("src/components/FishingGame.tsx"), ui = code("src/components/BossRaidGame.tsx");
   const endRaid = game.slice(game.indexOf("function endRaid("), game.indexOf("function quitRaid("));
-  assert.match(endRaid, /r\.end === "kill"[\s\S]*?raidSave\.current = saveBossWin\(b, cur\.seen\)/, "토벌을 결과 창을 닫을 때까지 미뤘다");
-  assert.match(endRaid, /const dealt = cur\.chunk \* raidScore\(r\)/, "깎은 양(남은 체력이 아니다)");
+  // 2026-11-18: 토벌 판의 빠르기(raidKillPace)를 같은 저장에 싣는다 — 보상 단계(lib/bossmark)
+  assert.match(endRaid, /r\.end === "kill"[\s\S]*?raidSave\.current = saveBossWin\(b, cur\.seen, pace === null \? undefined/, "토벌을 결과 창을 닫을 때까지 미뤘다");
+  assert.match(endRaid, /const dealt = Math\.max\(0, cur\.chunk \* raidScore\(r\)\)/, "깎은 양(남은 체력이 아니다)");
   const closeRaid = game.slice(game.indexOf("function closeRaid("), game.indexOf("function clearRound("));
   assert.doesNotMatch(closeRaid, /bossWon\(|bossLost\(|act\(/, "닫을 때 저장하면 앱이 꺼질 때 사라지고 두 번 준다");
   assert.match(closeRaid, /saved\?\.res && !saved\.res\.ok\) \{ setMsg\(saved\.note\); return; \}/, "상대가 먼저 잡았으면 끌어올리지 않는다");
