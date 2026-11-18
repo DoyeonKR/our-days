@@ -8,7 +8,7 @@ import * as T from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
-import { breathOf, cephArmData, cephGlsl, octopusLike } from "./cephalopod.ts";
+import { CEPH_V3, breathOf, cephArmData, cephGlsl, octopusLike } from "./cephalopod.ts";
 import { MAMMAL, RIBBON_FIN, RIGID, SHARKS, anatomy, verticalWave, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
@@ -327,31 +327,32 @@ function patchFinMaterial(material: T.Material, slot: number) {
   material.customProgramCacheKey = () => `${previousKey.call(material)}|${FIN_KEY}|${slot}`;
   material.needsUpdate = true;
 }
-/* ── 두족류 팔(2026-11-13, lib/aqua3d/cephalopod) — 팔마다 따로 굽고 말고 뻗는다. 정점 자료는 형상마다 한 번, 재질은 key 마다 한 번 ── */
-const ARM_KEY = "aqua-arm-v1";
-type ArmInfo = { hub: readonly [number, number]; sdir: number; crown: number };
-function ensureArmAttribute(mesh: T.SkinnedMesh, key: string): ArmInfo | null {
+/* ── 두족류 팔(2026-11-13 → 2026-11-18 v3, lib/aqua3d/cephalopod) — 팔마다 따로 굽고 말고 뻗는다. 정점 자료는 형상마다 한 번, 재질은 key 마다 한 번 ──
+ * v3 입체 모델은 uv 의 팔 띠에서 팔 번호 · 뿌리→끝을 읽고 팔마다 뿌리 · 방향을 정점 속성으로 단다(셰이더에 key 마다 다른 상수가 없다 — 프로그램 하나).
+ * 옛 판 모델(design/aqua3d-review/ceph-v3/old 로 되돌린 경우)은 표시(CEPH_V3)가 없어 팔 셰이더 없이 뼈로만 움직인다. */
+const ARM_KEY = "aqua-arm-v3";
+function ensureArmAttribute(mesh: T.SkinnedMesh): boolean {
   const g = mesh.geometry;
-  if (g.userData.aquaArm !== undefined) return g.userData.aquaArm as ArmInfo | null;
+  if (g.userData.aquaArm !== undefined) return g.userData.aquaArm as boolean;
   const pos = g.attributes.position, uv = g.attributes.uv, n = pos.count;
-  let info: ArmInfo | null = null;
-  if (uv) {
+  let ok = false;
+  if (uv && mesh.userData?.aquaGeometry === CEPH_V3) {
     const P = new Float32Array(n * 3), U = new Float32Array(n * 2);
     for (let i = 0; i < n; i++) { P[i * 3] = pos.getX(i); P[i * 3 + 1] = pos.getY(i); P[i * 3 + 2] = pos.getZ(i); U[i * 2] = uv.getX(i); U[i * 2 + 1] = uv.getY(i); }
-    const d = cephArmData(key, P, U, n, g.index ? (g.index.array as ArrayLike<number>) : null);
-    if (d) { g.setAttribute("aquaArm", new T.BufferAttribute(d.attr, 4)); info = { hub: d.hub, sdir: d.sdir, crown: d.crown }; }
+    const d = cephArmData(P, U, n);
+    if (d) { g.setAttribute("aquaArm", new T.BufferAttribute(d.attr, 4)); g.setAttribute("aquaRoot", new T.BufferAttribute(d.root, 3)); g.setAttribute("aquaDir", new T.BufferAttribute(d.dir, 3)); ok = true; }
   }
-  g.userData.aquaArm = info;
-  return info;
+  g.userData.aquaArm = ok;
+  return ok;
 }
-function patchArmMaterial(material: T.Material, slot: number, info: ArmInfo) {
+function patchArmMaterial(material: T.Material, slot: number) {
   if (!(material instanceof T.MeshStandardMaterial) || material.userData.aquaArm) return;
   material.userData.aquaArm = slot;
   const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
   material.onBeforeCompile = (shader, renderer) => {
     previous.call(material, shader, renderer);
-    const g = cephGlsl(slot, info.hub, info.sdir, info.crown);
-    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nattribute vec4 aquaArm;").replace("#include <skinning_pars_vertex>", g.pars).replace("#include <beginnormal_vertex>", g.normal).replace("#include <begin_vertex>", g.vertex);
+    const g = cephGlsl(slot);
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nattribute vec4 aquaArm;\nattribute vec3 aquaRoot;\nattribute vec3 aquaDir;").replace("#include <skinning_pars_vertex>", g.pars).replace("#include <beginnormal_vertex>", g.normal).replace("#include <begin_vertex>", g.vertex);
   };
   material.customProgramCacheKey = () => `${previousKey.call(material)}|${ARM_KEY}|${slot}`;
   material.needsUpdate = true;
@@ -442,8 +443,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   // 두족류 팔 — 팔마다 따로 움직이는 정점 변형(뼈 사슬은 몸통 전체의 방향 · 외투막만)
   let armData: Float32Array | null = null, armAt = -1;
   if (ceph && body && sk) {
-    const info = ensureArmAttribute(body, key);
-    if (info) { armAt = finSlot(sk); if (armAt >= 0) { for (const m of materialsOf(body)) patchArmMaterial(m, sk.bones.length, info); armData = sk.boneMatrices as Float32Array; } }
+    if (ensureArmAttribute(body)) { armAt = finSlot(sk); if (armAt >= 0) { for (const m of materialsOf(body)) patchArmMaterial(m, sk.bones.length); armData = sk.boneMatrices as Float32Array; } }
   }
   const armOct = octopusLike(key), breathPh = (Math.sin(key.length * 12.9898 + (inner.id % 97) * 78.233) * 43758.5453) % 1 * 6.283;
   const lure = body && family === "anglerfish" ? attachLure(inner, body) : null;
