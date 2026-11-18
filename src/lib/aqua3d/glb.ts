@@ -9,6 +9,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
 import { breathOf, cephArmData, cephGlsl, octopusLike } from "./cephalopod.ts";
+import { crabFamilyOf, crabGlsl, crabLegData, walkOf } from "./crabwalk.ts";
 import { MAMMAL, RIBBON_FIN, RIGID, SHARKS, anatomy, verticalWave, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
@@ -356,6 +357,37 @@ function patchArmMaterial(material: T.Material, slot: number, info: ArmInfo) {
   material.customProgramCacheKey = () => `${previousKey.call(material)}|${ARM_KEY}|${slot}`;
   material.needsUpdate = true;
 }
+/* ── 게 · 바닷가재 걷기(2026-11-18, lib/aqua3d/crabwalk) — 다리마다 따로 들고 젓는다. 정점 자료는 형상마다 한 번, 재질은 key 마다 한 번 ── */
+const CRAB_KEY = "aqua-crab-v1";
+function ensureCrabAttribute(mesh: T.SkinnedMesh, key: string): boolean {
+  const g = mesh.geometry;
+  if (g.userData.aquaCrab !== undefined) return g.userData.aquaCrab as boolean;
+  const pos = g.attributes.position, uv = g.attributes.uv, part = g.attributes._aqua_part, n = pos.count;
+  let ok = false;
+  if (uv) {
+    const P = new Float32Array(n * 3), U = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) { P[i * 3] = pos.getX(i); P[i * 3 + 1] = pos.getY(i); P[i * 3 + 2] = pos.getZ(i); U[i * 2] = uv.getX(i); U[i * 2 + 1] = uv.getY(i); }
+    const d = crabLegData(key, P, U, n, part && part.itemSize === 4 ? (part.array as ArrayLike<number>) : null);
+    if (d) { g.setAttribute("aquaCrab", new T.BufferAttribute(d.a, 4)); g.setAttribute("aquaCrabRoot", new T.BufferAttribute(d.b, 4)); ok = true; }
+  }
+  g.userData.aquaCrab = ok;
+  return ok;
+}
+function patchCrabMaterial(material: T.Material, slot: number) {
+  if (!(material instanceof T.MeshStandardMaterial) || material.userData.aquaCrab) return;
+  material.userData.aquaCrab = slot;
+  const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
+  material.onBeforeCompile = (shader, renderer) => {
+    previous.call(material, shader, renderer);
+    const g = crabGlsl(slot);
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nattribute vec4 aquaCrab;\nattribute vec4 aquaCrabRoot;").replace("#include <skinning_pars_vertex>", g.pars).replace("#include <beginnormal_vertex>", g.normal).replace("#include <begin_vertex>", g.vertex);
+  };
+  material.customProgramCacheKey = () => `${previousKey.call(material)}|${CRAB_KEY}|${slot}`;
+  material.needsUpdate = true;
+}
+/** 움직임 줄이기 — 엔진(scene.ts)처럼 헤엄 · 걸음은 그대로 두고 덧붙인 꾸밈(집게 흔들기 · 꼬리 들썩)만 끈다. 시험(node)엔 matchMedia 가 없다 */
+let reducedQuery: MediaQueryList | null | undefined;
+const reducedMotion = () => { if (reducedQuery === undefined) reducedQuery = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null; return !!reducedQuery?.matches; };
 /** 뼈 텍스처의 남는 칸(뼈 수번째 행렬 자리) — 없으면 null(그땐 막이 안 떤다) */
 function finSlot(sk: T.Skeleton) {
   if (!sk.boneTexture) sk.computeBoneTexture(); // 그리기 전에 만든다 — 렌더러가 늦게 만들면 그 전의 쓰기는 배열 밖이라 조용히 버려진다
@@ -432,7 +464,8 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   // 막 흔들림 — 몸통 물고기 · 용만(해파리 갓 · 가오리 날개 · 두족류 팔 · 누운 광어의 가장자리는 이미 뼈로 움직인다)
   let finData: Float32Array | null = null, finAt = -1;
   const sk = body?.skeleton;
-  if (body && sk && (a.kind === "fish" || a.kind === "dragon") && !flat && !MAMMAL.test(family)) { // 포유류는 털가죽 · 두꺼운 지느러미발이라 막 떨림이 없다
+  const crab = crabFamilyOf(key) !== null;
+  if (body && sk && (a.kind === "fish" || a.kind === "dragon") && !flat && !MAMMAL.test(family) && !crab) { // 게 · 가재는 막이 없다(다리는 crabwalk 셰이더가 움직인다 — 같은 남는 칸을 쓴다) // 포유류는 털가죽 · 두꺼운 지느러미발이라 막 떨림이 없다
     inner.updateMatrixWorld(true);
     if (ensureFinAttribute(body)) {
       finAt = finSlot(sk);
@@ -444,6 +477,12 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   if (ceph && body && sk) {
     const info = ensureArmAttribute(body, key);
     if (info) { armAt = finSlot(sk); if (armAt >= 0) { for (const m of materialsOf(body)) patchArmMaterial(m, sk.bones.length, info); armData = sk.boneMatrices as Float32Array; } }
+  }
+  // 게 · 바닷가재 — 다리마다 따로 걷는 정점 변형(뼈 fin_L · fin_R 는 그대로 둔다 — 예전엔 그 뼈를 저어 한쪽 다리 묶음이 한 판처럼 들썩였다)
+  let crabData: Float32Array | null = null, crabAt = -1;
+  if (crab && body && sk && ensureCrabAttribute(body, key)) {
+    crabAt = finSlot(sk);
+    if (crabAt >= 0) { for (const m of materialsOf(body)) patchCrabMaterial(m, sk.bones.length); crabData = sk.boneMatrices as Float32Array; }
   }
   const armOct = octopusLike(key), breathPh = (Math.sin(key.length * 12.9898 + (inner.id % 97) * 78.233) * 43758.5453) % 1 * 6.283;
   const lure = body && family === "anglerfish" ? attachLure(inner, body) : null;
@@ -512,6 +551,17 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       // 가슴지느러미 — 떠 있으면 작게 빨리 젓고(노 젓기), 급히 돌거나 먹이에 몰리면 활짝
       const g = finGain(clock, sp);
       for (let s = 0; s < 2; s++) { const sign = s && wave.pect !== "alt" ? 1 : -1; angles[6 + s * 2] = sign * Math.sin(clock.fin) * wave.fin * g; angles[7 + s * 2] = sign * Math.sin(clock.fin - 0.7) * wave.fin * 1.3 * g; }
+    }
+    if (crab) {
+      // 몸통은 굽히지 않고(마디 물결 · 지느러미 뼈 0) 다리만 걷는다 — 박자(clock.beat)는 엔진이 실제 빠르기 ÷ 보폭으로 쌓은 것이라 다리가 바닥을 미끄러지지 않는다
+      angles.fill(0);
+      if (crabData && body) {
+        if (body.skeleton.boneMatrices !== crabData) { crabAt = finSlot(body.skeleton); crabData = crabAt >= 0 ? (body.skeleton.boneMatrices as Float32Array) : null; }
+        if (crabData) {
+          crabData[crabAt] = clock.beat % (Math.PI * 2); crabData[crabAt + 1] = walkOf(sp.amp);
+          crabData[crabAt + 2] = WATER_LIGHT.aquaTime.value || time; crabData[crabAt + 3] = reducedMotion() ? 0 : 1;
+        }
+      }
     }
     if (ceph) {
       // 두족류의 몸짓(2026-11-13) — 물고기처럼 팔을 꼬리 삼아 흔들던 것을 셋으로 갈랐다

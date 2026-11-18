@@ -156,6 +156,10 @@ export const CETACEAN = /^(orca|minke_whale|gray_whale|humpback_whale|sperm_whal
 export const MAMMAL = /^(spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
 /** 몸 물결이 위아래(Z 축)인 몸 — 수달 · 해달. 누운 광어와 같은 축으로 물결치지만 몸을 눕히지는 않는다 */
 export const verticalWave = (family: string) => MUSTELID.test(family) || CETACEAN.test(family);
+/** 다리로 걷는 갑각류(2026-11-18) — 게 · 바닷가재. 몸 물결 · 지느러미 대신 다리 걸음(crabwalk.ts) */
+export const CRAB_WALKERS = /^(snow_crab|king_crab|lobster)$/;
+/** 한 걸음에 나아가는 몸길이 — 2 × 젓는 각(crabwalk GAIT.swing 0.24) × 다리 끝이 뿌리에서 옆으로 떨어진 거리 ÷ 몸길이(머리 → 꼬리) */
+const CRAB_STRIDE: Readonly<Record<string, number>> = { snow_crab: 0.2, king_crab: 0.25, lobster: 0.07 };
 export const RIBBON_FIN = /^(electric_eel|oarfish|hairtail)$/;
 const PROFILES = new Map<string, BendProfile>();
 const CARP_AMP = [0.038, 0.056, 0.074, 0.092, 0.11, 0.128];
@@ -190,6 +194,11 @@ export function bendProfile(family: string, key = family): BendProfile {
     const squidLike = family === "squid" || family === "giant_squid";
     p = { kind: a.kind, amp: squidLike ? [0.24, 0.16, 0.06, 0.012, 0.005, 0.003] : [0.17, 0.13, 0.08, 0.035, 0.018, 0.01], lag: 0.9, fin: a.flex, finRate: 1, wing: 0, curl: 0.35, stride: 0.9 };
   }
+  // 게 · 바닷가재(2026-11-18) — 몸통은 휘지 않고 다리로 걷는다(crabwalk.ts 의 셰이더). 한 걸음(다리 한 번 젓기)에 나아가는 거리 = 짚은 다리 끝이 뒤로 쓸고 가는 길이
+  //   ≈ 2 × 젓는 각(0.24) × 다리 길이(몸길이의 0.35 ~ 0.45) ≈ 몸길이의 0.2 — 박자가 실제 빠르기에 묶여 다리가 바닥에서 미끄러지지 않는다
+  //   몸길이는 엔진이 머리 → 꼬리(x)로 잰다 — 바닷가재는 몸이 길고 다리가 짧아(다리 길이 ≈ 몸길이의 0.12) 한 걸음이 몸길이의 0.06 ~ 0.07 뿐이다
+  //   마디 물결은 아주 작게만 — GLB 는 fishMotion 이 몸통을 아예 안 굽히고(angles 0) 다리만 걷는다. 이 값은 GLB 가 오기 전 잠깐 보이는 코드 임시 모델 몫
+  else if (CRAB_WALKERS.test(family)) p = { kind: a.kind, amp: [0.003, 0.004, 0.006, 0.01, 0.016, 0.022], lag: 0.6, fin: 0.04, finRate: 1, wing: 0, curl: 0.2, stride: CRAB_STRIDE[family] ?? 0.2 };
   // 누운 광어는 몸 가장자리 물결로 기어 · 헤엄쳐 한 번에 덜 나간다
   else p = { kind: a.kind, amp: CARP_AMP, lag: 0.62, fin: a.flex, finRate: 1, wing: 0, curl: 1, stride: flatBody(family, key) ? 0.5 : 0.62 };
   const pect = pectOf(family);
