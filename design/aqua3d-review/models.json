@@ -13361,8 +13361,8 @@
       "family": "squid",
       "form": "adult",
       "file": "public/aqua/models/fish/squid.glb",
-      "triangles": 2192,
-      "bytes": 30008,
+      "triangles": 3584,
+      "bytes": 86776,
       "bones": [
         "spine_0",
         "spine_1",
@@ -13432,6 +13432,14 @@
         },
         "uncompressedBytes": 142868,
         "uncompressedSha256": "76ac7795fe0b9dbda4ea59049cfcacb4369fda46757429dad885629cd7aa4120"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "f0d61bb4f4efafdf6a59a8b5e3fee11a0605577835c895d4840ce9f7f3780ee8",
+        "review": "design/aqua3d-review/ceph-v3/review-squid.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/squid.glb",
+        "note": "validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "fry_squid": {
@@ -13439,8 +13447,8 @@
       "family": "squid",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_squid.glb",
-      "triangles": 2296,
-      "bytes": 30404,
+      "triangles": 1898,
+      "bytes": 71720,
       "bones": [
         "spine_0",
         "spine_1",
@@ -13510,6 +13518,14 @@
         },
         "uncompressedBytes": 147484,
         "uncompressedSha256": "3ab6b1362c5b020c4a509f8fa1bdd480d2af295528a070d5916440416735770b"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "dbb560d407e91513b67a525541d483aab9cc1392d620a57c2597497092bb7369",
+        "review": "design/aqua3d-review/ceph-v3/review-squid.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/fry_squid.glb",
+        "note": "validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "juv_squid": {
@@ -13517,8 +13533,8 @@
       "family": "squid",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_squid.glb",
-      "triangles": 2316,
-      "bytes": 30648,
+      "triangles": 3584,
+      "bytes": 86496,
       "bones": [
         "spine_0",
         "spine_1",
@@ -13588,6 +13604,14 @@
         },
         "uncompressedBytes": 150388,
         "uncompressedSha256": "02c92a1bf617f3ffe7a8758b0ead2d826647ebfc38865a6478080cf381b3b322"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "672cb9888bb5ed051930c4fef672df051269c940499b40bcce4ad06b694bb021",
+        "review": "design/aqua3d-review/ceph-v3/review-squid.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/juv_squid.glb",
+        "note": "validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "octopus": {
@@ -14772,8 +14796,8 @@
       "family": "giant_squid",
       "form": "adult",
       "file": "public/aqua/models/fish/giant_squid.glb",
-      "triangles": 2348,
-      "bytes": 42108,
+      "triangles": 3872,
+      "bytes": 94636,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14843,6 +14867,14 @@
         },
         "uncompressedBytes": 175688,
         "uncompressedSha256": "59e32b4e7db6184e876efd41a1c7f91694ff35c4892676572070e87fcac37205"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "b20f33b919106e5ad0f8b1c4569c236419988337c093a5f65dc3a0f257bb8c8f",
+        "review": "design/aqua3d-review/ceph-v3/review-giant_squid.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/giant_squid.glb",
+        "note": "validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "fry_giant_squid": {
@@ -14850,8 +14882,8 @@
       "family": "giant_squid",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_giant_squid.glb",
-      "triangles": 2244,
-      "bytes": 35384,
+      "triangles": 2098,
+      "bytes": 78468,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14921,6 +14953,14 @@
         },
         "uncompressedBytes": 162796,
         "uncompressedSha256": "42a8aca37f39a37b0b6002313021ef0c3619487642d6944164f468fd0292a482"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "49ac264f79582fb5169bf4c3942ab069aee15ab2ef0361ccf7aa0ea949f18c45",
+        "review": "design/aqua3d-review/ceph-v3/review-giant_squid.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/fry_giant_squid.glb",
+        "note": "validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "juv_giant_squid": {
@@ -14928,8 +14968,8 @@
       "family": "giant_squid",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_giant_squid.glb",
-      "triangles": 2412,
-      "bytes": 38168,
+      "triangles": 3872,
+      "bytes": 93152,
       "bones": [
         "spine_0",
         "spine_1",
@@ -14999,6 +15039,14 @@
         },
         "uncompressedBytes": 166740,
         "uncompressedSha256": "4789d05c99fc273e8f691d912250cd48eb7679ebaadfcf727bcd863185a43051"
+      },
+      "cephV3": {
+        "built": "2026-11-18",
+        "script": "design/aqua3d-review/ceph-v3-build.mjs",
+        "sha256": "6e5ef195a1fdc8d7fa3da925544a97781710f51f20cc810f3b29156146f32eda",
+        "review": "design/aqua3d-review/ceph-v3/review-giant_squid.webp",
+        "oldModel": "design/aqua3d-review/ceph-v3/old/juv_giant_squid.glb",
+        "note": "validation 블록은 옛 모델의 Khronos 결과 — v3 는 Khronos 검증기를 다시 돌리지 않았다(three GLTFLoader · bindpose · floating-parts 로만 확인)"
       }
     },
     "kraken": {

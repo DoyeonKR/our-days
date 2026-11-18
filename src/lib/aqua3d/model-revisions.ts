@@ -41,6 +41,8 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_minke_whale:'094d7d7fd82b',juv_minke_whale:'5da28e4b90b5',minke_whale:'5fb2fe89a218',fry_gray_whale:'664e8098f77a',juv_gray_whale:'e31beacf6436',gray_whale:'f9dc50614899',fry_humpback_whale:'07b66434abcf',juv_humpback_whale:'6c68ac1104a0',humpback_whale:'95a94d730ad5',fry_sperm_whale:'92072c39c2d6',juv_sperm_whale:'e61f420476d9',sperm_whale:'aabb90da7dfb',fry_blue_whale:'128389807ff9',juv_blue_whale:'9de94fa42a98',blue_whale:'6800e8739dbd',fry_sawshark:'3b001221d971',juv_sawshark:'598d5dd7831a',sawshark:'2ed5a2e7438f',
  // 2026-11-18 범고래 새끼 · 어린 개체 전용 모델 — 다 큰 모델에서 비율만 바꿔 다시 구움(orca-young-build.mjs)
  fry_orca:'8acf0d5ebcd3',juv_orca:'f7ef99a634e6',
+ // 2026-11-18 오징어 · 대왕오징어 6모습 v3(문어 · 크라켄 v3 는 후보로만 — ceph-v3/octopus-candidates) — 그림을 세운 판 → 진짜 입체(design/aqua3d-review/ceph-v3-build.mjs, 옛 판은 ceph-v3/old)
+ squid:'f0d61bb4f4ef',fry_squid:'dbb560d407e9',juv_squid:'672cb9888bb5',giant_squid:'b20f33b91910',fry_giant_squid:'49ac264f7958',juv_giant_squid:'6e5ef195a1fd',
 });
 /** 주인 모델(public/aqua/models/boss/, 2026-11-15) — 같은 규칙(바이트 해시) */
 export const BOSS_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({

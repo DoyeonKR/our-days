@@ -47,15 +47,19 @@ test("두족류 GLB — 팔 끝이 외투막 끝보다 크게 움직인다(옛 �
     // 이 GLB 의 spine_0 은 +X 끝(팔 끝)에 있다 — 외투막은 −X 쪽
     assert.ok(s.getObjectByName("spine_0")!.position.x > s.getObjectByName("spine_5")!.position.x, `${key} spine_0 이 팔 쪽`);
     const xs = P.map((p) => p.x), minX = Math.min(...xs), L = Math.max(...xs) - minX;
-    const arm = P.flatMap((p, i) => ((p.x - minX) / L > 0.85 ? [i] : [])), mantle = P.flatMap((p, i) => ((p.x - minX) / L < 0.15 && p.y > -0.3 ? [i] : []));
+    // 2026-11-18 v3 입체 모델 — 오징어형은 외투막 끝 지느러미가 fin 뼈로 위아래로 젓는다(꼬리처럼 옆으로 흔드는 게 아니다). 외투막만 보려고 fin 뼈(6 ~ 9)에 묶인 정점은 빼고 지느러미는 따로 잰다
+    const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight, onFin = (i: number) => [0, 1, 2, 3].some((c) => si.getComponent(i, c) >= 6 && sw.getComponent(i, c) > 0);
+    const arm = P.flatMap((p, i) => ((p.x - minX) / L > 0.85 ? [i] : [])), mantle = P.flatMap((p, i) => ((p.x - minX) / L < 0.15 && p.y > -0.3 && !onFin(i) ? [i] : [])), fin = P.flatMap((p, i) => (onFin(i) ? [i] : []));
     const anim = fishMotion(s, forms.get(key)!.family, key), v = new T.Vector3();
-    let a = 0, mm = 0;
+    let a = 0, mm = 0, ff = 0;
     for (let k = 0; k < 48; k++) {
       anim((k / 48) * 4, 1, { amp: 1 }); s.updateMatrixWorld(true);
       for (const i of arm) a = Math.max(a, m.getVertexPosition(i, v).distanceTo(P[i]) / L);
       for (const i of mantle) mm = Math.max(mm, m.getVertexPosition(i, v).distanceTo(P[i]) / L);
+      for (const i of fin) ff = Math.max(ff, m.getVertexPosition(i, v).distanceTo(P[i]) / L);
     }
     assert.ok(mm < 0.05, `${key} 외투막 끝 ${mm.toFixed(3)}`);
+    assert.ok(ff < 0.06, `${key} 지느러미 ${ff.toFixed(3)}`);
     assert.ok(a > min * mm, `${key} 팔 ${a.toFixed(3)} · 외투막 ${mm.toFixed(3)}`);
   }
 });

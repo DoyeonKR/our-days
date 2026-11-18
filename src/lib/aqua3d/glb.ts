@@ -9,6 +9,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
 import { breathOf, cephArmData, cephGlsl, octopusLike } from "./cephalopod.ts";
+import { CEPH_V3, cephArmData as cephArmData3d, cephGlsl as cephGlsl3d } from "./cephalopod3d.ts";
 import { MAMMAL, RIBBON_FIN, RIGID, SHARKS, anatomy, verticalWave, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
@@ -327,9 +328,13 @@ function patchFinMaterial(material: T.Material, slot: number) {
   material.customProgramCacheKey = () => `${previousKey.call(material)}|${FIN_KEY}|${slot}`;
   material.needsUpdate = true;
 }
-/* ── 두족류 팔(2026-11-13, lib/aqua3d/cephalopod) — 팔마다 따로 굽고 말고 뻗는다. 정점 자료는 형상마다 한 번, 재질은 key 마다 한 번 ── */
-const ARM_KEY = "aqua-arm-v1";
-type ArmInfo = { hub: readonly [number, number]; sdir: number; crown: number };
+/* ── 두족류 팔 — 팔마다 따로 굽고 말고 뻗는다. 정점 자료는 형상마다 한 번, 재질은 key 마다 한 번 ──
+ * 두 길이 있다(2026-11-18). 고르는 건 GLB 의 표시(메시 노드 extras.aquaGeometry → userData)다 — key 가 아니라 파일이 정한다:
+ *  · 'cephalopod-v3'(오징어 · 대왕오징어 v3 입체, lib/aqua3d/cephalopod3d) — uv 의 팔 띠로 팔을 읽고 3D 로 굽힌다. 셰이더에 key 마다 다른 상수가 없다.
+ *  · 표시 없음(문어 · 크라켄의 옛 그림 판, lib/aqua3d/cephalopod 의 CEPH_ART) — 그림 uv = 정점 자리로 팔 뿌리 둘레를 옆면 안에서 돌린다(2026-11-13 그대로).
+ *    이 길은 팔 뿌리 · 외투막 상수를 셰이더 원문에 굽는다 — 그래서 프로그램 열쇠에 그 상수를 넣는다(예전엔 열쇠가 칸 번호뿐이라 다른 key 가 같은 프로그램을 받을 수 있었다). */
+const ARM_KEY = "aqua-arm-v1", ARM3D_KEY = "aqua-arm-v3";
+type ArmInfo = { kind: "plate"; hub: readonly [number, number]; sdir: number; crown: number } | { kind: "v3" };
 function ensureArmAttribute(mesh: T.SkinnedMesh, key: string): ArmInfo | null {
   const g = mesh.geometry;
   if (g.userData.aquaArm !== undefined) return g.userData.aquaArm as ArmInfo | null;
@@ -338,8 +343,13 @@ function ensureArmAttribute(mesh: T.SkinnedMesh, key: string): ArmInfo | null {
   if (uv) {
     const P = new Float32Array(n * 3), U = new Float32Array(n * 2);
     for (let i = 0; i < n; i++) { P[i * 3] = pos.getX(i); P[i * 3 + 1] = pos.getY(i); P[i * 3 + 2] = pos.getZ(i); U[i * 2] = uv.getX(i); U[i * 2 + 1] = uv.getY(i); }
-    const d = cephArmData(key, P, U, n, g.index ? (g.index.array as ArrayLike<number>) : null);
-    if (d) { g.setAttribute("aquaArm", new T.BufferAttribute(d.attr, 4)); info = { hub: d.hub, sdir: d.sdir, crown: d.crown }; }
+    if (mesh.userData?.aquaGeometry === CEPH_V3) {
+      const d = cephArmData3d(P, U, n);
+      if (d) { g.setAttribute("aquaArm", new T.BufferAttribute(d.attr, 4)); g.setAttribute("aquaRoot", new T.BufferAttribute(d.root, 3)); g.setAttribute("aquaDir", new T.BufferAttribute(d.dir, 3)); info = { kind: "v3" }; }
+    } else {
+      const d = cephArmData(key, P, U, n, g.index ? (g.index.array as ArrayLike<number>) : null);
+      if (d) { g.setAttribute("aquaArm", new T.BufferAttribute(d.attr, 4)); info = { kind: "plate", hub: d.hub, sdir: d.sdir, crown: d.crown }; }
+    }
   }
   g.userData.aquaArm = info;
   return info;
@@ -350,10 +360,12 @@ function patchArmMaterial(material: T.Material, slot: number, info: ArmInfo) {
   const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
   material.onBeforeCompile = (shader, renderer) => {
     previous.call(material, shader, renderer);
-    const g = cephGlsl(slot, info.hub, info.sdir, info.crown);
-    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nattribute vec4 aquaArm;").replace("#include <skinning_pars_vertex>", g.pars).replace("#include <beginnormal_vertex>", g.normal).replace("#include <begin_vertex>", g.vertex);
+    const g = info.kind === "v3" ? cephGlsl3d(slot) : cephGlsl(slot, info.hub, info.sdir, info.crown);
+    const attrs = info.kind === "v3" ? "attribute vec4 aquaArm;\nattribute vec3 aquaRoot;\nattribute vec3 aquaDir;" : "attribute vec4 aquaArm;";
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>\n${attrs}`).replace("#include <skinning_pars_vertex>", g.pars).replace("#include <beginnormal_vertex>", g.normal).replace("#include <begin_vertex>", g.vertex);
   };
-  material.customProgramCacheKey = () => `${previousKey.call(material)}|${ARM_KEY}|${slot}`;
+  const tag = info.kind === "v3" ? ARM3D_KEY : `${ARM_KEY}|${info.hub.join(",")}|${info.sdir}|${info.crown}`;
+  material.customProgramCacheKey = () => `${previousKey.call(material)}|${tag}|${slot}`;
   material.needsUpdate = true;
 }
 /** 뼈 텍스처의 남는 칸(뼈 수번째 행렬 자리) — 없으면 null(그땐 막이 안 떤다) */
