@@ -1,0 +1,27 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><title>범고래 새끼 검수</title>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<body style="background:#223;color:#ddd;font:13px sans-serif">
+<!-- 범고래 새끼 · 어린 개체(2026-11-18) — 레포 뿌리를 서빙해서 연다. window.R.sheet() 가 검수 시트, window.R.art(key) 가 수조 그림(옆모습 · 투명)을 만든다 -->
+<div id="out"></div>
+<script type="module">
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+async function load(key){const b=await(await fetch(`/public/aqua/models/fish/${key}.glb`,{cache:'no-store'})).arrayBuffer();const s=(await loader.parseAsync(b,'/')).scene;s.updateMatrixWorld(true);return s;}
+function lights(sc){sc.add(new T.HemisphereLight(0xffffff,0x4a4f55,2.1));const d=new T.DirectionalLight(0xffffff,1.6);d.position.set(1.5,4,3);sc.add(d);const f=new T.DirectionalLight(0xdfe8ff,.5);f.position.set(-2,1,2);sc.add(f);}
+// 검수 시트: 줄마다 key | 옆 · 위 · 앞 · 비스듬히 — 같은 배율(다 큰 모델의 상자)로 그려 비율 차이가 보이게
+async function sheet(keys=['orca','juv_orca','fry_orca']){
+ const S=300,rd=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});rd.setSize(S*4,S*keys.length);rd.setScissorTest(true);rd.outputColorSpace=T.SRGBColorSpace;
+ const L=1.15;
+ for(const [row,key]of keys.entries()){const m=await load(key),sc=new T.Scene();sc.background=new T.Color(0xa9b7bc);lights(sc);sc.add(m);
+  [[0,0,1],[0,1,.001],[1,0,0],[1,.6,1.3]].forEach((v,i)=>{const cam=new T.OrthographicCamera(-L,L,L,-L,.01,100);if(i===1)cam.up.set(0,0,-1);cam.position.set(...v).normalize().multiplyScalar(10);cam.lookAt(0,0,0);const y=(keys.length-1-row)*S;rd.setViewport(i*S,y,S,S);rd.setScissor(i*S,y,S,S);rd.render(sc,cam);});}
+ const u=rd.domElement.toDataURL('image/png');rd.dispose();return u;}
+// 수조 그림: 옆모습(머리 오른쪽) · 투명 · 512 정사각 · 10% 여백 — 다 큰 그림(orca.webp)과 같은 구도
+async function art(key){const m=await load(key),sc=new T.Scene();lights(sc);sc.add(m);
+ const box=new T.Box3().setFromObject(m),c=box.getCenter(new T.Vector3()),sz=box.getSize(new T.Vector3());
+ const rd=new T.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});rd.setSize(512,512);rd.setClearColor(0,0);rd.outputColorSpace=T.SRGBColorSpace;
+ const half=Math.max(sz.x,sz.y)*.5/.8,cam=new T.OrthographicCamera(-half,half,half,-half,.01,100);cam.position.set(c.x+.15,c.y+.9,c.z+10);cam.lookAt(c);rd.render(sc,cam);
+ const u=rd.domElement.toDataURL('image/png');rd.dispose();return u;}
+async function save(p,u){const r=await fetch('/save?p='+encodeURIComponent(p),{method:'POST',body:u});return r.text();}
+window.R={sheet,art,save};
+document.getElementById('out').textContent='ready';
+</script></body></html>

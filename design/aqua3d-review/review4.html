@@ -1,0 +1,18 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><title>네 방향 검수</title>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<body style="background:#223;color:#ddd;font:13px sans-serif">
+<!-- 네 방향 검수 시트(2026-11-18) — 레포 뿌리를 서빙해서 연다. window.R.sheet([파일...]) 가 줄마다 옆 · 위 · 앞 · 비스듬히(같은 배율)를 그린 PNG data URL 을 준다 -->
+<div id="out"></div>
+<script type="module">
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+async function load(file){const b=await(await fetch('/'+file,{cache:'no-store'})).arrayBuffer();const s=(await loader.parseAsync(b,'/')).scene;s.updateMatrixWorld(true);return s;}
+function lights(sc){sc.add(new T.HemisphereLight(0xffffff,0x4a4f55,2.1));const d=new T.DirectionalLight(0xffffff,1.6);d.position.set(1.5,4,3);sc.add(d);}
+async function sheet(files,S=240,L=1.15){
+ const rd=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});rd.setSize(S*4,S*files.length);rd.setScissorTest(true);rd.outputColorSpace=T.SRGBColorSpace;
+ for(const [row,file]of files.entries()){const m=await load(file),sc=new T.Scene();sc.background=new T.Color(0xa9b7bc);lights(sc);sc.add(m);
+  [[0,0,1],[0,1,.001],[1,0,0],[1,.6,1.3]].forEach((v,i)=>{const cam=new T.OrthographicCamera(-L,L,L,-L,.01,100);if(i===1)cam.up.set(0,0,-1);cam.position.set(...v).normalize().multiplyScalar(10);cam.lookAt(0,0,0);const y=(files.length-1-row)*S;rd.setViewport(i*S,y,S,S);rd.setScissor(i*S,y,S,S);rd.render(sc,cam);});}
+ const u=rd.domElement.toDataURL('image/png');rd.dispose();return u;}
+async function save(p,u){const r=await fetch('/save?p='+encodeURIComponent(p),{method:'POST',body:u});return r.text();}
+window.R={sheet,save};document.getElementById('out').textContent='ready';
+</script></body></html>

@@ -35,11 +35,16 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const app=relief(art,{depth:.02,round:.015,step:2,alpha:A,inside:outside,targetTris:1500});const appStart=P.length/3,APP=[];
  for(const side of[-1,1]){const base=P.length/3,n=app.P.length/3;for(let i=0;i<n;i++){const x=app.P[i*3],y=app.P[i*3+1],z=app.P[i*3+2],inBody=x>=bx0&&x<=bx1,below=inBody&&y>cAt(x),off=inBody?rAt(x)*(below?.45:.3):0;APP.push([vtx(x,y,z+side*off,...refUV(x,y)),side,x,y]);}for(const k of app.I)I.push(base+k);}
  const mid=(bx0+bx1)/2,front=APP.filter(([, ,x,y])=>x>mid&&x<=bx1&&y>cAt(x));let fx=0,fy=0,rx=0;for(const [, ,x,y]of front){fx+=x;fy+=y;}const nf=Math.max(1,front.length);fx/=nf;fy/=nf;rx=fx+ (bx1-bx0)*.04;const rootY=cAt(rx)+rAt(rx)*.6;
+ // 앞지느러미 벌리기(2026-11-18 [사용자: 업그레이드 후보 "포유류 앞지느러미: 위에서 보면 몸에 붙어 거의 안 보여요 … 모두 진행해"]) — 지느러미 판이 몸과 나란한 세로 판이라
+ //   위에서 보면 모서리만 보였다. 뿌리(rootY) 아래쪽을 뿌리 둘레로 바깥 · 아래로 SPLAY 만큼 돌린다 — 바다사자 · 물개는 크게 벌린 앞지느러미로 날듯이 헤엄치고,
+ //   물범은 몸에 붙이고, 수달 · 해달은 다리라 조금만
+ const SPLAY=/sea_lion|fur_seal/.test(key)?.95:/seal/.test(key)?.6:.75,cs=Math.cos(SPLAY),sn=Math.sin(SPLAY);
+ for(const [v,side,x,y]of APP){if(!(x>mid&&x<=bx1&&y>cAt(x)))continue;const d=y-rootY;if(d<=0)continue;P[v*3+1]=rootY+d*cs;P[v*3+2]+=side*d*sn;}
  // 게임 좌표: 머리 +X(원화 오른쪽), 위 +Y, 길이 2
  const n=P.length/3,pos=new Float32Array(n*3);let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(let i=0;i<n;i++){x0=Math.min(x0,P[i*3]);x1=Math.max(x1,P[i*3]);y0=Math.min(y0,P[i*3+1]);y1=Math.max(y1,P[i*3+1]);}const S=2/(x1-x0),mx=(x0+x1)/2,my=(y0+y1)/2;for(let i=0;i<n;i++){pos[i*3]=(P[i*3]-mx)*S;pos[i*3+1]=(my-P[i*3+1])*S;pos[i*3+2]=P[i*3+2]*S;}
  if(n>65535)throw Error('vertices '+n);
  const names=['spine_0','spine_1','spine_2','spine_3','spine_4','spine_5','fin_L','fin_L_tip','fin_R','fin_R_tip'],BX=[.75,.45,.15,-.15,-.45,-.8],bones=names.map(m=>{const b=new T.Bone();b.name=m;return b;});
- for(let i=0;i<6;i++){bones[i].position.set(i?BX[i]-BX[i-1]:BX[0],0,0);if(i)bones[i-1].add(bones[i]);}bones[1].add(bones[6]);bones[6].add(bones[7]);bones[1].add(bones[8]);bones[8].add(bones[9]);const G=(px,py,pz)=>[(px-mx)*S,(my-py)*S,pz*S],root=G(rx,rootY,0),tip=G(fx,fy,0),zr=rAt(rx)*.6*S;bones[6].position.set(root[0]-BX[1],root[1],zr);bones[7].position.set(tip[0]-root[0],tip[1]-root[1],zr*.4);bones[8].position.set(root[0]-BX[1],root[1],-zr);bones[9].position.set(tip[0]-root[0],tip[1]-root[1],-zr*.4);
+ for(let i=0;i<6;i++){bones[i].position.set(i?BX[i]-BX[i-1]:BX[0],0,0);if(i)bones[i-1].add(bones[i]);}bones[1].add(bones[6]);bones[6].add(bones[7]);bones[1].add(bones[8]);bones[8].add(bones[9]);const G=(px,py,pz)=>[(px-mx)*S,(my-py)*S,pz*S],root=G(rx,rootY,0),fd=Math.max(0,fy-rootY),tip=G(fx,rootY+fd*cs,0),zr=rAt(rx)*.6*S,zt=zr*.4+fd*sn*S;bones[6].position.set(root[0]-BX[1],root[1],zr);bones[7].position.set(tip[0]-root[0],tip[1]-root[1],zt);bones[8].position.set(root[0]-BX[1],root[1],-zr);bones[9].position.set(tip[0]-root[0],tip[1]-root[1],-zt);
  bones[0].updateMatrixWorld(true);
  const finOf=new Map();for(const [v,side,x,y]of APP)if(x>mid&&x<=bx1&&y>cAt(x)){const d=Math.hypot(x-rx,y-rootY),f=Math.min(1,d/Math.max(4,Math.hypot(fx-rx,fy-rootY)*1.6));finOf.set(v,[side>0?6:8,f]);}
  const J=new Uint16Array(n*4),Wt=new Float32Array(n*4);for(let i=0;i<n;i++){const x=pos[i*3];const fb=finOf.get(i);if(fb){J[i*4]=fb[0];J[i*4+1]=fb[0]+1;Wt[i*4]=1-fb[1];Wt[i*4+1]=fb[1];continue;}if(x>=BX[0]){Wt[i*4]=1;continue;}let k=0;while(k<4&&x<BX[k+1])k++;const f=Math.max(0,Math.min(1,(BX[k]-x)/(BX[k]-BX[k+1])));J[i*4]=k;J[i*4+1]=k+1;Wt[i*4]=1-f;Wt[i*4+1]=f;}

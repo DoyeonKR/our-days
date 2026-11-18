@@ -66,7 +66,8 @@ export function makeDecor(kit: ModelKit, key: string): DecorModel {
   }else if(["vallisneria","java_fern","anubias","red_rotala","glow_kelp"].includes(key)){tree(key==="red_rotala"?0xb65e50:key==="glow_kelp"?0x45b5ba:0x4b854e,key==="vallisneria"?7:5,key==="anubias"||key==="java_fern");
   }else if((SEAWEEDS as readonly string[]).includes(key)){
     // 해초 — 돌(뿌리 자리)에 붙어 솟은 잎 다발이 물살에 흔들린다. 미역은 주름진 긴 잎, 다시마는 넓고 긴 띠, 파래는 짧고 가는 잎이 수북하다
-    const kind=key==="sea_mustard"?{c:0x5d6b2c,n:6,len:1.5,w:.13,waves:2.2,frill:.55,taper:.35}:key==="dasima"?{c:0x4f4726,n:4,len:1.9,w:.2,waves:1.4,frill:.12,taper:.25}:{c:0x5fb33c,n:14,len:.62,w:.07,waves:3,frill:.35,taper:.6};
+    // 잎 색은 가게 그림(public/aqua/decor/<key>.webp — 2026-11-14 그림 교체)의 잎 가운데값(2026-11-18) — 예전 값은 파래가 푸른 초록 · 미역이 올리브 초록이라 그림의 노란 연두 · 갈색과 달랐다
+    const kind=key==="sea_mustard"?{c:0x795c0f,n:6,len:1.5,w:.13,waves:2.2,frill:.55,taper:.35}:key==="dasima"?{c:0x5f461a,n:4,len:1.9,w:.2,waves:1.4,frill:.12,taper:.25}:{c:0x88af14,n:14,len:.62,w:.07,waves:3,frill:.35,taper:.6};
     rock(0x5f5b50,[0,.08,0],[.24,.12,.2],3);
     const leaf=new T.MeshStandardMaterial({color:kind.c,roughness:.62,side:T.DoubleSide});
     for(let i=0;i<kind.n;i++){const a=i*2.399,r=key==="sea_lettuce"?.08+.12*((i*7)%5)/5:.06,g=new T.Group();g.position.set(Math.cos(a)*r,.14,Math.sin(a)*r);g.rotation.y=a*1.7;

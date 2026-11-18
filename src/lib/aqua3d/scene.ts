@@ -490,8 +490,6 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
         inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);normalsFixed+=repairNormals(inner);calmSpecular(inner);fishShading(inner);
         release(swapBody(m.root,inner,"center",s=>bodyMeasure(f.family,key,s)));
-        // 범고래 새끼 · 어린 개체(2026-11-15) — 아직 전용 모델이 없어 다 큰 모델을 쓴다(fry_orca · juv_orca 는 같은 파일). 길이는 그대로 두고 몸통을 통통하게(아기 비율) — 전용 모델이 오면 지운다
-        if(key==="fry_orca"||key==="juv_orca"){const k=key==="fry_orca"?1.2:1.1;inner.scale.y*=k;inner.scale.z*=k;}
         // 주인 모델의 거북(산호 여왕)은 거북 헤엄 — 물고기 몸 물결 · 막 떨림이면 등딱지 · 산호가 휘고 떨렸다
         m.animate=look?.model&&f.family==="sea_turtle"?turtleGlbMotion(inner):fishMotion(inner,f.family,key);morphs.apply(inner,m.morph??null);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
     });}

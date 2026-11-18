@@ -14,6 +14,7 @@
 4. **떠 있는 부품이 없어야 한다.** 다리 · 지느러미 · 수염 · 촉수 · 장식 조각이 몸에 닿아 있는지(`floating-parts-node.mjs` — 0 이어야 한다, 일부러 떨어진 거품 · 먹이 알갱이만 예외). 떠 있으면 `floating-repair.mjs` 로 붙이거나 다시 짓는다. 몸과 이어지지 않는 작은 조각(끊긴 더듬이 토막)은 붙이지 말고 버린다.
 5. **기준 이미지와 견준다.** 윤곽(`silhouette-score.html` — 옆 IoU, 보통 물고기 0.97 안팎)과 색 · 무늬. 반투명한 원화(해파리 등)는 투명한 곳을 물빛으로 칠하지 않는다 — 물속에서 안 보여 부품이 떨어져 보인다(몸빛 바탕에 굽는다).
 7. **게 · 가재(2026-11-18) `snow_crab`(대게) · `king_crab`(킹크랩) · `lobster`(바닷가재)** — 그림 세션 없이 Claude 세션이 지었다. 기준은 NOAA Fisheries 등쪽 일러스트(퍼블릭 도메인 · `design/aqua3d-review/crabs/reference`), 2D 는 머리 오른쪽으로 돌린 것(`crabs/make-art.mjs` — 새끼 · 어린 것은 옅게), 3D 는 위에서 본 그림을 둥글게 부풀린 입체(`crab-build.mjs` — 단면 √(d·(2R−d)), 다리 끝은 바닥으로 처진다). 위에서 그린 그림이라 위 · 비스듬히가 가장 원화에 가깝다. 다시 그릴 때의 설명은 `scripts/aqua-art-prompts.mjs` 의 CRAB.
+8. **위에서 보이는 앞지느러미(2026-11-18)** — 포유류 · 거북처럼 앞지느러미가 몸 아래로 붙는 몸은, 지느러미 판을 몸과 나란히 세우면 위에서 모서리만 보인다. 뿌리 아래를 바깥 · 아래로 벌린다(`mammal-tube-build.mjs` 의 SPLAY — 바다사자 · 물개 약 55°). 벌린 뒤엔 떠 있는 부품 검사를 다시 돌린다(벌리면 판이 몸 표면에서 떨어진다 → `floating-repair.mjs`).
 6. **규격**: +X 머리 · 길이 2 · 뼈 10개 이름 그대로 · 삼각형 8,000 안 · 16비트 색인(꼭짓점 65,535 안) · 바뀐 물고기는 `model-revisions.ts` 에 새 해시.
 
 ## 지금 그릴 것
@@ -26,7 +27,7 @@
 | B. 낚시 2D — 꽝 쓰레기 8 · 보물 · 유물 조각 18 · 만든 미끼 4 | 그림 30 | `design/FISHING-ART.md` 의 해당 표 | `node scripts/fishing-art.mjs sync <폴더>` |
 | C. 두족류 3D 모델 다시 짓기(진짜 입체 · 팔마다 뼈 사슬) | 3D 모델 12 | 아래 C | `public/aqua/models/fish-v2`(검수 뒤 Claude 가 옮긴다) |
 | D. 새우류 3계열(체리새우 · 대하 · 독도새우) | 그림 9 · 3D 모델 9 | 아래 D | `public/aqua/fish` · `public/aqua/models/fish` |
-| E. 해초 꾸미기 3종(파래 · 미역 · 다시마) — 지금은 임시 그림 | 그림 3(+ 선택: 3D 모델 3) | `design/AQUARIUM-ART.md` 의 `sea_lettuce` · `sea_mustard` · `dasima` 줄 | `public/aqua/decor`(+ `sm`) · 모델은 `public/aqua/models/decor` |
+| E. 해초 꾸미기 3종(파래 · 미역 · 다시마) — 그림은 2026-11-14 교체 끝, 3D 는 코드 모델(잎 색만 그림에 맞춤, 2026-11-18) | 그림 3(+ 선택: 3D 모델 3) | `design/AQUARIUM-ART.md` 의 `sea_lettuce` · `sea_mustard` · `dasima` 줄 | `public/aqua/decor`(+ `sm`) · 모델은 `public/aqua/models/decor` |
 
 B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_stool` `junk_helmet` `junk_probe` · `relic_pottery_vase` `relic_pottery_jar` `relic_pottery_bowl` `relic_pottery_dropper` `relic_wreck_plate` `relic_wreck_compass` `relic_wreck_bell` `relic_wreck_anchor` `relic_wreck_wheel` `relic_pirate_coin` `relic_pirate_glass` `relic_pirate_key` `relic_pirate_map` `relic_palace_scale` `relic_palace_pearl` `relic_palace_crown` `relic_palace_tile` `relic_palace_seal` · `craft_scent` `craft_glow` `craft_shine` `craft_sticky`.
 게임은 이미 이 key 를 찾는다 — 파일이 들어오면 벡터 임시 그림 대신 저절로 그림을 쓴다(그림 목록 `src/lib/fishingimages.ts` 는 sync 가 다시 쓴다).
@@ -107,6 +108,8 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **3D**: `whales/build.mjs` — 원화에서 잰 중심선 · 반두께의 둥근 몸통 + 가슴지느러미는 fin 뼈. **고래 꼬리지느러미는 수평**이라 원화의 세로 꼬리 판을 빼고 갈래 둘 · 가운데 홈의 수평 꼬리를 따로 짓는다(톱상어는 세로 꼬리). 검수 `whales/review.webp`(기준 | 옆 · 위 · 앞 · 비스듬히), 떠 있는 부품 0.
 
 ### F. 범고래 새끼 · 어린 개체 — 그림 2장 + 3D 모델 2개 (2026-11-14)
+
+> **2026-11-18 끝** — 그림 세션 없이 Claude 세션이 다 큰 모델 · 그림에서 비율만 바꿔 만들었다(`design/aqua3d-review/orca-young-build.mjs` · `orca-young-art.mjs`, 검수 `orca-young/review.webp`). 진짜 새끼 그림으로 다시 그리면 이 두 스크립트 대신 아래 규칙대로.
 
 다 큰 범고래(`orca`)는 켜졌다(사용자 메시 → `design/aqua3d-review/orca-build.mjs`). `fry_orca` · `juv_orca` 는 지금 다 큰 그림 · 모델을 그대로 쓴다.
 그림은 A 의 규칙(머리 오른쪽 · 옆모습 · 빛 반사 금지 · 512px 투명 + sm 192px)으로 `public/aqua/fish/fry_orca.webp` · `juv_orca.webp` 를 덮어쓴다. 설명은 `design/AQUARIUM-ART.md` 의 `fry_orca` · `juv_orca` 줄(새끼는 흰 무늬가 연한 주황빛 · 몸이 짧고 머리 · 지느러미가 크다).
