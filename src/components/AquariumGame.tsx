@@ -376,7 +376,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
       {tab === "tank" && (
         <>
           <div ref={stageRef} className="aqua-stage">
-            <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft, season: { keys: events.map((e) => e.def.key), tints } }}
+            <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft, season: { keys: events.map((e) => e.def.key), tints, clock: gameNow, seed: coupleId ?? "" } }}
               onFish={id => setSelFish(selFish === id ? null : id)}
               onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} replaying={replaying} replayNote={replayNote}
               people={[myName, partnerName]} onPhoto={setPhotoOpen} />

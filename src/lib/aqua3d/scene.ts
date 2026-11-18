@@ -38,7 +38,7 @@ import { FOOD_LIFE, makeFood } from "./food.ts";
 import { makeMotes, type Motes } from "./murk.ts";
 import { decorTints, makeDecorGlow, makeSurfaceFx, type DecorGlow, type SeasonLayer, type SurfaceFx } from "./seasonfx.ts";
 import { bubbleStream, type BubbleStream } from "./bubbles.ts";
-import { eventDef, type AquaEventKey } from "../aquaevent.ts";
+import { eventDef, swimPaceAt, visitWeight, visitWindow, visitorFor, VISIT_MIN_S, type AquaEventKey } from "../aquaevent.ts";
 import { captureRatio, clampPhotoCam, photoDistance, photoGrade, pinchZoom, type PhotoCam, type PhotoView } from "./photo.ts";
 
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null;
@@ -46,7 +46,9 @@ export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean
   /** 안에서 보기 — 10단계 터널 · 11단계 돔만. 꾸미는 동안은 밖에서 본다 */ tunnel?: boolean;
   /** 해변 보기(2026-11-18) — 모래사장 쪽으로 다가가 수면 위에서 내려다본다(밖에서 볼 때만) */ beach?: boolean;
   /** 계절 수조 행사(2026-11-13, lib/aquaevent) — 지금 열린 행사 · 한정 장식 빛깔(놓인 장식 id → 행사). 그림만 바뀐다 */
-  season?: { keys: readonly AquaEventKey[]; tints: Readonly<Record<number, AquaEventKey>> } };
+  season?: { keys: readonly AquaEventKey[]; tints: Readonly<Record<number, AquaEventKey>>;
+    /** 게임 시각(ms, 서버에 맞춘 지금 — islandsync.gameNow) — 계절 헤엄 빠르기 · 손님 물고기 시간표가 본다. 없으면 기기 시계 */ clock?: () => number;
+    /** 손님 물고기 시간표의 씨앗 — 두 사람이 같은 값(커플 id). 없으면 날짜 · 시각만 */ seed?: string } };
 /** lost · restored · ready 가 없으면 예전처럼 error 로 알린다 */
 export type TankEvents = { fish: (id: number) => void; decor: (id: number) => void; place: (x: number, y: number) => void; error: (message: string) => void;
   /** WebGL 연결이 끊겼다 — 화면이 다시 보이면 새로 열어 본다(Aquarium3D) */
@@ -93,6 +95,7 @@ function makeCrown(r:number):T.Group{const g=new T.Group();
     g.add(arm);}
   return g;}
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number;
+  /** 행사 손님 물고기(2026-11-18) — 있으면 저장에 없는 잠깐 손님(fishstep.StepFish.visit) */ visit?: { w: number; dw: number };
   /** 색 변이(2026-11-13, morphlook) — 바뀌면 같은 자리에서 갈아 끼운다 */ morph?: Morph | null;
   /** 놀라 부푼 채인가(복어 — 끝나면 원래 크기로 한 번 되돌린다) */ puffed?: boolean;
   /** 산호 여왕(등 위 산호) — 왕관을 작게 머리 쪽에 */ coralQueen?: boolean;
@@ -191,6 +194,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let seasonLayer:SeasonLayer|null=null,heat:BubbleStream|null=null,heatKey="",glow:DecorGlow|null=null,glowKey="";const ICE=new T.Color(0xdff3ff);
   /** 사진 모드(2026-11-13) — 켜져 있으면 시계가 서고(schedule) 끌기가 사진 카메라를 움직인다. 들어올 때의 카메라를 기억해 끝낼 때 그대로 돌려놓는다 */
   let photoOn=false,photoZoom=1,photoSaved:{angle:number;pitch:number;pan:number;yaw:number}|null=null;
+  /** 물고기 시계(2026-11-18) — 계절 헤엄 빠르기(pace)만큼 흐른다. paceDev 는 개발 확인용 덮어쓰기(0 이면 날짜대로) */
+  let fishT=0,pace=1,paceAt=-1,paceDev=0;const feedShift:FeedEvent={t:0,x:0};
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
   try {
   renderer.setPixelRatio(pacer.ratio());
@@ -297,7 +302,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   /** 다시 보기 · 개발 장면이 열 장면(update 가 안 본 소식 대신 이것을 연다) · 장면이 끝나 안 본 소식을 다시 봐야 한다 · 장면이 끝나고 카메라가 물러나길 기다리는 임시 사냥꾼 */
   let openNext:{item:AquaNews;ghostId:number;kind:"replay"|"dev"}|null=null,recheck=false;const leaving:{id:number;t:number}[]=[];
   let povNext=false,replayN=0,povOn=false,povK=0,povR=0,povBack=0,povDist=4,povTurn=0;const povBox=new T.Box3(),povSize=new T.Vector3(),povTarget=new T.Vector3(),povCam=new T.Vector3(),povLook=new T.Vector3(),povSide=new T.Vector3(),povEye=new T.Vector3(),povFwd=new T.Vector3();
-  const refreshPreds=()=>{const n=Math.max(1,swimmers.size);if(motion.preds.length<n)motion.preds=new Uint8Array(n);if(motion.flee.length<n*3)motion.flee=new Float32Array(n*3);if(motion.fear.length<n)motion.fear=new Float32Array(n);let j=0;for(const m of swimmers.values())motion.preds[j++]=isPredator(m.family)?1:0;};
+  const refreshPreds=()=>{const n=Math.max(1,swimmers.size);if(motion.preds.length<n)motion.preds=new Uint8Array(n);if(motion.flee.length<n*3)motion.flee=new Float32Array(n*3);if(motion.fear.length<n)motion.fear=new Float32Array(n);let j=0;for(const m of swimmers.values())motion.preds[j++]=isPredator(m.family)&&!m.visit?1:0;};
   /** 뜯을 때 터지는 것(2026-11-11 · 2026-11-12 다시 그림) — 피: 짙은 피가 상처에서 뭉게뭉게 번지며 물에 풀리고(안개를 받는다) 천천히 가라앉는다 ·
    *  살점: 살빛 조각이 튀어 나갔다가 빙글 가라앉는다 · 빨아들임(통째로 삼키기): 입 앞의 물 알갱이가 입속으로 빨려 든다.
    *  예전 피는 안개를 안 받고 가장자리가 딱딱한 분홍 점 44개라 물빛 위에 분홍 물방울 무늬로 떠 보였다.
@@ -383,8 +388,47 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     breaches.set(id,{plan,t0:elapsed,fired:0,trailAt:0,holdPhase:m.phase});startles.delete(id);
     if(!active)draw(0);return true;
   }
+  /** 행사 손님 물고기(2026-11-18) — 지금 열린 행사(view.season.keys)의 손님이 시간표(aquaevent.visitWindow — 게임 시각 · 커플 seed)대로 잠깐 들른다.
+   *  저장 · 정산 · 물고기 목록과 무관한 그림이다: 음수 id(사냥 장면 유령 −n · 임시 사냥꾼 −800000 대와 안 겹치는 −3000000)라 update 가 지우지 않고 무리에도 안 낀다.
+   *  들른 시간은 수조 시계(elapsed)로 잰다 — 사진 · 꾸미기 · 숨은 탭에선 멈췄다가 이어서 나간다. 움직임 줄이기면 오지 않는다(있으면 바로 뺀다) */
+  const GUEST_ID=-3_000_000,GUEST_WAIT=5;
+  let guest:{key:string;t0:number;dur:number;wait:number}|null=null,guestCheck=-1,guestSlot="";
+  const gameClock=()=>{const c=state.season?.clock;const t=c?c():Date.now();return Number.isFinite(t)?t:Date.now();};
+  /** 몸 크기 — 들어온 정도(w)가 아니라 실제 자리로 정한다(제 길이 왼쪽 유리 가까이면 w 가 작아도 몸은 이미 유리 안이다).
+   *  몸 가운데가 왼쪽 유리(−5·폭)에서 몸길이 0.3 배 바깥이면 0, 0.6 배 안쪽이면 원래 크기 — 유리 밖에 걸친 몸이 거의 안 보인다 */
+  const guestSize=(x:number,L:number)=>{const k=clamp((x+5*wide+L*.3)/(L*.9),0,1);return k*k*(3-2*k);};
+  function startGuest(key:string,dur:number){
+    if(guest)dropGuest();
+    try{addFish({id:GUEST_ID,family:key,stage:2,species:key,growH:0,goodH:0,totalH:0} as AquaFish);}catch(e){skip(`손님 ${key}`,e);return false;}
+    const m=swimmers.get(GUEST_ID);if(!m)return false;
+    // 고를 수 없게 — 탭은 userData.guest 를 건너뛴다. type 은 "fish" 그대로(묶음 그리기의 moves 가 type "fish" 아래를 움직이는 몸으로 보고 정적 묶음에 안 넣는다).
+    //   크기는 숨어 있는 동안 원래대로 둔다(제작 모델 갈아 끼우기가 크기 0 인 몸을 거친 적이 없다) — 보이기 시작하면 draw 가 자리로 정한다
+    m.root.userData={type:"fish",id:GUEST_ID,guest:true};m.visit={w:0,dw:0};m.root.visible=false;
+    guest={key,t0:-1,dur,wait:0};retopo(false);return true;
+  }
+  function dropGuest(){if(!guest)return;guest=null;dropSwimmer(GUEST_ID);}
+  /** 프레임마다 — 들른 손님이면 들어온 정도를 적고(끝나면 뺀다), 아니면 1초마다 시간표를 본다 */
+  function guestTick(dt:number){
+    if(guest&&(reduced.matches||!swimmers.has(GUEST_ID))){if(swimmers.has(GUEST_ID))dropGuest();else guest=null;}
+    if(guest){const m=swimmers.get(GUEST_ID)!;
+      // 제작 모델(GLB)이 올 때까지(최대 GUEST_WAIT 초) 기다렸다가 들어온다 — 임시 몸으로 들어왔다 바뀌면 튄다
+      if(guest.t0<0){guest.wait+=dt;if(m.glb||!m.glbKey||m.glbFail||guest.wait>GUEST_WAIT){guest.t0=elapsed;m.root.visible=true;batchesDirty=true;}}
+      const u=guest.t0<0?0:elapsed-guest.t0;
+      if(u>=guest.dur){dropGuest();return;}
+      const v=visitWeight(u,guest.dur);m.visit!.w=v.w;m.visit!.dw=v.dw;return;}
+    // 사냥 장면 중엔 새로 들이지 않는다(장면 카메라를 가로지르지 않게 — 장면이 끝나면 다음 칸까지 남은 시간이 있으면 온다)
+    if(dt<=0||reduced.matches||meal||elapsed-guestCheck<1)return;guestCheck=elapsed;
+    const key=visitorFor(state.season?.keys??[]);if(!key)return;
+    const now=gameClock(),win=visitWindow(now,state.season?.seed??"");
+    // 이미 본 칸은 다시 안 연다. 화면을 늦게 열어 남은 시간이 짧으면 건너뛴다(들어오다 바로 나가지 않게) — 남은 만큼만 머문다
+    if(!win||win.slot===guestSlot)return;guestSlot=win.slot;
+    const left=(win.end-now)/1000;if(left<VISIT_MIN_S*.6)return;
+    startGuest(key,left);
+  }
   function startleFish(id:number){
     const m=swimmers.get(id);if(!m||reduced.matches)return;
+    // 행사 손님은 눌러도 반응하지 않는다(고를 수 없는 그림)
+    if(m.visit)return;
     if(meal&&(id===meal.predId||id===meal.ghostId))return;
     if(breaches.has(id))return;
     // 모래사장 · 바위에서 쉬는 중이면(2026-11-18) 물속 재주 대신 땅에서 통통 튀며 몇 걸음 옮겨 간다(galumph)
@@ -826,9 +870,17 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     WATER_LIGHT.aquaTime.value=elapsed;
     // 1) 이번 프레임 길 → 늘리기 → 겹침 밀기 → 모래에 앉히기(fishstep.ts — 테스트와 같은 식)
     motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
+    // 계절 헤엄 빠르기(2026-11-18, aquaevent.swimPaceAt) — 물고기 길은 수조 시계(elapsed)가 아니라 물고기 시계(fishT)로 계산한다.
+    //   fishT 는 dt × 빠르기를 쌓아 가므로 빠르기가 바뀌어도 자리가 이어진다(elapsed × 빠르기는 바뀌는 순간 길이 통째로 다른 시각으로 뛴다).
+    //   사냥 장면 · 놀람 · 뛰어오르기 · 먹이 알갱이는 elapsed 그대로 — 이번 프레임 길이 낸 자리(motion.positions)를 받아 쓰므로 어느 시계든 맞물린다.
+    //   빠르기는 30초마다 다시 읽는다(하루에 0.6% 안쪽으로만 바뀐다). 멈춘 그리기(dt 0 — 움직임 줄이기 · 꾸미기 · 사진)는 시계가 서 있다
+    if(dt>0){if(paceAt<0||elapsed-paceAt>=30){paceAt=elapsed;pace=paceDev>0?paceDev:swimPaceAt(gameClock());}fishT+=dt*pace;}
+    // 먹이는 실제 초로 — 알갱이(food.ts)가 실제 초로 가라앉고 사라지므로, 길 함수가 보는 먹이 시각을 '지금 물고기 시계 − 먹이 준 뒤 실제 초'로 옮긴다(길의 tau = 실제 초)
+    const fishFeed=motion.feed?(feedShift.t=fishT-(elapsed-motion.feed.t),feedShift.x=motion.feed.x,feedShift):null;
+    guestTick(dt);
     // 모래사장(8단계부터) — 물고기는 물가 안쪽, 포유류는 모래사장에서 쉰다(fishstep 이 buffers 에서 읽는다)
     motion.shore=habitat?.shoreX;motion.beach=habitat?.beachRest?{x:habitat.beachRest.x*wide,z:3*deep*BEACH_REST_FRONT,r:2,h:habitat.beachRest.top-WORLD.floor,kind:"beach"}:undefined;
-    stepFish(swimmers,schools,id=>swimmers.get(id)?.length,elapsed,dt,{wide,tall,deep,heightAt,obstacles:motion.obstacles,feed:motion.feed,hall:motion.hall},motion);
+    stepFish(swimmers,schools,id=>swimmers.get(id)?.length,fishT,dt,{wide,tall,deep,heightAt,obstacles:motion.obstacles,feed:fishFeed,hall:motion.hall},motion);
     // 순서가 바뀐 뒤 첫 프레임 — 지난 화면 자리와 새 길의 차이를 남기고 1초에 걸쳐 줄인다(relayoutMotion). 멈춘 그리기 · 움직임 줄이기는 바로 새 자리
     if(hand.armed){hand.armed=false;hand.left=0;if(dt>0&&!reduced.matches){const n=Math.min(motion.count,hand.has.length);for(let j=0;j<n;j++)for(let c=0;c<3;c++)hand.d[j*3+c]=hand.has[j]?hand.from[j*3+c]-motion.positions[j*3+c]:0;hand.left=1;}}
     if(hand.left>0){hand.left=dt>0?Math.max(0,hand.left-dt/HANDOFF_S):0;const w=hand.left*hand.left*(3-2*hand.left),n=Math.min(motion.count,hand.has.length)*3;for(let j=0;j<n;j++)motion.positions[j]+=hand.d[j]*w;}
@@ -837,6 +889,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(motion.busy.length<motion.count)motion.busy=new Uint8Array(Math.max(1,motion.count));motion.busy.fill(0);
     if(breaches.size){let j=0;for(const id of swimmers.keys()){if(breaches.has(id)&&j<motion.count)motion.busy[j]=1;j++;}}
     if(meal&&meal.t0>=0){let j=0;for(const id of swimmers.keys()){if(id===meal.predId||id===meal.ghostId)motion.busy[j]=1;j++;}}
+    // 행사 손님은 쫓지도 쫓기지도 않는다(huntPass 가 busy 를 건너뛴다 — 사냥꾼이 다가가지 않고, 손님 곁 물고기도 달아나지 않는다)
+    if(guest){let j=0;for(const id of swimmers.keys()){if(id===GUEST_ID)motion.busy[j]=1;j++;}}
     // 장면이 벌어지는 자리 둘레의 다른 물고기는 비켜난다(물기 전엔 먹이 자리, 문 뒤엔 입 자리 — 지난 프레임 값)
     let scare:{x:number;y:number;z:number;r:number}|undefined;
     if(meal&&meal.t0>=0){const pr=swimmers.get(meal.predId),bit=meal.bitesDone>0;if(pr){huntScare.x=bit?meal.mx:meal.bx;huntScare.y=bit?meal.my:meal.by;huntScare.z=bit?meal.mz:meal.bz;huntScare.r=pr.length*1.2+1.5;scare=huntScare;}}
@@ -1000,8 +1054,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       else if(m.puffed){m.root.scale.setScalar(m.scale);m.puffed=false;}
       // 원래 크기를 유지한다. 소멸은 복제 재질에서만 처리한다.
       if(m===mealGhost)m.root.scale.setScalar(m.scale);
+      // 행사 손님 — 유리 밖에서 들어오는 동안 몸이 자란다(w 0.35 까지) · 나갈 땐 거꾸로. 유리 밖에 걸친 몸이 거의 안 보인다
+      if(m.visit&&m.root.visible)m.root.scale.setScalar(m.scale*guestSize(x,m.length));
       if(i<fishShadows.instanceMatrix.count){const floorY=habitat?.heightAt(x,z)??WORLD.floor,h=Math.max(0,y-floorY),s=shownLength(m)*(.75+h*.06);
-        shadowDummy.position.set(x,floorY+.02,z);shadowDummy.rotation.set(0,Math.atan2(-direction.z,direction.x),0);const visibility=m===mealGhost?1-mealGone:meal&&meal.t0<0&&meal.predId<=TEMP_HUNTER_ID&&m.root.userData.id===meal.predId?0:1;shadowDummy.scale.set(s*visibility,1,s*.5*visibility);shadowDummy.updateMatrix();fishShadows.setMatrixAt(i,shadowDummy.matrix);
+        shadowDummy.position.set(x,floorY+.02,z);shadowDummy.rotation.set(0,Math.atan2(-direction.z,direction.x),0);const visibility=m===mealGhost?1-mealGone:meal&&meal.t0<0&&meal.predId<=TEMP_HUNTER_ID&&m.root.userData.id===meal.predId?0:1;const gv=m.visit?(m.root.visible?guestSize(x,m.length):0):1;shadowDummy.scale.set(s*visibility*gv,1,s*.5*visibility*gv);shadowDummy.updateMatrix();fishShadows.setMatrixAt(i,shadowDummy.matrix);
         fishShadows.setColorAt(i,shadowTint.setRGB(0,clamp(1-h*.1,.15,1),0));}
       i++;
     }
@@ -1047,7 +1103,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
       host.dataset.postBytes=String(postNow.bytes());host.dataset.postLevel=String(postLevel);host.dataset.programs=String(renderer.info.programs?.length??0);
-      host.dataset.time=elapsed.toFixed(2);host.dataset.season=[seasonLayer?.kind??"",heat?"heat":"",glow?`glow:${glow.points.geometry.drawRange.count}`:""].filter(Boolean).join(",");host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.meal=meal?`${meal.predId}>${meal.ghostId}:${meal.bitesDone}${meal.t0<0?":wait":""}`:"";host.dataset.mealSeen=String(mealSeen);host.dataset.follow=followPick?JSON.stringify(followPick)+" cam "+camera.position.toArray().map(n=>n.toFixed(1)).join(",")+" look "+focusLook.toArray().map(n=>n.toFixed(1)).join(",")+" nb"+mealBlockers.length:"";host.dataset.shot=meal&&mealPredS&&mealGhost?[mealPredS.root.position,mealGhost.root.position,camera.position].map(v=>v.toArray().map(n=>n.toFixed(2)).join(",")).join(" | ")+" pick "+JSON.stringify(meal.camPick)+" n"+mealBlockers.length:"";host.dataset.jaw=meal?.jaw?String(meal.jaw.count):"-";host.dataset.remains=String(remains.length);host.dataset.textures=String(renderer.info.memory.textures);
+      host.dataset.time=elapsed.toFixed(2);host.dataset.season=[seasonLayer?.kind??"",heat?"heat":"",glow?`glow:${glow.points.geometry.drawRange.count}`:""].filter(Boolean).join(",");host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.meal=meal?`${meal.predId}>${meal.ghostId}:${meal.bitesDone}${meal.t0<0?":wait":""}`:"";host.dataset.mealSeen=String(mealSeen);host.dataset.pace=pace.toFixed(3);host.dataset.guest=guest?`${guest.key}:${guest.t0<0?"wait":(elapsed-guest.t0).toFixed(1)}/${guest.dur.toFixed(0)}`:"";host.dataset.follow=followPick?JSON.stringify(followPick)+" cam "+camera.position.toArray().map(n=>n.toFixed(1)).join(",")+" look "+focusLook.toArray().map(n=>n.toFixed(1)).join(",")+" nb"+mealBlockers.length:"";host.dataset.shot=meal&&mealPredS&&mealGhost?[mealPredS.root.position,mealGhost.root.position,camera.position].map(v=>v.toArray().map(n=>n.toFixed(2)).join(",")).join(" | ")+" pick "+JSON.stringify(meal.camPick)+" n"+mealBlockers.length:"";host.dataset.jaw=meal?.jaw?String(meal.jaw.count):"-";host.dataset.remains=String(remains.length);host.dataset.textures=String(renderer.info.memory.textures);
     }
   }
   // 개발 전용: 창이 숨겨져 rAF 가 멈춰도 시간을 흘려 움직임을 확인한다(host.__aquaStep(초)) — 배포 빌드엔 없다
@@ -1067,6 +1123,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // 개발 빌드 — 그 계열 첫 물고기를 누른 것처럼 놀라게 한다(땅에서 쉬는 중이면 통통 걷기). 돌려주는 값은 놀란 몸짓 종류
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStartle?:(family:string)=>string}).__aquaStartle=(family:string)=>{for(const[id,m]of swimmers)if(m.family===family){startleFish(id);return startles.get(id)?.kind??(breaches.has(id)?"trick":"none");}return "missing";};
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaCam?:()=>unknown}).__aquaCam=()=>({look:lookAt.toArray(),cam:camera.position.toArray(),focusK,beachK,goal:focusGoal.toArray(),tall,wide,deep,fish:[...swimmers.values()].map(m=>[m.family,m.root.position.toArray().map(v=>+v.toFixed(2)),m.root.visible])});
+  // 개발 전용: 행사 손님을 바로 부른다(host.__aquaGuest(key?, 초?)) — key 를 안 주면 지금 행사의 손님. 지금 손님 key(없으면 "none") · 빠르기 확인(host.__aquaPace(배율?) — 0 이면 날짜대로)
+  if(process.env.NODE_ENV!=="production"){(host as HTMLElement&{__aquaGuest?:(key?:string,sec?:number)=>string}).__aquaGuest=(key?:string,sec=30)=>{const k=key??visitorFor(state.season?.keys??[]);if(!k||reduced.matches)return "none";if(!startGuest(k,Math.max(4,sec)))return "none";if(!active)draw(0);return k;};
+    (host as HTMLElement&{__aquaPace?:(k?:number)=>unknown}).__aquaPace=(k?:number)=>{if(k!==undefined){paceDev=Math.max(0,k);paceAt=-1;}return{pace,fishT,elapsed,dated:swimPaceAt(gameClock()),guest:guest?{key:guest.key,t:guest.t0<0?-1:+(elapsed-guest.t0).toFixed(2),dur:+guest.dur.toFixed(1),w:+(swimmers.get(GUEST_ID)?.visit?.w??0).toFixed(3),pos:swimmers.get(GUEST_ID)?.root.position.toArray().map(v=>+v.toFixed(2)),visible:!!swimmers.get(GUEST_ID)?.root.visible}:null};};}
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{if(swaps.length)flushSwaps();for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
   // 점은 장면 그림에 찍힌다 — 계단 3(장면 그림 0.75배)이면 그만큼 작게
@@ -1149,9 +1208,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(state.editing){const hit=ray.intersectObjects([...decorations.values()].map(m=>m.root),true)[0],o=hit?owner(hit.object):null;if(o?.userData.type==="decor")events.decor(o.userData.id);return;}
     // 보기 모드는 물고기만 — 장식이 앞에 있으면 장식이 탭을 가로챘다. 치어는 10~14px 이라, 빗나가면 24px 안의 가장 가까운 물고기를 고른다
     const hit=ray.intersectObjects([...swimmers.values()].map(m=>m.root),true)[0],o=hit?owner(hit.object):null;
+    if(o?.userData.guest)return; // 행사 손님 — 고를 수 없다(물고기 목록 · 카드에 없다)
     if(o?.userData.type==="fish"){startleFish(o.userData.id);events.fish(o.userData.id);return;}
     const px=e.clientX-r.left,py=e.clientY-r.top;let best=-1,bestD=24;
-    for(const[id,m]of swimmers){projected.copy(m.root.position).project(camera);if(projected.z>1)continue;const d=Math.hypot((projected.x+1)/2*r.width-px,(1-projected.y)/2*r.height-py);if(d<bestD){bestD=d;best=id;}}
+    for(const[id,m]of swimmers){if(m.visit)continue;projected.copy(m.root.position).project(camera);if(projected.z>1)continue;const d=Math.hypot((projected.x+1)/2*r.width-px,(1-projected.y)/2*r.height-py);if(d<bestD){bestD=d;best=id;}}
     if(best>=0){startleFish(best);events.fish(best);}
   };
   on(canvas,"pointerdown",down);on(canvas,"pointermove",move);on(canvas,"pointerup",end);on(canvas,"pointercancel",cancel);on(canvas,"wheel",wheel,{passive:false});

@@ -10,7 +10,10 @@ import { tunnelSpan } from "./tunnel.ts";
 
 export type StepFish = { family: string; key: string; length: number; phase: number; course: Course;
   /** 프레임 사이에 이어 가는 값 — stepFish 가 처음 볼 때 만든다(엔진은 안 넘겨도 된다). 물고기가 바뀌면 새 객체라 새로 시작한다 */
-  swim?: SwimState };
+  swim?: SwimState;
+  /** 행사 손님 물고기(2026-11-18, aquaevent.visitWeight) — 있으면 수조 물고기가 아니다: 먹이에 안 모이고 · 고래상어를 안 따르고 · 겹침 밀기 · 몸 밀어내기에
+   *  밀리지 않는다(다른 물고기가 비킨다). w 는 왼쪽 유리 밖(0)에서 제 길(1)까지 들어온 정도, dw 는 초당 바뀌는 빠르기(머리 방향) */
+  visit?: { w: number; dw: number } };
 /** 한 마리의 프레임 사이 값 — 지난 화면 자리(빠르기 재기) · 고른 빠르기 · 지난 머리 방향(무리 따라가는 물고기의 turn) */
 export type SwimState = { x: number; y: number; z: number; v: number; yaw: number; ready: boolean;
   /** 물고기마다 한 번 정하는 값(처음 볼 때) — 프레임마다 표를 찾지 않는다(문자열 키 · 새 객체를 안 만든다) */
@@ -125,7 +128,7 @@ export function escortSlot(i: number, whaleL: number, L: number, elapsed: number
 }
 function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: number, dt: number, wide: number, deep: number, tall: number) {
   let wk = -1;
-  for (let k = 0; k < n; k++) if (fishes[k].family === "whale_shark" && (wk < 0 || b.lengths[k] > b.lengths[wk])) wk = k;
+  for (let k = 0; k < n; k++) if (fishes[k].family === "whale_shark" && !fishes[k].visit && (wk < 0 || b.lengths[k] > b.lengths[wk])) wk = k;
   if (wk < 0) return;
   const W = b.courses[wk], WL = b.lengths[wk], hx = W.dx, hz = W.dz, hl = Math.sqrt(hx * hx + hz * hz) || 1, fx = hx / hl, fz = hz / hl;
   const top = tallY(4.7, tall);
@@ -135,6 +138,8 @@ function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: num
     if (k === wk) continue;
     const m = fishes[k], st = m.swim!, L = b.lengths[k];
     if (L >= WL || m.family === "starfish" || st.den || (st.haul && st.rest > 0.05)) continue;
+    // 행사 손님은 잠깐 들르는 그림 — 고래상어 무리에 안 낀다
+    if (m.visit) continue;
     ESCORT.push(k);
   }
   ESCORT.sort((a, c) => b.lengths[a] - b.lengths[c] || a - c);
@@ -169,6 +174,16 @@ export function shoreSquash(c: Course, L: number, wide: number, lim: number, giv
   const x = left + (c.x - left) * s, dx = c.dx * s;
   c.x = x + (c.x - x) * give; c.dx = dx + (c.dx - dx) * give;
 }
+/** 행사 손님이 들어오고 나가는 자리(2026-11-18) — 왼쪽 유리 밖(몸길이 0.6 배 바깥)과 제 길 c 를 w 로 섞는다.
+ *  w = 0 이면 유리 밖이라 보이지 않고(scene 이 크기도 줄인다), 1 이면 제 길 그대로. 몸 밀어내기(mass 0)가 유리 안으로 묶지 않으므로 이 자리가 그대로 그려진다 */
+export function visitBlend(c: Course, L: number, wide: number, v: { w: number; dw: number }) {
+  const ax = -(5 * wide) - L * 0.6, cx = c.x, w = Math.max(0, Math.min(1, v.w));
+  c.x = ax + (cx - ax) * w;
+  c.dx = c.dx * w + (cx - ax) * v.dw; c.dy *= w; c.dz *= w;
+  // 들어오기 시작하는 첫 순간(w · dw 가 둘 다 0)엔 머리 방향이 0 이 된다 — 들어오는 쪽(오른쪽)을 보게 한다
+  if (Math.abs(c.dx) + Math.abs(c.dy) + Math.abs(c.dz) < 1e-6) c.dx = v.dw < 0 ? -0.1 : 0.1;
+  c.feed = 0;
+}
 /** 한 프레임 — swimmers 의 순서가 buffers 의 순서다. elapsed 는 수조 시계(초), dt 는 이번 프레임(초, 0 이면 멈춘 그리기) */
 export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: ReadonlyMap<number, { leader: number; slot: number }>, lengthOf: (id: number) => number | undefined,
   elapsed: number, dt: number, w: StepWorld, b: StepBuffers) {
@@ -187,7 +202,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (m.family === 'starfish') { const s = starCourse(id, elapsed, m.length, wide, { obstacles: w.obstacles, deep, tall, hall }); c.x = s.x; c.y = s.y; c.z = s.z; c.dx = s.dx; c.dy = s.dy; c.dz = s.dz; c.effort = s.effort; c.turn = 0; c.amp = 1; c.pulse = 0; c.ground = 1; c.puff = -1; c.hover = 0; c.feed = 0; }
     else if ((m.swim ??= swimStateOf(m)).den) { const d = dens?.get(id); denCourse(id, elapsed, m.length, wide, WORLD.floor, { obstacles: w.obstacles, deep, ...(d ? { rock: d.rock, share: d.share } : {}) }, c); }
     else {
-      opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts);
+      // 행사 손님은 먹이에 안 모인다(먹이 알갱이도 안 먹는다 — food.ts 가 course.feed 를 본다)
+      opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; opts.feed = m.visit ? null : w.feed; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts);
       // 해양 포유류 — 헤엄 길을 바위 쉼터와 섞는다(90% 는 바위 위)
       const sw = m.swim!;
       if (sw.haul) { const a = hauls.get(id); sw.rest = haulBlend(id, elapsed, m.length, wide, WORLD.floor, { rock: a?.rock ?? null, share: a?.share ?? 0, deep, tall }, c); }
@@ -197,6 +213,9 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (deep !== 1) { c.z *= deep; c.dz *= deep; }
     // 모래사장 단계 — 길을 물가에서 자르지 않고 그 높이의 물 폭에 맞춰 가로로 줄인다(shoreSquash). 쉬러 올라가는 포유류는 쉬는 만큼 풀어 준다
     if (b.shore) { const sw = (m.swim ??= swimStateOf(m)); shoreSquash(c, m.length, wide, b.shore(c.y - m.length * 0.2, c.z) - m.length * 0.45, sw.haul ? sw.rest : 0); }
+    // 행사 손님 — 제 길(물가까지 줄인 뒤)과 왼쪽 유리 밖 한 점을 w 로 섞는다. 왼쪽은 어느 단계든 물이다(모래사장은 오른쪽).
+    //   높이 · 깊이는 제 길 그대로라 그 높이로 옆에서 헤엄쳐 들어오고 나간다. 머리 방향은 섞은 자리의 빠르기(들어올 땐 오른쪽, 나갈 땐 왼쪽)
+    if (m.visit) visitBlend(c, m.length, wide, m.visit);
     // 몸이 도는 빠르기 — 무리 따라가는 물고기는 대장 길의 turn 이 아니라 제 머리 방향이 실제로 돈 빠르기(예전엔 대장의 C 자를 그대로 따라 했다)
     const st = (m.swim ??= swimStateOf(m));
     let yaw = Math.atan2(-c.dz, c.dx);
@@ -235,6 +254,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     SEP.n = n; SEP.pinned = b.pinned; SEP.scale = wide; SEP.deep = deep; SEP.heading = b.heading; SEP.disc = DISC; separate(b.positions, b.lengths, off, dt, SEP);
     // 굴에 사는 물고기(곰치)는 겹침 밀기로 굴 밖에 끌려 나오지 않는다 — 비키는 건 다른 물고기 몫
     for (let k = 0; k < n; k++) if (habitOf(habitKey(fishes[k].family, fishes[k].key)).den) off[k * 3] = off[k * 3 + 1] = off[k * 3 + 2] = 0;
+    // 행사 손님도 — 유리 밖에서 들어오고 나가는 길이 겹침 밀기로 흐트러지지 않게(비키는 건 수조 물고기 몫)
+    for (let k = 0; k < n; k++) if (fishes[k].visit) off[k * 3] = off[k * 3 + 1] = off[k * 3 + 2] = 0;
     // 바위 위에서 쉬는 포유류도 — 쉬는 만큼 밀리지 않는다(바위에서 밀려 떨어지지 않게)
     for (let k = 0; k < n; k++) { const st = fishes[k].swim!; if (st.haul && st.rest > 0) { const keep = 1 - st.rest; off[k * 3] *= keep; off[k * 3 + 1] *= keep; off[k * 3 + 2] *= keep; } }
   }
@@ -280,7 +301,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
   // 5) 몸끼리 닿지 않게 — 마지막 자리에서 겹친 만큼 밀어낸다(물리 엔진의 접촉처럼, 2026-11-14)
   if (n > 0) {
     const M = massAt(n);
-    for (let k = 0; k < n; k++) { const st = fishes[k].swim!; M[k] = st.den ? 0 : st.haul && st.rest > 0.5 ? 0.15 : 1 - 0.6 * Math.min(1, b.pinned[k]); }
+    for (let k = 0; k < n; k++) { const st = fishes[k].swim!; M[k] = st.den || fishes[k].visit ? 0 : st.haul && st.rest > 0.5 ? 0.15 : 1 - 0.6 * Math.min(1, b.pinned[k]); }
     CONTACT.heading = b.heading; CONTACT.mass = M; CONTACT.pinned = b.pinned; CONTACT.disc = DISC; CONTACT.scale = wide; CONTACT.deep = deep; CONTACT.top = tallY(4.7, tall); CONTACT.rocks = w.obstacles; CONTACT.tall = tall;
     // __noContacts — 테스트가 밀어내기 없는 기준을 재는 스위치(contacts.test)
     if (!(globalThis as { __noContacts?: boolean }).__noContacts) {

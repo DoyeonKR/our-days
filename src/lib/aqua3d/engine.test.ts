@@ -252,7 +252,8 @@ test("움직임 자리 — 먹이 · 장식 피하기 · 서로 비켜 가기에
   // 2026-11-05 통합 — 자리표시(// motion: …)를 실제 연결로 바꿨다: 길 함수가 장식 · 먹이를 받고, 겹침 밀기가 돈다
   // 2026-11-11 — 한 프레임의 물고기 자리는 fishstep.ts(테스트도 같은 식을 돌린다). 화면은 장식 · 먹이 · 터널 · 돔을 넘긴다
   const step = readFileSync(join(import.meta.dirname, "fishstep.ts"), "utf8");
-  assert.match(scene, /stepFish\(swimmers,schools,[^;]*\{wide,tall,deep,heightAt,obstacles:motion\.obstacles,feed:motion\.feed,hall:motion\.hall\},motion\)/);
+  // 2026-11-18 — 길은 물고기 시계(fishT · 계절 헤엄 빠르기)로, 먹이는 그 시계로 옮긴 먹이 시각(fishFeed — 길의 tau 는 실제 초)으로 넘긴다
+  assert.match(scene, /stepFish\(swimmers,schools,[^;]*,fishT,dt,\{wide,tall,deep,heightAt,obstacles:motion\.obstacles,feed:fishFeed,hall:motion\.hall\},motion\)/);
   assert.match(step, /schoolCourse\(sc\?\.leader \?\? id, sc\?\.slot \?\? 0, id, elapsed, m\.length, habitKey\(m\.family, m\.key\), wide, opts\)/);
   // 2026-11-12 — 옵션은 모듈 객체(SEP)를 다시 쓰고, 몸 방향 · 둥근 판을 넘겨 긴 몸 · 바닥 물고기는 몸통 캡슐로 본다
   assert.match(step, /SEP\.n = n; SEP\.pinned = b\.pinned; SEP\.scale = wide; SEP\.deep = deep; SEP\.heading = b\.heading; SEP\.disc = DISC; separate\(b\.positions, b\.lengths, off, dt, SEP\)/);

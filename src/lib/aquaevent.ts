@@ -31,21 +31,24 @@ export type AquaEventDef = {
   mods?: Partial<AquaEventMods>;
   /** 오늘의 손님 — 행사 동안 찾아오는 손님 이름(날짜로 고른다). 부탁(req)은 그대로다 */
   guests?: readonly string[];
+  /** 3D 수조에 잠깐 들르는 손님 물고기(2026-11-18) — 물고기 모델 key(FISH_GLB · 승인된 모델 · 계열 key 와 같은 최종 key). 손님 이름(guests)은 땅 · 물가 동물이라
+   *  3D 몸이 없어서 행사 느낌이 나는 물고기로 대신한다(가을 꽁치 · 겨울 빙어 · 봄 각시붕어 산란 · 장마 미꾸라지 · 여름 은어). 저장 · 정산과 무관한 그림 */
+  visitor?: string;
   /** 한정 장식 — 이미 있는 장식(base) 에 행사 빛깔(tint)을 입힌다. 옛 앱 · 3D 모델 · 그림이 다 아는 장식이라 옛 앱에선 보통 장식으로 보인다 */
   decor: { base: string; name: string; tint: number; glow?: number };
 };
 
 export const AQUA_EVENTS: readonly AquaEventDef[] = [
   { key: "spring", name: "봄 산란기", kind: "season", fx: "petal", blurb: "짝이 있으면 알이 15% 빨리 생겨요 · 물 위에 벚꽃잎이 떠요",
-    mods: { breed: 1.15 }, decor: { base: "water_lily", name: "벚꽃빛 수련", tint: 0xffb7c9 } },
+    mods: { breed: 1.15 }, visitor: "bitterling", decor: { base: "water_lily", name: "벚꽃빛 수련", tint: 0xffb7c9 } },
   { key: "rainy", name: "장마철 손님", kind: "season", fx: "rain", blurb: "빗물 덕에 물이 10% 오래 맑아요 · 비 손님이 찾아와요",
-    mods: { water: 1.1 }, guests: ["청개구리", "소금쟁이", "물달팽이", "우렁이", "장구애비"], decor: { base: "mailbox", name: "장맛비 우체통", tint: 0x8fb8e8 } },
+    mods: { water: 1.1 }, guests: ["청개구리", "소금쟁이", "물달팽이", "우렁이", "장구애비"], visitor: "loach", decor: { base: "mailbox", name: "장맛비 우체통", tint: 0x8fb8e8 } },
   { key: "summer", name: "여름 수온", kind: "season", fx: "heat", blurb: "물이 따뜻해 10% 빨리 흐려져요 · 물고기가 거품을 더 내요",
-    mods: { water: 0.9 }, decor: { base: "sand_castle", name: "한여름 모래성", tint: 0xffd27a } },
+    mods: { water: 0.9 }, visitor: "sweetfish", decor: { base: "sand_castle", name: "한여름 모래성", tint: 0xffd27a } },
   { key: "autumn", name: "가을 단풍", kind: "season", fx: "leaf", blurb: "물 위에 단풍잎이 떨어져요 · 가을 손님이 찾아와요",
-    guests: ["고추잠자리", "도토리 다람쥐", "귀뚜라미", "가을 참새", "단풍 나비"], decor: { base: "java_fern", name: "단풍 자바 펀", tint: 0xff8a3d } },
+    guests: ["고추잠자리", "도토리 다람쥐", "귀뚜라미", "가을 참새", "단풍 나비"], visitor: "saury", decor: { base: "java_fern", name: "단풍 자바 펀", tint: 0xff8a3d } },
   { key: "winter", name: "겨울 수온", kind: "season", fx: "frost", blurb: "먹이가 15% 오래 가요 · 알은 10% 천천히 생겨요 · 수면에 살얼음빛",
-    mods: { hunger: 1.15, breed: 0.9 }, decor: { base: "crystal", name: "얼음 수정 군락", tint: 0xcfeeff, glow: 0x9fd8ff } },
+    mods: { hunger: 1.15, breed: 0.9 }, visitor: "smelt", decor: { base: "crystal", name: "얼음 수정 군락", tint: 0xcfeeff, glow: 0x9fd8ff } },
   { key: "seollal", name: "설날", kind: "holiday", fx: "glow", blurb: "수조 장식이 색동빛으로 반짝여요",
     decor: { base: "hanok", name: "설빔 한옥", tint: 0xffc9b8, glow: 0xff5a5a } },
   { key: "chuseok", name: "추석", kind: "holiday", fx: "glow", blurb: "수조 장식이 보름달빛으로 반짝여요",
@@ -164,3 +167,56 @@ export function eventGuest(day: string): { name: string; event: AquaEventDef } |
 export const monthDay = (day: string) => `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 10))}일`;
 /** 마지막 날(end 전날) */
 export const lastDay = (e: Pick<ActiveEvent, "end">) => shiftDay(e.end, -1);
+
+/* ── 3D 수조 쪽(2026-11-18) — 계절 헤엄 빠르기 · 손님 물고기 들르기. 둘 다 그림만(저장 · 정산 · 하트와 무관) ── */
+
+/** 계절 헤엄 빠르기 폭 — 한여름 +13% · 한겨울 −13% */
+export const SWIM_PACE_AMP = 0.13;
+/** 빠르기가 가장 높은 날(7월 16일 무렵 — 1월 1일부터 196일째). 가장 낮은 날은 반년 뒤(1월 15일 무렵) */
+const PACE_PEAK_DOY = 196;
+/** 물고기 헤엄 빠르기 배율(1 = 예전 그대로) — 실제 날짜(KST)로 매끈하게 바뀐다.
+ *  한 해를 코사인 한 바퀴로 보고, |cos| 가 0.7 아래인 봄(3월 초 ~ 5월 말) · 가을(9월 초 ~ 11월 말)은 딱 1,
+ *  그 위(6 ~ 8월 · 12 ~ 2월)만 smoothstep 으로 올리고 내린다 — 계절(kst.seasonOf)과 거의 같은 경계에서 기울기 0 으로 이어진다.
+ *  시각(ms)을 그대로 받아 하루 안에서도 연속이다(자정에 계단이 없다). 출시일(EVENT_FROM) 전 시각은 1 */
+export function swimPaceAt(now: number): number {
+  if (!Number.isFinite(now) || kstDate(now) < EVENT_FROM) return 1;
+  const t = now + 9 * 3_600_000, y = new Date(t).getUTCFullYear(), doy = (t - Date.UTC(y, 0, 1)) / DAY;
+  const s = Math.cos((2 * Math.PI * (doy - PACE_PEAK_DOY)) / 365.25), a = Math.abs(s);
+  if (a <= 0.7) return 1;
+  const k = Math.min(1, (a - 0.7) / 0.3), e = k * k * (3 - 2 * k);
+  return 1 + SWIM_PACE_AMP * Math.sign(s) * e;
+}
+
+/** 손님 물고기 — 한 시간을 VISITS_PER_HOUR 칸으로 나눠 칸마다 한 번, VISIT_MIN_S ~ VISIT_MAX_S 초 들른다. 들어오고(VISIT_IN_S) 나가는(VISIT_OUT_S) 시간 포함 */
+export const VISITS_PER_HOUR = 3, VISIT_MIN_S = 20, VISIT_MAX_S = 40, VISIT_IN_S = 5, VISIT_OUT_S = 5;
+const HOUR = 3_600_000;
+export type VisitSlot = { start: number; end: number; slot: string };
+/** KST 시각(시간 번호 h · 칸 i)의 들르는 때 — 시각과 seed(두 사람이 같은 값)만 본다. 칸 안에 앞뒤 30초 여유를 둬 시간 · 날짜를 넘지 않는다 */
+export function visitSlot(h: number, i: number, seed = ""): VisitSlot {
+  const span = HOUR / VISITS_PER_HOUR, x = hash(`visit:${seed}:${h}:${i}`);
+  const dur = (VISIT_MIN_S + (x % (VISIT_MAX_S - VISIT_MIN_S + 1))) * 1000;
+  const room = Math.max(1, Math.floor((span - dur - 60_000) / 1000));
+  const start = h * HOUR + i * span + 30_000 + (Math.floor(x / 64) % room) * 1000 - 9 * HOUR;
+  return { start, end: start + dur, slot: `${h}:${i}` };
+}
+/** 지금(now, ms) 손님이 들러 있는 때 — 없으면 null. Math.random 없음(두 폰이 같은 시각에 같은 손님을 본다) */
+export function visitWindow(now: number, seed = ""): VisitSlot | null {
+  if (!Number.isFinite(now)) return null;
+  const k = now + 9 * HOUR, h = Math.floor(k / HOUR), i = Math.min(VISITS_PER_HOUR - 1, Math.floor((k - h * HOUR) / (HOUR / VISITS_PER_HOUR)));
+  const v = visitSlot(h, i, seed);
+  return now >= v.start && now < v.end ? v : null;
+}
+/** 지금 열린 행사(keys, AQUA_EVENTS 순서)의 손님 물고기 key — 없으면 null */
+export function visitorFor(keys: readonly string[]): string | null {
+  for (const k of keys) { const v = eventDef(k)?.visitor; if (v) return v; }
+  return null;
+}
+/** 들른 지 u 초(전체 dur 초) — 수조 안으로 들어온 정도 w(0 = 왼쪽 유리 밖, 1 = 제 길) · 초당 바뀌는 빠르기 dw. 짧으면 들어오고 나가는 시간을 줄인다 */
+export function visitWeight(u: number, dur: number): { w: number; dw: number } {
+  const edge = Math.max(0.5, Math.min(VISIT_IN_S, VISIT_OUT_S, dur / 2.5));
+  const ss = (k: number) => k * k * (3 - 2 * k), ds = (k: number) => 6 * k * (1 - k);
+  if (u <= 0 || u >= dur) return { w: 0, dw: 0 };
+  if (u < edge) { const k = u / edge; return { w: ss(k), dw: ds(k) / edge }; }
+  if (u > dur - edge) { const k = (dur - u) / edge; return { w: ss(k), dw: -ds(k) / edge }; }
+  return { w: 1, dw: 0 };
+}
