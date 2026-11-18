@@ -29,7 +29,8 @@ const PRE: Record<string, [string, number][]> = {
 };
 const spot = (k: string) => SPOTS.find((s) => s.key === k)!;
 /** 2026-11-14 다시 지은 낚시터 — 용궁사 · 거진항은 전설 · 신화 계열뿐이라 무엇을 낚든 100% 전설이었다. 영웅급 바다 물고기를 기본으로 깔았다(대표 물고기가 바뀐 게 의도) */
-const REBUILT = new Set(["palace", "starsea"]);
+// sejong(남극 세종기지 앞바다, 2026-11-18)은 4차 뒤에 새로 연 낚시터라 4차 전 pool 이 없다
+const REBUILT = new Set(["palace", "starsea", "sejong"]);
 
 test("4차 뒤에도 낚시터의 원래 흔한 물고기가 몫을 지킨다 — 행운 5 · 가장 싼 미끼(열대관 · 항구는 민물새우도)에서 4차 전 몫의 80% 이상", () => {
   const rows: string[] = [];
@@ -102,7 +103,7 @@ test("피라루쿠 · 전기뱀장어 — 생태원에서 쓰는 가장 높은 �
 
 test("때 손님 — 4차 손님은 곁 칸(side)이라 원래 손님의 몫이 그대로다 · 합쳐도 15% 를 넘지 않는다", () => {
   const fourth = TIMED_FISH.filter((t) => t.side);
-  assert.equal(fourth.length, 28, "4차 때 손님 열여덟 + 해양 포유류 셋(해달 · 독도 강치 · 큰바다사자) + 범고래 + 고래 다섯 · 톱상어(2026-11-18)");
+  assert.equal(fourth.length, 31, "4차 때 손님 열여덟 + 해양 포유류 셋(해달 · 독도 강치 · 큰바다사자) + 범고래 + 고래 다섯 · 톱상어(2026-11-18) + 남극 세종기지 고래 셋(2026-11-18)");
   for (const t of fourth) assert.ok(TIMED_ONLY.has(t.species), `${t.species} 는 pool 밖 손님`);
   assert.ok(TIMED_CHANCE + TIMED_SIDE_CHANCE <= 0.15 + 1e-9);
   const rate = (key: string, when: FishMoment, hitOf: (c: ReturnType<typeof rollCatch>) => boolean) => {

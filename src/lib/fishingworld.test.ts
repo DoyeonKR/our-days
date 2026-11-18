@@ -205,7 +205,7 @@ function humanFight(key: string, seed: number, stats: { power: number; line: num
   return f;
 }
 test("주인 — 그 낚시터 수준의 장비로 며칠에 걸려 잡히고, 한 판에 끝나지 않는다", () => {
-  const GEAR: Record<string, [number, number]> = { neuti: [0, 5], dammit: [1, 7], eunjasa: [1, 9], eoreum: [2, 10], dodam: [2, 11], simyeon: [5, 20], dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], gwihyang: [1, 8], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], byeol: [5, 20] };
+  const GEAR: Record<string, [number, number]> = { neuti: [0, 5], dammit: [1, 7], eunjasa: [1, 9], eoreum: [2, 10], dodam: [2, 11], simyeon: [5, 20], dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], gwihyang: [1, 8], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], bingbyeok: [4, 19], byeol: [5, 20] };
   for (const b of BOSSES) {
     const [rod, pts] = GEAR[b.key];
     const stats = effectiveStats({ stats: { catch: 1, power: 1 + pts, line: 1 + pts, luck: 1 }, rod, net: 0 });

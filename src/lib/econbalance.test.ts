@@ -13,8 +13,8 @@ import { DAILY_COIN_CAP } from "./merge.ts";
 import { SKINS } from "./mergeskins.ts";
 import { TUNING } from "./island.ts";
 
-test("주인 — 처음 잡기 보상은 그대로(합 171,400) · 다시 잡기는 4분의 1", () => {
-  assert.equal(BOSSES.reduce((n, b) => n + bossReward(b, 0), 0), 171_400);
+test("주인 — 처음 잡기 보상은 그대로(합 201,400 — 2026-11-18 남극 세종기지 빙벽의 범고래 30,000 을 더했다) · 다시 잡기는 4분의 1", () => {
+  assert.equal(BOSSES.reduce((n, b) => n + bossReward(b, 0), 0), 201_400);
   for (const b of BOSSES) {
     assert.equal(bossReward(b, 0), b.coins);
     assert.equal(bossReward(b, 1), Math.round(b.coins / 4), b.key);
@@ -75,7 +75,10 @@ test("낚시 — 비싼 미끼는 쓰라고 만든 낚시터에서 본전 이상
 const DAY0 = "2027-01-04";
 const dayN = (n: number) => new Date(Date.parse(`${DAY0}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 type YearOut = { coins: number; kills: number };
-const BY_COINS = [...BOSSES].sort((x, y) => y.coins - x.coins);
+// 1년 모형은 §10.25 시뮬레이션(주인 15마리)의 1년 순수입과 견준다 — 그 뒤에 더한 주인(2026-11-18 남극 세종기지 bingbyeok)을 넣으면 분자에만 새 낚시터 수입이 들어가
+//   같은 세상끼리 견주지 않게 된다. 그래서 그 15마리로만 돌린다(새 낚시터는 새 수입이라 따로 본다)
+const SIM_BOSSES = BOSSES.filter((b) => b.key !== "bingbyeok");
+const BY_COINS = [...SIM_BOSSES].sort((x, y) => y.coins - x.coins);
 function bossYear(opts: { raids: number; score: number; tiered: boolean; callH: number }): YearOut {
   let recs: Record<string, BossRecord> = {}, call: IslandState["bossCall"] = undefined, coins = 0, kills = 0;
   const who = ["a", "b"];

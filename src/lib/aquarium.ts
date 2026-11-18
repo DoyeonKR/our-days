@@ -248,7 +248,7 @@ export const TANK_GATES: Readonly<Record<number, { level: number; dex: number; b
 export type TankGateCheck = { ok: boolean; items: { label: string; have: number; need: number }[] };
 /** 낚시터 주인 key — fishingworld.ts 의 BOSSES 와 같은 순서 · 같은 목록이어야 한다(models-fix.test 가 맞춰 본다).
  *  값으로 import 하지 않는 이유: fishingworld 가 이 파일의 값(FISH_BASE_CM 등)을 import 한다 — 순환을 만들지 않는다 */
-export const BOSS_KEYS: readonly string[] = ["dolsoe", "neuti", "hongryeon", "dammit", "gwihyang", "eunjasa", "geurimja", "eoreum", "baetmeori", "dodam", "sanho", "geomeun", "munji", "byeol", "simyeon"];
+export const BOSS_KEYS: readonly string[] = ["dolsoe", "neuti", "hongryeon", "dammit", "gwihyang", "eunjasa", "geurimja", "eoreum", "baetmeori", "dodam", "sanho", "geomeun", "munji", "bingbyeok", "byeol", "simyeon"];
 /** 잡아 본 주인 수 — 수조 조건(tankGate)과 주인 화면(FishingPanels)이 같이 쓴다(2026-11-11).
  *  예전엔 수조 조건이 저장된 아무 key 나 세고, 주인 화면은 BOSSES 만 세서 둘이 다른 수를 보일 수 있었다(옛 · 모르는 key) */
 export function bossesBeaten(bosses: Readonly<Record<string, { caught?: unknown } | undefined>> | undefined): number {

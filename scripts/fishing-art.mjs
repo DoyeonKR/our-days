@@ -20,6 +20,7 @@ export const SPOTS = [
   ["spot_reef", "서귀포 문섬", "Real Korean place: off Seogwipo on Jeju Island looking at Munseom islet. Black volcanic basalt shore on the far side, a steep green-topped rock islet in the distance, the gentle silhouette of Hallasan mountain behind, clear blue-turquoise water with hints of soft coral under the far shallows. No white sand beach."],
   ["spot_ocean", "울릉도 앞바다", "Real Korean place: the East Sea off Ulleungdo island. Steep volcanic cliffs and rock pillars rising straight from deep indigo water in the distance, dense green on the cliff tops, a tall sea stack, one small squid-fishing boat far away, bright clear sky."],
   ["spot_palace", "기장 용궁사 앞바다", "Real Korean place: the coast at Haedong Yonggungsa temple in Gijang, Busan. A traditional Korean Buddhist temple with curved tiled roofs built on rugged seaside rocks in the far distance, stone lanterns, sunrise sky of violet and pink over open East Sea. Real landscape, not a fantasy underwater palace."],
+  ["spot_sejong", "남극 세종기지 앞바다", "Real place: Marian Cove off King Sejong Station on King George Island, Antarctica (the Korean Antarctic research station). A tidewater glacier front of white and pale-blue ice cliffs with vertical crevasses meeting the sea on the far left, snow-covered Barton Peninsula ridges with a few dark rock outcrops behind, a few small low colourful station buildings far away on the far right shore, scattered icebergs and small ice floes on calm deep blue water, clear cold Antarctic sky, crisp bright daylight. No penguins or animals in the picture."],
   ["spot_starsea", "고성 거진항", "Real Korean place: Geojin fishing port in Goseong, Gangwon, on the East Sea at night. A small working harbor with a low breakwater and a little red lighthouse and white lighthouse far away, moored squid boats, a line of bright green-white squid-boat lamps on the dark horizon, the faint silhouette of Seorak mountains behind, many clear stars in a deep navy sky, calm dark water with soft reflections."],
 ];
 export const GEAR = [
@@ -54,6 +55,7 @@ export const JUNK_ART = [
   ["junk_pole", "등산 스틱", "A bent aluminium hiking pole with a worn rubber grip and wrist strap, a little muddy."],
   ["junk_stool", "얼음낚시 의자", "A small folding camp stool used for ice fishing, faded red fabric seat, frost on the metal legs."],
   ["junk_helmet", "패러글라이딩 헬멧", "A scuffed bright yellow paragliding helmet with a chin strap, small scratches."],
+  ["junk_glove", "탐사대 털장갑", "A single thick orange polar expedition glove with a white knitted cuff, wet and slightly frozen, a little ice on the fingertips."],
   ["junk_probe", "심해 탐사선 부품", "A broken piece of a deep-sea research probe: a scratched metal sphere with a camera lens and two loose cables."],
   ["junk_can", "찌그러진 깡통", "A crumpled drink can with faded red label, dented, a little wet sheen."],
   ["junk_boot", "장화 한 짝", "A single old yellow rubber boot, a bit muddy, slightly bent at the ankle."],

@@ -10,7 +10,7 @@ import {RELIC_PIECES} from './fishtreasure.ts';
 
 test("fishing art covers every spot, rod, landing net, bait and junk item", () => {
   // 새 전용 쓰레기 8종은 그림이 오기 전까지 FishingIcons 의 벡터로 그린다(design/FISHING-ART.md 에 프롬프트가 있다)
-  const VECTOR_ONLY = new Set(["junk_buoy", "junk_basket", "junk_oar", "junk_ring", "junk_pole", "junk_stool", "junk_helmet", "junk_probe"].filter((k) => !FISHING_IMAGE_KEYS.has(k)));
+  const VECTOR_ONLY = new Set(["junk_buoy", "junk_basket", "junk_oar", "junk_ring", "junk_pole", "junk_stool", "junk_helmet", "junk_probe", "junk_glove"].filter((k) => !FISHING_IMAGE_KEYS.has(k)));
   const relicKeys=RELIC_PIECES.map(p=>'relic_'+p.key);
   const expected = [...SPOTS.map(s => `spot_${s.key}`), ...RODS.map(r => r.key), ...NETS.map(n => n.key), ...BAITS.map(b => b.key), ...JUNKS.map(j => j.key),...relicKeys,...CRAFT_BAITS.map(b=>b.key)].filter((k) => !VECTOR_ONLY.has(k));
   // Harbor artwork is deployed before the reviewed species and spot are enabled.

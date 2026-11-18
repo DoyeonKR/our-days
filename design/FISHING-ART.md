@@ -4,7 +4,7 @@
 > **이 문서의 그림은 전부 2D 다.** 수조 내부의 3D 모델은 별도 제작·검수하며(`design/aqua3d-review/`), 이 문서의 낚시터 · 장비 · 미끼 · 쓰레기를 대체하지 않는다.
 > 낚시 결과 카드 · 게임 탭 카드의 물고기는 2D 그림(`public/aqua/fish`, design/AQUARIUM-ART.md)을 그대로 쓴다 — 수조가 3D 가 돼도 지우지 않는다.
 >
-> 모두 **79장**: 낚시터 배경 15 · 장비 12 · 미끼 7 · 꽝 쓰레기 23 · 유물 18 · 만든 미끼 4. 미끼 · 쓰레기 · 유물 · 만든 미끼는 없으면 화면이 벡터 아이콘으로 그린다.
+> 모두 **81장**: 낚시터 배경 16 · 장비 12 · 미끼 7 · 꽝 쓰레기 24 · 유물 18 · 만든 미끼 4. 미끼 · 쓰레기 · 유물 · 만든 미끼는 없으면 화면이 벡터 아이콘으로 그린다.
 > **아직 안 그린 것**은 `node scripts/fishing-art.mjs sync` 가 끝에 '아직 없음'으로 알려 준다. 최신 지침서는 `design/ART-GUIDE.md`.
 
 ## 넣는 법
@@ -28,7 +28,7 @@ Premium hand-painted mobile fishing game background, portrait 4:5 (1024x1280), v
 Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.
 ```
 
-## 낚시터 (15장)
+## 낚시터 (16장)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -46,6 +46,7 @@ Premium hand-painted mobile game item icon, cute but believable, glossy rich sha
 | `spot_reef` | 서귀포 문섬 | Real Korean place: off Seogwipo on Jeju Island looking at Munseom islet. Black volcanic basalt shore on the far side, a steep green-topped rock islet in the distance, the gentle silhouette of Hallasan mountain behind, clear blue-turquoise water with hints of soft coral under the far shallows. No white sand beach. |
 | `spot_ocean` | 울릉도 앞바다 | Real Korean place: the East Sea off Ulleungdo island. Steep volcanic cliffs and rock pillars rising straight from deep indigo water in the distance, dense green on the cliff tops, a tall sea stack, one small squid-fishing boat far away, bright clear sky. |
 | `spot_palace` | 기장 용궁사 앞바다 | Real Korean place: the coast at Haedong Yonggungsa temple in Gijang, Busan. A traditional Korean Buddhist temple with curved tiled roofs built on rugged seaside rocks in the far distance, stone lanterns, sunrise sky of violet and pink over open East Sea. Real landscape, not a fantasy underwater palace. |
+| `spot_sejong` | 남극 세종기지 앞바다 | Real place: Marian Cove off King Sejong Station on King George Island, Antarctica (the Korean Antarctic research station). A tidewater glacier front of white and pale-blue ice cliffs with vertical crevasses meeting the sea on the far left, snow-covered Barton Peninsula ridges with a few dark rock outcrops behind, a few small low colourful station buildings far away on the far right shore, scattered icebergs and small ice floes on calm deep blue water, clear cold Antarctic sky, crisp bright daylight. No penguins or animals in the picture. |
 | `spot_starsea` | 고성 거진항 | Real Korean place: Geojin fishing port in Goseong, Gangwon, on the East Sea at night. A small working harbor with a low breakwater and a little red lighthouse and white lighthouse far away, moored squid boats, a line of bright green-white squid-boat lamps on the dark horizon, the faint silhouette of Seorak mountains behind, many clear stars in a deep navy sky, calm dark water with soft reflections. |
 
 ## 장비 (12장)
@@ -84,7 +85,7 @@ Premium hand-painted mobile game item icon, cute but believable, glossy rich sha
 | `bait_pearl` | 용궁 진주 미끼 | A luminous pearl resting in a small violet clam shell, Korean Dragon King's palace treasure. |
 | `bait_star` | 별가루 미끼 | A small handful of star dust forming a glowing golden star shape with tiny sparkles orbiting it. |
 
-## 꽝 쓰레기 (23장) — 장비 공통 프롬프트(귀엽게, 더럽지 않게)
+## 꽝 쓰레기 (24장) — 장비 공통 프롬프트(귀엽게, 더럽지 않게)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -95,6 +96,7 @@ Premium hand-painted mobile game item icon, cute but believable, glossy rich sha
 | `junk_pole` | 등산 스틱 | A bent aluminium hiking pole with a worn rubber grip and wrist strap, a little muddy. |
 | `junk_stool` | 얼음낚시 의자 | A small folding camp stool used for ice fishing, faded red fabric seat, frost on the metal legs. |
 | `junk_helmet` | 패러글라이딩 헬멧 | A scuffed bright yellow paragliding helmet with a chin strap, small scratches. |
+| `junk_glove` | 탐사대 털장갑 | A single thick orange polar expedition glove with a white knitted cuff, wet and slightly frozen, a little ice on the fingertips. |
 | `junk_probe` | 심해 탐사선 부품 | A broken piece of a deep-sea research probe: a scratched metal sphere with a camera lens and two loose cables. |
 | `junk_can` | 찌그러진 깡통 | A crumpled drink can with faded red label, dented, a little wet sheen. |
 | `junk_boot` | 장화 한 짝 | A single old yellow rubber boot, a bit muddy, slightly bent at the ankle. |

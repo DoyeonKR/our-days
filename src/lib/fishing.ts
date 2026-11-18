@@ -74,6 +74,10 @@ const BASE_SPOTS: readonly FishSpot[] = [
   { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, push: 1.75, pool: [["clown", 40], ["black_seabream", 30], ["starfish", 24], ["hairtail", 15], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["barred_knifejaw", 10], ["octopus", 8], ["manta", 15], ["parrotfish", 10], ["moray", 8], ["seahorse", 8]] },
   { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, push: 3, pool: [["sailfin_sandfish", 40], ["rockfish", 30], ["flounder", 24], ["cod", 4], ["spanish_mackerel", 3.5], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15], ["skate", 10], ["spotted_seal", 10], ["fur_seal", 8]] },
   { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, push: 1.25, pool: [["bluefin", 40], ["yellowtail", 34], ["blue_shark", 24], ["rising", 40], ["striped_jack", 32], ["oarfish", 26], ["marlin", 4.5], ["swordfish", 4], ["megamouth", 15], ["whale_shark", 20]] },
+  // 2026-11-18 [사용자: "빙하지역을 하나 만들고 싶어 맵과 낚시터 만들어줄 수 있어 ?"] — 남극 킹조지섬 마리안 소만(대한민국 남극 세종과학기지 앞바다).
+  //   한국 땅은 아니지만 한국 기지가 있는 실제 장소다. 남극 물고기(남극빙어 · 메로 · 펭귄 …)는 그림 · 모델이 올 때까지 없어서 지금은 찬물에 사는 기존 계열로 채운다 —
+  //   새 계열이 오면 그 계열을 앞에 넣고 이 자리표시(대구 · 별불가사리)를 줄인다
+  { key: "sejong", name: "남극 세종기지 앞바다", water: "sea", minLevel: 29, push: 2, pool: [["cod", 40], ["starfish", 30], ["flounder", 24], ["skate", 10], ["octopus", 20], ["fur_seal", 22], ["giant_squid", 10]] },
   { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, push: 1.5, pool: [["octopus", 40], ["blue_shark", 32], ["yellowtail", 26], ["rising", 38], ["anglerfish", 32], ["hammerhead", 26], ["astral", 70]] },
   // 심해는 맨 끝 낚시터인데 기본 계열이 영웅(떡밥)이라 한 번당 용궁사(전설 · 발광 미끼)보다 덜 벌었다(33 대 50).
   // 2026-11-11 떡밥 값을 내려 시작 미끼로 57. 물고기 구성은 그대로 — 미끼 1% 규칙(사용자 결정)을 지킨다.
@@ -173,6 +177,7 @@ export const JUNKS: readonly FishJunk[] = [
   { key: "junk_glasses", name: "깨진 선글라스", line: "산호도 이걸 쓰기엔 눈이 부셔요", coins: 3, spot: "reef" },
   { key: "junk_letter", name: "유리병 편지", line: "\"이걸 읽는다면 답장 주세요\"", coins: 20, spot: "ocean" },
   { key: "junk_bill", name: "용왕의 고지서", line: "납부 기한이 삼백 년 지났어요", coins: 12, spot: "palace" },
+  { key: "junk_glove", name: "탐사대 털장갑", line: "세종기지 누군가 손이 무척 시렸겠어요", coins: 6, spot: "sejong" },
   { key: "junk_satellite", name: "인공위성 조각", line: "별인 줄 알았는데 고철이었어요", coins: 15, spot: "starsea" },
   { key: "junk_buoy", name: "스티로폼 부표", line: "항구 어딘가에서 이걸 찾고 있을 거예요", coins: 3, spot: "harbor" },
   { key: "junk_basket", name: "재첩 바구니", line: "안에 재첩 한 알이 남아 있어요", coins: 4, spot: "seomjin" },
@@ -369,7 +374,7 @@ export const DEPTH_OTHER = 0.25;
 export const DEPTH_SCHOOL = 7;
 /** 낚시터의 물 깊이(m) — 실제 그곳에 견준 값. 미끼는 이 깊이(바닥)보다 깊이 못 내려간다 */
 export const SPOT_DEPTH: Readonly<Record<string, number>> = {
-  brook: 1.5, dumulmeori: 6, pond: 3, soyang: 30, seomjin: 5, bonghwa: 2.5, jungle: 4, hwacheon: 4, harbor: 15, sanriver: 10, reef: 25, ocean: 80, palace: 60, starsea: 120, abyss: 1500,
+  brook: 1.5, dumulmeori: 6, pond: 3, soyang: 30, seomjin: 5, bonghwa: 2.5, jungle: 4, hwacheon: 4, harbor: 15, sanriver: 10, reef: 25, ocean: 80, palace: 60, sejong: 150, starsea: 120, abyss: 1500,
 };
 export const spotDepth = (spot: Pick<FishSpot, "key">) => SPOT_DEPTH[spot.key] ?? 10;
 /** 봉돌 — 무거울수록 깊이 내려간다(장비 탭에서 하트로, 저장은 섬 최상위 fishPlus.sinker). 심해 방식은 무거운 채비라 3배까지 */
@@ -1083,7 +1088,7 @@ export function claimFishGoal(st: IslandState, id: string, today: string): GearR
 
 /** 팔 때 받는 하트 — 그 낚시터 숙련도 ★4 면 +5%. 화면의 '팔기' 값도 이걸 본다(둘이 갈리면 버튼과 받은 하트가 다르다) */
 /** 깊은 바다 물고기 값(2026-11-14) — 전설이 드물어진 뒤에도 뒤 낚시터일수록 더 벌게(울릉도 1 → 용궁사 1.15 → 거진항 1.3 → 심해 1.45). 파는 값 · 담을 때 받는 절반에 붙는다 */
-export const SPOT_VALUE: Readonly<Record<string, number>> = { palace: 1.15, starsea: 1.3, abyss: 1.45 };
+export const SPOT_VALUE: Readonly<Record<string, number>> = { palace: 1.15, sejong: 1.22, starsea: 1.3, abyss: 1.45 };
 export const spotValue = (at: string | undefined) => (at ? SPOT_VALUE[at] ?? 1 : 1);
 /** 한 마리의 값 — 등급 · 단계 값 × 낚시터 값 */
 export const catchValue = (c: Pick<FishCatch, "difficulty" | "at">) => coinValue(c.difficulty) * spotValue(c.at);
