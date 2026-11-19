@@ -1127,7 +1127,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const coopWaiting = !!coopRound && (coop.coop.k === "askSent" || (coop.coop.k === "helping" && coop.coop.role === "angler"));
   // 심해를 천천히(초록 칸에서) 끌어올리면 담기 덤(DEEP_GENTLE_BONUS — 미끼 2개 값)
   const gentle = !!fish && method === "deep" && !fish.boss && quality >= DEEP_GENTLE;
-  const soloChance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method, craftEffects(roundCraft, { spot, method }).capture + (gentle ? DEEP_GENTLE_BONUS : 0))) : 0;
+  const soloChance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method, craftEffects(roundCraft, { spot, method }).capture + (gentle ? DEEP_GENTLE_BONUS : 0), fish.family)) : 0;
   // coopChance 는 1(피버 · 주인)을 낮추지 않는다
   const chance = fish ? coopChance(soloChance, coopHelpedNow) : 0;
   /** 상대를 돕는 중(받기 창 · 들어올리기 · 결과) — 그동안 내 낚시터 누르기는 던지기가 아니다 */

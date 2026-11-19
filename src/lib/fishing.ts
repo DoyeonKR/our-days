@@ -420,8 +420,10 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
     const main = guests.filter((g) => !g.side), side = guests.filter((g) => g.side);
     const g0 = t();
     const from = main.length && g0 < TIMED_CHANCE ? main : side.length && g0 >= TIMED_CHANCE && g0 < TIMED_CHANCE + TIMED_SIDE_CHANCE ? side : null;
-    if (from) {
-      const pick = from[Math.floor(t() * from.length) % from.length];
+    const pick0 = from ? from[Math.floor(t() * from.length) % from.length] : null;
+    // rare(범고래 0.3) — 뽑혀도 그 몫만 문다. 나머지는 손님 없이 보통 낚시로
+    const pick = pick0 && (pick0.rare === undefined || t() < pick0.rare) ? pick0 : null;
+    if (pick) {
       const fam = FAMILIES.find((f) => f.finals.some((x) => x.key === pick.species));
       if (fam) {
         // 은어 · 메기 · 해파리처럼 이때만 오는 물고기는 다른 물고기처럼 대개 어리게 잡혀 수조에서 큰다. 나머지는 이때만 만나는 다 큰 모습이다.
@@ -916,9 +918,13 @@ export const xpValue = (difficulty: number) => Math.round(10 * 1.5 ** difficulty
 
 /** 포획 확률 — 포획 능력치가 등급을 얼마나 넘느냐 + 힘겨루기 솜씨 + 정확한 챔질 + 방식. 5~95%.
  *  bonus — 만든 '끈끈 미끼'의 덤(fishcraft.ts). 같은 5~95% 자르기 안에서 더하므로 상한은 그대로다. 기본 0 */
-export function captureChance(catchStat: number, difficulty: number, quality: number, perfectHook: boolean, method: MethodKey = "float", bonus = 0): number {
+/** 고래류(범고래 · 밍크 · 귀신 · 혹등 · 향유 · 흰수염)는 수조에 담는 확률이 절반(2026-11-19 [사용자: "고래류 포획률은 더 낮춰줘 반으로"]) — 버튼에 보이는 확률도 같은 값 */
+export const isWhale = (family?: string) => !!family && /^(orca|[a-z]+_whale)$/.test(family) && family !== "whale_shark";
+export const WHALE_CAPTURE = 0.5;
+export function captureChance(catchStat: number, difficulty: number, quality: number, perfectHook: boolean, method: MethodKey = "float", bonus = 0, family?: string): number {
   const p = 0.55 + (catchStat - difficulty * 9) * 0.02 + quality * 0.1 + (perfectHook ? 0.05 : 0) + methodOf(method).capture + bonus;
-  return Math.round(Math.max(0.05, Math.min(0.95, p)) * 100) / 100;
+  const c = Math.max(0.05, Math.min(0.95, p)) * (isWhale(family) ? WHALE_CAPTURE : 1);
+  return Math.round(Math.max(isWhale(family) ? 0.03 : 0.05, c) * 100) / 100;
 }
 
 /** 수조에 담을 수 없는 이유 — 있으면 확률 판정 없이 팔기만 된다 */

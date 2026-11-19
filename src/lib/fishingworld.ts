@@ -71,7 +71,8 @@ export function fishWxOf(icon: string | null | undefined): FishWx {
 
 /** side — 곁 칸 손님(2026-11-13 4차 열여덟). 원래 손님의 10% 칸(TIMED_CHANCE)과 따로 TIMED_SIDE_CHANCE 칸을 저희끼리 나눈다 — 같은 칸을 나눠 쓰면
  *  원래 손님(고래상어 · 해파리 …)이 새 손님 수만큼 묽어졌다(울릉도 맑은 새벽 고래상어 10% → 셋이 나눠 3.3%, 문섬 비 오는 밤 해파리 5% → 3.3%). */
-export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full"; side?: true };
+/** rare — 뽑혀도 이 몫만 실제로 문다(나머지는 보통 낚시로 넘어간다). 2026-11-19 [사용자: "범고래는 더 귀하게"] */
+export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full"; side?: true; rare?: number };
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 /** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
  *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
@@ -112,7 +113,7 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "japanese_sea_lion", spot: "ocean", time: "night", side: true },
   { species: "steller_sea_lion", spot: "ocean", wx: "snow", side: true },
   // 범고래(2026-11-14) — 울릉도 앞바다 비 오는 날의 곁 칸 손님
-  { species: "orca", spot: "ocean", wx: "rain", side: true },
+  { species: "orca", spot: "ocean", wx: "rain", side: true, rare: 0.3 },
   // 고래 5종 · 톱상어(2026-11-18) — 때 손님(곁 칸)으로만. 밍크고래는 울릉도 새벽, 귀신고래 · 혹등고래는 기장(울산 앞바다 — 귀신고래 회유로) 낮 · 해 질 녘,
   //   향유고래는 깊은 밤바다, 흰수염고래는 고성 거진항 새벽, 톱상어는 심해 새벽
   { species: "minke_whale", spot: "ocean", time: "dawn", side: true },
@@ -193,7 +194,7 @@ export const BOSSES: readonly FishBoss[] = [
   { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다.", art: "boss_sanho" },
   { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다.", art: "boss_geomeun" },
   { key: "munji", spot: "palace", name: "용궁 문지기", family: "rising", species: "golden_dragonfish", level: 27, difficulty: 5.6, chunk: 0.13, cm: 620, coins: 20000, story: "용궁 대문을 천 년 지켰다. 지나가려면 먼저 이겨야 한다." },
-  { key: "bingbyeok", spot: "sejong", name: "빙벽의 범고래", family: "orca", species: "orca", level: 30, difficulty: 6.1, chunk: 0.125, cm: 820, coins: 30000, story: "마리안 소만 빙벽이 무너져 내린 날부터 그 밑을 돈다는 범고래. 얼음이 갈라지는 소리를 따라 온다." },
+  { key: "bingbyeok", spot: "sejong", name: "빙벽 밑의 대왕오징어", family: "giant_squid", species: "giant_squid", level: 30, difficulty: 6.1, chunk: 0.125, cm: 1200, coins: 30000, story: "마리안 소만 빙벽이 무너져 내린 날부터 그 밑 깊은 곳에 산다는 대왕오징어. 얼음이 갈라지는 소리를 따라 떠오른다." },
   { key: "byeol", spot: "starsea", name: "별을 삼킨 자", family: "astral", species: "genesis_fish", level: 34, difficulty: 6.6, chunk: 0.12, cm: 900, coins: 40000, story: "밤하늘의 별 하나가 사라진 날, 이 물고기가 처음 보였다." },
   { key: "simyeon", spot: "abyss", name: "심연의 크라켄", family: "kraken", species: "kraken", level: 38, difficulty: 7.2, chunk: 0.11, cm: 1800, coins: 60000, story: "울릉분지 바닥에 산다는 전설. 줄이 내려간 만큼 무언가 끌어당긴다." },
 ];
