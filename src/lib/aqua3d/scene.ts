@@ -24,7 +24,7 @@ import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, RENDER_RATIO_MAX, createPacer, ratioFloor } from "./framepace.ts";
 import { type Course, type Hall, type Obstacle as CourseObstacle } from "./habits.ts";
 import { resolveContacts } from "./world.ts";
-import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength,realLength,sizeUnitFor,sizeUnit,setSizeUnit } from "./world.ts";
+import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, deepScale, worldToDecor, WORLD, clamp,fishLength,realLength,sizeUnitFor,sizeUnit,setSizeUnit } from "./world.ts";
 import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { makeHabitat, rockObstacles, softShadowTexture, habitatScenery, HABITAT_THEMES, type Habitat } from "./habitat.ts";
@@ -97,7 +97,7 @@ function makeCrown(r:number):T.Group{const g=new T.Group();
     const gemArm=new T.Group();gemArm.rotation.y=-(a+Math.PI/5);const gem=new T.Mesh(stone,gems[i%3]);gem.position.set(r*.97,0,0);gem.scale.set(.55,1,1);gemArm.add(gem);g.add(gemArm);
     g.add(arm);}
   return g;}
-type Swimmer = AnimalModel & { key: string; family: string; length: number; /** 그려지는 몸길이(실제 비율 — realLength). length 는 헤엄 길용(둘 중 큰 쪽) */ shown?: number; phase: number; scale: number;
+type Swimmer = AnimalModel & { key: string; family: string; length: number; /** 그려지는 몸길이(실제 비율 — realLength). length 는 헤엄 길용(둘 중 큰 쪽) */ shown?: number; /** 고래상어가 플랑크톤을 먹는 입(feedWhaleShark) · 다음 알갱이 때 */ feedJaw?: Jaw; feedNext?: number; phase: number; scale: number;
   /** 행사 손님 물고기(2026-11-18) — 있으면 저장에 없는 잠깐 손님(fishstep.StepFish.visit) */ visit?: { w: number; dw: number };
   /** 색 변이(2026-11-13, morphlook) — 바뀌면 같은 자리에서 갈아 끼운다 */ morph?: Morph | null;
   /** 놀라 부푼 채인가(복어 — 끝나면 원래 크기로 한 번 되돌린다) */ puffed?: boolean;
@@ -185,7 +185,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const tintReg=decorTints();
   const collectBorrowed=(o:T.Object3D)=>{const mesh=o as T.Mesh;if(!mesh.isMesh||!o.userData.glbShared)return;borrowed.add(mesh.geometry);
     for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
-  let tunnel:Tunnel|null=null,inTunnel=false,deep=1,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
+  let tunnel:Tunnel|null=null,inTunnel=false,deep=1,deepTier=1,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
   let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
   // 두 손가락 · 휠 당기기 배율 — 0.45 배까지 다가가고 1.5 배까지 물러난다
   const ZOOM_MIN=.45,ZOOM_MAX=1.5;let userZoom=1;
@@ -389,6 +389,21 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // 2026-11-15 — 범고래만이 아니라 포유류마다 재주 하나(breach.ts 의 planTrick): 물개류 세 번 뛰기 · 물범 머리 내밀기 · 해달 누워 조개 깨기 · 수달 빙글 돌기
   const breaches=new Map<number,{plan:TrickPlan;t0:number;fired:number;trailAt:number;holdPhase:number}>();
   const waterTop=()=>tallY(5.56,tall);
+  // 고래상어 — 34초마다 7초 동안 입을 크게 벌리고 헤엄치며 플랑크톤을 걸러 먹는다(2026-11-19 [사용자: "고래상어는 입 벌리고 플랑크톤을 먹는 애니메이션 기믹"]).
+  //   입은 사냥 장면과 같은 턱(addJaw — 이빨 없음, 넓게), 입 앞 원뿔에서 작은 알갱이가 입속으로 빨려 든다("suck" 알갱이를 0.7초마다). 사냥 장면 중 · 움직임 줄이기면 안 한다
+  const PLANKTON_CYCLE=34,PLANKTON_OPEN=7,plankFwd=new T.Vector3(),plankTint=new T.Color(0xd8efe6);
+  const plankOpen=(m:Swimmer)=>{const ph=((elapsed+m.phase*5.3)%PLANKTON_CYCLE+PLANKTON_CYCLE)%PLANKTON_CYCLE;return ph<PLANKTON_OPEN?Math.pow(Math.sin(Math.PI*ph/PLANKTON_OPEN),.6):0;};
+  function feedWhaleSharks(){
+    for(const[id,m]of swimmers){
+      if(m.family!=="whale_shark")continue;
+      const busy=!!meal&&(meal.predId===id||meal.ghostId===id),open=busy||reduced.matches||id<0?0:plankOpen(m);
+      if(open<=.02){if(m.feedJaw){m.feedJaw.restore();m.feedJaw=undefined;}continue;}
+      if(!m.feedJaw){m.feedJaw=addJaw(m.root,{teeth:TEETH_CODE.none,density:20,height:.42,open:1.25,hinge:.2});m.feedNext=elapsed;}
+      m.feedJaw.set(open);
+      if(open>.35&&elapsed>=(m.feedNext??0)){m.feedNext=elapsed+.7;const L=shownLength(m),p=m.root.position;plankFwd.set(1,0,0).applyQuaternion(m.root.quaternion);
+        warmBursts();lingeringBursts.push(makeBurst(p.x+plankFwd.x*L*.48,p.y+plankFwd.y*L*.48-L*.03,p.z+plankFwd.z*L*.48,Math.max(.5,L*.3),"suck",plankTint,elapsed,{x:plankFwd.x,y:plankFwd.y,z:plankFwd.z},L*.55));}
+    }
+  }
   const SPOUTERS=/^(orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/,spouted=new Map<number,number>(),spoutFwd=new T.Vector3();
   function startBreach(id:number,m:Swimmer){
     if(breaches.has(id))return true;
@@ -656,13 +671,15 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       const ax=tankAxes(habitatTier,tankTall(habitatTier),tankDeep(habitatTier));tierX=ax.x;
       tall=ax.tall;habitat.root.scale.y=tall;habitat.root.position.y=WORLD.floor*(1-tall);
       // 대수족관은 앞뒤로도 깊다(터널이 지나갈 자리) — 바닥 높이 · 물고기 길 · 장식 자리도 같은 배율
-      deep=ax.deep;habitat.root.scale.z=deep;habitat.root.updateMatrix();
+      deepTier=ax.deep;deep=deepTier*deepScale(next.aquarium.deepen);habitat.root.scale.z=deep;habitat.root.updateMatrix();
       if(tunnel){release(tunnel.root);tunnel.dispose();tunnel=null;}
       if(dome){release(dome.root);dome.dispose();dome=null;}
     }
     // ⚠ 넓히면 수조 틀 · LED · 유리 모서리 · 접지 그림자(안 움직이는 묶음)도 다시 올려야 한다 — 예전엔 옛 폭에 남았다
     wideBase=wideScale(next.aquarium.wide);const nextWide=wideBase*tierX;
     if(nextWide!==wide){wide=nextWide;if(habitat){habitat.root.scale.x=wide;habitat.root.updateMatrix();}topologyChanged=true;}
+    // 앞뒤로 늘리기(2026-11-19) — 한 단계마다 깊이 1.5배(world.deepScale). 수조 · 바닥 높이 · 물고기 길 · 장식 자리가 모두 deep 을 따른다
+    {const nd=deepTier*deepScale(next.aquarium.deepen);if(nd!==deep){deep=nd;if(habitat){habitat.root.scale.z=deep;habitat.root.updateMatrix();}if(tunnel){release(tunnel.root);tunnel.dispose();tunnel=null;}if(dome){release(dome.root);dome.dispose();dome=null;}topologyChanged=true;}}
     // 실제 크기 비율(2026-11-19) — 가장 큰 개체가 수조 폭의 절반을 넘지 않게 한 칸의 cm 를 정한다. 바뀌면 있는 몸을 모두 같은 비율로
     {const maxCm=approvedFish.reduce((mx,f)=>Math.max(mx,fishCm(f)),0),unit=sizeUnitFor(maxCm,WORLD.width*wide);
      if(Math.abs(unit-sizeUnit())>sizeUnit()*.005){setSizeUnit(unit);for(const f of approvedFish){const s=swimmers.get(f.id);if(!s)continue;const cm=fishCm(f),shown=realLength(cm),k=shown/Math.max(.001,s.shown??s.length);s.length=Math.max(fishLength(cm,f.family),shown);s.shown=shown;s.scale*=k;s.root.scale.setScalar(s.scale);}topologyChanged=true;}}
@@ -781,7 +798,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     //   나머지는 옆으로 끌어 둘러본다(panReach). 가만히 두면 천천히 한쪽 끝에서 다른 끝까지 흘러간다. 높이는 다 담는다(세로 끌기는 페이지 스크롤이라)
     const half=Math.tan(camera.fov*Math.PI/360),fitW=5*wideBase*tierX**.4/(half*camera.aspect)+3,fitH=5.9*tall/half+3;
     // 자유롭게 보기(2026-11-14) — 두 손가락 · 휠로 당기고 민다(userZoom). 다가간 만큼 옆으로 더 끌 수 있다(panReach 가 camD 로 다시 잰다)
-    const camD=clamp(Math.max(fitW,fitH)/tankDisplay(habitatTier,wideBase),19,80)*userZoom;
+    // 앞유리(z = 3·깊이) 밖에서 본다 — 앞뒤로 늘린 수조에서 카메라가 물속에 들어가지 않게(2026-11-19)
+    const camD=Math.max(3*deep+3,clamp(Math.max(fitW,fitH)/tankDisplay(habitatTier,wideBase),19,80)*userZoom);
     panReach=Math.max(0,5*wide+.3-camD*half*camera.aspect*.96);panPerPx=2*camD*half*camera.aspect/Math.max(1,canvas.clientWidth);
     if(dt>0&&!start&&!sel&&!reduced.matches&&panReach>0&&elapsed-lastTouch>8)pan+=(panReach*.9*Math.sin(elapsed*.03)-pan)*Math.min(1,dt*.35);
     pan=clamp(pan,-panReach,panReach);const camX=pan;
@@ -944,6 +962,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         if(b.trail&&elapsed>=br.trailAt){br.trailAt=elapsed+.05;splash.trail(P[k]-b.hx*L*.45,P[k+1]-b.hy*L*.45,P[k+2],L,elapsed,pl.surface);}}}j++;}}
     // 고래 숨(2026-11-18 [사용자: "고래들 움직임 특성을 줘야해"]) — 숨 쉬러 수면에 머리가 닿으면 숨구멍에서 물안개 기둥이 솟는다. 고래마다 10초에 한 번까지.
     //   혹등 · 귀신고래는 두 갈래(V 자), 향유고래는 앞 왼쪽으로 비스듬히, 나머지는 곧게. 움직임 줄이기 · 터널 · 돔 안에선 안 한다
+    feedWhaleSharks();
     if(dt>0&&!reduced.matches&&!inTunnel&&!inDome){const top=waterTop();for(const[id,m]of swimmers){if(!SPOUTERS.test(m.family))continue;const L=shownLength(m),p=m.root.position;spoutFwd.set(1,0,0).applyQuaternion(m.root.quaternion);
       const hx=p.x+spoutFwd.x*L*.32,hy=p.y+spoutFwd.y*L*.32+L*.08,hz=p.z+spoutFwd.z*L*.32;
       if(hy>top-L*.12&&hy<top+L*.6&&elapsed-(spouted.get(id)??-99)>10){spouted.set(id,elapsed);splash.spout(hx,hz,top,L,elapsed,m.family==="sperm_whale"?-.35:0,m.family==="humpback_whale"||m.family==="gray_whale");}}}

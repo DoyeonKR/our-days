@@ -390,6 +390,8 @@ export type AquaState = {
   placed: PlacedDecor[];
   /** 옆으로 늘린 단계(0~3). 옵셔널 = 옛 저장분은 0 */
   wide?: number;
+  /** 앞뒤로 늘린 단계(0~3, 2026-11-19). 저장은 섬 최상위 aquaDeep */
+  deepen?: number;
   /** 산 뒤 아직 안 놓은 악세사리(key → 개수) */
   bag: Record<string, number>;
   /** 만난 모습 — 다 큰 품종 · 2026-11-05 부터 치어(fry_) · 어린 모습(juv_)도 */
@@ -433,7 +435,7 @@ export type AquaPlus = Partial<Pick<AquaState, (typeof PLUS_KEYS)[number]>>;
 /** 섬 상태 + 수조의 맨 위 칸. 섬 타입(island.ts)은 건드리지 않는다 — 옛 저장분의 bubble 칸처럼 ...st 로 흘러간다.
  *  aquaTankTop: 7단계 위 수조. ⚠ aquaPlus 안에만 두면 2026-11-06 까지 배포된 앱(7ab54e1)이 aquaPlus 를 자기 칸 목록으로 다시 지어
  *  tankTop 을 버린다 — 하트는 그대로 쓰였는데 수조가 6단계로 내려앉는다. 섬 최상위 칸은 옛 앱도 ...st 로 그대로 흘려보낸다. */
-export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number; aquaMorph?: unknown; aquaLife?: unknown;
+export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number; aquaWideTop?: number; aquaDeep?: number; aquaMorph?: unknown; aquaLife?: unknown;
   /** 계절 수조 행사의 받음 표시 · 한정 장식 빛깔(lib/aquaeventclaim, 2026-11-13) — 맨 위 칸이라 옛 앱도 ...st 로 흘린다 */ aquaEvent?: unknown };
 
 export const GROW_JUVENILE = 0.4;
@@ -504,7 +506,7 @@ function readPlus(p: unknown): AquaPlus {
   return out;
 }
 
-type AquaSource = { aquarium?: AquaState | null; aquaPlus?: unknown; aquaTankTop?: unknown; aquaTankMax?: unknown; aquaMorph?: unknown; aquaLife?: unknown };
+type AquaSource = { aquarium?: AquaState | null; aquaPlus?: unknown; aquaTankTop?: unknown; aquaTankMax?: unknown; aquaWideTop?: unknown; aquaDeep?: unknown; aquaMorph?: unknown; aquaLife?: unknown };
 /** 저장된 수조 단계 — 세 자리 중 가장 높은 값(하트로 산 단계는 어느 앱이 저장해도 내려가지 않는다) */
 const tankTier = (st: AquaSource) => Math.min(TANKS.length, Math.max(1,
   Math.floor(num(st.aquarium?.tank, 1)),
@@ -523,7 +525,8 @@ export function aquaOf(st: AquaSource, now = 0): AquaState {
   const nextId = Math.max(1, Math.floor(num(a?.nextId, 1)));
   return {
     tank: tankTier(st),
-    wide: Math.min(WIDE_STEPS.length, Math.max(0, Math.floor(num(a?.wide, 0)))),
+    wide: Math.min(WIDE_STEPS.length, Math.max(0, Math.floor(num(a?.wide, 0)), Math.floor(num(st.aquaWideTop, 0)))),
+    deepen: Math.min(DEEP_STEPS.length, Math.max(0, Math.floor(num(st.aquaDeep, 0)))),
     hunger: Math.max(0, Math.min(100, num(a?.hunger, 100))),
     water: Math.max(0, Math.min(100, num(a?.water, 100))),
     at: num(a?.at, now),
@@ -546,7 +549,7 @@ export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
     tank: Math.min(a.tank, TANK_CORE_MAX), hunger: a.hunger, water: a.water, at: a.at, nextId: a.nextId,
     fish: [...a.fish, ...((a.alien?.fish ?? []) as AquaFish[])],
     placed: [...a.placed, ...((a.alien?.placed ?? []) as PlacedDecor[])],
-    ...(a.wide !== undefined ? { wide: a.wide } : {}),
+    ...(a.wide !== undefined ? { wide: Math.min(a.wide, WIDE_CORE_MAX) } : {}),
     bag: a.bag,
     dex: a.dex,
   };
@@ -557,7 +560,7 @@ export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   // 10단계 위는 aquaTankMax 에도 — 지금 배포된 앱은 9 로 깎아 aquaTankTop 에 다시 쓰지만 이 칸은 모르고 흘린다(...st)
   // 변이 · 이야기도 맨 위 칸 — aquaPlus 에 두면 옛 앱이 PLUS_KEYS 로 다시 지으며 버린다(aquacare.test 가 aquaPlus 의 새 칸을 막는다).
   //   since · n 은 읽을 때마다 '지금'으로 시작하므로 한 번은 저장돼야 옛 앱이 낳은 치어 · 옛 소식을 이어 받는다 — 비어도 쓴다
-  const out: Island = { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}), ...(a.tank > TANK_TOP_LEGACY ? { aquaTankMax: a.tank } : {}),
+  const out: Island = { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}), ...(a.tank > TANK_TOP_LEGACY ? { aquaTankMax: a.tank } : {}), ...((a.wide ?? 0) > WIDE_CORE_MAX ? { aquaWideTop: a.wide } : {}), ...((a.deepen ?? 0) > 0 ? { aquaDeep: a.deepen } : {}),
     ...(a.morph ? { aquaMorph: a.morph } : {}), ...(a.life ? { aquaLife: a.life } : {}) };
   // 시즌 미션 — 알에서 깬 치어(eggN 은 늘기만 한다). 정산(syncAqua)도 여기를 지나므로 저장된 값과 견주면 한 번만 센다
   const eggs0 = num(((st as Island).aquaPlus as { eggN?: unknown } | undefined)?.eggN, 0);
@@ -580,14 +583,26 @@ export const WIDE_STEPS: readonly { price: number; fish: number; decor: number }
   { price: 12000, fish: 2, decor: 3 },
   { price: 30000, fish: 2, decor: 3 },
   { price: 70000, fish: 3, decor: 4 },
+  // 2026-11-19 [사용자: "지금 기준 업그레이드하면 50%씩 늘려줘"] — 4 · 5단계는 그 앞 폭의 1.5배씩(world.wideScale: 1.5 → 2.25 → 3.375).
+  //   ⚠ 2026-11-19 까지 배포된 앱은 wide 를 3 으로 깎아 저장하므로 4 위는 섬 최상위 aquaWideTop 에도 쓴다(stow)
+  { price: 150000, fish: 4, decor: 5 },
+  { price: 400000, fish: 5, decor: 6 },
 ];
-export const tankOf = (a: Pick<AquaState, "tank" | "wide">) => {
-  const base = TANKS[a.tank - 1], done = WIDE_STEPS.slice(0, a.wide ?? 0);
+/** 어항을 앞뒤로 늘리는 값(2026-11-19) [사용자: "수조 옆으로 늘리기와 깊이 늘리기도 해 둬 … 업그레이드하면 50%씩"] — 한 단계마다 깊이 1.5배(world.deepScale).
+ *  저장은 섬 최상위 aquaDeep(옛 앱이 모르고 흘린다) */
+export const DEEP_STEPS: readonly { price: number; fish: number; decor: number }[] = [
+  { price: 30000, fish: 2, decor: 3 },
+  { price: 90000, fish: 3, decor: 4 },
+  { price: 250000, fish: 4, decor: 5 },
+];
+export const WIDE_CORE_MAX = 3;
+export const tankOf = (a: Pick<AquaState, "tank" | "wide"> & { deepen?: number }) => {
+  const base = TANKS[a.tank - 1], done = [...WIDE_STEPS.slice(0, a.wide ?? 0), ...DEEP_STEPS.slice(0, a.deepen ?? 0)];
   return { ...base, fish: base.fish + done.reduce((n, x) => n + x.fish, 0), decor: base.decor + done.reduce((n, x) => n + x.decor, 0) };
 };
 /** 수조에 든 물고기 수 — 이 번들이 모르는 계열도 자리는 차지한다(새 앱에서 보면 넘치면 안 된다) */
 export const fishCount = (a: Pick<AquaState, "fish" | "alien">) => a.fish.length + (a.alien?.fish.length ?? 0);
-export const fishRoom = (a: Pick<AquaState, "fish" | "alien" | "tank" | "wide">) => Math.max(0, tankOf(a).fish - fishCount(a));
+export const fishRoom = (a: Pick<AquaState, "fish" | "alien" | "tank" | "wide" | "deepen">) => Math.max(0, tankOf(a).fish - fishCount(a));
 
 function gearBest(a: Pick<AquaState, "placed">, type: "clean" | "grow" | "feed"): number {
   let best = 0;
@@ -1137,6 +1152,14 @@ export function widenTank(st: IslandState, now: number): AquaResult {
   if (!next) return { ok: false, reason: "더 늘릴 수 없어요" };
   if (s.coins < next.price) return { ok: false, reason: `하트가 ${(next.price - s.coins).toLocaleString()}개 모자라요` };
   return put(s, { ...a, wide: (a.wide ?? 0) + 1 }, s.coins - next.price, `어항을 옆으로 늘렸어요 — 물고기 +${next.fish} · 장식 +${next.decor}`);
+}
+
+export function deepenTank(st: IslandState, now: number): AquaResult {
+  const { s, a } = begin(st, now);
+  const next = DEEP_STEPS[a.deepen ?? 0];
+  if (!next) return { ok: false, reason: "더 늘릴 수 없어요" };
+  if (s.coins < next.price) return { ok: false, reason: `하트가 ${(next.price - s.coins).toLocaleString()}개 모자라요` };
+  return put(s, { ...a, deepen: (a.deepen ?? 0) + 1 }, s.coins - next.price, `어항을 앞뒤로 늘렸어요 — 물고기 +${next.fish} · 장식 +${next.decor}`);
 }
 
 export function buyDecor(st: IslandState, key: string, now: number): AquaResult {

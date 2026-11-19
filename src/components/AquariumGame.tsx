@@ -23,10 +23,10 @@ import { confirmDialog } from "@/lib/confirm";
 import { feedSpot } from "@/lib/aqua3d/world";
 import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWaits, mealEndOf } from "@/lib/aqua3d/hunt";
 import {
-  ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
+  ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS, DEEP_STEPS,
   aquaDangers, aquaEffects, buyDecor, eatenReplays, fishAge, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
   fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
-  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank,
+  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
@@ -294,7 +294,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   const decorSel = a.placed.find((p) => p.id === selDecor) ?? null;
   const bagList = Object.entries(a.bag).filter(([, n]) => n > 0);
   const nextTank = TANKS[a.tank];
-  const nextWide = WIDE_STEPS[a.wide ?? 0];
+  const nextWide = WIDE_STEPS[a.wide ?? 0], nextDeep = DEEP_STEPS[a.deepen ?? 0];
   const coupons = junkCoupons(view.state, a);
   const foods = FOODS.filter((x) => x.cost === 0 || (a.food?.[x.key] ?? 0) > 0);
   const pick = foods.some((x) => x.key === food) ? food : "flake";
@@ -571,9 +571,14 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
             </p>
             {nextWide ? (
               <ActionButton wide className="aqua-btn-wrap" disabled={busy || coins < nextWide.price} onClick={() => void act((st, t) => widenTank(st, t))}>
-                옆으로 늘리기 {(a.wide ?? 0) + 1}/{WIDE_STEPS.length} · 물고기 +{nextWide.fish} · 장식 +{nextWide.decor} <span className="aqua-price"><Coin /> {nextWide.price.toLocaleString()}</span>
+                옆으로 늘리기 {(a.wide ?? 0) + 1}/{WIDE_STEPS.length}{(a.wide ?? 0) >= 3 ? " · 폭 1.5배" : ""} · 물고기 +{nextWide.fish} · 장식 +{nextWide.decor} <span className="aqua-price"><Coin /> {nextWide.price.toLocaleString()}</span>
               </ActionButton>
-            ) : <p className="aqua-note">어항을 끝까지 늘렸어요</p>}
+            ) : <p className="aqua-note">어항을 옆으로 끝까지 늘렸어요</p>}
+            {nextDeep ? (
+              <ActionButton wide className="aqua-btn-wrap" disabled={busy || coins < nextDeep.price} onClick={() => void act((st, t) => deepenTank(st, t))}>
+                앞뒤로 늘리기 {(a.deepen ?? 0) + 1}/{DEEP_STEPS.length} · 깊이 1.5배 · 물고기 +{nextDeep.fish} · 장식 +{nextDeep.decor} <span className="aqua-price"><Coin /> {nextDeep.price.toLocaleString()}</span>
+              </ActionButton>
+            ) : <p className="aqua-note">어항을 앞뒤로 끝까지 늘렸어요</p>}
             {nextTank && nextGate.items.length > 0 && (
               <div className={`aqua-gate ${nextGate.ok ? "is-ok" : ""}`}>
                 <strong>{nextTank.name} — {nextGate.ok ? "조건을 다 채웠어요" : "이 기록이 있어야 열려요"}</strong>
