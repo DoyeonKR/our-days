@@ -3,6 +3,7 @@
 // 예전(separate 만)은 보정이 천천히 따라가 몇 초씩 겹친 채였다. 밀어내기가 순간 이동을 만들지 않는지도 본다.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import { FISH_BASE_CM } from "../aquarium.ts";
 import type { Course } from "./habits.ts";
 import { WORLD, fishLength, resolveContacts, schoolsOf, tankTall, wideScale } from "./world.ts";
@@ -84,4 +85,21 @@ test("바위 안에 몸이 못 들어간다 — 머리 · 가운데 · 꼬리가
   const p3 = new Float32Array([0, WORLD.floor + 0.5, 0]);
   resolveContacts(p3, [1.5], 1, { heading: [1, 0, 0], rocks: [rock], tall: 1, mass: [0] });
   assert.equal(p3[1], Math.fround(WORLD.floor + 0.5));
+});
+
+test("sand — head, middle and tail can't sink into the floor or the beach slope; pushed out along the slope normal (2026-11-19)", () => {
+  // 오른쪽으로 45° 오르는 경사(모래사장 비탈) — 몸 가운데는 물속인데 머리가 비탈에 박힌 물고기
+  const ground = (x: number) => WORLD.floor + Math.max(0, x - 1);
+  const pos = new Float32Array([1.2, WORLD.floor + 0.5, 0]);
+  resolveContacts(pos, [2], 1, { heading: [1, 0, 0], ground: (x) => ground(x) });
+  const L = 2, head = pos[0] + L * 0.4;
+  assert.ok(pos[1] - ground(head) > -0.05, `머리 ${(pos[1] - ground(head)).toFixed(3)}`);
+  assert.ok(pos[0] < 1.2, "비탈 바깥(물 쪽 · 왼쪽 위)으로 밀렸다");
+  // 평평한 바닥 위 바닥 물고기는 거의 안 밀린다(몸 두께만큼 얕게 본다)
+  const p2 = new Float32Array([0, WORLD.floor + 0.05, 0]);
+  resolveContacts(p2, [1], 1, { heading: [1, 0, 0], pinned: [1], ground: () => WORLD.floor });
+  assert.ok(Math.abs(p2[1] - (WORLD.floor + 0.05)) < 1e-6);
+  const step = readFileSync(new URL("./fishstep.ts", import.meta.url), "utf8"), scene = readFileSync(new URL("./scene.ts", import.meta.url), "utf8");
+  assert.match(step, /CONTACT\.ground = w\.heightAt;/);
+  assert.match(scene, /rocks:motion\.obstacles,tall,ground:heightAt\}/);
 });

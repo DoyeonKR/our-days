@@ -106,7 +106,7 @@ export async function grayGLB(key, stage) {
     const x = pos[i * 3]; if (x >= BX[0]) { Wt[i * 4] = 1; continue; } if (x <= BX[5]) { J[i * 4] = 5; Wt[i * 4] = 1; continue; }
     let a = 0; while (a < 4 && x < BX[a + 1]) a++; const f = clamp((BX[a] - x) / (BX[a] - BX[a + 1])); J[i * 4] = a; J[i * 4 + 1] = a + 1; Wt[i * 4] = 1 - f; Wt[i * 4 + 1] = f;
   }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(UV, 2)); g.setAttribute('skinIndex', new T.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(Wt, 4)); g.setIndex(I); g.computeVertexNormals();
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(UV, 2)); g.setAttribute('skinIndex', new T.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(Wt, 4)); g.setIndex((()=>{/* 2026-11-19 위아래를 뒤집어 담으면 감기도 뒤집힌다 — 삼각형을 바깥으로(flip-inward.mjs · facing.test) */for(let t=0;t<I.length;t+=3){const s=I[t+1];I[t+1]=I[t+2];I[t+2]=s;}return I;})()); g.computeVertexNormals();
   const glb = await compressGLB(material(packAsset(key, [{name: key, geometry: g, extras: {aquaGeometry: 'photo-traced-whale', source: 'design/aqua3d-review/whales/reference/gray-photo-{side,top,front}.webp', bodyCrossSection: 'ellipse (side height × top width)'}}], png, bones), (m) => { m.name = 'painted_PBR_atlas'; m.doubleSided = true; m.pbrMetallicRoughness.metallicFactor = .04; m.pbrMetallicRoughness.roughnessFactor = .78; }), {webpQuality: 92});
   return {glb, tris: I.length / 3};
 }

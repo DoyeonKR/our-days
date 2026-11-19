@@ -125,7 +125,7 @@ test("먹이 · 사냥 · 자라기 — 수조가 쓰는 곳", () => {
   assert.doesNotMatch(scene, /motion\.offsets=new Float32Array\(Math\.max\(3,n\*3\)\)/);
   assert.match(scene, /off\[j\*3\+c\]=motion\.offsets\[k\*3\+c\]\?\?0;fl\[j\*3\+c\]=motion\.flee\[k\*3\+c\]\?\?0;\}fe\[j\]=motion\.fear\[k\]\?\?0;/);
   assert.ok(scene.indexOf("relayoutMotion(!rescaled);") < scene.indexOf("if(motion.lengths.length<n){motion.positions=new Float32Array"), "자리 배열을 다시 잡기 전에 지난 자리를 읽는다");
-  assert.match(scene, /m\.grow=\{old:shown,from:shownLen\/Math\.max\(1e-6,length\),k:0,wait:0\}/);
+  assert.match(scene, /m\.grow=\{old:shown,from:shownLen\/Math\.max\(1e-6,drawn\),k:0,wait:0\}/);
   assert.match(scene, /if\(m\.glb\|\|!m\.glbKey\|\|m\.glbFail\|\|g\.wait>GROW_WAIT\)\{dropFish\(g\.old\);g\.old=null;m\.root\.visible=true;batchesDirty=true;\}/);
   assert.match(scene, /m\.root\.scale\.setScalar\(m\.scale\*\(g\.from\+\(1-g\.from\)\*e\)\)/);
   assert.match(scene, /scene\.traverseVisible\(o=>\{if\(o instanceof T\.Mesh/, "숨긴 새 몸은 묶지 않는다");

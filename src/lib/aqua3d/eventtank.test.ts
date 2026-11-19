@@ -269,7 +269,7 @@ test("the guest is not a tank fish: no feeding, no whale-shark escort, no prey, 
   const step = readFileSync(new URL("./fishstep.ts", import.meta.url), "utf8");
   assert.match(step, /if \(m\.visit\) continue;\n {4}ESCORT\.push\(k\);/, "고래상어 무리에서 뺀다");
   assert.match(step, /opts\.feed = m\.visit \? null : w\.feed;/);
-  assert.match(step, /M\[k\] = st\.den \|\| fishes\[k\]\.visit \? 0 :/, "밀어내기에 안 밀린다");
+  assert.match(step, /M\[k\] = \(st\.den \|\| fishes\[k\]\.visit \? 0 :/, "밀어내기에 안 밀린다");
   const scene = readFileSync(new URL("./scene.ts", import.meta.url), "utf8");
   // 사냥꾼 표시 0 · 쫓고 쫓기기에서 빠진다(busy) · 눌러도 안 고른다 · 놀라지 않는다
   assert.match(scene, /motion\.preds\[j\+\+\]=isPredator\(m\.family\)&&!m\.visit\?1:0;/);

@@ -25,11 +25,14 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   /** 굴에 산다(habits.den — 곰치) */
   den: boolean;
   /** 바위 위에서 쉰다(habits.haul — 해양 포유류) · 지금 쉬는 정도(0~1, 겹침 밀기를 그만큼 덜 받는다) */
-  haul: boolean; rest: number };
+  haul: boolean; rest: number;
+  /** 실제로 간 빠르기(부드럽게 거른 값, 월드/초)와 지난 자리 — 머리를 실제로 가는 쪽으로 돌린다(faceTravel) */
+  fvx: number; fvy: number; fvz: number; fpx: number; fpy: number; fpz: number; fok: boolean; ceph: boolean; /** 지난 프레임에 그린 머리의 좌우(ohx) · 위아래(ohy) 각 — 큰 몸이 홱 돌지 않게 */ ohx: number; ohy: number; ohz: number; oh: boolean;
+  /** 모래 위로 올린 높이(부드럽게 — 한 프레임에 확 들리지 않게) */ lift: number };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
-    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false,
+    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false, fvx: 0, fvy: 0, fvz: 0, fpx: 0, fpy: 0, fpz: 0, fok: false, lift: 0, ohx: 1, ohy: 0, ohz: 0, oh: false, ceph: !!h.ceph || a.kind === "jelly",
     stride: bendProfile(m.family, m.key).stride, freq: a.frequency,
     // 박자를 빠르기로 바꾸지 않는 몸 — 해파리(갓 박자는 길의 jet) · 불가사리 · 거북(turtle.ts 가 따로 젓는다 — 쉬는 동안은 habits 가 effort 를 줄인다)
     own: m.family === "starfish" || m.family === "sea_turtle" || a.kind === "jelly",
@@ -110,7 +113,7 @@ let MASS = new Float32Array(64);
 const massAt = (n: number) => { if (MASS.length <= n) MASS = new Float32Array(Math.max(n + 1, MASS.length * 2)); return MASS; };
 let CPREV = new Float32Array(192);
 const contactPrev = (n: number) => { if (CPREV.length < n) CPREV = new Float32Array(Math.max(n, CPREV.length * 2)); return CPREV; };
-const CONTACT = { heading: new Float32Array(0) as ArrayLike<number>, mass: MASS as ArrayLike<number>, pinned: undefined as ArrayLike<number> | undefined, disc: undefined as ArrayLike<number> | undefined, scale: 1, deep: 1, top: 4.7, rocks: undefined as readonly Obstacle[] | undefined, tall: 1 };
+const CONTACT = { heading: new Float32Array(0) as ArrayLike<number>, mass: MASS as ArrayLike<number>, pinned: undefined as ArrayLike<number> | undefined, disc: undefined as ArrayLike<number> | undefined, scale: 1, deep: 1, top: 4.7, rocks: undefined as readonly Obstacle[] | undefined, tall: 1, ground: undefined as ((x: number, z: number) => number) | undefined };
 const discAt = (n: number) => { if (DISC.length <= n) { const d = new Float32Array(DISC.length * 2); d.set(DISC); DISC = d; } return DISC; };
 // 길 옵션 — 프레임마다 · 물고기마다 새 객체를 안 만든다(2026-11-12)
 const OPTS = { obstacles: undefined as readonly Obstacle[] | undefined, feed: null as Feed | null, deep: 1, tall: 1, hall: null as Hall | null, leaderLength: 0 as number | undefined, out: undefined as Course | undefined };
@@ -167,11 +170,14 @@ function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: num
  *  그 결과 물가 너머로 가는 길은 전부 경사면 한 줄에 쌓였다(8 · 9단계 물고기-프레임의 44% 가 물가 몸길이 0.3 안 — 2026-11-18 측정).
  *  이제 왼쪽 유리 ~ 오른쪽 유리의 길을 왼쪽 유리 ~ 그 높이의 물가로 비례해 줄인다 — 물 안에서 고르게 퍼지고, 머리 방향(dx)도 같은 비율로 줄여 몸이 가는 쪽을 본다.
  *  물가가 오른쪽 유리보다 바깥이면(수면 가까이 · 앞유리 쪽) 그대로. give(0 ~ 1)만큼 원래 길로 풀어 준다(모래사장으로 올라가 쉬는 포유류) */
-export function shoreSquash(c: Course, L: number, wide: number, lim: number, give = 0) {
+export function shoreSquash(c: Course, L: number, wide: number, lim: number | ((y: number, z: number) => number), give = 0) {
   const right = 5 * wide - 0.1 - L / 2, left = -right;
-  if (!(lim < right) || right <= 0) return;
-  const s = Math.max(0.05, (Math.max(lim, left + 0.05) - left) / (right - left));
-  const x = left + (c.x - left) * s, dx = c.dx * s;
+  const limAt = typeof lim === "number" ? () => lim : lim, l0 = limAt(c.y, c.z);
+  if (!(l0 < right) || right <= 0) return;
+  const sAt = (l: number) => Math.max(0.05, (Math.min(right, Math.max(l, left + 0.05)) - left) / (right - left)), s = sAt(l0);
+  // 줄이는 비율이 높이 · 깊이를 따라 바뀌면 오르내릴 때 몸이 옆으로도 움직인다 — 그 몫까지 머리 방향에 넣는다(2026-11-19 — 큰 몸이 모래사장 수조에서 옆으로 미끄러졌다)
+  const e = 0.05, dsy = typeof lim === "number" ? 0 : (sAt(limAt(c.y + e, c.z)) - sAt(limAt(c.y - e, c.z))) / (2 * e), dsz = typeof lim === "number" ? 0 : (sAt(limAt(c.y, c.z + e)) - sAt(limAt(c.y, c.z - e))) / (2 * e);
+  const x = left + (c.x - left) * s, dx = c.dx * s + (c.x - left) * (dsy * c.dy + dsz * c.dz);
   c.x = x + (c.x - x) * give; c.dx = dx + (c.dx - dx) * give;
 }
 /** 행사 손님이 들어오고 나가는 자리(2026-11-18) — 왼쪽 유리 밖(몸길이 0.6 배 바깥)과 제 길 c 를 w 로 섞는다.
@@ -212,7 +218,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }
     if (deep !== 1) { c.z *= deep; c.dz *= deep; }
     // 모래사장 단계 — 길을 물가에서 자르지 않고 그 높이의 물 폭에 맞춰 가로로 줄인다(shoreSquash). 쉬러 올라가는 포유류는 쉬는 만큼 풀어 준다
-    if (b.shore) { const sw = (m.swim ??= swimStateOf(m)); shoreSquash(c, m.length, wide, b.shore(c.y - m.length * 0.2, c.z) - m.length * 0.45, sw.haul ? sw.rest : 0); }
+    if (b.shore) { const sw = (m.swim ??= swimStateOf(m)); const sh = b.shore, L2 = m.length; shoreSquash(c, L2, wide, (yy, zz) => sh(yy - L2 * 0.2, zz) - L2 * 0.45, sw.haul ? sw.rest : 0); }
     // 행사 손님 — 제 길(물가까지 줄인 뒤)과 왼쪽 유리 밖 한 점을 w 로 섞는다. 왼쪽은 어느 단계든 물이다(모래사장은 오른쪽).
     //   높이 · 깊이는 제 길 그대로라 그 높이로 옆에서 헤엄쳐 들어오고 나간다. 머리 방향은 섞은 자리의 빠르기(들어올 땐 오른쪽, 나갈 땐 왼쪽)
     if (m.visit) visitBlend(c, m.length, wide, m.visit);
@@ -285,6 +291,17 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * hyp2(c.dx, c.dz); FP.roll *= c.ground; }
     // 경기장 고리 물고기(고래상어)는 옆모습 돌리기를 안 해서 scene 이 기울기 묶기(sideon.limitPitch)도 안 거친다 — 먹이 바로 밑에서 85° 까지 곧게 섰다.
     // 여기서 같은 값(tan 1.2 ≈ 50°)으로 묶는다
+    // 모래 위로(2026-11-19) — 헤엄치는 몸(바닥에 안 앉은 몸)은 머리 · 가운데 · 꼬리 밑 모래보다 몸 두께만큼 위에. 길이 비탈 · 모래사장 쪽으로 낮게 지나가도
+    //   머리가 모래에 박히지 않는다(예전엔 몸 가운데만 물가 선으로 묶었다). 밀어내기(resolveContacts 의 ground)는 그 뒤 남은 겹침만 받는다
+    if (c.ground < 0.5 && !fishes[k].swim!.den && !(fishes[k].swim!.haul && fishes[k].swim!.rest > 0.3)) {
+      const hl = hyp3(c.dx, dy, c.dz) || 1, ux = c.dx / hl, uy = dy / hl, uz = c.dz / hl, ha = L * 0.42, clear = L * 0.1;
+      let lift = 0;
+      for (let t = -1; t <= 1; t += 0.5) lift = Math.max(lift, w.heightAt(x + ux * ha * t, z + uz * ha * t) + clear - (y + uy * ha * t));
+      const st2 = fishes[k].swim!, want = lift * (1 - c.ground * 2), ka = dt > 0 ? 1 - Math.exp(-Math.min(dt, 0.25) / 0.3) : 1;
+      // 올라갈 땐 0.3초에 걸쳐(다만 몸 두께 넘게 박히진 않게), 내려갈 땐 천천히
+      st2.lift = want > st2.lift ? Math.max(st2.lift + (want - st2.lift) * ka, want - clear) : st2.lift + (want - st2.lift) * ka * 0.5;
+      if (st2.lift > 0) y += st2.lift;
+    } else fishes[k].swim!.lift = 0;
     if (fishes[k].swim!.lap) { const hh = hyp2(c.dx, c.dz); if (hh > 1e-4 && Math.abs(dy) > 1.2 * hh) dy = Math.sign(dy) * 1.2 * hh; }
     b.positions[k * 3] = x; b.positions[k * 3 + 1] = y; b.positions[k * 3 + 2] = z; b.heading[k * 3 + 1] = dy; b.rolls[k] = FP.roll;
     // 4) 꼬리 박자 — 화면에 실제로 그린 자리가 움직인 빠르기(몸길이/초)를 골라 박자로(beatEffort). 처음 · 순간 이동(수조가 바뀜)은 잇기만 한다
@@ -301,8 +318,9 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
   // 5) 몸끼리 닿지 않게 — 마지막 자리에서 겹친 만큼 밀어낸다(물리 엔진의 접촉처럼, 2026-11-14)
   if (n > 0) {
     const M = massAt(n);
-    for (let k = 0; k < n; k++) { const st = fishes[k].swim!; M[k] = st.den || fishes[k].visit ? 0 : st.haul && st.rest > 0.5 ? 0.15 : 1 - 0.6 * Math.min(1, b.pinned[k]); }
-    CONTACT.heading = b.heading; CONTACT.mass = M; CONTACT.pinned = b.pinned; CONTACT.disc = DISC; CONTACT.scale = wide; CONTACT.deep = deep; CONTACT.top = tallY(4.7, tall); CONTACT.rocks = w.obstacles; CONTACT.tall = tall;
+    for (let k = 0; k < n; k++) { const st = fishes[k].swim!; M[k] = (st.den || fishes[k].visit ? 0 : st.haul && st.rest > 0.5 ? 0.15 : 1 - 0.6 * Math.min(1, b.pinned[k])) / (1 + (b.lengths[k] / 1.5) ** 2); }
+    // ↑ 몸이 클수록 덜 밀린다(2026-11-19 — 무게는 몸길이의 세제곱이라 고래가 구피와 똑같이 밀려 옆으로 미끄러졌다; 제곱으로 누름)
+    CONTACT.heading = b.heading; CONTACT.mass = M; CONTACT.pinned = b.pinned; CONTACT.disc = DISC; CONTACT.scale = wide; CONTACT.deep = deep; CONTACT.top = tallY(4.7, tall); CONTACT.rocks = w.obstacles; CONTACT.tall = tall; CONTACT.ground = w.heightAt;
     // __noContacts — 테스트가 밀어내기 없는 기준을 재는 스위치(contacts.test)
     if (!(globalThis as { __noContacts?: boolean }).__noContacts) {
       // 밀어낸 만큼을 겹침 밀기 보정값(offsets)에도 남긴다 — 다음 프레임이 원래 길에서 다시 시작하면 매 프레임 파고들었다 튕겨 나와 한 칸에 몸길이 반씩 튀었다
@@ -318,6 +336,54 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (off) for (let k = 0; k < n * 3; k++) off[k] += (P[k] - before[k]) * 0.9;
     }
   }
+  faceTravel(n, fishes, b, dt);
   fishes.length = 0;
   return n;
+}
+
+/** 머리를 실제로 가는 쪽으로(2026-11-19) [사용자: "애들 움직임 자체가 너무 부자연스러워 진짜 물고기들과 진짜 개체처럼 수영하는 움직임을 … 부드럽게"] —
+ *  길 방향(course.dx)을 그대로 머리로 썼는데, 겹침 밀기 · 밀어내기(몸끼리 · 바위 · 모래) · 물가 줄이기가 자리만 옮겨 몸이 옆으로 미끄러졌다
+ *  (9단계 실제 크기 수조에서 프레임의 21 ~ 28% 가 머리와 35° 넘게 다른 쪽으로 움직였다 — 범고래 45% · 백상아리 45%). 진짜 물고기는 밀리면 미끄러지지 않고 돈다.
+ *  그래서 실제로 간 빠르기를 0.3초로 거른 뒤, 몸길이 0.25 배/초가 넘으면 몸길이 0.08 배/초가 넘으면 그 쪽으로 머리를 돌린다(0.4 배/초에서 최대 85% — 큰 고래는 몸길이에 비해 느려서 문턱을 낮게).
+ *  빼는 몸: 두족류 · 해파리(외투막 쪽으로 쏘아 간다) · 불가사리 · 굴 속 곰치 · 바위 · 모래사장에서 쉬는 포유류 · 바닥에 내려앉은 몸 · 잠깐 손님 */
+export const FACE_TAU = 0.3, FACE_MAX = 0.85;
+function faceTravel(n: number, fishes: StepFish[], b: StepBuffers, dt: number) {
+  const P = b.positions, H = b.heading;
+  for (let k = 0; k < n; k++) {
+    const m = fishes[k], st = m.swim!, x = P[k * 3], y = P[k * 3 + 1], z = P[k * 3 + 2];
+    if (!st.fok || !(dt > 0) || dt > 0.25) { st.fpx = x; st.fpy = y; st.fpz = z; st.fok = dt >= 0; st.fvx = st.fvy = st.fvz = 0; continue; }
+    const a = 1 - Math.exp(-dt / FACE_TAU);
+    st.fvx += ((x - st.fpx) / dt - st.fvx) * a; st.fvy += ((y - st.fpy) / dt - st.fvy) * a; st.fvz += ((z - st.fpz) / dt - st.fvz) * a;
+    st.fpx = x; st.fpy = y; st.fpz = z;
+    if (st.ceph || st.disc || st.den || m.visit || (st.haul && st.rest > 0.3) || b.pinned[k] > 0.5) continue;
+    const L = Math.max(0.05, b.lengths[k]), sp = hyp3(st.fvx, st.fvy, st.fvz), bl = sp / Math.min(L, 2); // 큰 몸은 몸길이 2 기준 — 범고래 · 백상아리는 몸길이에 비해 느려 문턱을 못 넘었다
+    if (bl < 0.08) continue;
+    const t = Math.min(1, (bl - 0.08) / 0.32), w = FACE_MAX * t * t * (3 - 2 * t);
+    let hx = H[k * 3], hy = H[k * 3 + 1], hz = H[k * 3 + 2];
+    const hl = hyp3(hx, hy, hz) || 1; hx /= hl; hy /= hl; hz /= hl;
+    const vx = st.fvx / sp, vy = st.fvy / sp, vz = st.fvz / sp;
+    let tx = hx * (1 - w) + vx * w, ty = hy * (1 - w) + vy * w, tz = hz * (1 - w) + vz * w;
+    // 오르내릴 때 머리가 곧게 서지 않게(위아래 35° 안) — 거의 수직이면 좌우 방향이 한 프레임에 홱 돌았다. 옆 방향이 거의 없으면 길 쪽 옆 방향을 쓴다
+    { let th = Math.sqrt(tx * tx + tz * tz); if (th < 0.05) { const ph = Math.sqrt(hx * hx + hz * hz) || 1; tx = hx / ph * 0.05; tz = hz / ph * 0.05; th = 0.05; } if (Math.abs(ty) > 0.7 * th) ty = Math.sign(ty) * 0.7 * th; }
+    const tl = hyp3(tx, ty, tz); if (tl < 1e-4) continue; tx /= tl; ty /= tl; tz /= tl;
+    H[k * 3] = tx * hl; H[k * 3 + 1] = ty * hl; H[k * 3 + 2] = tz * hl;
+    const c = b.courses[k]; if (c) { c.dx = H[k * 3]; c.dy = H[k * 3 + 1]; c.dz = H[k * 3 + 2]; }
+  }
+  // 도는 빠르기 묶기 — 몸이 클수록 천천히(초당 6/√몸길이 rad, 0.8 ~ 2.9). 큰 고래 · 상어가 한 프레임에 홱 돌던 것(9단계 8%).
+  //   좌우(yaw)와 위아래(pitch)를 따로 묶는다 — 3D 각으로 묶으면 거의 수직인 머리에서 좌우가 한 프레임에 크게 돌 수 있다. 좌우 성분이 거의 없으면 좌우는 지난 값 그대로
+  for (let k = 0; k < n; k++) {
+    const m = fishes[k], st = m.swim!, hx = H[k * 3], hy = H[k * 3 + 1], hz = H[k * 3 + 2];
+    const hl = hyp3(hx, hy, hz); if (hl < 1e-6) continue;
+    const hh = Math.sqrt(hx * hx + hz * hz), yaw0 = hh > 0.05 * hl ? Math.atan2(-hz, hx) : st.ohx, pitch0 = Math.atan2(hy, hh);
+    if (!st.oh || !(dt > 0) || dt > 0.25 || st.ceph || st.disc || st.den) { st.ohx = yaw0; st.ohy = pitch0; st.oh = true; continue; }
+    const L = Math.max(0.05, b.lengths[k]), lim = Math.max(0.8, Math.min(2.9, 6 / Math.sqrt(L))) * dt;
+    const dyaw = wrapA(yaw0 - st.ohx), dp = pitch0 - st.ohy;
+    const yaw = Math.abs(dyaw) > lim ? st.ohx + Math.sign(dyaw) * lim : yaw0, pitch = Math.abs(dp) > lim ? st.ohy + Math.sign(dp) * lim : pitch0;
+    if (yaw !== yaw0 || pitch !== pitch0 || hh <= 0.05 * hl) {
+      const cp = Math.cos(pitch);
+      H[k * 3] = Math.cos(yaw) * cp * hl; H[k * 3 + 1] = Math.sin(pitch) * hl; H[k * 3 + 2] = -Math.sin(yaw) * cp * hl;
+      const c = b.courses[k]; if (c) { c.dx = H[k * 3]; c.dy = H[k * 3 + 1]; c.dz = H[k * 3 + 2]; }
+    }
+    st.ohx = wrapA(yaw); st.ohy = pitch;
+  }
 }

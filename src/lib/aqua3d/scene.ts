@@ -24,7 +24,7 @@ import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, RENDER_RATIO_MAX, createPacer, ratioFloor } from "./framepace.ts";
 import { type Course, type Hall, type Obstacle as CourseObstacle } from "./habits.ts";
 import { resolveContacts } from "./world.ts";
-import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
+import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength,realLength,sizeUnitFor,sizeUnit,setSizeUnit } from "./world.ts";
 import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { makeHabitat, rockObstacles, softShadowTexture, habitatScenery, HABITAT_THEMES, type Habitat } from "./habitat.ts";
@@ -97,7 +97,7 @@ function makeCrown(r:number):T.Group{const g=new T.Group();
     const gemArm=new T.Group();gemArm.rotation.y=-(a+Math.PI/5);const gem=new T.Mesh(stone,gems[i%3]);gem.position.set(r*.97,0,0);gem.scale.set(.55,1,1);gemArm.add(gem);g.add(gemArm);
     g.add(arm);}
   return g;}
-type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number;
+type Swimmer = AnimalModel & { key: string; family: string; length: number; /** 그려지는 몸길이(실제 비율 — realLength). length 는 헤엄 길용(둘 중 큰 쪽) */ shown?: number; phase: number; scale: number;
   /** 행사 손님 물고기(2026-11-18) — 있으면 저장에 없는 잠깐 손님(fishstep.StepFish.visit) */ visit?: { w: number; dw: number };
   /** 색 변이(2026-11-13, morphlook) — 바뀌면 같은 자리에서 갈아 끼운다 */ morph?: Morph | null;
   /** 놀라 부푼 채인가(복어 — 끝나면 원래 크기로 한 번 되돌린다) */ puffed?: boolean;
@@ -117,7 +117,7 @@ export const OCCLUDE_ALPHA = 0.22, BEACH_REST_FRONT = -0.5, ABOVE_ELEV = 0.42;
 /** 해변 보기의 내려다보는 각(rad) — 수면 위 모래사장을 위에서 비스듬히 본다 */
 export const BEACH_VIEW_ELEV = 0.5, BEACH_VIEW_YAW = 0.5;
 /** 지금 보이는 몸길이 — 자라는 동안은 옛 몸 · 키우는 중의 크기(그림자 · 고른 표시 · 따라가기 거리가 한 프레임에 뛰지 않게) */
-const shownLength = (m: Swimmer) => { const g = m.grow, v = g?.old ?? m; return g ? v.length * (v.root.scale.x / Math.max(1e-6, v.scale)) : m.length; };
+const shownLength = (m: Swimmer) => { const g = m.grow, v = g?.old ?? m, L = v.shown ?? v.length; return g ? L * (v.root.scale.x / Math.max(1e-6, v.scale)) : L; };
 type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string; /** 한정 장식 빛깔(seasonfx) */ tint: AquaEventKey | null };
 
 /** 안에서 보기 첫 장면(2026-11-11) — 폰(세로 화면)에서 돔에 들어서면 첫 장의 아래 3분의 2 가 수조 둘레의 키 큰 수초(높이 1.5배로 늘어 6 넘게 자란다) · 바위였고
@@ -518,12 +518,12 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function addFish(f:AquaFish,prev?:Swimmer){
     // 색 변이(2026-11-13) — 지금 상태의 변이 장부에서(임시 사냥꾼 · 유령은 음수 id 라 없다)
     const key=fishArtKey(f),look=bossLookOf(f.crown,key),morph=f.id>=0?fishMorph(state.aquarium,f):null;
-    const animal=makeAnimal(kit,f.family,key,look),length=fishLength(fishCm(f),f.family);
+    const animal=makeAnimal(kit,f.family,key,look),cm=fishCm(f),drawn=realLength(cm),length=Math.max(fishLength(cm,f.family),drawn);
     waterLitTree(animal.root,false);normalsFixed+=repairNormals(animal.root);calmSpecular(animal.root);fishShading(animal.root);morphs.apply(animal.root,morph);
     // 머리~꼬리 길이로 잰다(anatomy.bodyMeasure) — 키로 재면 엔젤 · 디스커스 같은 키 큰 물고기가 잡은 cm 의 71~90% 로 보였다
-    const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(.001,bodyMeasure(f.family,key,size));
+    const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=drawn/Math.max(.001,bodyMeasure(f.family,key,size));
     animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
-    const m:Swimmer={...animal,coralQueen:!!look?.coral,key,morph,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
+    const m:Swimmer={...animal,coralQueen:!!look?.coral,key,morph,family:f.family,length,shown:drawn,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
     if(f.crown){m.crown=makeCrown(Math.max(size.x,size.z)*.2);m.crown.userData.aquaKeep=true;m.root.add(m.crown);placeCrown(m);}
     swimmers.set(f.id,m);
     if(prev){
@@ -531,10 +531,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       //   새 몸은 숨겨 두고 옛 몸을 그 자리에서 계속 보이다가(draw 가 옮긴다) 제작 모델이 오면 바꾸고 1초에 걸쳐 키운다.
       //   prev 가 아직 옛 몸을 들고 있으면(연달아 자랐다) 그 옛 몸이 보이는 몸이다 — prev 의 안 보이던 새 몸은 놓는다
       const shown=prev.grow?.old??prev;if(prev.grow?.old){prev.grow.old=null;dropFish(prev);}
-      const shownLen=shown.length*(shown.root.scale.x/Math.max(1e-6,shown.scale));
+      const shownLen=(shown.shown??shown.length)*(shown.root.scale.x/Math.max(1e-6,shown.scale));
       m.phase=prev.phase;Object.assign(m.course,prev.course);m.fresh=false;
       animal.root.position.copy(shown.root.position);animal.root.quaternion.copy(shown.root.quaternion);animal.root.visible=false;
-      m.grow={old:shown,from:shownLen/Math.max(1e-6,length),k:0,wait:0};
+      m.grow={old:shown,from:shownLen/Math.max(1e-6,drawn),k:0,wait:0};
     }
     // 주인 전용 모델(bosslook — 산호 여왕 · 검은 파도)이 있으면 종 모델 대신 그것을
     const gKind=look?.model?"boss" as const:"fish" as const,gKey=look?.model??key;
@@ -663,6 +663,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // ⚠ 넓히면 수조 틀 · LED · 유리 모서리 · 접지 그림자(안 움직이는 묶음)도 다시 올려야 한다 — 예전엔 옛 폭에 남았다
     wideBase=wideScale(next.aquarium.wide);const nextWide=wideBase*tierX;
     if(nextWide!==wide){wide=nextWide;if(habitat){habitat.root.scale.x=wide;habitat.root.updateMatrix();}topologyChanged=true;}
+    // 실제 크기 비율(2026-11-19) — 가장 큰 개체가 수조 폭의 절반을 넘지 않게 한 칸의 cm 를 정한다. 바뀌면 있는 몸을 모두 같은 비율로
+    {const maxCm=approvedFish.reduce((mx,f)=>Math.max(mx,fishCm(f)),0),unit=sizeUnitFor(maxCm,WORLD.width*wide);
+     if(Math.abs(unit-sizeUnit())>sizeUnit()*.005){setSizeUnit(unit);for(const f of approvedFish){const s=swimmers.get(f.id);if(!s)continue;const cm=fishCm(f),shown=realLength(cm),k=shown/Math.max(.001,s.shown??s.length);s.length=Math.max(fishLength(cm,f.family),shown);s.shown=shown;s.scale*=k;s.root.scale.setScalar(s.scale);}topologyChanged=true;}}
     schools=schoolsOf(approvedFish);
     for(const[id,m]of swimmers)if(id>=0&&!ids.has(id)){dropFish(m);swimmers.delete(id);topologyChanged=true;}
     for(const f of approvedFish){const key=fishArtKey(f),old=swimmers.get(f.id),morph=fishMorph(next.aquarium,f);if(old?.key===key&&(old.morph??null)===morph)continue;
@@ -926,7 +929,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         if(pose.roll)motion.rolls[j]=(motion.rolls[j]??0)+pose.roll;
         startleNow.set(m,pose);}}j++;}
       // 놀라 튀어 나간 몸도 다른 물고기와 닿지 않게(사냥 장면의 둘은 빼고)
-      resolveContacts(motion.positions,motion.lengths,motion.count,{heading:motion.heading,pinned:motion.pinned,skip:motion.busy,scale:wide,deep,top:tallY(4.7,tall),iters:2,rocks:motion.obstacles,tall});}
+      resolveContacts(motion.positions,motion.lengths,motion.count,{heading:motion.heading,pinned:motion.pinned,skip:motion.busy,scale:wide,deep,top:tallY(4.7,tall),iters:2,rocks:motion.obstacles,tall,ground:heightAt});}
     // 범고래 뛰어오르기 — 길 위의 자리와 섞는다(처음 0.25초 · 끝 1.4초), 공중에선 꼬리를 멈추고 몸을 비튼다
     if(breaches.size){let j=0;for(const[id,m]of swimmers){const br=breaches.get(id);if(br&&j<motion.count){const t=elapsed-br.t0,pl=br.plan;
       if(t>=pl.total||reduced.matches||(meal&&(id===meal.predId||id===meal.ghostId)))breaches.delete(id);

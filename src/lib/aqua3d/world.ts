@@ -21,11 +21,28 @@ export const worldToDecor = (x: number, z: number, scale = 1) => ({ x: clamp((x 
 /** 수조에서의 몸길이 — 잡은 cm 가 그대로 크기가 된다 [사용자: "잡은 물고기 cm 크기가 실제 크기처럼 반영"]. 더 긴 물고기가 언제나 더 크게 보인다.
  *  진짜 비율이면 고래상어(950cm)가 구피(5cm)의 190배라 구피가 점이 되므로 세제곱근으로 눌렀다(≈ 부피 비례): 구피 5cm 0.9 · 금붕어 22cm 1.5 · 비단잉어 65cm 2.1 · 참다랑어 220cm 3.2 · 고래상어 950cm 5.2.
  *  위아래를 잘라서 치어도 손가락으로 집히고 대물도 수조 폭의 절반을 넘지 않는다. fishCourse 가 길이만큼 도는 반경을 줄여 벽을 안 넘는다. */
+/** 헤엄 길 · 빠르기 · 벽까지의 거리를 재는 몸길이(motion length) — 위의 세제곱근 식 그대로다. 길 · 꼬리 박자 · 수조 안에 머물기가 전부 이 값에 맞춰져 있다. */
 export const fishLength = (cm: number, family = "") => clamp(0.9 * (Math.max(cm, 0.1) / 5) ** 0.334, 0.45, /^(kraken|giant_squid)$/.test(family) ? WORLD.width * .48 : 5.4);
+/** 그려지는 몸길이(2026-11-19) [사용자: "모든 개체들 크기를 실제와 비슷하게 반영해 제일 크거나 작은 개체 기준으로 하고 크기를 실제와 동일하게"] —
+ *  세제곱근으로 누른 크기는 흰수염고래(25m) · 밍크고래(8m) · 범고래가 전부 같은 상한(5.4)에 붙었고, 구피(5cm)가 비단잉어(65cm)의 절반 가까이 됐다.
+ *  이제 그려지는 몸은 **실제 cm 에 정비례**한다: 한 칸 = cmPerUnit cm. 기준은 수조 안에서 가장 큰 개체 — 그것이 수조 폭의 SIZE_SHARE 를 넘지 않게 cmPerUnit 을 키우고,
+ *  작은 개체뿐이면 SIZE_CM_MIN(1단계 수조 폭 10칸 = 4m, 수족관 수조 크기)에서 멈춘다(구피만 있는 수조의 구피가 수조만 해지지 않게).
+ *  손가락에 안 잡힐 만큼 작은 개체만 SIZE_FLOOR 로 부드럽게 받친다(√(실제² + 바닥²) — 더 긴 개체는 늘 더 길다).
+ *  헤엄 길은 max(fishLength, realLength) 로 잰다 — 작은 물고기는 맞춰 둔 길 · 빠르기 그대로, 큰 동물은 실제 몸만큼 벽에서 떨어져 돈다(scene.ts). */
+export const SIZE_CM_MIN = 40, SIZE_SHARE = 0.48, SIZE_FLOOR = 0.45;
+let cmPerUnit = SIZE_CM_MIN, realMode = false;
+/** 수조 안 가장 큰 개체(cm) · 수조 안 폭(월드) → 한 칸이 몇 cm 인가 */
+export const sizeUnitFor = (maxCm: number, tankWidth: number) => Math.max(SIZE_CM_MIN, maxCm / (SIZE_SHARE * Math.max(1, tankWidth)));
+export const sizeUnit = () => cmPerUnit;
+/** 수조가 한 칸을 정한다 — 그 뒤로 어른 몸길이(adultLength — 빠르기 · 꼬리 박자의 기준)도 실제 비율로 잰다 */
+export function setSizeUnit(unit: number) { if (unit !== cmPerUnit || !realMode) { cmPerUnit = unit; realMode = true; ADULT.clear(); } }
+export const realLength = (cm: number, unit = cmPerUnit) => Math.hypot(Math.max(cm, 0.1) / unit, SIZE_FLOOR);
 const ADULT = new Map<string, number>();
 /** 계열의 보통 어른 몸길이 — 빠르기 · 꼬리 박자를 몸 크기에 맞출 때 기준(표에 없는 품종 습성 키는 기준 없이 1) */
 export function adultLength(family: string): number | undefined {
-  if (!ADULT.has(family)) { const cm = FISH_BASE_CM[family]; ADULT.set(family, cm ? fishLength(cm, family) : NaN); }
+  if (!ADULT.has(family)) { const cm = FISH_BASE_CM[family]; // 실제 비율로 그릴 땐(2026-11-19) 작게 그려지는 물고기는 그만큼 천천히 — 길의 빠르기는 옛 몸길이에 맞춰져 있어 구피 · 테트라가 몸길이의 2.5 배/초 넘게 쏘다녔다.
+    //   habits 의 빠르기 배율 √(길이 / 어른) 이 (실제 / 옛) 이 되게 어른 몸길이를 옛² / 실제 로 준다(커지는 몸은 옛 그대로 — 위는 1.15 배에서 묶인다)
+    if (cm) { const old = fishLength(cm, family), real = realLength(cm); ADULT.set(family, realMode && real < old ? (old * old) / real : old); } else ADULT.set(family, NaN); }
   const v = ADULT.get(family)!;
   return Number.isNaN(v) ? undefined : v;
 }
@@ -376,6 +393,7 @@ export const bankAngle = (turn: number) => clamp(-turn * 0.09, -0.1745, 0.1745);
  * 이제 매 프레임 마지막에 몸통 캡슐(몸 방향 선분 + 반지름)끼리 실제로 겹친 만큼을 밀어낸다 — 위치 기반 물리(PBD)의 접촉 제약과 같은 방식.
  * 무거운 몸(바닥에 붙음 · 바위 위 쉼)은 덜 밀리고, mass 0(굴 속 곰치)은 안 밀린다. skip(사냥 장면의 둘)은 서로 닿아도 된다.
  * 몇 번 되풀이해 셋 이상이 엉킨 것도 푼다. 민 자리는 유리 · 모래 · 수면 안. 할당 없음. */
+const GROUND_T = [-1, -0.5, 0, 0.5, 1] as const;
 export type ContactOptions = {
   /** 몸 방향(x,y,z 차례, 크기 상관없음) */ heading: ArrayLike<number>;
   /** 밀리는 정도(0 안 밀림 ~ 1) — 없으면 모두 1 */ mass?: ArrayLike<number>;
@@ -385,6 +403,8 @@ export type ContactOptions = {
   scale?: number; deep?: number; top?: number; iters?: number;
   /** 바위(장애물 중 kind "rock" — 물고기 길 좌표: z · h 는 깊이 · 높이를 늘리기 전) · 늘린 높이. 주면 몸이 바위 안에 못 들어간다(2026-11-14) */
   rocks?: readonly Obstacle[]; tall?: number;
+  /** 모래 높이(월드 x, z → y). 주면 머리 · 가운데 · 꼬리가 모래(바닥 · 모래사장 경사) 속에 못 들어간다 — 비탈의 바깥(법선) 쪽으로 민다(2026-11-19) */
+  ground?: (x: number, z: number) => number;
 };
 /** 바위 하나를 둥근 언덕(가운데 높이 h, 반지름 r)으로 보고, 몸 위 점(px, py, pz)이 그 안이면 빠져나갈 가장 짧은 길 — 위로 올리기 또는 옆으로 밀기.
  *  out 에 [dx, dy, dz] 를 쓰고 깊이(0 이면 바깥)를 돌려준다 */
@@ -462,6 +482,30 @@ export function resolveContacts(pos: Float32Array, lengths: ArrayLike<number>, n
           else { const need = ROCK_W.r + rad * 0.6 + ha * 0.0 - cd; const m = Math.max(side, need); pos[k * 3] += (cx / cd) * m; pos[k * 3 + 2] += (cz / cd) * m; }
           any = true; moved++;
         }
+      }
+    }
+    // 모래 — 머리 · 가운데 · 꼬리 중 가장 깊이 묻힌 만큼 비탈의 법선 쪽으로(2026-11-19 [사용자: "물고기들이 해변에 머리가 들어가고있어 … 물리엔진을 적용할 수 없을까"]).
+    //   예전엔 몸 가운데만 물가 선(shore) 안쪽으로 묶어, 비스듬히 가거나 위아래로 기운 몸의 머리가 모래사장 경사에 박혔다. 바닥 물고기(pinned)는 몸 두께만큼 얕게 본다
+    if (o.ground) {
+      const G = o.ground, e = 0.08;
+      for (let k = 0; k < n; k++) {
+        if ((o.skip && o.skip[k]) || (o.mass && o.mass[k] <= 0)) continue;
+        const L = lengths[k], ha = o.disc && o.disc[k] ? 0 : L * CAP_HALF, rad = L * (o.pinned && o.pinned[k] > 0.5 ? 0.02 : 0.07);
+        let ux = H[k * 3], uy = H[k * 3 + 1], uz = H[k * 3 + 2];
+        const ul = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1; ux /= ul; uy /= ul; uz /= ul;
+        let best = 0, nx = 0, ny = 1, nz = 0;
+        for (const t of GROUND_T) {
+          const px = pos[k * 3] + ux * ha * t, py = pos[k * 3 + 1] + uy * ha * t, pz = pos[k * 3 + 2] + uz * ha * t;
+          const h = G(px, pz), dip = h + rad - py;
+          if (dip <= 0) continue;
+          const gx = (G(px + e, pz) - G(px - e, pz)) / (2 * e), gz = (G(px, pz + e) - G(px, pz - e)) / (2 * e), gl = Math.sqrt(gx * gx + 1 + gz * gz);
+          // 비탈에 수직으로 잰 깊이 = 수직 깊이 × 법선의 y
+          const depth = dip / gl;
+          if (depth > best) { best = depth; nx = -gx / gl; ny = 1 / gl; nz = -gz / gl; }
+        }
+        if (best <= 0) continue;
+        pos[k * 3] += nx * best; pos[k * 3 + 1] += ny * best; pos[k * 3 + 2] += nz * best;
+        any = true; moved++;
       }
     }
     for (let k = 0; k < n; k++) {

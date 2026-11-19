@@ -5,13 +5,13 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  whale_shark:'c45f42015733',
  oceanic_manta:'614cceae533e',
  // 2026-11-17 떠 있던 지느러미 · 수염 · 다리 · 촉수를 몸에 붙임(floating-repair.mjs)
- altum_angel:'cb12839e5704',blue_discus:'9daf1439d243',bullhead:'a16b65b0667e',catfish:'bc30bfdd18bb',cherry_shrimp:'dfbfefc06354',coelacanth:'f7cced81fbb0',
- crown_betta:'8006fb324375',dokdo_shrimp:'524f97cb7ada',fleshy_prawn:'98083cfa8c8e',fry_angel:'a7590e67930d',fry_anglerfish:'ad39a515025c',fry_catfish:'dfbbc0aee5bf',
- fry_cherry_shrimp:'1771bca5b1ba',fry_coelacanth:'7a3e3b5a41c0',fry_dokdo_shrimp:'ed34ac436b6c',fry_fleshy_prawn:'385ebf72be4d',fry_gulper_eel:'3064930fd175',fry_guppy:'acfe3fb4ec5b',
- fry_hammerhead:'3f5b920231d5',fry_jellyfish:'313d00bbe601',fry_lenok:'ea662ef6c9ae',fry_masu_salmon:'b814127fe309',fry_oarfish:'b1513d088add',fry_rising:'8dcc3542cd6a',
- fry_seahorse:'dc5067d5383e',fry_smelt:'15b2dc7622ca',fullred_guppy:'fe4c03a15f2d',genesis_fish:'70f886f3e4d3',hammerhead:'319aa9143a29',jellyfish:'090b7c35e524',
- juv_angel:'6aa2021b09d6',juv_astral:'b54b05b2d432',juv_bullhead:'1b4530858ad4',juv_catfish:'c65b88cd43eb',juv_cherry_shrimp:'0910fe4d1d22',juv_clown:'8daaf879d5ca',
- juv_coelacanth:'a31732140cc9',juv_dokdo_shrimp:'3423eb802643',juv_fleshy_prawn:'d5483545537d',juv_gulper_eel:'d6a3e3e73b66',juv_guppy:'730e7d32090b',juv_hammerhead:'23b0fc11bf06',
+ altum_angel:'cb12839e5704',blue_discus:'9daf1439d243',bullhead:'a16b65b0667e',catfish:'bc30bfdd18bb',cherry_shrimp:'3e1a13e0e8c3',coelacanth:'f7cced81fbb0',
+ crown_betta:'8006fb324375',dokdo_shrimp:'d78496d64dd2',fleshy_prawn:'ca1c1910bf25',fry_angel:'a7590e67930d',fry_anglerfish:'ff209e69256e',fry_catfish:'dfbbc0aee5bf',
+ fry_cherry_shrimp:'e4b94bdfd9ff',fry_coelacanth:'7a3e3b5a41c0',fry_dokdo_shrimp:'467eb16cf3d8',fry_fleshy_prawn:'cf62febd7abd',fry_gulper_eel:'3064930fd175',fry_guppy:'acfe3fb4ec5b',
+ fry_hammerhead:'50985289cf68',fry_jellyfish:'313d00bbe601',fry_lenok:'ea662ef6c9ae',fry_masu_salmon:'b814127fe309',fry_oarfish:'b1513d088add',fry_rising:'8dcc3542cd6a',
+ fry_seahorse:'dc5067d5383e',fry_smelt:'15b2dc7622ca',fullred_guppy:'fe4c03a15f2d',genesis_fish:'70f886f3e4d3',hammerhead:'d00c63c84052',jellyfish:'090b7c35e524',
+ juv_angel:'6aa2021b09d6',juv_astral:'b54b05b2d432',juv_bullhead:'1b4530858ad4',juv_catfish:'c65b88cd43eb',juv_cherry_shrimp:'e2f1095391dc',juv_clown:'8daaf879d5ca',
+ juv_coelacanth:'a31732140cc9',juv_dokdo_shrimp:'1fd835ca58ac',juv_fleshy_prawn:'0bfcee7c92e0',juv_gulper_eel:'d6a3e3e73b66',juv_guppy:'730e7d32090b',juv_hammerhead:'7e63b02d510f',
  juv_jellyfish:'0f728a54baa4',juv_masu_salmon:'21d7944a6e82',juv_oarfish:'eafe3db21da5',juv_smelt:'545d95bcce11',juv_sweetfish:'db23f68fd9e7',lenok:'5616279bb454',
  leopard_discus:'2dc03f7cca7b',moon_jelly:'fb473ccf69fa',mosaic_guppy:'af66393c53c4',oarfish:'ccfd9a986e49',pearl_carp:'3440a4705933',percula_clown:'58fa4a2c26ce',
  pigeon_discus:'fa54cd3233d0',platinum_angel:'16e19036a0b9',red_arowana:'3b2537b7e904',silver_angel:'f6e3c22af6fd',smelt:'0f3d2b414814',sweetfish:'dd39a7b80218',
@@ -31,14 +31,14 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_barracuda:'d72e86246bc9',juv_barracuda:'354c073a7b35',barracuda:'8207053b34a1',
  fry_frilled_shark:'5c580463f82b',juv_frilled_shark:'2dd008da6992',frilled_shark:'afbd12a5e186',
  // 2026-11-15 포유류 V3(네 방향 그림 → 입체) — 18모습
- fry_spotted_seal:'fa68d3fa3b2d',juv_spotted_seal:'3bc1f5d613b8',spotted_seal:'a2737e75533f',
- fry_fur_seal:'e008aaac65aa',juv_fur_seal:'9cb961f1b376',fur_seal:'26ed58f6ca81',
- fry_steller_sea_lion:'3eabb7954c1d',juv_steller_sea_lion:'5cdbf38e49d3',steller_sea_lion:'e912c8e5b672',
- fry_japanese_sea_lion:'8d7c2e91a0b0',juv_japanese_sea_lion:'ee1eb52891f6',japanese_sea_lion:'f4c4f7af857d',
- fry_sea_otter:'2202cbdaf56e',juv_sea_otter:'8d9008c66cb6',sea_otter:'e6e49c2c1160',
- fry_otter:'e569d4d046ea',juv_otter:'9b2b02ba149e',otter:'541cc7634e80',
+ fry_spotted_seal:'79aaa4bbbace',juv_spotted_seal:'1c811a11949c',spotted_seal:'39cc89bebc51',
+ fry_fur_seal:'ae9d0143a629',juv_fur_seal:'f593209b3b67',fur_seal:'9015a2fcc7cf',
+ fry_steller_sea_lion:'1eb088ebc5c1',juv_steller_sea_lion:'f80db8d73652',steller_sea_lion:'4d191159fddf',
+ fry_japanese_sea_lion:'03155b85c463',juv_japanese_sea_lion:'8988024bd6c7',japanese_sea_lion:'fe19c740b9f7',
+ fry_sea_otter:'72f29b2ea3c7',juv_sea_otter:'4b14a35f6cac',sea_otter:'2927da64b2fd',
+ fry_otter:'d0e2ded853db',juv_otter:'49b1848a2a3b',otter:'59d19de107ce',
  // 2026-11-18 고래 다섯 · 톱상어 — 가슴지느러미를 몸 밖으로 벌리고 꼬리 윗면을 등 색으로(whales/build.mjs)
- fry_minke_whale:'094d7d7fd82b',juv_minke_whale:'5da28e4b90b5',minke_whale:'5fb2fe89a218',fry_gray_whale:'0ecac7a85eb9',juv_gray_whale:'1b86250b38c6',gray_whale:'7db6c997b6a6',fry_humpback_whale:'07b66434abcf',juv_humpback_whale:'6c68ac1104a0',humpback_whale:'95a94d730ad5',fry_sperm_whale:'92072c39c2d6',juv_sperm_whale:'e61f420476d9',sperm_whale:'aabb90da7dfb',fry_blue_whale:'128389807ff9',juv_blue_whale:'9de94fa42a98',blue_whale:'6800e8739dbd',fry_sawshark:'3b001221d971',juv_sawshark:'598d5dd7831a',sawshark:'2ed5a2e7438f',
+ fry_minke_whale:'80e9d640ac06',juv_minke_whale:'8be673671ffe',minke_whale:'a85efd88ebb6',fry_gray_whale:'d9d580e96720',juv_gray_whale:'98a286156e78',gray_whale:'e577e3079295',fry_humpback_whale:'7c25832c1133',juv_humpback_whale:'07113f8a291d',humpback_whale:'5d564e6b757e',fry_sperm_whale:'bae975f5f69a',juv_sperm_whale:'9b7f9398a7ae',sperm_whale:'8b0b6b8c12d7',fry_blue_whale:'f5ec17b5d70c',juv_blue_whale:'d6501f71cf80',blue_whale:'13fb70646208',fry_sawshark:'91b1d8313f36',juv_sawshark:'127051976464',sawshark:'62833dcc6bc8',
  // 2026-11-18 범고래 새끼 · 어린 개체 전용 모델 — 다 큰 모델에서 비율만 바꿔 다시 구움(orca-young-build.mjs)
  fry_orca:'8acf0d5ebcd3',juv_orca:'f7ef99a634e6',
  // 2026-11-18 오징어 · 대왕오징어 6모습 v3(문어 · 크라켄 v3 는 후보로만 — ceph-v3/octopus-candidates) — 그림을 세운 판 → 진짜 입체(design/aqua3d-review/ceph-v3-build.mjs, 옛 판은 ceph-v3/old)
@@ -47,6 +47,10 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_snow_crab:'64ac1b27db8c',juv_snow_crab:'ba52799067f7',snow_crab:'a78443b606a3',fry_king_crab:'45b0a57fefd4',juv_king_crab:'a49bb2e4c99b',king_crab:'ffa49cad52e6',fry_lobster:'96f41f943e80',juv_lobster:'b87ac4beb466',lobster:'3fffaada39d9',
  // 2026-11-18 문어 3모습 v3 2차 — 그림에서 따라 그린 팔 길 · 그림 팔 띠 · 빨판 구슬(ceph-v3-build.mjs, 옛 판은 ceph-v3/old · 크라켄은 아직 후보)
  octopus:'ed3538cb8af1',fry_octopus:'151ee01ccf72',juv_octopus:'368731f67977',
+ // 2026-11-19 개복치 — 정면에서 너무 얇던 몸을 두껍게(reshape-body.mjs)
+ fry_sunfish:'c87a69c27c99',juv_sunfish:'7d9f524a3c85',sunfish:'3d007d0900a7',
+ // 2026-11-19 겉면이 안쪽을 보던 아귀 · 황아귀 · 홍어를 뒤집음(flip-inward.mjs)
+ juv_anglerfish:'2384197eb008',anglerfish:'735094a7ef0e',fry_goosefish:'2591cc1d8fef',juv_goosefish:'b477c3dcbc5a',goosefish:'7835d6e4bc12',fry_skate:'f3148aa3aaeb',juv_skate:'388b3291bceb',skate:'a296002d8551',
 });
 /** 주인 모델(public/aqua/models/boss/, 2026-11-15) — 같은 규칙(바이트 해시) */
 export const BOSS_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({

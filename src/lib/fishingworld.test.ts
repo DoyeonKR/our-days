@@ -360,7 +360,8 @@ test("몸집 — 잡은 cm 가 어항 크기가 된다 · 더 긴 물고기가 �
     assert.ok(fishLength(fishCm({ ...f, stage: 2 })) > fishLength(fishCm(f)));
   }
   assert.equal(fishCm({ family: "koi", stage: 2 }), 65, "옛 물고기는 보통 크기");
-  assert.match(code("src/lib/aqua3d/scene.ts"), /length=fishLength\(fishCm\(f\),f.family\)/);
+  // 2026-11-19 — 그려지는 몸은 실제 비율(realLength), 헤엄 길은 둘 중 큰 쪽
+  assert.match(code("src/lib/aqua3d/scene.ts"), /cm=fishCm\(f\),drawn=realLength\(cm\),length=Math\.max\(fishLength\(cm,f\.family\),drawn\)/);
 });
 test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 때에만 · 합이 100% · 버튼 숫자와 맞다 · 화면에 있다", () => {
   const spot = SPOTS.find((s) => s.key === "reef")!;
