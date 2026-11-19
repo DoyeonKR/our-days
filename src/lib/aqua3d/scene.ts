@@ -24,7 +24,7 @@ import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, RENDER_RATIO_MAX, createPacer, ratioFloor } from "./framepace.ts";
 import { type Course, type Hall, type Obstacle as CourseObstacle } from "./habits.ts";
 import { resolveContacts } from "./world.ts";
-import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, deepScale, worldToDecor, WORLD, clamp,fishLength,realLength,sizeUnitFor,sizeUnit,setSizeUnit } from "./world.ts";
+import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, deepScale, sinkScale, worldToDecor, WORLD, clamp,fishLength,realLength,sizeUnitFor,sizeUnit,setSizeUnit } from "./world.ts";
 import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { makeHabitat, rockObstacles, softShadowTexture, habitatScenery, HABITAT_THEMES, type Habitat } from "./habitat.ts";
@@ -190,7 +190,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // 두 손가락 · 휠 당기기 배율 — 0.45 배까지 다가가고 1.5 배까지 물러난다
   const ZOOM_MIN=.45,ZOOM_MAX=1.5;let userZoom=1;
   const XRAY_LAYER=3,XRAY_SKIP=/^(moray|octopus|squid|giant_squid|kraken|jellyfish)$/;
-  let habitat:Habitat|null=null, habitatTier=0, wide=1, wideBase=1, tierX=1, tall=1, pan=0, panReach=0, panPerPx=.02, lastTouch=-99, schools=new Map<number,{leader:number;slot:number}>();
+  let habitat:Habitat|null=null, habitatTier=0, habitatSink=0, wide=1, wideBase=1, tierX=1, tall=1, pan=0, panReach=0, panPerPx=.02, lastTouch=-99, schools=new Map<number,{leader:number;slot:number}>();
   /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
   let foodTimer=0,motes:Motes|null=null;
   /** 계절 수조 행사(seasonfx.ts) — 물 위 그림 한 묶음 · 여름 거품 · 명절 장식 빛. 행사 · 수조 크기가 바뀌면 새로 */
@@ -659,17 +659,18 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   }
   function update(next:TankView){
     if(disposed)return;
-    state=next;let topologyChanged=false,moved=false;const tierBefore=habitatTier,wideBefore=wide;
+    state=next;let topologyChanged=false,moved=false;const tierBefore=habitatTier,wideBefore=wide,sinkBefore=habitatSink;
     const approvedFish=next.aquarium.fish.filter(f=>isFishModelApproved(fishArtKey(f)));
     const ids=new Set(approvedFish.map(f=>f.id));
-    if(habitatTier!==next.aquarium.tank){
+    // 수심(아래로 깊게, 2026-11-20)이 바뀌어도 수조를 새로 짓는다 — 수면 · 빛줄기 · 부유물 · 바닥 높이가 모두 tall 을 따른다
+    if(habitatTier!==next.aquarium.tank||habitatSink!==(next.aquarium.sink??0)){
       if(habitat){habitat.dispose();release(habitat.root);}
-      habitat=makeHabitat(next.aquarium.tank,{anisotropy});habitatTier=next.aquarium.tank;
+      habitat=makeHabitat(next.aquarium.tank,{anisotropy});habitatTier=next.aquarium.tank;habitatSink=next.aquarium.sink??0;
       scene.add(habitat.root);topologyChanged=true;wide=0;
       // 위로 늘린다 — 바닥(WORLD.floor)을 붙잡고 키운다(habitat.heightAt 도 같은 식)
       // 단계마다 수조 자체가 커진다(2026-11-14 tiers.ts 의 tankAxes) — 가로 tierX 배 · 위아래 · 앞뒤도 그 일부만큼
       const ax=tankAxes(habitatTier,tankTall(habitatTier),tankDeep(habitatTier));tierX=ax.x;
-      tall=ax.tall;habitat.root.scale.y=tall;habitat.root.position.y=WORLD.floor*(1-tall);
+      tall=ax.tall*sinkScale(habitatSink);habitat.root.scale.y=tall;habitat.root.position.y=WORLD.floor*(1-tall);
       // 대수족관은 앞뒤로도 깊다(터널이 지나갈 자리) — 바닥 높이 · 물고기 길 · 장식 자리도 같은 배율
       deepTier=ax.deep;deep=deepTier*deepScale(next.aquarium.deepen);habitat.root.scale.z=deep;habitat.root.updateMatrix();
       if(tunnel){release(tunnel.root);tunnel.dispose();tunnel=null;}
@@ -728,7 +729,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     canvas.style.touchAction=inTunnel||photoOn?"none":"";
     {const fov=inDome?DOME_FOV:inTunnel?72:44;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}}
     if(moved||topologyChanged)refreshObstacles();
-    const rescaled=habitatTier!==tierBefore||wide!==wideBefore;
+    const rescaled=habitatTier!==tierBefore||wide!==wideBefore||habitatSink!==sinkBefore;
     // 물 속 부유물(murk.ts) — 수조 크기 · 단계마다 한 묶음. 터널 · 돔 안(공기)에는 두지 않는다
     const moteKey=`${wide},${deep},${tall},${habitatTier}`;
     if(motes&&motes.points.userData.key!==moteKey){motes.dispose();motes=null;}

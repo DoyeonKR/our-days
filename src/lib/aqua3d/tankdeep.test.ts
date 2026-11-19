@@ -52,3 +52,22 @@ test("whale sharks open their mouth and suck plankton on a cycle, skipping meals
   assert.match(scene, /"suck",plankTint/);
   assert.match(scene, /feedWhaleSharks\(\);/);
 });
+
+// 수심(아래로 깊게) — 2026-11-20 [사용자: "수조의 깊이가 없잖아 수심도 추가해야지"]
+test("sinking the tank raises the water 1.5x per step, saved in a top-level field, and the scene rebuilds the habitat taller", async () => {
+  const { SINK_STEPS, sinkTank } = await import("../aquarium.ts");
+  const { sinkScale } = await import("./world.ts");
+  assert.equal(sinkScale(0), 1);
+  for (let i = 1; i <= SINK_STEPS.length; i++) assert.ok(Math.abs(sinkScale(i) / sinkScale(i - 1) - 1.5) < 1e-9);
+  let st: Island = rich;
+  for (let i = 0; i < SINK_STEPS.length; i++) { const r = sinkTank(st, 0); assert.ok(r.ok); st = r.state; }
+  assert.equal(sinkTank(st, 0).ok, false);
+  assert.equal((st as Island & { aquaSink?: number }).aquaSink, SINK_STEPS.length);
+  const a = aquaOf({ ...st, aquarium: { ...(st as { aquarium: object }).aquarium } } as Island, 0);
+  assert.equal(a.sink, SINK_STEPS.length);
+  assert.equal(tankOf(a).fish, TANKS[a.tank - 1].fish + SINK_STEPS.reduce((n, x) => n + x.fish, 0));
+  const scene = read("src/lib/aqua3d/scene.ts");
+  assert.match(scene, /habitatSink!==\(next\.aquarium\.sink\?\?0\)/);
+  assert.match(scene, /tall=ax\.tall\*sinkScale\(habitatSink\)/);
+  assert.ok(read("src/components/AquariumGame.tsx").includes("sinkTank"));
+});

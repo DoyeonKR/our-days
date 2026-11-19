@@ -23,10 +23,10 @@ import { confirmDialog } from "@/lib/confirm";
 import { feedSpot } from "@/lib/aqua3d/world";
 import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWaits, mealEndOf } from "@/lib/aqua3d/hunt";
 import {
-  ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS, DEEP_STEPS,
+  ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS, DEEP_STEPS, SINK_STEPS,
   aquaDangers, aquaEffects, buyDecor, eatenReplays, fishAge, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
   fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
-  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank,
+  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank, sinkTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
@@ -294,7 +294,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   const decorSel = a.placed.find((p) => p.id === selDecor) ?? null;
   const bagList = Object.entries(a.bag).filter(([, n]) => n > 0);
   const nextTank = TANKS[a.tank];
-  const nextWide = WIDE_STEPS[a.wide ?? 0], nextDeep = DEEP_STEPS[a.deepen ?? 0];
+  const nextWide = WIDE_STEPS[a.wide ?? 0], nextDeep = DEEP_STEPS[a.deepen ?? 0], nextSink = SINK_STEPS[a.sink ?? 0];
   const coupons = junkCoupons(view.state, a);
   const foods = FOODS.filter((x) => x.cost === 0 || (a.food?.[x.key] ?? 0) > 0);
   const pick = foods.some((x) => x.key === food) ? food : "flake";
@@ -579,6 +579,11 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                 앞뒤로 늘리기 {(a.deepen ?? 0) + 1}/{DEEP_STEPS.length} · 깊이 1.5배 · 물고기 +{nextDeep.fish} · 장식 +{nextDeep.decor} <span className="aqua-price"><Coin /> {nextDeep.price.toLocaleString()}</span>
               </ActionButton>
             ) : <p className="aqua-note">어항을 앞뒤로 끝까지 늘렸어요</p>}
+            {nextSink ? (
+              <ActionButton wide className="aqua-btn-wrap" disabled={busy || coins < nextSink.price} onClick={() => void act((st, t) => sinkTank(st, t))}>
+                아래로 깊게 {(a.sink ?? 0) + 1}/{SINK_STEPS.length} · 수심 1.5배 · 물고기 +{nextSink.fish} · 장식 +{nextSink.decor} <span className="aqua-price"><Coin /> {nextSink.price.toLocaleString()}</span>
+              </ActionButton>
+            ) : <p className="aqua-note">어항을 끝까지 깊게 했어요</p>}
             {nextTank && nextGate.items.length > 0 && (
               <div className={`aqua-gate ${nextGate.ok ? "is-ok" : ""}`}>
                 <strong>{nextTank.name} — {nextGate.ok ? "조건을 다 채웠어요" : "이 기록이 있어야 열려요"}</strong>
