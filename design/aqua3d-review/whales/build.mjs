@@ -3,7 +3,9 @@
 // 원화(헤엄치는 옆모습)와 자세 · 색 · 무늬가 달랐다. 새우와 같은 길(shrimp-tube-build.mjs): 원화에서 열마다 잰 중심선 · 반두께로 둥근 몸통을 짓고
 // 원화를 몸 둘레로 굽는다 — 옆에서 원화와 같고 위에서도 둥글다. 지느러미 · 다리(몸 밖의 얇은 부분)는 몸 양옆에 붙이고,
 // 몸 아래 앞쪽 지느러미는 fin_L · fin_R 뼈에 묶어 물개류가 앞지느러미로 노를 젓는다(anatomy 의 OTARIID). 저장 전 updateMatrixWorld(bindpose.test).
-// node design/aqua3d-review/mammal-tube-build.mjs <key...>
+// 톱상어(2026-11-20) [사용자: "쏠배감펭이랑 톱상어도 업그레이드해"] — 톱 주둥이가 몸 옆에 붙인 얇은 판이라 위에서 보면 선 하나였다. 이제 납작하고 넓은 칼날(옆 반폭 = 위아래 반두께의 3.2 → 2.2 배)
+//   양옆 가장자리에 길고 짧은 이빨이 번갈아 22쌍, 머리는 앞 18% 에서 옆으로 1.45 배까지 납작하게. 옛 모델은 design/aqua3d-review/sawshark/old
+// node design/aqua3d-review/whales/build.mjs <key...>
 import * as T from 'three';
 import sharp from 'sharp';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
@@ -26,14 +28,20 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const png=await sharp(atlas,{raw:{width:512,height:512,channels:3}}).png().toBuffer();
  const P=[],UV=[],I=[];const vtx=(x,y,z,u,v)=>{P.push(x,y,z);UV.push(u,v);return P.length/3-1;};const refUV=(x,y)=>[x/W,(256+y/H*255)/511];
  // 몸통 관
- const N=16,step=4,rings=[];for(let x=bx0;x<=bx1;x+=step){const r=Rr[x],c=C[x],ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2;ring.push(vtx(x,c-Math.cos(phi)*r,Math.sin(phi)*r**.95,(x-bx0)/(bx1-bx0),(j/N*254+.5)/511));}rings.push(ring);}
+ // 톱상어(2026-11-20) — 머리는 위아래로 납작하고 옆으로 넓다(앞 18% 에서 옆 폭을 1.45 배까지)
+ const sawKey=/sawshark/.test(key),headK=x=>sawKey?1+.45*Math.max(0,Math.min(1,(x-(bx1-(bx1-bx0)*.18))/((bx1-bx0)*.18)))**1.5:1;
+ const N=16,step=4,rings=[];for(let x=bx0;x<=bx1;x+=step){const r=Rr[x],c=C[x],ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2;ring.push(vtx(x,c-Math.cos(phi)*r,Math.sin(phi)*r**.95*headK(x),(x-bx0)/(bx1-bx0),(j/N*254+.5)/511));}rings.push(ring);}
  for(let i=0;i<rings.length-1;i++)for(let j=0;j<N;j++){const a=rings[i][j],b=rings[i][j+1],c=rings[i+1][j],d=rings[i+1][j+1];I.push(a,c,b,b,c,d);}
  for(const [k,rev]of[[0,true],[rings.length-1,false]]){const x=bx0+k*step,ctr=vtx(x,C[Math.min(bx1,x)],0,(x-bx0)/(bx1-bx0),.25);for(let j=0;j<N;j++){const a=rings[k][j],b=rings[k][j+1];I.push(...(rev?[ctr,b,a]:[ctr,a,b]));}}
  // 몸 밖의 얇은 부분(다리 · 더듬이 · 꼬리부채) — 몸통 타원 안쪽 조금(뿌리)부터
  const rAt=x=>{const xi=Math.max(bx0,Math.min(bx1,Math.round(x)));return Rr[xi];},cAt=x=>C[Math.max(bx0,Math.min(bx1,Math.round(x)))];
  // 고래는 꼬리지느러미가 수평이다 — 원화(옆모습)의 꼬리 판은 빼고 아래에서 수평 꼬리를 따로 짓는다. 톱상어(상어)는 세로 꼬리 그대로
  const whale=!/sawshark/.test(key);
- const outside=(x,y)=>(whale&&x<bx0)?false:(x<bx0||x>bx1||Math.abs(y-cAt(x))>rAt(x)*1.0);
+ // 톱 주둥이(톱상어) — 몸통 앞(bx1)부터 원화 끝까지, 열마다 가장 굵은 줄기(거리 변환의 능선 ± 반두께 1.6)는 납작한 칼날로 따로 짓는다. 수염 · 이빨 선은 판 그대로
+ let sawTip=bx1;if(sawKey)for(let x=bx1;x<W;x++)if(rr[x]>.8)sawTip=x;
+ const SC=new Float32Array(W),SR=new Float32Array(W);if(sawKey){for(let x=bx1;x<=sawTip;x++){let a=0,b=0,n=0;for(let k=-4;k<=4;k++){const j=Math.max(bx1,Math.min(sawTip,x+k));if(rr[j]>0){a+=cy[j];b+=rr[j];n++;}}SC[x]=n?a/n:cAt(bx1);SR[x]=n?b/n:1;}}
+ const inSaw=(x,y)=>sawKey&&x>bx1&&x<=sawTip&&Math.abs(y-SC[Math.round(x)])<=SR[Math.round(x)]*1.6;
+ const outside=(x,y)=>(whale&&x<bx0)?false:!inSaw(x,y)&&(x<bx0||x>bx1||Math.abs(y-cAt(x))>rAt(x)*1.0);
  const app=relief(art,{depth:.02,round:.015,step:2,alpha:A,inside:outside,targetTris:1500});const appStart=P.length/3,APP=[];
  for(const side of[-1,1]){const base=P.length/3,n=app.P.length/3;for(let i=0;i<n;i++){const x=app.P[i*3],y=app.P[i*3+1],z=app.P[i*3+2],inBody=x>=bx0&&x<=bx1,below=inBody&&y>cAt(x),off=inBody?rAt(x)*(below?.45:.3):0;APP.push([vtx(x,y,z+side*off,...refUV(x,y)),side,x,y]);}for(const k of app.I)I.push(base+k);}
  const mid=(bx0+bx1)/2,front=APP.filter(([, ,x,y])=>x>mid&&x<=bx1&&y>cAt(x));let fx=0,fy=0,rx=0;for(const [, ,x,y]of front){fx+=x;fy+=y;}const nf=Math.max(1,front.length);fx/=nf;fy/=nf;rx=fx+ (bx1-bx0)*.04;const rootY=cAt(rx)+rAt(rx)*.6;
@@ -41,6 +49,20 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  //   몸 아래 붙는 선(가운데 + 반두께 .6)보다 아래로 나온 만큼 바깥(z)으로 옮기고 조금 들어 올린다. 상어(톱상어)는 더 수평으로
  const splayZ=whale?.85:1,splayY=whale?.4:.7,attach=x=>cAt(x)+rAt(x)*.6;
  for(const [v,side,x,y]of APP){if(!(x>mid&&x<=bx1))continue;const dy=y-attach(x);if(dy<=0)continue;P[v*3+2]+=side*dy*splayZ;P[v*3+1]-=dy*splayY;}
+ if(sawKey){
+  // 칼날 — 위아래 반두께는 원화 그대로(옆모습이 같다), 옆 반폭은 그 3.2배(뿌리) → 2.2배(끝). 실제 톱상어의 톱은 납작하고 넓은 판이다
+  const L=sawTip-bx1,NB=12,blade=[],x0b=bx1-step*2;
+  for(let x=x0b;x<=sawTip;x+=3){const xi=Math.min(sawTip,Math.max(bx1,Math.round(x))),t=Math.max(0,(x-bx1)/Math.max(1,L)),rv=Math.max(1.2,x<bx1?rAt(x)*.55:SR[xi]*.95),rh=x<bx1?rAt(x)*.55*headK(x)*1.4:rv*(3.2-1*t),cy0=x<bx1?cAt(x):SC[xi],ring=[];
+   for(let j=0;j<=NB;j++){const phi=j/NB*Math.PI*2;ring.push(vtx(x,cy0-Math.cos(phi)*rv,Math.sin(phi)*rh,...refUV(x,cy0-Math.cos(phi)*rv*.8)));}blade.push([x,ring,rh,cy0]);}
+  for(let i=0;i<blade.length-1;i++)for(let j=0;j<NB;j++){const a=blade[i][1][j],b=blade[i][1][j+1],c=blade[i+1][1][j],d=blade[i+1][1][j+1];I.push(a,c,b,b,c,d);}
+  {const [x,ring,,cy0]=blade.at(-1),tip=vtx(x+3,cy0,0,...refUV(x,cy0));for(let j=0;j<NB;j++)I.push(ring[j],tip,ring[j+1]);}
+  // 이빨 — 칼날 양옆 가장자리에 바깥으로 뻗은 가시(길고 짧은 것이 번갈아, 뿌리는 칼날 속에 묻힌다). 위아래 두께가 있는 납작한 세모 둘(위 · 아래)
+  const nT=22,tc=px(sawTip,SC[sawTip]).map(v=>Math.min(255,v*1.25+30)),tUV=refUV(sawTip-L*.2,SC[Math.round(sawTip-L*.2)]-SR[Math.round(sawTip-L*.2)]*.3);
+  for(let k=1;k<nT;k++){const x=bx1+L*k/nT,xi=Math.round(x),rec=blade.reduce((b,r)=>Math.abs(r[0]-x)<Math.abs(b[0]-x)?r:b),rh=rec[2],cy0=SC[xi],rv=SR[xi]*.95,len=SR[xi]*(k%2?2.4:1.5),half=Math.max(.9,L/nT*.32);
+   for(const sd of[-1,1]){const b0=vtx(x-half,cy0,sd*rh*.8,...tUV),b1=vtx(x+half,cy0,sd*rh*.8,...tUV),up=vtx(x,cy0-rv*.35,sd*rh*.85,...tUV),dn=vtx(x,cy0+rv*.35,sd*rh*.85,...tUV),tp=vtx(x-half*.6,cy0,sd*(rh+len),...tUV);
+    I.push(b0,up,tp,up,b1,tp,b1,dn,tp,dn,b0,tp);}}
+  void tc;
+ }
  // 수평 꼬리지느러미(고래) — 갈래 둘 · 가운데 홈 · 앞 가장자리는 뒤로 젖혀진다. 윗면은 등 색, 아랫면은 배 색(혹등고래는 흰 아랫면)
  if(whale){let xl=bx0;for(let x=0;x<bx0;x++){let on=false;for(let y=0;y<H;y++)if(mask[y*W+x]){on=true;break;}if(on){xl=x;break;}}
   const xr=bx0+(bx1-bx0)*.03,tl=Math.max(8,xr-xl),span=(bx1-bx0)*.115,yc=cAt(bx0),th=rAt(bx0)*.4,NA=14,NS=6,top=[],bot=[];
@@ -59,6 +81,6 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const finOf=new Map();for(const [v,side,x,y]of APP)if(x>mid&&x<=bx1&&y>cAt(x)){const d=Math.hypot(x-rx,y-rootY),f=Math.min(1,d/Math.max(4,Math.hypot(fx-rx,fy-rootY)*1.6));finOf.set(v,[side>0?6:8,f]);}
  const J=new Uint16Array(n*4),Wt=new Float32Array(n*4);for(let i=0;i<n;i++){const x=pos[i*3];const fb=finOf.get(i);if(fb){J[i*4]=fb[0];J[i*4+1]=fb[0]+1;Wt[i*4]=1-fb[1];Wt[i*4+1]=fb[1];continue;}if(x>=BX[0]){Wt[i*4]=1;continue;}let k=0;while(k<4&&x<BX[k+1])k++;const f=Math.max(0,Math.min(1,(BX[k]-x)/(BX[k]-BX[k+1])));J[i*4]=k;J[i*4+1]=k+1;Wt[i*4]=1-f;Wt[i*4+1]=f;}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setAttribute('skinIndex',new T.Uint16BufferAttribute(J,4));g.setAttribute('skinWeight',new T.Float32BufferAttribute(Wt,4));g.setIndex((()=>{/* 2026-11-19 위아래를 뒤집어(my-y) 담으면 감기 방향도 뒤집힌다 — 삼각형을 바깥으로(flip-inward.mjs 와 같은 일, facing.test) */for(let t=0;t<I.length;t+=3){const s=I[t+1];I[t+1]=I[t+2];I[t+2]=s;}return I;})());g.computeVertexNormals();
- const glb=await compressGLB(material(packAsset(key,[{name:key,geometry:g,extras:{aquaGeometry:'reference-traced-whale',source:`public/aqua/fish/${key}.webp`,bodyCrossSection:'closed ellipse'}}],png,bones),m=>{m.name='painted_PBR_atlas';m.doubleSided=true;m.pbrMetallicRoughness.metallicFactor=.08;m.pbrMetallicRoughness.roughnessFactor=.72;}),{webpQuality:92});
+ const glb=await compressGLB(material(packAsset(key,[{name:key,geometry:g,extras:{aquaGeometry:'reference-traced-whale',source:`public/aqua/fish/${key}.webp`,bodyCrossSection:'closed ellipse',...(sawKey?{rostrum:'flattened saw blade with lateral teeth (2026-11-20)'}:{})}}],png,bones),m=>{m.name='painted_PBR_atlas';m.doubleSided=true;m.pbrMetallicRoughness.metallicFactor=.08;m.pbrMetallicRoughness.roughnessFactor=.72;}),{webpQuality:92});
  return {glb,tris:I.length/3,body:[bx0,bx1]};}
 for(const key of process.argv.slice(2)){if(/gray_whale/.test(key))throw Error('귀신고래는 2026-11-18 사진 기준 — whales/gray-build.mjs 로 짓는다');const {glb,tris,body}=await build(key);if(tris>8000)throw Error(key+' tris '+tris);await writeFile(`public/aqua/models/fish/${key}.glb`,glb);console.log(key,tris,'tris',glb.length,'bytes','body',body.join('-'));}

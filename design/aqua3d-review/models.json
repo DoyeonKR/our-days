@@ -36539,8 +36539,8 @@
       "family": "lionfish",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_lionfish.glb",
-      "triangles": 2458,
-      "bytes": 68000,
+      "triangles": 2970,
+      "bytes": 72996,
       "bones": [
         "spine_0",
         "spine_1",
@@ -36611,17 +36611,17 @@
         {
           "name": "caudal_fin",
           "start": 1645,
-          "end": 1747
+          "end": 1699
         },
         {
           "name": "pectoral_R",
-          "start": 1747,
-          "end": 1817
+          "start": 1699,
+          "end": 1951
         },
         {
           "name": "pectoral_L",
-          "start": 1817,
-          "end": 1887
+          "start": 1951,
+          "end": 2203
         }
       ],
       "swimmingMode": "body-caudal",
@@ -36659,21 +36659,17 @@
         "spine_4",
         "spine_5"
       ],
-      "deformationValidation": {
-        "sampledPoses": 3,
-        "allVerticesFinite": true,
-        "maximumDisplacement": 0.23495466835299092
-      },
-      "sha256": "ed71987feb4b9163625fe5309671f47ccda32e4ce8183e408c76c4816bdddfc2",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "sha256": "b5e02a1033d420033431d1668c0fd3b6f585ebc95bcb3d2990ca53248bc3604a",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "rebuilt": "2026-11-20 lionfish fan pectorals"
     },
     "juv_lionfish": {
       "kind": "fish",
       "family": "lionfish",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_lionfish.glb",
-      "triangles": 2412,
-      "bytes": 67400,
+      "triangles": 2908,
+      "bytes": 72232,
       "bones": [
         "spine_0",
         "spine_1",
@@ -36744,17 +36740,17 @@
         {
           "name": "caudal_fin",
           "start": 1537,
-          "end": 1663
+          "end": 1607
         },
         {
           "name": "pectoral_R",
-          "start": 1663,
-          "end": 1733
+          "start": 1607,
+          "end": 1859
         },
         {
           "name": "pectoral_L",
-          "start": 1733,
-          "end": 1803
+          "start": 1859,
+          "end": 2111
         }
       ],
       "swimmingMode": "body-caudal",
@@ -36792,21 +36788,17 @@
         "spine_4",
         "spine_5"
       ],
-      "deformationValidation": {
-        "sampledPoses": 3,
-        "allVerticesFinite": true,
-        "maximumDisplacement": 0.23465954666830827
-      },
-      "sha256": "c99e3b35d9de7e6ddb93025ebab79e6d9a07b6253f627d39916b405f6ea22ed2",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "sha256": "654f913aba3e0aaeb4d1cffe15c1f0a00979f77f3f9608758f506786f10c8bff",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "rebuilt": "2026-11-20 lionfish fan pectorals"
     },
     "lionfish": {
       "kind": "fish",
       "family": "lionfish",
       "form": "adult",
       "file": "public/aqua/models/fish/lionfish.glb",
-      "triangles": 2388,
-      "bytes": 83284,
+      "triangles": 2996,
+      "bytes": 89316,
       "bones": [
         "spine_0",
         "spine_1",
@@ -36882,12 +36874,12 @@
         {
           "name": "pectoral_R",
           "start": 1653,
-          "end": 1723
+          "end": 1905
         },
         {
           "name": "pectoral_L",
-          "start": 1723,
-          "end": 1793
+          "start": 1905,
+          "end": 2157
         }
       ],
       "swimmingMode": "body-caudal",
@@ -36925,13 +36917,9 @@
         "spine_4",
         "spine_5"
       ],
-      "deformationValidation": {
-        "sampledPoses": 3,
-        "allVerticesFinite": true,
-        "maximumDisplacement": 0.23457746383720657
-      },
-      "sha256": "142d47a8dcaf1e7286ba0c2bc237ca21102dc6bc79bbed2f0c3dfee4cb16924c",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "sha256": "e0455e4602746c0858ef5c1aaded5b807bdb21b4997743ae9300ae21ca15894e",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "rebuilt": "2026-11-20 lionfish fan pectorals"
     },
     "fry_seahorse": {
       "kind": "fish",
@@ -51140,8 +51128,7 @@
       "family": "sawshark",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_sawshark.glb",
-      "triangles": 5752,
-      "bytes": 69996,
+      "bytes": 74404,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51163,7 +51150,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "5afebdb0cb7f0f79b98526f55b65c899196962dd71a1d713ba7c870454814cc7",
-      "sha256": "3b001221d97131a63d4cbd61f3b037c054e641a14aa8b9d7488320ae91e5aeea",
+      "sha256": "745f77fff5fd8435f331ba7a78d55ac93fa0b4ce00e57d081513ffc2563ef739",
       "limits": {
         "triangles": 8000,
         "bytes": 300000
@@ -51183,10 +51170,17 @@
       "activation": "not enabled",
       "geometryAuthoring": "reference-traced-tube-v1",
       "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
         "errors": 0,
-        "decodedErrors": 0,
         "warnings": 0,
-        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
       },
       "weightedBones": [
         "fin_L",
@@ -51200,21 +51194,17 @@
         "spine_4",
         "spine_5"
       ],
-      "deformationValidation": {
-        "sampledPoses": 3,
-        "allVerticesFinite": true,
-        "maximumDisplacement": 0.19650439146101306
-      },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)"
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)",
+      "rebuilt": "2026-11-20 sawshark flattened saw blade + teeth",
+      "triangles": 6412
     },
     "juv_sawshark": {
       "kind": "fish",
       "family": "sawshark",
       "form": "juv",
       "file": "public/aqua/models/fish/juv_sawshark.glb",
-      "triangles": 5752,
-      "bytes": 72732,
+      "bytes": 77140,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51236,7 +51226,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "cdcd53d8f0aa8be8d1d295b05edd902fac40f942f285c92e4416d2ea44fa8d5e",
-      "sha256": "598d5dd7831ac8eeca55f89b3fb05d290c3cbaeedd0203c5e1436c17a85e846c",
+      "sha256": "ab97150b1b9b1667c4844ec426c4f91ce4152b27e2a7e71bbe39d2bcd154aab1",
       "limits": {
         "triangles": 8000,
         "bytes": 300000
@@ -51256,10 +51246,17 @@
       "activation": "not enabled",
       "geometryAuthoring": "reference-traced-tube-v1",
       "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
         "errors": 0,
-        "decodedErrors": 0,
         "warnings": 0,
-        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
       },
       "weightedBones": [
         "fin_L",
@@ -51273,21 +51270,17 @@
         "spine_4",
         "spine_5"
       ],
-      "deformationValidation": {
-        "sampledPoses": 3,
-        "allVerticesFinite": true,
-        "maximumDisplacement": 0.19650439146101306
-      },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)"
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)",
+      "rebuilt": "2026-11-20 sawshark flattened saw blade + teeth",
+      "triangles": 6412
     },
     "sawshark": {
       "kind": "fish",
       "family": "sawshark",
       "form": "adult",
       "file": "public/aqua/models/fish/sawshark.glb",
-      "triangles": 5752,
-      "bytes": 75968,
+      "bytes": 80376,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51309,7 +51302,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "840d2d3bb1da37033a051e93367064d9ac9bbcc1fb8db436d0a01e882cf8f1bc",
-      "sha256": "2ed5a2e7438f14411a4c4447baaec6a2f2897b61547b1a2ed36062a42e1b5790",
+      "sha256": "11d185a2bd89cb66aeb59acf7ed976f39ff5d12ba1e6a34619b4ad3f651460ed",
       "limits": {
         "triangles": 8000,
         "bytes": 300000
@@ -51329,10 +51322,17 @@
       "activation": "not enabled",
       "geometryAuthoring": "reference-traced-tube-v1",
       "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
         "errors": 0,
-        "decodedErrors": 0,
         "warnings": 0,
-        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10"
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
       },
       "weightedBones": [
         "fin_L",
@@ -51346,13 +51346,10 @@
         "spine_4",
         "spine_5"
       ],
-      "deformationValidation": {
-        "sampledPoses": 3,
-        "allVerticesFinite": true,
-        "maximumDisplacement": 0.19650439146101306
-      },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)"
+      "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)",
+      "rebuilt": "2026-11-20 sawshark flattened saw blade + teeth",
+      "triangles": 6412
     }
   },
   "structuralValidation": "passed",

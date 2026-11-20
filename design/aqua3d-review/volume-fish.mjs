@@ -4,6 +4,8 @@
 import * as T from 'three';
 import {fitBody} from './fish-fit.mjs';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+/** 쏠배감펭 가슴지느러미 부채를 세로에서 옆으로 눕히는 각(rad) — 0 이면 원화처럼 세로 판, 크면 날개처럼 수평 */
+export const FAN_TILT=.95;
 const smooth=t=>{t=clamp(t);return t*t*(3-2*t);};
 // Legacy sharks must use a volumetric trunk and a single pair of swept fins.
 // Hammerhead and megamouth retain their specialised head sculptures.
@@ -162,6 +164,20 @@ export function volumeFish(family,key,ref,profile){
    if(j<4&&k<6){const n=start+j*7+k;indices.push(n,n+1,n+7,n+1,n+8,n+7);}
   }
   regions.push({name:side>0?'nasal_barbel_L':'nasal_barbel_R',start,end:positions.length/3});
+ }
+ else if(family==='lionfish')for(const side of [-1,1]){
+  // 쏠배감펭(2026-11-20) [사용자: "쏠배감펭이랑 톱상어도 업그레이드해"] — 공용 가슴지느러미(작은 잎)라 위에서 보면 몸 옆 작은 세모였다.
+  // 실제 쏠배감펭은 머리 뒤에서 커다란 부채(가슴지느러미)를 뒤 · 아래 · 바깥으로 활짝 편다. 줄기(ray) 11개가 끝까지 뻗고 사이 막은 짧게 패여 술처럼 갈라진다.
+  // 부채는 옆으로 FAN_TILT 만큼 눕혀 위에서도 넓게 보이고, 그림은 원화의 부채 자리(뿌리에서 같은 방향 · 거리)의 픽셀을 그대로 쓴다(빨강 · 흰 줄무늬).
+  const start=positions.length/3,s0=.70,q=sample(s0),root=[X(q.u),Y(q.center)-q.half*ratio*.3,side*profile.widthRatio*widthCurve(s0)*.8],rootV=q.center+q.half*.3;
+  const M=11,Rn=5,len=(key.startsWith('fry_')?.5:key.startsWith('juv_')?.58:.64),tilt=FAN_TILT,th0=.12,th1=1.55;
+  const cols=2*M-1,dirOf=i=>{const th=th0+(th1-th0)*i/(cols-1),dx=-Math.cos(th),dy=-Math.sin(th);return [dx,dy*Math.cos(tilt),side*(-dy*Math.sin(tilt)+.18)];};
+  for(const face of [-1,1])for(let i=0;i<cols;i++){const d=dirOf(i),ray=i%2===0,L=len*(ray?(i%4===0?1:.9):.66),th=th0+(th1-th0)*i/(cols-1);
+   for(let j=0;j<=Rn;j++){const f=j/Rn,r=L*f;
+    vertex([root[0]+d[0]*r,root[1]+d[1]*r+face*.0025*(1-f),root[2]+d[2]*r],paint(clamp(q.u-Math.cos(th)*r/2*.95),clamp(rootV+Math.sin(th)*r/ratio*.95)),{side,t:Math.min(.95,f*.95)});}}
+  const per=cols*(Rn+1);
+  for(let face=0;face<2;face++)for(let i=0;i<cols-1;i++)for(let j=0;j<Rn;j++){const a=start+face*per+i*(Rn+1)+j,b=a+Rn+1;if(face===0)indices.push(a,b,a+1,a+1,b,b+1);else indices.push(a,a+1,b,a+1,b+1,b);}
+  regions.push({name:side>0?'pectoral_L':'pectoral_R',start,end:positions.length/3});
  }
  else if(!profile.shark&&family!=='moray')for(const side of [-1,1]){
   const start=positions.length/3,s=.72,q=sample(s),anchor=[X(q.u),Y(q.center)-q.half*ratio*.28,side*profile.widthRatio*widthCurve(s)];

@@ -38,7 +38,7 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_sea_otter:'72f29b2ea3c7',juv_sea_otter:'4b14a35f6cac',sea_otter:'2927da64b2fd',
  fry_otter:'d0e2ded853db',juv_otter:'49b1848a2a3b',otter:'59d19de107ce',
  // 2026-11-18 고래 다섯 · 톱상어 — 가슴지느러미를 몸 밖으로 벌리고 꼬리 윗면을 등 색으로(whales/build.mjs)
- fry_minke_whale:'80e9d640ac06',juv_minke_whale:'8be673671ffe',minke_whale:'a85efd88ebb6',fry_gray_whale:'d9d580e96720',juv_gray_whale:'98a286156e78',gray_whale:'e577e3079295',fry_humpback_whale:'7c25832c1133',juv_humpback_whale:'07113f8a291d',humpback_whale:'5d564e6b757e',fry_sperm_whale:'bae975f5f69a',juv_sperm_whale:'9b7f9398a7ae',sperm_whale:'8b0b6b8c12d7',fry_blue_whale:'f5ec17b5d70c',juv_blue_whale:'d6501f71cf80',blue_whale:'13fb70646208',fry_sawshark:'91b1d8313f36',juv_sawshark:'127051976464',sawshark:'62833dcc6bc8',
+ fry_minke_whale:'80e9d640ac06',juv_minke_whale:'8be673671ffe',minke_whale:'a85efd88ebb6',fry_gray_whale:'d9d580e96720',juv_gray_whale:'98a286156e78',gray_whale:'e577e3079295',fry_humpback_whale:'7c25832c1133',juv_humpback_whale:'07113f8a291d',humpback_whale:'5d564e6b757e',fry_sperm_whale:'bae975f5f69a',juv_sperm_whale:'9b7f9398a7ae',sperm_whale:'8b0b6b8c12d7',fry_blue_whale:'f5ec17b5d70c',juv_blue_whale:'d6501f71cf80',blue_whale:'13fb70646208',fry_sawshark:'745f77fff5fd',juv_sawshark:'ab97150b1b9b',sawshark:'11d185a2bd89',
  // 2026-11-18 범고래 새끼 · 어린 개체 전용 모델 — 다 큰 모델에서 비율만 바꿔 다시 구움(orca-young-build.mjs)
  fry_orca:'8acf0d5ebcd3',juv_orca:'f7ef99a634e6',
  // 2026-11-18 오징어 · 대왕오징어 6모습 v3(문어 · 크라켄 v3 는 후보로만 — ceph-v3/octopus-candidates) — 그림을 세운 판 → 진짜 입체(design/aqua3d-review/ceph-v3-build.mjs, 옛 판은 ceph-v3/old)
@@ -70,6 +70,8 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  ranchu_gold:'35103a2337c0',rockfish:'cf50abc2eb5c',rockfish_bollak:'909564a442b5',ryukin_gold:'aacbb72575e4',sailfin_sandfish:'c7dfd58b0abe',salmon:'bc3f89582aaf',
  sanke_koi:'aadc9121896c',sea_bass:'69741d1ac478',sea_bream:'6d05d8767cab',showa_koi:'1661dad3f3d6',silver_arowana:'9bceb5ab0e6a',snakehead:'09238f1b1d45',
  snowflake_clown:'f3719728c840',striped_jack:'cf0498a66e5b',yellowtail:'29e48c0fd32e',
+ // 2026-11-20 쏠배감펭 부채 가슴지느러미 · 톱상어 납작한 톱 + 이빨
+ lionfish:'e0455e460274',juv_lionfish:'654f913aba3e',fry_lionfish:'b5e02a1033d4',
 });
 /** 주인 모델(public/aqua/models/boss/, 2026-11-15) — 같은 규칙(바이트 해시) */
 export const BOSS_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({
