@@ -63,3 +63,30 @@ test("붐비는 수조에서도 몸이 떨지 않는다 — 움직이는 방향�
   assert.ok(mean < 10, `평균 ${mean.toFixed(1)}`);
   for (const [f, v] of per) assert.ok(v < 25, `${f} ${v.toFixed(1)}`);
 });
+
+// 오르내리는 기울기(2026-11-20) [사용자: "숨 쉬러 올라갈 때 가파른 것도 고쳐 그런 어색한것들 싹다"] — 실제 크기 수조(tankAxes)에서 몸이 실제로 오르내리는 각.
+//   고치기 전: 포유류 중앙값 50 ~ 56°(숨 쉬는 동안 길이 멈춰 승강기처럼 솟았다 · 높이가 고리 한 바퀴에 두 번 오르내려 고리 끝에서 곧게 섰다), 잉어 · 연어 · 참다랑어도 50 ~ 56°
+import { tankAxes } from "./tiers.ts";
+import { tankTall as tTall } from "./world.ts";
+test("헤엄치며 오르내리는 각 — 포유류 · 물속 물고기 모두 중앙값 45° 아래, 움직이는 프레임 중 55° 넘는 것은 20% 아래, 높이 범위는 수조 높이의 30% 넘게(위 · 아래가 비지 않게)", () => {
+  const tier = 6, ax = tankAxes(tier, tTall(tier), tankDeep(tier)), hz = 30;
+  const tank = { ...tankOf(tier, 0, []), wide: ax.x, tall: ax.tall, deep: ax.deep, obstacles: rockObstacles(tier, ax.x, ax.deep), heightAt: (x: number, z: number) => WORLD.floor + (substrateHeight(x / ax.x, z / ax.deep, tier) - WORLD.floor) * ax.tall };
+  const fams = ["spotted_seal", "fur_seal", "steller_sea_lion", "otter", "koi", "salmon", "bluefin", "tetra"];
+  const fish = fams.map((f, i) => ({ id: i * 7 + 3, family: f, length: adult(f) }));
+  const prev = fish.map(() => [NaN, 0, 0]), ang: number[][] = fish.map(() => []), yr = fish.map(() => [1e9, -1e9]), moving = fish.map(() => 0), steepN = fish.map(() => 0);
+  run(tank as never, fish, 300, (_t, pos, cs) => {
+    for (let i = 0; i < fish.length; i++) {
+      const p = [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]], q = prev[i];
+      yr[i][0] = Math.min(yr[i][0], p[1]); yr[i][1] = Math.max(yr[i][1], p[1]);
+      if (!Number.isNaN(q[0]) && (cs[i].ground ?? 0) < 0.3) { const dx = p[0] - q[0], dy = p[1] - q[1], dz = p[2] - q[2], d = Math.hypot(dx, dy, dz); if (d * hz / fish[i].length > 0.15) { moving[i]++; const g = Math.atan2(Math.abs(dy), Math.hypot(dx, dz)) * 57.3; if (g > 55) steepN[i]++; if (Math.abs(dy) > 0.3 * d) ang[i].push(g); } }
+      prev[i] = p;
+    }
+  }, [], hz);
+  const tankH = (5.56 - WORLD.floor) * ax.tall;
+  for (let i = 0; i < fish.length; i++) {
+    const a = ang[i].sort((x, y) => x - y), med = a[a.length >> 1] ?? 0, steep = steepN[i] / Math.max(1, moving[i]);
+    assert.ok(med < 45, `${fams[i]} 중앙값 ${med.toFixed(0)}°`);
+    assert.ok(steep < 0.2, `${fams[i]} 55° 넘게 ${(100 * steep).toFixed(0)}%`);
+    if (!/seal|otter|lion/.test(fams[i])) assert.ok(yr[i][1] - yr[i][0] > tankH * 0.3, `${fams[i]} 높이 범위 ${(yr[i][1] - yr[i][0]).toFixed(1)} / ${tankH.toFixed(1)}`);
+  }
+});

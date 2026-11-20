@@ -371,7 +371,8 @@ test("무리 — 대장이 쉬는 동안 따라가는 물고기는 일부만 같
       if (sp[0] < 0.05) for (let i = 1; i < 6; i++) { rest++; if (sp[i] < 0.03) slow++; }
     });
     assert.ok(rest > 100 && hov > 100, `${family} 대장이 쉬는 프레임 ${rest} · ${hov}`);
-    assert.ok(slow / rest < 0.08, `${family} 대장이 쉴 때 굳은 따라가는 물고기 ${(100 * slow / rest).toFixed(1)}%`);
+    // 2026-11-20 — 오르내리기를 한 바퀴에 한 번으로 줄인 뒤(habits vf) 따라가는 잉어가 대장 둘레를 돌다 잠깐 빠르기 선 아래로 내려가는 몫이 8.9% — 0.10 으로(옛 결함은 80 ~ 92%)
+    assert.ok(slow / rest < 0.1, `${family} 대장이 쉴 때 굳은 따라가는 물고기 ${(100 * slow / rest).toFixed(1)}%`);
     assert.ok(both / hov > 0.4 && both / hov < 0.75, `${family} 같이 떠 있는 겹침 ${(100 * both / hov).toFixed(1)}% (일부만)`);
     assert.ok(swimHov / hov > 0.2, `${family} 대장이 떠 있는 동안 헤엄치는 따라가는 물고기 ${(100 * swimHov / hov).toFixed(1)}%`);
     assert.ok(crab / mov < 0.08, `${family} 옆으로 기는 따라가는 물고기 ${(100 * crab / mov).toFixed(1)}%`);

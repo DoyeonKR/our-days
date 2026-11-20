@@ -348,7 +348,7 @@ export const glassRoom = (half: number, scale: number) => ({ x: roomX(half, scal
 // 한 번 부를 때 쓰는 값들 — 매 프레임 객체를 새로 만들지 않으려고 모듈에 둔다(단일 스레드)
 // cx · cz · rx · zr 은 지금 고리(천천히 떠도는 값까지), bcx · bcz · brx · bzr 은 떠돌기 전 기준 고리 — 어느 쪽으로 비킬지는 기준 고리로만 정한다(시간 따라 안 바뀐다)
 const S = { cx: 0, cz: 0, rx: 0, zr: 0, bcx: 0, bcz: 0, brx: 0, bzr: 0, zs: 1, zj: 0, phase: 0, hug: -1, bob: 0, floorY: 0, length: 1, mid: 0, amp: 0, scale: 1, half: 0.5, bodyH: 0.1, yBand: 1,
-  kneeX: 1, limX: 1, kneeZ: 1, limZ: 1, deep: 1, tall: 1, minBottom: 0, lane: 0, hash: 0, tx: 1, tz: 0,
+  kneeX: 1, limX: 1, kneeZ: 1, limZ: 1, deep: 1, tall: 1, minBottom: 0, lane: 0, hash: 0, tx: 1, tz: 0, vf: 2,
   // 경기장 고리(lap) — 곧은 길 반길이 lapX · 양 끝 반원 반지름 lapR(둘 다 월드) · 한 바퀴 길이 lapP. lap 0 이면 타원 고리
   lap: 0, lapX: 0, lapR: 0, lapP: 1, lapFree: 0 };
 const Q = new Float64Array(9); // u-δ · u · u+δ 세 점의 x,y,z
@@ -413,7 +413,7 @@ function ringPoint(u: number, i: number) {
     Q[i] = S.cx + S.rx * Math.sin(u);
     Q[i + 2] = S.cz + S.zs * S.zr * Math.cos(u + S.zj);
   }
-  Q[i + 1] = S.hug >= 0 ? S.floorY + S.hug * S.length + S.bob * Math.sin(u * 2 + S.phase) : S.mid + S.amp * Math.sin(u * 2 + S.phase);
+  Q[i + 1] = S.hug >= 0 ? S.floorY + S.hug * S.length + S.bob * Math.sin(u * 2 + S.phase) : S.mid + S.amp * Math.sin(u * S.vf + S.phase);
 }
 
 /** 기준 고리 중심에서 (dx, dz) 쪽 고리 반지름 — 월드에서 잰다(축에 맞춘 타원) */
@@ -622,7 +622,7 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
 }
 
 // 길 위치 u(시간 → 길) 계산에 쓰는 값
-const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0, bstretch: 1 };
+const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0, bstretch: 1, mam: false };
 /** 두족류 — n 번째로 옮겨 가는 것이 물 뿜기인가(물고기마다 · 몇 번째인지로만 정해진다) */
 const jetHop = (n: number) => U.jetShare > 0 && unit(U.hash, 911 + (((n % 4999) + 4999) % 4999)) < U.jetShare;
 /** n 번째 옮겨 가기 전까지의 물 뿜기 수 — 물 뿜기는 길을 거꾸로 한 칸 가므로 그만큼(두 칸) 뒤에서 다음 걸음을 이어 간다. 물고기마다 앞에서부터 쌓아 둔다 */
@@ -684,7 +684,9 @@ function turtleAt(t: number, hash: number, period: number) {
   B.breath = winWeight;
   const l2 = windows(t, period, (start + period / 2) % period, 26, 6 / 26, 6 / 26, 2);
   B.sand = U.noSand ? 0 : winWeight;
-  B.loss = 0.75 * l1 + (U.noSand ? 0 : 0.95 * l2);
+  // 숨 쉬러 오르내리는 동안 길을 멈추는 몫 — 거북은 수면에서 쉬므로 75% 멈춘다. 공기 호흡만 하는 몸(피라루쿠 · 가물치 등, breathOnly)과 포유류(haul — 모래에 쉬는 물범 포함)는
+  //   2026-11-20 [사용자: "숨 쉬러 올라갈 때 가파른 것도 고쳐"] 길을 멈추면 옆으로는 안 가고 곧게 솟았다(승강기처럼) — 헤엄치며 비스듬히 오르게 멈추지 않는다
+  B.loss = (U.noSand || U.mam ? 0 : 0.75) * l1 + (U.noSand ? 0 : 0.95 * l2);
 }
 
 /** 해파리 — 짧게 오므리며(앞 30%) 솟고, 길게 펴면서 천천히 가라앉는다. 갓 모양(1 펴짐 · -1 오므림)과 높이 변화 */
@@ -772,8 +774,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   U.hover = rest === 0 && habit.hug === undefined && !habit.jet && !habit.breathe;
   U.hoverP = 55 + 40 * unit(hash, 23); U.hoverO = unit(hash, 29) * U.hoverP;
   // 거북 숨 쉬는 주기 — 길(pathU)이 쉬는 몫을 빼려면 길보다 먼저 정한다
-  U.bstretch = habit.breathe ? Math.min(2.4, Math.max(1, tall)) : 1;
-  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) * U.bstretch : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.jetShare = habit.ceph === "crawl" ? 0.14 : habit.ceph === "hover" ? 0.5 : 0;
+  U.bstretch = habit.breathe ? Math.min(6, Math.max(1, tall * (habit.haul || habit.breathOnly ? 3 : 1))) : 1;
+  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) * U.bstretch : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.mam = !!habit.haul; U.jetShare = habit.ceph === "crawl" ? 0.14 : habit.ceph === "hover" ? 0.5 : 0;
 
   // 어항 밖으로 몸이 나가지 않게 몸길이만큼 안쪽에서 돈다 — 가로 · 앞뒤 모두(옛 길은 앞뒤 폭이 몸길이를 안 봐서 고래상어가 앞 유리를 21% 뚫었다)
   const roomXs = roomX(half, 1), roomZs = roomZ(half);
@@ -799,6 +801,12 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   // 위로 늘린 수조에선 윗물 물고기가 늘어난 위쪽도 쓴다 — 수면까지 월드 거리를 1단계와 비슷하게(2026-11-11 — 5단계에서 위 1/3 이 비어 보였다). 1단계는 그대로
   const hi = tall > 1 && !floorHab && !habit.breathe && !habit.jet && habit.hi >= 1.5 ? nearTop(habit.hi, tall) : habit.hi;
   S.mid = (habit.lo + hi) / 2; S.amp = ((hi - habit.lo) / 2) * calm;
+  // 포유류(2026-11-20) [사용자: "숨 쉬러 올라갈 때 가파른 것도 고쳐 그런 어색한것들 싹다"] — 높이는 고리 한 바퀴에 두 번 오르내리고(2u) 가로는 한 번 돌아서,
+  //   고리 끝(가로 빠르기가 0 에 가까운 곳)에서 몸이 곧게 오르내렸다(실제 크기 수조에서 오르내리는 움직임의 중앙값 50°). 위아래 폭을 고리의 평균 가로 빠르기에 맞춰
+  //   가장 가파른 곳이 MAMMAL_CLIMB(약 38°) 안이 되게 줄인다. 가운데 높이는 그대로
+  //   2026-11-20 같은 이유로 물속을 헤엄치는 물고기(잉어 · 연어 · 참다랑어 등 — 중앙값 50 ~ 56°)도. 위아래 폭을 줄이기만 하면 수조 위 · 아래가 비어서(잉어 높이 범위 11 → 5),
+  //   먼저 높이를 한 바퀴에 한 번만 오르내리게 하고(vf 1 — 기울기가 절반, 범위는 그대로) 그래도 가파른 것만 FISH_CLIMB(약 34°)로 줄인다. 바닥 물고기 · 해파리 · 경기장 고리는 그대로
+  S.vf = !floorHab && !habit.jet && !habit.lap ? 1 : 2;
   S.kneeX = roomX(half, scale); S.limX = S.kneeX + 0.15 * scale; S.kneeZ = roomZ(half); S.limZ = S.kneeZ + 0.07;
   const minY = floorHab ? floorY + (habit.hug ?? 0) * length - S.bob : habit.breathe ? Math.min(S.mid - S.amp, floorY + length * 0.2) : S.mid - S.amp;
   S.minBottom = minY - S.bodyH;
@@ -841,6 +849,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   }
   // 기준 고리 — 어느 쪽으로 비킬지는 이것으로만 정한다
   S.bcx = S.cx; S.bcz = S.cz; S.brx = S.rx; S.bzr = S.zr;
+  // 오르내리는 폭 줄이기(위 vf 설명) — 터널 · 돔 · 집 자리는 원래 폭으로 정한 뒤에(줄인 폭으로 정하면 낮게 사는 물고기의 집이 돔 가운데로 갔다). 고리 크기는 정해진 값
+  if (S.vf === 1) S.amp = Math.min(S.amp, (Math.tan(habit.haul ? MAMMAL_CLIMB : FISH_CLIMB) * (S.rx + S.zr * D) / 2) / tall);
 
   // 길 위치와 그 빠르기(du/dt) — 수치 미분(닫힌 식이라 같은 시각이면 같다)
   const h = 0.05;
@@ -951,7 +961,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
 
   // 먹이 — 수면의 먹이 쪽으로 몰려와 이리저리 채고, 바닥 물고기는 가라앉은 먹이를 바닥에서 쫓는다. 끝나면 원래 길로 부드럽게 돌아간다
   // 평소 가장 빠른 빠르기(월드, 초당) — 먹이에 달려갈 때도 이것의 1.8배 안에서(2026-11-11)
-  const vTop = Math.max(0.15, U.speed * hyp2(Math.max(S.brx, S.bzr * D), 2 * S.amp * tall) * (rest > 0 ? 1.6 / Math.max(0.15, 1 - rest) : 1 + 3.1 * U.dart));
+  const vTop = Math.max(0.15, U.speed * hyp2(Math.max(S.brx, S.bzr * D), S.vf * S.amp * tall) * (rest > 0 ? 1.6 / Math.max(0.15, 1 - rest) : 1 + 3.1 * U.dart));
   // feedTurn — 머리가 먹이 쪽으로 돈 정도(아래 방향 섞기와 같은 값) — 경기장 고리의 유리 무릎을 섞는 데 쓴다
   let feedW = 0, feedTurn = 0;
   const feed = opts?.feed;
@@ -1294,6 +1304,8 @@ export function denCourse(id: number, seconds: number, length: number, scale: nu
  * 한 바퀴(140 ~ 190초)마다 한 번 바위에서 미끄러져 내려가 헤엄치고(약 3초에 걸쳐 내려가고 · 올라온다) 돌아온다. 먹이를 주면 쉬다가도 먹으러 간다.
  * 쉼터는 곰치 굴처럼 id 순으로 나눈다(두 기기 같은 결과). 한 바위를 둘이 나눠 쓰면 바위 위에서 양옆으로 비켜 눕는다. 시각 · id · 장애물만으로 정해진다. */
 /** 쉬는 몫 — 한 바퀴의 이만큼은 바위 위 */
+/** 포유류 헤엄 길의 가장 가파른 오르내림(rad) — 2026-11-20 */
+export const MAMMAL_CLIMB = 0.66, FISH_CLIMB = 0.6;
 export const HAUL_REST = 0.5;
 /** 바위에서 내려가고 · 올라오는 데 걸리는 몫(한 바퀴의) — 2026-11-15 [사용자: "물범 움직임이 너무 기이하게 빨라"] .02(약 3초)면 헤엄치던 자리에서 쉼터까지 몸길이의 3~4배/초로
  *  미끄러졌다(평소 헤엄은 .8배/초). .07(약 10 ~ 13초)로 천천히 오간다 */
@@ -1363,7 +1375,7 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z + front / (opts.deep || 1); ry = floorY + o.h * Math.sqrt(1 - d * d) + (length * 0.12) / (opts.tall || 1); // 몸 두께는 월드 길이 — 길 좌표의 높이는 엔진이 tall 배로 늘리므로 미리 나눈다(안 나누면 6단계에서 바위 위로 붕 떴다)
   } else {
     // 바위가 없으면 뒤 유리 앞 모래 위
-    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + (length * 0.1) / (opts.tall || 1); ground = 1;
+    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + (length * 0.15) / (opts.tall || 1); ground = 1; // 몸 두께 — 0.1 이면 모래에 몸길이 7 ~ 8% 박혔다(2026-11-20)
     fz = Math.abs(fz);
   }
   const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
@@ -1387,7 +1399,7 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     const th = hyp2(tx, tz * deep); if (Math.abs(ty * tall) > 1.2 * th) ty = Math.sign(ty) * 1.2 * th / tall;
     const tl = hyp3(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
     // 가는 쪽을 보는 몫 — 오가는 한가운데 1, 끝(쉼터 위)에선 쉬는 방향, 처음(헤엄 길)에선 헤엄 방향
-    const travel = Math.min(1, u / 0.12) * (1 - smooth01((u - 0.78) / 0.22));
+    const travel = Math.min(1, u / 0.12) * (1 - smooth01((u - 0.93) / 0.07));
     const dl = hyp3(out.dx, out.dy, out.dz) || 1;
     let hx = out.dx / dl * (1 - R) + fx * R, hy = out.dy / dl * (1 - R), hz = out.dz / dl * (1 - R) + fz * R;
     hx += (tx - hx) * travel; hy += (ty - hy) * travel; hz += (tz - hz) * travel;

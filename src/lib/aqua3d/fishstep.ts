@@ -300,7 +300,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     // 여기서 같은 값(tan 1.2 ≈ 50°)으로 묶는다
     // 모래 위로(2026-11-19) — 헤엄치는 몸(바닥에 안 앉은 몸)은 머리 · 가운데 · 꼬리 밑 모래보다 몸 두께만큼 위에. 길이 비탈 · 모래사장 쪽으로 낮게 지나가도
     //   머리가 모래에 박히지 않는다(예전엔 몸 가운데만 물가 선으로 묶었다). 밀어내기(resolveContacts 의 ground)는 그 뒤 남은 겹침만 받는다
-    if (c.ground < 0.5 && !fishes[k].swim!.den && !(fishes[k].swim!.haul && fishes[k].swim!.rest > 0.3)) {
+    // 쉼터로 오가는 포유류도 다 올라설 때까지(rest 0.97) 모래 위에 둔다(2026-11-20 — 예전엔 0.3 부터 꺼서 모래사장 경사 속을 몸길이 넘게 지나갔다)
+    if (c.ground < 0.5 && !fishes[k].swim!.den && !(fishes[k].swim!.haul && fishes[k].swim!.rest > 0.97)) {
       const hl = hyp3(c.dx, dy, c.dz) || 1, ux = c.dx / hl, uy = dy / hl, uz = c.dz / hl, ha = L * 0.42, clear = L * 0.1;
       let lift = 0;
       for (let t = -1; t <= 1; t += 0.5) lift = Math.max(lift, w.heightAt(x + ux * ha * t, z + uz * ha * t) + clear - (y + uy * ha * t));
