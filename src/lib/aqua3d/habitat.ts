@@ -63,8 +63,11 @@ export function beachProfile(x: number, x0 = BEACH_X0): number {
   return SHELF_SHARE + (1 - SHELF_SHARE) * (1 - (1 - e) ** 1.35);
 }
 /** 높이 y(root 안)의 물가 — 모래가 y 보다 높아지기 시작하는 가로 위치(root 안). 경사 아래면 BEACH_X0, 꼭대기 위면 5 */
+/** 2026-11-20 — 예전엔 경사 아래를 늘 BEACH_X0 으로 돌려주고 그 위는 x0 부터 찾았다. 앞쪽(z 가 클수록)은 해변이 beachShift 만큼 오른쪽에서 시작해서,
+ *  바닥 높이에 붙은 물고기는 높이가 바닥 굴곡을 넘나들 때마다 물가가 x0 ↔ 해변 시작(최대 4.5 차이)으로 튀었다 — 길 전체를 물가에 맞춰 줄이므로
+ *  9단계 심해어(샛비늘치 · 도끼고기 · 쏘가리 · 꺽지)가 한 프레임에 몸길이 몇 배를 순간 이동했다(초당 몸길이 60 ~ 100). 이제 해변이 실제로 시작하는 자리부터 찾는다 */
 export function shoreLocal(y: number, z = 0, beach: boolean | "hall" = true): number {
-  const x0 = beachStart(beach);
+  const x0 = Math.min(5, beachStart(beach) + beachShift(z));
   if (y <= substrateHeight(x0, z, 6, beach)) return x0;
   if (y >= substrateHeight(5, z, 6, beach)) return 5;
   let lo = x0, hi = 5;

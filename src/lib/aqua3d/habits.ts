@@ -851,6 +851,11 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   S.bcx = S.cx; S.bcz = S.cz; S.brx = S.rx; S.bzr = S.zr;
   // 오르내리는 폭 줄이기(위 vf 설명) — 터널 · 돔 · 집 자리는 원래 폭으로 정한 뒤에(줄인 폭으로 정하면 낮게 사는 물고기의 집이 돔 가운데로 갔다). 고리 크기는 정해진 값
   if (S.vf === 1) S.amp = Math.min(S.amp, (Math.tan(habit.haul ? MAMMAL_CLIMB : FISH_CLIMB) * (S.rx + S.zr * D) / 2) / tall);
+  // 순항 빠르기 상한(2026-11-20 [사용자: "수조 다른 어색한 움직임도 더 찾아서 고쳐"]) — 고리 빠르기 U.speed 는 각속도라 실제 빠르기는 고리 크기에 비례한다.
+  //   수조가 단계마다 커지면서(tiers TANK_SIZE — 6단계 2.5 배) 작은 무리 물고기(제브라다니오 · 송사리 · 테트라 · 몰리)가 큰 고리를 같은 각속도로 돌아
+  //   평균 몸길이 4 배/초 · 끝에서 7 배/초로 쉬지 않고 질주했다(6 · 9단계 시간의 20 ~ 27% 가 몸길이 3 배/초 넘음). 고리의 가장 먼 반지름 · 다다르기(dart)를 더한
+  //   가장 빠른 순간을 몸길이 CRUISE_LPS 배/초로 묶는다 — 쉬다 옮겨 가는 물고기(rest)와 경기장 고리(lap — 이미 몸길이로 정한다)는 그대로
+  if (!S.lap && rest === 0) { const farR = Math.max(S.brx, S.bzr * D) * (1 + 3.1 * U.dart), cap = (CRUISE_LPS * length) / Math.max(1e-3, farR); if (U.speed > cap) U.speed = cap; }
 
   // 길 위치와 그 빠르기(du/dt) — 수치 미분(닫힌 식이라 같은 시각이면 같다)
   const h = 0.05;
@@ -1305,6 +1310,8 @@ export function denCourse(id: number, seconds: number, length: number, scale: nu
  * 쉼터는 곰치 굴처럼 id 순으로 나눈다(두 기기 같은 결과). 한 바위를 둘이 나눠 쓰면 바위 위에서 양옆으로 비켜 눕는다. 시각 · id · 장애물만으로 정해진다. */
 /** 쉬는 몫 — 한 바퀴의 이만큼은 바위 위 */
 /** 포유류 헤엄 길의 가장 가파른 오르내림(rad) — 2026-11-20 */
+/** 순항 빠르기 상한 — 고리의 가장 먼 반지름에서 다다르기까지 더한 빠르기가 몸길이의 몇 배/초(고리 끝 빠르기 고르기 · 무리 따라잡기가 이 위로 조금 더한다) */
+export const CRUISE_LPS = 3;
 export const MAMMAL_CLIMB = 0.66, FISH_CLIMB = 0.6;
 export const HAUL_REST = 0.5;
 /** 바위에서 내려가고 · 올라오는 데 걸리는 몫(한 바퀴의) — 2026-11-15 [사용자: "물범 움직임이 너무 기이하게 빨라"] .02(약 3초)면 헤엄치던 자리에서 쉼터까지 몸길이의 3~4배/초로

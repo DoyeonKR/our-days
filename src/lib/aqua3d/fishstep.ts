@@ -30,11 +30,13 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   fvx: number; fvy: number; fvz: number; fpx: number; fpy: number; fpz: number; fok: boolean; ceph: boolean; /** 지난 프레임에 그린 머리의 좌우(ohx) · 위아래(ohy) 각 — 큰 몸이 홱 돌지 않게 */ ohx: number; ohy: number; ohz: number; oh: boolean;
   /** 모래 위로 올린 높이(부드럽게 — 한 프레임에 확 들리지 않게) */ lift: number;
   /** 겹침 밀기 + 몸 닿기 보정을 천천히 따라간 값(2026-11-20, CORR_TAU) — 화면에 실제로 더한 보정 */
-  cx: number; cy: number; cz: number; corr: boolean };
+  cx: number; cy: number; cz: number; corr: boolean; /** 지난 프레임의 보정 목표 — 한 프레임에 확 바뀌었나(순간 이동)를 본다 */ ptx: number; pty: number; ptz: number;
+  /** 고래상어 대형 자리를 천천히 따라간 값(2026-11-20, ESCORT_TAU)과 대형에 낀 정도(0~1) */
+  ex: number; ey: number; ez: number; ew: number; eok: boolean };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
-    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false, cx: 0, cy: 0, cz: 0, corr: false, fvx: 0, fvy: 0, fvz: 0, fpx: 0, fpy: 0, fpz: 0, fok: false, lift: 0, ohx: 1, ohy: 0, ohz: 0, oh: false, ceph: !!h.ceph || a.kind === "jelly",
+    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false, cx: 0, cy: 0, cz: 0, corr: false, ptx: 0, pty: 0, ptz: 0, ex: 0, ey: 0, ez: 0, ew: 0, eok: false, fvx: 0, fvy: 0, fvz: 0, fpx: 0, fpy: 0, fpz: 0, fok: false, lift: 0, ohx: 1, ohy: 0, ohz: 0, oh: false, ceph: !!h.ceph || a.kind === "jelly",
     stride: bendProfile(m.family, m.key).stride, freq: a.frequency,
     // 박자를 빠르기로 바꾸지 않는 몸 — 해파리(갓 박자는 길의 jet) · 불가사리 · 거북(turtle.ts 가 따로 젓는다 — 쉬는 동안은 habits 가 effort 를 줄인다)
     own: m.family === "starfish" || m.family === "sea_turtle" || a.kind === "jelly",
@@ -65,6 +67,8 @@ export const TURN_TAU = 0.2;
 export const SPEED_TAU = 0.25;
 /** 몸끼리 · 바위와 닿아 밀어내는 빠르기 상한(몸길이/초) — 한 프레임 순간 이동을 막는다 */
 export const CONTACT_MAX_SPEED = 4;
+/** 모래 위로 올리는 몫이 한 프레임에 오를 수 있는 빠르기(몸길이/초) */
+export const LIFT_MAX_LPS = 2.5;
 /** 보정(겹침 밀기 + 몸 닿기)을 화면에 더하는 시간 상수(초, 2026-11-20) [사용자: "모델 움직임이 실제와 비슷하고 부드럽게"]
  *  붐비는 수조를 90초 돌려 재 보니 혼자 헤엄치는 잉어는 움직이는 방향이 매끈한데(방향 가속 0.4 rad/s²), 18종 36마리 속에서는
  *  몸끼리 닿기를 프레임마다 그 자리에서 밀어내고 다음 프레임 길이 다시 파고들어 몸이 앞뒤 · 좌우로 떨었다(평균 30 ~ 80 rad/s², 방향이 한 프레임에 거의 뒤집히는 일 수백 번).
@@ -129,6 +133,8 @@ const OPTS = { obstacles: undefined as readonly Obstacle[] | undefined, feed: nu
  *  자리마다 천천히 흔들려 줄 맞춘 것처럼 굳지 않는다. 빼는 것: 불가사리 · 굴 속(곰치) · 쉬는 포유류(바위 · 모래사장 위). 길 자체(저장 · habits)는 그대로 — 그리기 전용.
  *  WHALE_ESCORT 만큼 섞는다(1 이면 전부 대형). 여러 마리면 가장 큰 고래상어를 따른다. 유리 · 바닥 · 수면 안쪽으로 묶는다. */
 export const WHALE_ESCORT = 0.88, WHALE_ESCORT_MAX = 5;
+/** 대형 자리를 따라가는 시간(초) · 대형에 들고 나는 시간(초) · 따라가는 가장 빠른 빠르기(몸길이/초) */
+export const ESCORT_TAU = 0.5, ESCORT_IN = 1.2, ESCORT_MAX_LPS = 3.5;
 const ESCORT: number[] = [];
 export function escortSlot(i: number, whaleL: number, L: number, elapsed: number): { back: number; side: number; up: number } {
   const ring = Math.floor(Math.sqrt(i)), a = i * 2.39996, wob = Math.sin(elapsed * 0.6 + i * 1.7);
@@ -139,7 +145,7 @@ export function escortSlot(i: number, whaleL: number, L: number, elapsed: number
 function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: number, dt: number, wide: number, deep: number, tall: number) {
   let wk = -1;
   for (let k = 0; k < n; k++) if (fishes[k].family === "whale_shark" && !fishes[k].visit && (wk < 0 || b.lengths[k] > b.lengths[wk])) wk = k;
-  if (wk < 0) return;
+  if (wk < 0) { for (let k = 0; k < n; k++) { const st = fishes[k].swim; if (st) { st.ew = 0; st.eok = false; } } return; }
   const W = b.courses[wk], WL = b.lengths[wk], hx = W.dx, hz = W.dz, hl = Math.sqrt(hx * hx + hz * hz) || 1, fx = hx / hl, fz = hz / hl;
   const top = tallY(4.7, tall);
   // 2026-11-18 [사용자: "크기작은 개체 오름차순 최대 5마리만"] — 따를 수 있는 몸 중 가장 작은 것부터 WHALE_ESCORT_MAX 마리만(같은 크기면 수조 순서)
@@ -154,14 +160,33 @@ function whaleEscort(n: number, fishes: StepFish[], b: StepBuffers, elapsed: num
   }
   ESCORT.sort((a, c) => b.lengths[a] - b.lengths[c] || a - c);
   if (ESCORT.length > WHALE_ESCORT_MAX) ESCORT.length = WHALE_ESCORT_MAX;
-  for (let i = 0; i < ESCORT.length; i++) {
-    const k = ESCORT[i], st = fishes[k].swim!, L = b.lengths[k];
-    const s = escortSlot(i, WL, L, elapsed), c = b.courses[k];
-    let tx = W.x - fx * s.back - fz * s.side, tz = W.z - fz * s.back + fx * s.side, ty = W.y + s.up;
-    const mx = 5 * wide - 0.1 - L / 2, mz = 3 * deep - 0.1 - L / 2;
-    tx = Math.max(-mx, Math.min(mx, tx)); tz = Math.max(-mz, Math.min(mz, tz)); if (b.shore) tx = Math.min(tx, b.shore(ty - L * 0.2, tz) - L * 0.45); ty = Math.max(WORLD.floor + 0.3 + L * 0.2, Math.min(top - L * 0.2, ty));
-    const w = WHALE_ESCORT;
-    c.x += (tx - c.x) * w; c.y += (ty - c.y) * w; c.z += (tz - c.z) * w;
+  // 2026-11-20 — 예전엔 대형 자리를 고래상어 길 방향으로 매 프레임 새로 잡아 그대로 그렸다(따라가기 없음). 고래상어가 돌면 몸 뒤 3 ~ 4 떨어진 자리가 팔 끝처럼 휘둘리고,
+  //   대형에 드는 물고기가 바뀌면(포유류가 쉬러 가고 오면) 자리 번호가 밀려 한 프레임에 1 ~ 1.5 를 건너뛰었다(9단계 참다랑어 · 비단잉어 초당 몸길이 25 ~ 33).
+  //   이제 자리는 ESCORT_TAU 로 따라가고(한 프레임에 몸길이 ESCORT_MAX_LPS 배/초까지), 대형에 들고 나는 것도 ESCORT_IN 초에 걸쳐 섞는다
+  const a = dt > 0 ? 1 - Math.exp(-Math.min(dt, 0.25) / ESCORT_TAU) : 0, ain = dt > 0 ? 1 - Math.exp(-Math.min(dt, 0.25) / ESCORT_IN) : 0;
+  for (let k = 0; k < n; k++) {
+    if (k === wk) continue;
+    const st = fishes[k].swim!, L = b.lengths[k], slot = ESCORT.indexOf(k), c = b.courses[k];
+    if (slot < 0 && st.ew <= 0) continue;
+    if (slot >= 0) {
+      const s = escortSlot(slot, WL, L, elapsed);
+      let tx = W.x - fx * s.back - fz * s.side, tz = W.z - fz * s.back + fx * s.side, ty = W.y + s.up;
+      const mx = 5 * wide - 0.1 - L / 2, mz = 3 * deep - 0.1 - L / 2;
+      tx = Math.max(-mx, Math.min(mx, tx)); tz = Math.max(-mz, Math.min(mz, tz)); if (b.shore) tx = Math.min(tx, b.shore(ty - L * 0.2, tz) - L * 0.45); ty = Math.max(WORLD.floor + 0.3 + L * 0.2, Math.min(top - L * 0.2, ty));
+      if (!st.eok) { st.ex = c.x; st.ey = c.y; st.ez = c.z; st.eok = true; }
+      let mxs = tx - st.ex, mys = ty - st.ey, mzs = tz - st.ez;
+      const step = Math.sqrt(mxs * mxs + mys * mys + mzs * mzs) * a, cap = ESCORT_MAX_LPS * L * Math.min(dt, 0.25);
+      const k2 = step > cap && step > 1e-9 ? (cap / step) * a : a;
+      mxs *= k2; mys *= k2; mzs *= k2;
+      st.ex += mxs; st.ey += mys; st.ez += mzs;
+      st.ew += (1 - st.ew) * ain;
+    } else {
+      // 대형에서 빠졌다 — 제 길로 천천히 돌아간다
+      st.ew -= st.ew * ain;
+      if (st.ew < 0.01) { st.ew = 0; st.eok = false; continue; }
+    }
+    const w = WHALE_ESCORT * st.ew;
+    c.x += (st.ex - c.x) * w; c.y += (st.ey - c.y) * w; c.z += (st.ez - c.z) * w;
     // 고래상어와 같은 쪽을 본다 — 제 빠르기는 남긴다
     const mag = Math.sqrt(c.dx * c.dx + c.dz * c.dz) || 1;
     c.dx += (fx * mag - c.dx) * w; c.dz += (fz * mag - c.dz) * w; c.dy += (W.dy * mag / hl - c.dy) * w;
@@ -307,7 +332,10 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       for (let t = -1; t <= 1; t += 0.5) lift = Math.max(lift, w.heightAt(x + ux * ha * t, z + uz * ha * t) + clear - (y + uy * ha * t));
       const st2 = fishes[k].swim!, want = lift * (1 - c.ground * 2), ka = dt > 0 ? 1 - Math.exp(-Math.min(dt, 0.25) / 0.3) : 1;
       // 올라갈 땐 0.3초에 걸쳐(다만 몸 두께 넘게 박히진 않게), 내려갈 땐 천천히
-      st2.lift = want > st2.lift ? Math.max(st2.lift + (want - st2.lift) * ka, want - clear) : st2.lift + (want - st2.lift) * ka * 0.5;
+      // 2026-11-20 — 몸 두께만큼 박히지 않게 바로 올리던 몫(want − clear)은 한 프레임에 몸길이 LIFT_MAX_LPS 배/초까지만. 9단계 모래사장 둑은 위로 늘린 수조에서 거의 벽이라,
+      //   둑 쪽으로 돌아선 머리 밑 모래가 한 프레임에 몸길이만큼 높아져 은어가 두 프레임에 몸길이 1.7 배를 솟구쳤다(초당 47)
+      const rise = dt > 0 ? L * LIFT_MAX_LPS * Math.min(dt, 0.25) : Infinity;
+      st2.lift = want > st2.lift ? Math.min(st2.lift + rise, Math.max(st2.lift + (want - st2.lift) * ka, want - clear)) : st2.lift + (want - st2.lift) * ka * 0.5;
       if (st2.lift > 0) y += st2.lift;
     } else fishes[k].swim!.lift = 0;
     if (fishes[k].swim!.lap) { const hh = hyp2(c.dx, c.dz); if (hh > 1e-4 && Math.abs(dy) > 1.2 * hh) dy = Math.sign(dy) * 1.2 * hh; }
@@ -351,11 +379,16 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     const c = b.courses[k], st = fishes[k].swim!, P = b.positions;
     const tx = P[k * 3] - c.x, ty = P[k * 3 + 1] - c.y, tz = P[k * 3 + 2] - c.z, f = st.corr ? kc : 1;
     // 너무 크게 벌어진 보정(몸길이 넘게 — 수조가 바뀜 · 유리 · 모래 경계)은 바로 쓴다(유리 · 모래 밖으로 나가지 않게)
-    const big = hyp3(tx - st.cx, ty - st.cy, tz - st.cz) > b.lengths[k];
-    st.cx += (tx - st.cx) * (big ? 1 : f); st.cz += (tz - st.cz) * (big ? 1 : f);
+    // 2026-11-20 — 예전엔 보정이 따라간 값과 몸길이 넘게 벌어지면 그 프레임에 다 썼다. 보정이 천천히 커져도(둑 · 몸 닿기) 벌어진 만큼이 한 번에 튀었다.
+    //   이제 바로 쓰는 건 보정 목표 자체가 한 프레임에 몸길이 넘게 바뀐 때(수조가 바뀜 · 순간 이동)뿐이고, 천천히 벌어진 건 몸길이 안으로만 붙잡는다
+    const gap = hyp3(tx - st.cx, ty - st.cy, tz - st.cz), Lk = b.lengths[k];
+    const big = !st.corr || hyp3(tx - st.ptx, ty - st.pty, tz - st.ptz) > Lk;
+    const g = big ? 1 : gap > Lk ? Math.max(f, (gap - Lk) / gap) : f;
+    st.ptx = tx; st.pty = ty; st.ptz = tz;
+    st.cx += (tx - st.cx) * g; st.cz += (tz - st.cz) * g;
     // 바닥에 앉은 몸의 위아래는 바로 쓴다(늦으면 모래에 묻힌다) — 다만 쉼터에서 쉬는 포유류는 고른다(2026-11-20 — 모래 위에 나란히 쉬는 물범끼리 닿기 밀어내기로
     //   한 프레임에 몸 두께만큼 튀었다). 올라갈 땐 세 배 빨리(모래에 묻히지 않게). 굴 속 곰치 · 바닥 물고기까지 고르면 제자리에서 오르내렸다(smoothmotion.test)
-    st.cy = c.ground > 0.3 ? (st.haul ? st.cy + (ty - st.cy) * (big ? 1 : ty > st.cy ? Math.min(1, f * 3) : f) : ty) : st.cy + (ty - st.cy) * (big ? 1 : f);
+    st.cy = c.ground > 0.3 ? (st.haul ? st.cy + (ty - st.cy) * (big ? 1 : ty > st.cy ? Math.min(1, Math.max(g, f * 3)) : g) : ty) : st.cy + (ty - st.cy) * g;
     st.corr = true;
     P[k * 3] = c.x + st.cx; P[k * 3 + 1] = c.y + st.cy; P[k * 3 + 2] = c.z + st.cz;
   }

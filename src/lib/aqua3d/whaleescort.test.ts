@@ -39,5 +39,24 @@ test("only the five smallest eligible fish follow the whale, smallest first", ()
   const src = readFileSync(new URL("./fishstep.ts", import.meta.url), "utf8");
   assert.ok(src.includes("ESCORT.sort((a, c) => b.lengths[a] - b.lengths[c] || a - c);"), "작은 몸부터");
   assert.ok(src.includes("if (ESCORT.length > WHALE_ESCORT_MAX) ESCORT.length = WHALE_ESCORT_MAX;"), "최대 5마리");
-  assert.ok(src.includes("const k = ESCORT[i], st = fishes[k].swim!, L = b.lengths[k];") && src.includes("escortSlot(i, WL, L, elapsed)"), "작은 순서대로 자리");
+  assert.ok(src.includes("slot = ESCORT.indexOf(k)") && src.includes("escortSlot(slot, WL, L, elapsed)"), "작은 순서대로 자리");
+});
+
+// 2026-11-20 — 대형 자리는 천천히 따라가고(한 프레임에 건너뛰지 않는다) 대형에 들고 날 때 섞는다
+test("escorts follow their slot smoothly — no frame jumps when the whale turns or the escort set changes", async () => {
+  const { stepFish, ESCORT_TAU, ESCORT_IN, ESCORT_MAX_LPS } = await import("./fishstep.ts");
+  const { schoolsOf } = await import("./world.ts");
+  assert.ok(ESCORT_TAU > 0.2 && ESCORT_IN >= 0.5 && ESCORT_MAX_LPS <= 4);
+  const fish = [{ id: 1, family: "whale_shark", length: 5.2 }, { id: 2, family: "koi", length: 2.1 }, { id: 3, family: "bluefin_tuna", length: 2.4 }, { id: 4, family: "guppy", length: 0.9 }];
+  const n = fish.length, schools = schoolsOf(fish);
+  const bodies = fish.map((f) => [f.id, { family: f.family, key: f.family, length: f.length, phase: 0, course: {} as never }] as [number, never]);
+  const b = { positions: new Float32Array(n * 3), heading: new Float32Array(n * 3), lengths: new Float32Array(n), pinned: new Float32Array(n), offsets: new Float32Array(n * 3), rolls: new Float32Array(n), courses: [] as never[], count: 0 };
+  const prev = new Float32Array(n * 3); let worst = 0;
+  for (let k = 0; k < 30 * 240; k++) {
+    const t = k / 30;
+    stepFish(bodies, schools, (id) => fish.find((f) => f.id === id)?.length, t, k ? 1 / 30 : 0, { wide: 2.5, tall: 2.175, deep: 1.9, heightAt: () => -5, obstacles: [], feed: null, hall: null }, b as never);
+    if (k > 30) for (let i = 1; i < n; i++) worst = Math.max(worst, Math.hypot(b.positions[i * 3] - prev[i * 3], b.positions[i * 3 + 1] - prev[i * 3 + 1], b.positions[i * 3 + 2] - prev[i * 3 + 2]) * 30 / fish[i].length);
+    prev.set(b.positions);
+  }
+  assert.ok(worst < 6, `escort fastest ${worst.toFixed(1)} body lengths/s`);
 });

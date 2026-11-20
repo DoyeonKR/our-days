@@ -90,3 +90,52 @@ test("헤엄치며 오르내리는 각 — 포유류 · 물속 물고기 모두 
     if (!/seal|otter|lion/.test(fams[i])) assert.ok(yr[i][1] - yr[i][0] > tankH * 0.3, `${fams[i]} 높이 범위 ${(yr[i][1] - yr[i][0]).toFixed(1)} / ${tankH.toFixed(1)}`);
   }
 });
+
+// 2026-11-20 [사용자: "수조 다른 어색한 움직임도 더 찾아서 고쳐"] — 165 계열을 6 · 9단계 실제 크기 수조에서 5분씩 돌려 찾은 것들이 다시 생기지 않게.
+//   ① 9단계 바닥 심해어가 물가 계산(shoreLocal)이 바닥 굴곡에 x0 ↔ 해변 시작으로 튀어 한 프레임에 몸길이 몇 배를 순간 이동(초당 60 ~ 100)
+//   ② 고래상어 대형 자리를 따라가기 없이 그대로 그려 참다랑어 · 잉어가 한 프레임에 1 ~ 1.5 를 건너뜀(초당 25 ~ 33)
+//   ③ 모래사장 둑 쪽으로 돈 머리 밑을 바로 들어 올리고 보정 몫을 한 번에 써서 은어가 두 프레임에 몸길이 1.7 배 솟구침(초당 47)
+//   ④ 커진 수조의 큰 고리를 같은 각속도로 돌아 작은 무리 물고기가 시간의 20 ~ 27% 를 몸길이 3 배/초 넘게 질주(끝에서 7.5)
+import { BEACH_TOP, hasBeach, shoreLocal } from "./habitat.ts";
+import { BEACH_REST_FRONT } from "./scene.ts";
+function realTank(tier: number) {
+  const ax = tankAxes(tier, tTall(tier), tankDeep(tier)), t0 = tankOf(tier, 0, []), beach = hasBeach(tier), sub = Math.min(tier, 6);
+  const tank = { ...t0, wide: ax.x, tall: ax.tall, deep: ax.deep, obstacles: [...t0.obstacles.filter((o) => o.kind !== "rock"), ...rockObstacles(tier, ax.x, ax.deep)] };
+  const heightAt = (x: number, z: number) => WORLD.floor + (substrateHeight(x / tank.wide, z / tank.deep, sub, beach) - WORLD.floor) * tank.tall;
+  const shore = beach ? (y: number, z = 0) => shoreLocal(WORLD.floor + (y - WORLD.floor) / tank.tall, z / tank.deep, beach) * tank.wide : undefined;
+  const beachObs = beach ? { x: 4.65 * tank.wide, z: 3 * tank.deep * BEACH_REST_FRONT, r: 2, h: BEACH_TOP - WORLD.floor, kind: "beach" as const } : undefined;
+  return { tank, heightAt, shore, beachObs };
+}
+/** 몸길이/초 빠르기를 프레임마다 모은다(처음 2초는 자리 잡기라 뺀다) */
+function speeds(tier: number, fams: string[], seconds: number, hz = 30) {
+  const { tank, heightAt, shore, beachObs } = realTank(tier);
+  const fish = fams.flatMap((f, i) => [0, 1].map((j) => ({ id: i * 13 + j * 211 + 5, family: f, length: adult(f) })));
+  const n = fish.length, schools = schoolsOf(fish), byId = new Map(fish.map((f) => [f.id, f]));
+  const bodies = fish.map((f) => [f.id, { family: f.family, key: f.family, length: f.length, phase: 0, course: {} as Course }] as [number, StepFish]);
+  const b = { positions: new Float32Array(n * 3), heading: new Float32Array(n * 3), lengths: new Float32Array(n), pinned: new Float32Array(n), offsets: new Float32Array(n * 3), rolls: new Float32Array(n), courses: [] as Course[], count: 0, shore, beach: beachObs };
+  const prev = new Float32Array(n * 3), out = fish.map(() => [] as number[]);
+  for (let k = 0; k * (1 / hz) < seconds; k++) {
+    const t = k / hz;
+    stepFish(bodies, schools, (id) => byId.get(id)?.length, t, k ? 1 / hz : 0, { wide: tank.wide, tall: tank.tall, deep: tank.deep, heightAt, obstacles: tank.obstacles, feed: null, hall: tank.hall }, b as never);
+    if (t > 2) for (let i = 0; i < n; i++) out[i].push(Math.hypot(b.positions[i * 3] - prev[i * 3], b.positions[i * 3 + 1] - prev[i * 3 + 1], b.positions[i * 3 + 2] - prev[i * 3 + 2]) * hz / fish[i].length);
+    prev.set(b.positions.subarray(0, n * 3));
+  }
+  return fish.map((f, i) => ({ family: f.family, v: out[i] }));
+}
+test("물가 계산은 바닥 높이 근처에서도 이어진다 — 높이가 조금 바뀌어도 물가가 튀지 않는다(앞쪽은 해변이 오른쪽에서 시작)", () => {
+  for (const beach of [true, "hall"] as const) for (const z of [-2.5, -1, 0, 1, 2.5]) {
+    let last = shoreLocal(-5.2, z, beach);
+    for (let y = -5.2; y < 5.5; y += 0.01) { const s = shoreLocal(y, z, beach); assert.ok(Math.abs(s - last) < 0.25, `${beach} z ${z} y ${y.toFixed(2)}: ${last.toFixed(2)} → ${s.toFixed(2)}`); last = s; }
+  }
+});
+test("순간 이동 없음 — 9단계 바닥 심해어(물가) · 고래상어 대형과 둑 곁 은어, 한 프레임 빠르기가 몸길이 10 배/초 아래", () => {
+  for (const fams of [["lanternfish", "hatchetfish", "perch_kkeokji", "mandarin_fish"], ["clown", "discus", "koi", "ray", "arowana", "bluefin", "sea_turtle", "whale_shark", "manta", "rising", "astral", "sweetfish"]]) {
+    for (const r of speeds(9, fams, 240)) { const top = Math.max(...r.v); assert.ok(top < 10, `${r.family} ${top.toFixed(1)} 몸길이/초`); }
+  }
+});
+test("작은 무리 물고기가 큰 수조에서 쉬지 않고 질주하지 않는다 — 몸길이 4.5 배/초 넘는 프레임이 3% 아래", () => {
+  for (const tier of [6, 9]) for (const r of speeds(tier, ["zebra_danio", "ricefish", "tetra", "molly", "guppy"], 150)) {
+    const fast = r.v.filter((v) => v > 4.5).length / r.v.length;
+    assert.ok(fast < 0.03, `${tier}단계 ${r.family} ${(100 * fast).toFixed(1)}%`);
+  }
+});
