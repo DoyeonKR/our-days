@@ -32,11 +32,13 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   /** 겹침 밀기 + 몸 닿기 보정을 천천히 따라간 값(2026-11-20, CORR_TAU) — 화면에 실제로 더한 보정 */
   cx: number; cy: number; cz: number; corr: boolean; /** 지난 프레임의 보정 목표 — 한 프레임에 확 바뀌었나(순간 이동)를 본다 */ ptx: number; pty: number; ptz: number;
   /** 고래상어 대형 자리를 천천히 따라간 값(2026-11-20, ESCORT_TAU)과 대형에 낀 정도(0~1) */
-  ex: number; ey: number; ez: number; ew: number; eok: boolean };
+  ex: number; ey: number; ez: number; ew: number; eok: boolean;
+  /** 몸 단계(BODY) — 화면에 그리는 몸의 자리 · 빠르기, 지난 목표 자리, 몸을 잡았던 수조 크기 */
+  bx: number; by: number; bz: number; bvx: number; bvy: number; bvz: number; tpx: number; tpy: number; tpz: number; bok: boolean; bw: number; bt: number; bd: number };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
-    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false, cx: 0, cy: 0, cz: 0, corr: false, ptx: 0, pty: 0, ptz: 0, ex: 0, ey: 0, ez: 0, ew: 0, eok: false, fvx: 0, fvy: 0, fvz: 0, fpx: 0, fpy: 0, fpz: 0, fok: false, lift: 0, ohx: 1, ohy: 0, ohz: 0, oh: false, ceph: !!h.ceph || a.kind === "jelly",
+    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false, cx: 0, cy: 0, cz: 0, corr: false, ptx: 0, pty: 0, ptz: 0, ex: 0, ey: 0, ez: 0, ew: 0, eok: false, bx: 0, by: 0, bz: 0, bvx: 0, bvy: 0, bvz: 0, tpx: 0, tpy: 0, tpz: 0, bok: false, bw: 0, bt: 0, bd: 0, fvx: 0, fvy: 0, fvz: 0, fpx: 0, fpy: 0, fpz: 0, fok: false, lift: 0, ohx: 1, ohy: 0, ohz: 0, oh: false, ceph: !!h.ceph || a.kind === "jelly",
     stride: bendProfile(m.family, m.key).stride, freq: a.frequency,
     // 박자를 빠르기로 바꾸지 않는 몸 — 해파리(갓 박자는 길의 jet) · 불가사리 · 거북(turtle.ts 가 따로 젓는다 — 쉬는 동안은 habits 가 effort 를 줄인다)
     own: m.family === "starfish" || m.family === "sea_turtle" || a.kind === "jelly",
@@ -58,6 +60,7 @@ export type StepBuffers = {
   courses: Course[]; count: number;
   /** 모래사장(8단계부터, habitat.shoreX) — 높이 y 의 물가 가로 위치(월드). 물고기는 그 안쪽에서만 헤엄친다 */ shore?: (y: number, z?: number) => number;
   /** 모래사장 쉼터(kind "beach" — x 월드 · h 길 좌표) — 있으면 포유류는 바위 대신 여기서 쉰다 */ beach?: Obstacle;
+  /** 있으면 몸 단계가 이번 프레임의 목표 자리(x,y,z)를 여기에 남긴다 — 테스트가 몸이 목표에서 얼마나 늦나 잰다 */ targets?: Float32Array;
 };
 const FP = { pitch: 0, roll: 0, slope: 0, ground: 0 };
 /** turn(몸을 C 자로 굽히고 기울이는 값)을 고르는 시간 상수(초) — 길의 turn 은 장애물로 휜 길 점의 두 번 차분이라, 장애물 가장자리에서 한 프레임에
@@ -226,6 +229,8 @@ export function visitBlend(c: Course, L: number, wide: number, v: { w: number; d
 export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: ReadonlyMap<number, { leader: number; slot: number }>, lengthOf: (id: number) => number | undefined,
   elapsed: number, dt: number, w: StepWorld, b: StepBuffers) {
   const { wide, tall, deep, hall } = w;
+  // 몸 단계 스위치 — 테스트가 몸 단계 없는 기준을 잰다(__noBody, contacts.test 의 __noContacts 와 같은 방식)
+  const bodyOn = !(globalThis as { __noBody?: boolean }).__noBody;
   const opts = OPTS;
   opts.obstacles = w.obstacles; opts.feed = w.feed; opts.deep = deep; opts.tall = tall; opts.hall = hall; opts.leaderLength = 0; opts.out = undefined;
   const span = hall?.kind === "tunnel" ? tunnelSpan(deep) : null;
@@ -306,8 +311,11 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (hall && y - L * 0.16 < hallTop) {
       // 유리보다 바깥으로는 안 민다(몸이 커서 터널 옆에 다 안 들어가면 유리 쪽이 먼저)
       const want = Math.min(hall.r + L * 0.275 + 0.1, roomX(L / 2, wide) + 0.15 * wide);
-      if (hall.kind === "tunnel") { if (span && z > span.back - 0.3 && Math.abs(x) < want) x = (c.x < 0 ? -1 : 1) * want; }
-      else { const d = hyp2(x, z); if (d < want) { const ux = d > 1e-3 ? x / d : 1, uz = d > 1e-3 ? z / d : 0; x = ux * want; z = uz * want; } }
+      // 2026-11-20 — 어느 쪽으로 밀지는 지난 프레임에 그린 몸 쪽으로(st.x · st.z). 예전엔 길(c.x)이나 지금 자리의 쪽이라 길이 터널 가운데 · 돔 한가운데를 지날 때마다
+      //   쪽이 뒤집혀 목표가 둘레 건너편으로 순간 이동했다(10 · 11단계 갈치 · 메기 · 샛비늘치 초당 몸길이 80 ~ 180). 이제 길이 건너편으로 실제로 빠져나갈 때 한 번만 넘어간다
+      const sw0 = fishes[k].swim, px0 = sw0?.ready ? sw0.x : c.x, pz0 = sw0?.ready ? sw0.z : c.z;
+      if (hall.kind === "tunnel") { if (span && z > span.back - 0.3 && Math.abs(x) < want) x = (px0 < 0 ? -1 : 1) * want; }
+      else { const d = hyp2(x, z); if (d < want) { const d0 = hyp2(px0, pz0); const ux = d0 > 1e-3 ? px0 / d0 : d > 1e-3 ? x / d : 1, uz = d0 > 1e-3 ? pz0 / d0 : d > 1e-3 ? z / d : 0; x = ux * want; z = uz * want; } }
     }
     // 경기장 고리 물고기 — 길은 몸이 보는 쪽으로 유리 안이지만(habits) 겹침 밀기 보정은 천천히 따라가 먹이 쪽으로 돌아선 뒤에도 남아 코끝이 앞유리를 0.02 넘었다.
     // 마지막에 머리 방향으로 한 번 더 지킨다(몸 끝 = 가운데 + 반길이 · 머리 방향, 유리 여유 0.1) — 길 위에선 닿지 않는다
@@ -341,15 +349,18 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (fishes[k].swim!.lap) { const hh = hyp2(c.dx, c.dz); if (hh > 1e-4 && Math.abs(dy) > 1.2 * hh) dy = Math.sign(dy) * 1.2 * hh; }
     b.positions[k * 3] = x; b.positions[k * 3 + 1] = y; b.positions[k * 3 + 2] = z; b.heading[k * 3 + 1] = dy; b.rolls[k] = FP.roll;
     // 4) 꼬리 박자 — 화면에 실제로 그린 자리가 움직인 빠르기(몸길이/초)를 골라 박자로(beatEffort). 처음 · 순간 이동(수조가 바뀜)은 잇기만 한다
-    const m = fishes[k], st = m.swim!;
-    if (dt > 0 && dt < 0.25 && st.ready) {
-      const v = hyp3(x - st.x, y - st.y, z - st.z) / dt / Math.max(0.05, L);
-      if (v < 20) st.v += (v - st.v) * (1 - Math.exp(-dt / SPEED_TAU));
+    //    몸 단계(BODY)가 켜져 있으면 박자는 몸이 실제로 움직인 빠르기로 — 아래 7) 에서
+    if (!bodyOn) {
+      const m = fishes[k], st = m.swim!;
+      if (dt > 0 && dt < 0.25 && st.ready) {
+        const v = hyp3(x - st.x, y - st.y, z - st.z) / dt / Math.max(0.05, L);
+        if (v < 20) st.v += (v - st.v) * (1 - Math.exp(-dt / SPEED_TAU));
+      }
+      const first = !st.ready;
+      st.x = x; st.y = y; st.z = z; st.ready = true;
+      if (!st.own && !first) c.effort = beatEffort(st, L, c.effort, c.ground);
+      m.phase += dt * c.effort;
     }
-    const first = !st.ready;
-    st.x = x; st.y = y; st.z = z; st.ready = true;
-    if (!st.own && !first) c.effort = beatEffort(st, L, c.effort, c.ground);
-    m.phase += dt * c.effort;
   }
   // 5) 몸끼리 닿지 않게 — 마지막 자리에서 겹친 만큼 밀어낸다(물리 엔진의 접촉처럼, 2026-11-14)
   if (n > 0) {
@@ -392,10 +403,127 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     st.corr = true;
     P[k * 3] = c.x + st.cx; P[k * 3 + 1] = c.y + st.cy; P[k * 3 + 2] = c.z + st.cz;
   }
+  // 7) 몸 — 위 단계들이 정한 자리는 '가고 싶은 자리'(목표)이고, 화면에 그리는 몸은 종마다 정한 최고 빠르기 · 가속 안에서만 그 자리를 따라간다(bodyFollow)
+  if (bodyOn) bodyFollow(n, fishes, b, dt, w, hall ? hallTop : 0, span);
   // 머리 방향은 부드럽게 따라간 자리로 잰다
   faceTravel(n, fishes, b, dt);
   fishes.length = 0;
   return n;
+}
+
+/** 몸 단계(2026-11-20) [사용자: "더 개선할것들 찾아봐 좀 크게 변화해야할걸" → 헤엄 엔진의 마지막 단계 다시 짜기] —
+ *  길(habits)에 보정을 여러 겹(물가 줄이기 · 고래상어 대형 · 겹침 밀기 · 모래 위로 올리기 · 몸 닿기 · 보정 고르기) 더한 자리를 예전엔 그대로 그렸다.
+ *  어느 한 겹이 한 프레임에 크게 바뀌면 몸이 순간 이동했고, 그때마다 그 겹만 고쳐 왔다(엔진 주석에 '순간 이동 · 튀었다'를 고친 자리 32곳).
+ *  이제 그 자리는 목표이고, 몸은 목표를 따라가되 최고 빠르기(그 길이 평소 내는 가장 빠른 빠르기 course.vtop × BODY_MARGIN — 먹이로 달려갈 땐 더,
+ *  두족류 물 뿜기는 더, 바닥은 몸길이 BODY_MIN_LPS 배/초)와 가속(최고 빠르기를 BODY_ACC_T 초에 낸다)을 넘지 않는다. 그래서 어느 겹이 틀려도 몸은 튀지 않는다.
+ *  따라가기는 목표의 빠르기를 그대로 쓰고(늦지 않게) 남은 거리를 BODY_TAU 초에 줄인다. 몸 자리에서 다시 지킨다: 유리 · 모래 · 물가 · 터널 · 돔(목표가 이미 그 너머면 거기까지).
+ *  바닥 물고기는 몸 자리의 모래 높이로 앉힌다. 몸을 잡는 때: 처음 · 오래 멈췄다 돌아옴(0.25초 넘게) · 수조 크기가 바뀜(목표가 멀리 튀어도 잡지 않고 최고 빠르기로 헤엄쳐 간다).
+ *  멈춘 그리기(dt 0)는 몸을 목표가 옮긴 만큼만 같이 옮긴다. 빼는 몸(목표 그대로): 굴 속 곰치 · 행사 손님(유리 밖에서 들어온다).
+ *  화면(scene)이 stepFish 뒤에 더하는 것(놀람 · 뛰어오르기 · 사냥 달아나기 · 순서 바뀜 이음)은 이 단계 밖이다 */
+export const BODY_MARGIN = 1.35, BODY_FEED = 1.9, BODY_JET = 2.6, BODY_TRIP = 2.5, BODY_MIN_LPS = 1.2, BODY_ACC_T = 0.3, BODY_TAU = 0.25;
+const BFP = { pitch: 0, roll: 0, slope: 0, ground: 0 };
+function bodyFollow(n: number, fishes: StepFish[], b: StepBuffers, dt: number, w: StepWorld, hallTop: number, span: { back: number } | null) {
+  const P = b.positions, live = dt > 0 && dt < 0.25, { wide, tall, deep, hall } = w;
+  for (let k = 0; k < n; k++) {
+    const m = fishes[k], st = m.swim!, c = b.courses[k], L = Math.max(0.05, b.lengths[k]);
+    const tx = P[k * 3], ty = P[k * 3 + 1], tz = P[k * 3 + 2];
+    if (b.targets && b.targets.length >= (k + 1) * 3) { b.targets[k * 3] = tx; b.targets[k * 3 + 1] = ty; b.targets[k * 3 + 2] = tz; }
+    const exempt = st.den || !!m.visit;
+    const resized = st.bw !== wide || st.bt !== tall || st.bd !== deep;
+    let bx = st.bx, by = st.by, bz = st.bz;
+    if (!st.bok || resized || dt > 0.25 || exempt) {
+      // 몸을 목표에 잡는다 — 빠르기는 목표가 움직인 만큼(빼는 몸에서 풀려날 때 이어지게)
+      if (st.bok && live && !resized) { st.bvx = (tx - st.tpx) / dt; st.bvy = (ty - st.tpy) / dt; st.bvz = (tz - st.tpz) / dt; } else { st.bvx = st.bvy = st.bvz = 0; }
+      bx = tx; by = ty; bz = tz;
+    } else if (!live) {
+      // 멈춘 그리기(dt 0 — 움직임 줄이기 · 숨김 · 장식 옮김 · 물고기 바뀜) — 몸은 목표가 옮긴 만큼만 같이 옮긴다(늦은 거리는 그대로, 예전 길 자리에 남지 않게)
+      bx += tx - st.tpx; by += ty - st.tpy; bz += tz - st.tpz;
+    } else {
+      // 먹이로 달려갈 때 · 두족류 물 뿜기 · 포유류가 쉼터를 오갈 때(haulBlend 의 길은 vtop 에 안 들어간다)는 더 빨리. 바닥은 몸길이로(집 곁만 맴도는 흰동가리도 먹이까지는 간다)
+      const feeding = (c.feed ?? 0) > 0.05, trip = st.haul && st.rest > 0.01 && st.rest < 0.99;
+      const vtop = c.vtop ?? 0, boost = Math.max(feeding ? BODY_FEED : 1, st.ceph ? BODY_JET : 1, trip ? BODY_TRIP : 1);
+      const vmax = Math.max(BODY_MIN_LPS * L * (feeding || trip ? BODY_TRIP : 1), vtop * BODY_MARGIN * boost), amax = vmax / BODY_ACC_T;
+      // 목표의 빠르기(최고 빠르기 안으로) + 남은 거리를 BODY_TAU 초에
+      let gx = (tx - st.tpx) / dt, gy = (ty - st.tpy) / dt, gz = (tz - st.tpz) / dt;
+      const gl = hyp3(gx, gy, gz); if (gl > vmax) { const f = vmax / gl; gx *= f; gy *= f; gz *= f; }
+      // 터널 · 돔 너머의 목표 — 곧장 가면 막히므로(목표가 둘레 건너편으로 넘어갔다) 둘레를 돌아가는 자리(aim)로 간다
+      let ax0 = tx, az0 = tz, ff = 1;
+      if (hall && by - L * 0.16 < hallTop) {
+        const want = Math.min(hall.r + L * 0.275 + 0.1, roomX(L / 2, wide) + 0.15 * wide);
+        if (hall.kind === "tunnel" && span) {
+          // 터널 양옆 — 반대쪽이면 터널 뒤(span.back 너머)로 돌아간다
+          //   터널 뒤에 아직 안 왔으면 제 쪽으로 뒤로, 뒤에 왔으면 목표 쪽으로 건너간다(뒤에서 멈칫거리지 않게)
+          if (Math.sign(tx) !== Math.sign(bx)) { const behind = bz < span.back - 0.3 - L * 0.4; ax0 = (behind ? Math.sign(tx || 1) : Math.sign(bx || 1)) * want; az0 = span.back - 0.3 - L * 0.6; ff = 0; }
+        } else if (hall.kind !== "tunnel") {
+          // 돔 — 몸에서 목표로 가는 선이 돔을 지나면 둘레를 따라 목표 쪽으로 0.6 rad 앞선 자리
+          const sx = tx - bx, sz = tz - bz, sl2 = sx * sx + sz * sz, u = sl2 > 1e-9 ? Math.max(0, Math.min(1, -(bx * sx + bz * sz) / sl2)) : 0;
+          if (hyp2(bx + sx * u, bz + sz * u) < want) {
+            const ab = Math.atan2(bz, bx), da = wrapA(Math.atan2(tz, tx) - ab), a = ab + Math.sign(da || 1) * Math.min(Math.abs(da), 0.6), r = want * 1.1;
+            ax0 = Math.cos(a) * r; az0 = Math.sin(a) * r; ff = 0;
+          }
+        }
+      }
+      // 남은 거리를 줄이는 빠르기 — BODY_TAU 초에, 다만 멈출 수 있는 빠르기(√(2 · 가속 · 거리))까지(빨리 달려와 목표를 지나쳐 솟구치지 않게)
+      let ex = ax0 - bx, ey = ty - by, ez = az0 - bz;
+      { const el = hyp3(ex, ey, ez); if (el > 1e-9) { const sp = Math.min(el / BODY_TAU, Math.sqrt(2 * amax * el)); ex *= sp / el; ey *= sp / el; ez *= sp / el; } }
+      let wx = gx * ff + ex, wy = gy * ff + ey, wz = gz * ff + ez;
+      const wl = hyp3(wx, wy, wz); if (wl > vmax) { const f = vmax / wl; wx *= f; wy *= f; wz *= f; }
+      let ax = wx - st.bvx, ay = wy - st.bvy, az = wz - st.bvz;
+      const al = hyp3(ax, ay, az), amx = amax * dt; if (al > amx) { const f = amx / al; ax *= f; ay *= f; az *= f; }
+      st.bvx += ax; st.bvy += ay; st.bvz += az;
+      bx += st.bvx * dt; by += st.bvy * dt; bz += st.bvz * dt;
+      // 몸 자리에서 다시 지킨다 — 목표가 이미 그 너머면(먹이 · 쉼터로 오르는 길) 목표까지는 허락한다
+      const mx = Math.max(5 * wide - 0.1 - L / 2, Math.abs(tx)), mz = Math.max(3 * deep - 0.1 - L / 2, Math.abs(tz));
+      bx = Math.max(-mx, Math.min(mx, bx)); bz = Math.max(-mz, Math.min(mz, bz));
+      // 수면 — 쉼터(모래사장 · 바위 위)로 오르는 포유류가 아니면 물 위로 안 나간다(목표가 이미 그 위면 거기까지)
+      if (!(st.haul && st.rest > 0)) { const top = Math.max(tallY(4.7, tall) - L * 0.2, ty); if (by > top) by = top; }
+      // 물가 — 목표와 같은 식(쉬러 오르는 포유류는 쉬는 만큼 풀어 준다), 목표가 이미 그 너머면 거기까지
+      if (b.shore) { const give = st.haul ? st.rest : 0, lim = b.shore(by - L * 0.2, bz) - L * 0.45; if (bx > lim) bx = Math.max(lim + (bx - lim) * give, Math.min(bx, tx)); }
+      // 터널 · 돔 — 몸이 지난 프레임에 그 위에 있었으면 위에 남기고(옆으로 밀면 한 번에 둘레를 건너뛴다), 옆에 있었으면 지난 몸 쪽으로 둘레를 따라 민다.
+      //   목표 쪽(가운데 — 방향이 뒤집힌다)이 아니라 몸 쪽으로 정해서 이어진다. 9 · 11단계 바닥 물고기의 길이 돔 한가운데를 지나 목표가 돔 둘레를 건너뛰어도 몸은 둘레를 돌아간다
+      if (hall && by - L * 0.16 < hallTop) {
+        const hx0 = bx, hy0 = by, hz0 = bz;
+        const want = Math.min(hall.r + L * 0.275 + 0.1, roomX(L / 2, wide) + 0.15 * wide), above = st.by - L * 0.16 >= hallTop - 1e-3;
+        // 터널은 지난 몸이 터널 뒤였으면 뒤에 남긴다(옆으로 밀면 터널 너비를 한 번에 건너뛴다)
+        //   목표가 그 띠 안이면(길이 터널보다 높다고 본 몸) 몸도 그대로 둔다 — 목표와 싸우지 않게
+        if (hall.kind === "tunnel") { if (span && bz > span.back - 0.3 && Math.abs(bx) < want && !(tz > span.back - 0.3 && Math.abs(tx) < want)) { if (above) by = hallTop + L * 0.16; else if (st.bz <= span.back - 0.3 + 1e-3) bz = span.back - 0.3; else bx = (st.bx < 0 ? -1 : 1) * want; } }
+        else { const d = hyp2(bx, bz); if (d < want && hyp2(tx, tz) >= want) { if (above) by = hallTop + L * 0.16; else { const d0 = hyp2(st.bx, st.bz) || 1, ux = d > 1e-3 ? bx / d : st.bx / d0, uz = d > 1e-3 ? bz / d : st.bz / d0; bx = ux * want; bz = uz * want; } } }
+        // 밀어낸 몫은 한 프레임에 최고 빠르기의 2 배까지 — 띠 안에 들어와 있던 몸(목표를 따라 들어왔다)이 한 번에 밖으로 튀지 않게(나머지는 다음 프레임들이)
+        { const px = bx - hx0, py = by - hy0, pz = bz - hz0, pl = hyp3(px, py, pz), lim = 2 * vmax * dt; if (pl > lim) { const f = lim / pl; bx = hx0 + px * f; by = hy0 + py * f; bz = hz0 + pz * f; } }
+      }
+      if (c.ground > 0) {
+        // 바닥 물고기 — 몸 자리의 모래로 앉는다(목표 자리 모래와의 차이만큼)
+        floorPose(w.heightAt, tx, tz, c.dx, c.dz, L, BFP); const gT = BFP.ground;
+        floorPose(w.heightAt, bx, bz, c.dx, c.dz, L, BFP);
+        // 높이도 한 프레임에 최고 빠르기의 2 배까지(모래가 한 번에 확 바뀌어도 — 바닥 물고기의 비탈 오르내림은 이보다 훨씬 느리다)
+        const yd = ty + (by - ty) * (1 - c.ground) + c.ground * (BFP.ground - gT), ylim = 2 * vmax * dt;
+        by = st.by + Math.max(-ylim, Math.min(ylim, yd - st.by));
+        b.rolls[k] = BFP.roll * c.ground;
+      } else {
+        // 헤엄치는 몸 — 몸 자리 모래 위로(목표가 모래에서 떠 있던 만큼, 몸길이 0.3 배까지)
+        // 올리는 몫은 한 프레임에 최고 빠르기의 1.5 배까지 — 늦게 따라오던 몸이 모래사장 둑(위로 늘린 수조에선 거의 벽)에 닿아 둑을 타고 솟구치지 않게
+        //   목표가 이미 모래 속이면(먹으러 가다 쉼터 쪽으로 섞인 포유류 — 길 쪽 문제) 몸도 목표만큼만 — 몸이 따로 모래 위로 솟구치지 않게
+        const clear = Math.min(ty - w.heightAt(tx, tz), L * 0.3), floor = w.heightAt(bx, bz) + clear;
+        if (by < floor) by = Math.min(floor, Math.max(by, st.by) + 1.5 * vmax * dt);
+      }
+      // 지킨 뒤의 빠르기로 — 막힌 쪽으로 빠르기가 쌓이지 않게
+      //   지킨 자리로 민 몫은 다음 프레임 빠르기에 최고 빠르기까지만 남긴다(넘으면 가속 상한 탓에 몇 초 동안 날아갔다 — 10단계 산갈치 초당 몸길이 10)
+      st.bvx = (bx - st.bx) / dt; st.bvy = (by - st.by) / dt; st.bvz = (bz - st.bz) / dt;
+      { const vl = hyp3(st.bvx, st.bvy, st.bvz); if (vl > vmax) { const f = vmax / vl; st.bvx *= f; st.bvy *= f; st.bvz *= f; } }
+    }
+    st.tpx = tx; st.tpy = ty; st.tpz = tz; st.bw = wide; st.bt = tall; st.bd = deep;
+    // 꼬리 박자 — 몸이 실제로 움직인 빠르기(몸길이/초)로(4 를 몸 단계에서). 처음 · 잡은 때는 잇기만 한다
+    const first = !st.bok || !st.ready;
+    if (live && !first) {
+      const v = hyp3(bx - st.bx, by - st.by, bz - st.bz) / dt / L;
+      if (v < 20) st.v += (v - st.v) * (1 - Math.exp(-dt / SPEED_TAU));
+    }
+    st.bx = bx; st.by = by; st.bz = bz; st.bok = true;
+    st.x = bx; st.y = by; st.z = bz; st.ready = true;
+    if (!st.own && !first) c.effort = beatEffort(st, L, c.effort, c.ground);
+    m.phase += dt * c.effort;
+    P[k * 3] = bx; P[k * 3 + 1] = by; P[k * 3 + 2] = bz;
+  }
 }
 
 /** 머리를 실제로 가는 쪽으로(2026-11-19) [사용자: "애들 움직임 자체가 너무 부자연스러워 진짜 물고기들과 진짜 개체처럼 수영하는 움직임을 … 부드럽게"] —
@@ -412,7 +540,9 @@ function faceTravel(n: number, fishes: StepFish[], b: StepBuffers, dt: number) {
     const a = 1 - Math.exp(-dt / FACE_TAU);
     st.fvx += ((x - st.fpx) / dt - st.fvx) * a; st.fvy += ((y - st.fpy) / dt - st.fvy) * a; st.fvz += ((z - st.fpz) / dt - st.fvz) * a;
     st.fpx = x; st.fpy = y; st.fpz = z;
-    if (st.ceph || st.disc || st.den || m.visit || (st.haul && st.rest > 0.3) || b.pinned[k] > 0.5) continue;
+    // 바닥에 내려앉은 몸은 길 방향 그대로 — 다만 몸 단계가 목표에서 몸길이 반 넘게 늦어 따로 헤엄쳐 가는 동안(터널 · 돔 둘레로 돌아가기)은 가는 쪽을 본다
+    const detour = st.bok && hyp3(x - st.tpx, y - st.tpy, z - st.tpz) > 0.5 * b.lengths[k];
+    if (st.ceph || st.disc || st.den || m.visit || (st.haul && st.rest > 0.3) || (b.pinned[k] > 0.5 && !detour)) continue;
     const L = Math.max(0.05, b.lengths[k]), sp = hyp3(st.fvx, st.fvy, st.fvz), bl = sp / Math.min(L, 2); // 큰 몸은 몸길이 2 기준 — 범고래 · 백상아리는 몸길이에 비해 느려 문턱을 못 넘었다
     if (bl < 0.08) continue;
     const t = Math.min(1, (bl - 0.08) / 0.32), w = FACE_MAX * t * t * (3 - 2 * t);

@@ -139,3 +139,52 @@ test("작은 무리 물고기가 큰 수조에서 쉬지 않고 질주하지 않
     assert.ok(fast < 0.03, `${tier}단계 ${r.family} ${(100 * fast).toFixed(1)}%`);
   }
 });
+
+// 몸 단계(2026-11-20, fishstep.bodyFollow) — 보정 겹이 틀려도 몸은 최고 빠르기 안에서 따라간다
+import { BODY_MARGIN, BODY_ACC_T } from "./fishstep.ts";
+function bodyRun(tier: number, fams: string[], seconds: number, world?: { heightAt?: (x: number, z: number, t: number) => number; shore?: (y: number, z: number, t: number) => number }, hz = 30) {
+  const { tank, heightAt, shore, beachObs } = realTank(tier);
+  const fish = fams.flatMap((f, i) => [0, 1].map((j) => ({ id: i * 13 + j * 211 + 5, family: f, length: adult(f) })));
+  const n = fish.length, schools = schoolsOf(fish), byId = new Map(fish.map((f) => [f.id, f]));
+  const bodies = fish.map((f) => [f.id, { family: f.family, key: f.family, length: f.length, phase: 0, course: {} as Course }] as [number, StepFish]);
+  let now = 0;
+  const h2 = world?.heightAt ? (x: number, z: number) => world.heightAt!(x, z, now) : heightAt;
+  const s2 = world?.shore ? (y: number, z = 0) => world.shore!(y, z, now) : shore;
+  const b = { positions: new Float32Array(n * 3), heading: new Float32Array(n * 3), lengths: new Float32Array(n), pinned: new Float32Array(n), offsets: new Float32Array(n * 3), rolls: new Float32Array(n), courses: [] as Course[], count: 0, shore: s2, beach: beachObs, targets: new Float32Array(n * 3) };
+  const prev = new Float32Array(n * 3), v = fish.map(() => [] as number[]), lag = fish.map(() => [] as number[]);
+  for (let k = 0; k * (1 / hz) < seconds; k++) {
+    now = k / hz;
+    stepFish(bodies, schools, (id) => byId.get(id)?.length, now, k ? 1 / hz : 0, { wide: tank.wide, tall: tank.tall, deep: tank.deep, heightAt: h2, obstacles: tank.obstacles, feed: null, hall: tank.hall }, b as never);
+    if (now > 2) for (let i = 0; i < n; i++) {
+      v[i].push(Math.hypot(b.positions[i * 3] - prev[i * 3], b.positions[i * 3 + 1] - prev[i * 3 + 1], b.positions[i * 3 + 2] - prev[i * 3 + 2]) * hz / fish[i].length);
+      lag[i].push(Math.hypot(b.positions[i * 3] - b.targets[i * 3], b.positions[i * 3 + 1] - b.targets[i * 3 + 1], b.positions[i * 3 + 2] - b.targets[i * 3 + 2]) / fish[i].length);
+    }
+    prev.set(b.positions.subarray(0, n * 3));
+  }
+  return fish.map((f, i) => { const ls = [...lag[i]].sort((a, c) => a - c); return { family: f.family, top: Math.max(...v[i]), lagMed: ls[ls.length >> 1] ?? 0 }; });
+}
+test("몸 단계 — 일부러 망가뜨린 모래 · 물가(몇 프레임마다 확 바뀜)에서도 몸은 튀지 않는다(몸 단계를 끄면 튄다)", () => {
+  const g = globalThis as { __noBody?: boolean };
+  // 모래가 0.3초마다 몸길이 몇 배씩 오르내리고, 물가가 0.4초마다 4 씩 왔다 갔다 한다
+  const broken = { heightAt: (x: number, z: number, t: number) => WORLD.floor + 0.2 + (Math.floor(t / 0.3) % 2) * 3 + 0 * x * z, shore: (_y: number, _z: number, t: number) => (Math.floor(t / 0.4) % 2 ? 2 : 6) };
+  const fams = ["flounder", "catfish", "koi", "guppy"];
+  const on = bodyRun(9, fams, 30, broken);
+  g.__noBody = true;
+  const off = bodyRun(9, fams, 30, broken);
+  g.__noBody = false;
+  assert.ok(Math.max(...off.map((r) => r.top)) > 20, `끄면 튄다 ${Math.max(...off.map((r) => r.top)).toFixed(1)}`);
+  for (const r of on) assert.ok(r.top < 9, `${r.family} ${r.top.toFixed(1)} 몸길이/초`);
+  assert.ok(BODY_MARGIN > 1 && BODY_ACC_T > 0);
+});
+// 터널 · 돔 수조(10 · 11단계) — 무리 짓는 바닥 물고기의 길이 터널 · 돔을 가로지르면(길 쪽 문제 — 따르는 자리가 건너편에 잡힌다) 목표가 건너편으로 넘어간다.
+//   몸은 터널 뒤 · 돔 둘레로 돌아가느라 한동안 늦는다(늦음은 여기서 안 잰다 — 길 쪽을 고칠 때 잰다). 순간 이동만 없으면 된다
+test("몸 단계 — 터널 · 돔 수조(10 · 11단계)의 바닥 물고기도 순간 이동 없이 둘레를 돌아간다", () => {
+  for (const tier of [10, 11]) for (const r of bodyRun(tier, ["lanternfish", "hatchetfish", "corydoras", "cutlassfish_pollock", "catfish", "flounder", "octopus"], 150))
+    assert.ok(r.top < 10, `${tier}단계 ${r.family} ${r.top.toFixed(1)} 몸길이/초`);
+});
+test("몸 단계 — 6 · 9단계에서 몸은 목표 곁을 따라간다(중앙값 몸길이 0.1 안) · 순간 이동 없음", () => {
+  for (const tier of [6, 9]) for (const r of bodyRun(tier, ["koi", "guppy", "flounder", "lanternfish", "fur_seal", "otter", "squid", "whale_shark", "clown", "catfish"], 120)) {
+    assert.ok(r.top < 10, `${tier}단계 ${r.family} ${r.top.toFixed(1)} 몸길이/초`);
+    assert.ok(r.lagMed < 0.1, `${tier}단계 ${r.family} 늦음 ${r.lagMed.toFixed(2)}`);
+  }
+});

@@ -288,6 +288,8 @@ export type Course = {
   rev?: number;
   /** 0~1 — 몸을 세운 정도(habit.stand). 엔진이 머리를 위로 돌린다(1 이면 약 80°) */
   stand?: number;
+  /** 이 길이 평소 내는 가장 빠른 빠르기(월드/초) — 엔진의 몸 단계(fishstep BODY)가 최고 빠르기를 여기서 정한다. 없으면 몸길이로 */
+  vtop?: number;
 };
 
 const TAU = Math.PI * 2;
@@ -1100,7 +1102,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   out.dx = hx || 1e-3; out.dy = hy; out.dz = hz;
   out.effort = effort; out.turn = turn; out.amp = amp; out.jet = jet; out.rev = rev;
   out.pulse = habit.jet ? J.pulse : 0; out.ground = ground; out.puff = puff; out.hover = rest > 0 ? 1 - moving : Math.max(hoverW, turtleRest);
-  out.feed = feedW; out.stand = stand;
+  out.feed = feedW; out.stand = stand; out.vtop = vTop;
   return out;
 }
 

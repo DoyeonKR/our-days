@@ -88,12 +88,16 @@ function worstJump(r: ReturnType<typeof swim>, from: number, to: number) {
 test("positions stay continuous when the pace factor changes (fish clock integrates dt × pace)", () => {
   // 겨울 빠르기로 20초 → 여름 빠르기로 바뀐다(실제로는 몇 달에 걸치지만 가장 나쁜 경우로 한 프레임에 바꾼다)
   const step = (t: number) => (t < 20 ? 1 - SWIM_PACE_AMP : 1 + SWIM_PACE_AMP);
-  const ok = swim(FAMS, 30, step), bad = swim(FAMS, 30, step, { absolute: true });
+  // 곱하기 방식과의 비교는 몸 단계 없이(2026-11-20 — 몸 단계가 곱하기 방식의 순간 이동까지 최고 빠르기로 눌러서 차이를 못 가른다). 쌓기 방식은 몸 단계를 켠 채로
+  const ok = swim(FAMS, 30, step), g = globalThis as { __noBody?: boolean };
+  g.__noBody = true;
+  const okRaw = swim(FAMS, 30, step), bad = swim(FAMS, 30, step, { absolute: true });
+  g.__noBody = false;
   const around = worstJump(ok, 19.9, 20.2), before = worstJump(ok, 2, 19.8);
   assert.ok(around <= before * 1.3 + 0.2, `바뀌는 순간 ${around.toFixed(2)} L/s · 평소 최고 ${before.toFixed(2)} L/s`);
   // elapsed × 빠르기(절대 시각에 곱하기)였다면 바뀌는 순간 길이 다른 시각으로 통째로 뛴다 — 이 차이를 막으려고 따로 쌓는다
-  const jump = worstJump(bad, 19.9, 20.2);
-  assert.ok(jump > around * 4, `곱하기 방식 ${jump.toFixed(1)} L/s · 쌓기 방식 ${around.toFixed(2)} L/s`);
+  const jump = worstJump(bad, 19.9, 20.2), aroundRaw = worstJump(okRaw, 19.9, 20.2);
+  assert.ok(jump > aroundRaw * 4, `곱하기 방식 ${jump.toFixed(1)} L/s · 쌓기 방식 ${aroundRaw.toFixed(2)} L/s`);
 });
 
 test("a constant pace is just a slower or faster clock: same input = same position, and the tail beat follows speed", () => {
