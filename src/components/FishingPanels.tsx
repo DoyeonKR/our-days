@@ -14,7 +14,7 @@ import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { ALL_FORMS, FAMILIES, bossesBeaten } from "@/lib/aquarium";
 import { BOSS_PHASE_NAME, bossPhase } from "@/lib/fishing";
-import { BAITS, DEPTH_NAMES, familyDepth, JUNKS, SINKERS, REELS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castMaxMeters, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
+import { BAITS, BAIT_COLLECT_NOTE, DEPTH_NAMES, familyDepth, JUNKS, SINKERS, REELS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castMaxMeters, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
@@ -79,6 +79,7 @@ export function FishGear({ fs, coins, busy, today, sinker, onBuyRod, onBuyNet, o
               <span className="min-w-0 flex-1">
                 <strong>{b.name}</strong>
                 <small>{GRADES[b.maxGrade]} 등급까지 · 묶음 {b.uses}회 · 남은 {baitStock(fs, b.key, today)}회</small>
+                {b.collect && <small className="fish-bait-collect">{BAIT_COLLECT_NOTE}</small>}
               </span>
               <ActionButton disabled={busy || coins < b.price} onClick={() => onBuyBait(b.key)}>
                 <span className="aqua-price"><Coin /> {b.price.toLocaleString()}</span>

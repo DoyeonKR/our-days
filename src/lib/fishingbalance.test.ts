@@ -59,7 +59,7 @@ test("깊은 낚시터일수록 힘겨루기가 세다 — 판매가 · 경험�
   for (const s of SPOTS) assert.ok(spotPush(s) >= 0 && spotPush(s) <= 4, s.key);
   const c = rollCatch(SPOTS.find((s) => s.key === "ocean")!, 5, 0.5, 11, { bait: 1 });
   assert.ok(fightLevel(c) > c.difficulty);
-  const game = code("src/components/FishingGame.tsx");
+  const game = code("src/components/FishingGame.tsx") + code("src/components/fishing/roundTick.ts");
   for (const f of ["fightTune(fightLevel(fish)", "deepTune(fightLevel(fish)", "swayTune(fightLevel(fish)", "lureTune(fightLevel(fishRef.current ?? c)", "hookWindowMs(fightLevel(fishRef.current ?? c)", "tapLure(cur, tune, fightLevel(fish))", "stepLure(cur, dt, tune, fightLevel(c))"]) assert.ok(game.includes(f), f);
   assert.match(game, /captureChance\(eff\.catch, fish\.difficulty/, "포획 확률은 등급 그대로");
   // 2026-11-14 — 파는 값은 등급 값 × 낚시터 값(SPOT_VALUE — 용궁사 · 거진항 · 심해만) × 숙련 덤, 한 곳(sellPrice)에서
@@ -76,7 +76,7 @@ test("레벨 곡선 — 늘 오르기만 하고, 첫 레벨은 첫 낚시터를 
 });
 
 test("화면 — 새 낚시터가 열려도 저절로 옮기지 않는다 · 던질 때 고른 낚시터를 기억한다 · 열렸다는 소식은 결과 카드에", () => {
-  const game = code("src/components/FishingGame.tsx");
+  const game = code("src/components/FishingGame.tsx") + code("src/components/fishing/roundTick.ts");
   assert.match(game, /setSpotPick\(spot\.key\);\s+savePrefs\(\{ spot: spot\.key \}\);/);
   assert.match(game, /openedSpots\.length > 0 && <p className="fish-levelup">새 낚시터/);
   assert.match(game, /const avoid = streak\.current\.n >= STREAK_MAX \? streak\.current\.family : undefined;/);

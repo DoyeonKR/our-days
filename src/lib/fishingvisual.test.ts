@@ -143,7 +143,7 @@ test("수심계 — 굵은 막대 · 물고기 표시 · 0m · 12px 이상 · �
   const css = appCss();
   assert.match(fx, /MICRO_FONT = '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo"/);
   assert.ok(css.length > 0);
-  const game = strip(read("src/components/FishingGame.tsx"));
+  const game = strip(read("src/components/FishingGame.tsx") + read("src/components/fishing/roundTick.ts"));
   assert.match(game, /method !== "deep" && <div className="fish-dist"/, "심해는 위 수심 막대를 숨긴다(두 번 보이던 것)");
 });
 
@@ -162,7 +162,7 @@ test("루어 — 등 · 배 그라디언트는 크기와 무관한 키 하나, �
 
 test("심해 다이얼 — 바늘은 스풀 위, 그라디언트 id 는 useId, CSS filter 없음, 손가락마다 화면을 다시 그리지 않는다", () => {
   const dial = strip(read("src/components/DeepDial.tsx"));
-  const game = strip(read("src/components/FishingGame.tsx"));
+  const game = strip(read("src/components/FishingGame.tsx") + read("src/components/fishing/roundTick.ts"));
   assert.match(dial, /useId\(\)/);
   const rotG = dial.indexOf("<g ref={rot}>"), needle = dial.indexOf('className="fish-dial-needle"'), spool = dial.indexOf("url(#${g(\"spool\")})");
   assert.ok(spool > 0 && rotG > spool && needle > rotG, "바늘을 스풀 · 도는 묶음 다음에 그린다");
@@ -186,7 +186,7 @@ test("심해 다이얼 — 바늘은 스풀 위, 그라디언트 id 는 useId, C
 });
 
 test("뜰채 — 그물 원이 늘 보이고 손가락보다 위에서 따라간다 · 붙잡기 막대는 뜰채 아이콘", () => {
-  const game = strip(read("src/components/FishingGame.tsx"));
+  const game = strip(read("src/components/FishingGame.tsx") + read("src/components/fishing/roundTick.ts"));
   assert.match(game, /fxn\?\.aim\(\{ x: next\.nx, y: next\.ny, r: tune\.netR \}\)/);
   assert.match(game, /y: Math\.max\(0, Math\.min\(1, y - HERD_LIFT\)\)/, "손가락이 그물을 가리지 않게");
   assert.match(game, /if \(herdDown\.current\) herdPoint\(x \/ w, y \/ h\)/, "안 눌린 마우스로는 안 따라간다");
@@ -204,7 +204,7 @@ test("뜰채 — 그물 원이 늘 보이고 손가락보다 위에서 따라간
 });
 
 test("루어 막대 — 물고기는 물고기 모양(내 루어 아이콘이 아니다) · 내 낚싯대는 화살표 알약 · 안전한 절반", () => {
-  const game = strip(read("src/components/FishingGame.tsx"));
+  const game = strip(read("src/components/FishingGame.tsx") + read("src/components/fishing/roundTick.ts"));
   const sway = game.slice(game.indexOf('className={`fish-sway ${swayOk'), game.indexOf('className={`fish-sway fish-lift'));
   assert.match(sway, /<FishMark \/>/);
   assert.doesNotMatch(sway, /MethodIcon k="lure"/);

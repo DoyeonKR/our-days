@@ -276,7 +276,7 @@ test("방식 저장 — 다섯 방식이 왕복한다 · 모르는 값은 찌 ·
   assert.equal(prefMethod({}), "float");
   assert.equal(prefMethod({ method: "deep", lamp: false }), "deep");
   // 옛 번들이 읽는 method 칸엔 옛 넷 중 하나만 남는다 — 되돌린 앱의 COACH[method] 가 늘 있다
-  const g = code("src/components/FishingGame.tsx");
+  const g = code("src/components/FishingGame.tsx") + code("src/components/fishing/roundTick.ts");
   assert.match(g, /prefMethod\(readPrefs\(\)\)/);
   assert.match(g, /savePrefs\(prefMethodWrite\(m\.key\)\)/);
   assert.doesNotMatch(g, /savePrefs\(\{ method: m\.key \}\)/);
@@ -285,7 +285,7 @@ test("방식 저장 — 다섯 방식이 왕복한다 · 모르는 값은 찌 ·
 /* ── 화면 · 연출 계약 ── */
 
 test("화면 — 밤 판정을 던질 때 다시 보고 저장에도 넘긴다 · 개발 빌드에서만 밤 강제 · 판이 glow 단계로 간다", () => {
-  const g = code("src/components/FishingGame.tsx");
+  const g = code("src/components/FishingGame.tsx") + code("src/components/fishing/roundTick.ts");
   assert.match(g, /lightNight\(clock\(\)\)/, "때 손님과 같은 시각(gameNow)");
   assert.match(g, /process\.env\.NODE_ENV !== "production"/);
   assert.match(g, /__fishNight/);

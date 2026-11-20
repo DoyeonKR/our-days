@@ -749,6 +749,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-hint { position: absolute; z-index: 11; left: 50%; bottom: 3.5%; transform: translateX(-50%); max-width: 92%; padding: 6px 14px; border-radius: 999px; background: rgba(2,16,28,.66); color: #fff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; text-align: center; white-space: nowrap; pointer-events: none; }
 .fish-hint.is-loud { padding: 8px 18px; background: #e11d2e; font-size: 15px; font-family: var(--font-body); line-height: 24px; animation: fish-hint-pulse .3s ease-in-out infinite alternate; }
 .fish-hint.is-jump { background: #facc15; color: #1c1917; }
+/* 방식 손놀림 한 줄(2026-11-20, FishMethod.tip) — 던지기 전 안내 칸 아래에 작게 */
+.fish-hint-tip { display: block; margin-top: 2px; color: #bae6fd; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 600; }
 .fish-dist { position: absolute; z-index: 11; left: 15%; right: 4%; top: 3.5%; height: 22px; border-radius: 999px; background: rgba(2,16,28,.68); border: 2px solid rgba(255,255,255,.92); overflow: hidden; }
 .fish-dist b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0ea5e9, #67e8f9); }
 .fish-dist em { position: absolute; right: 8px; top: 0; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-style: normal; font-weight: 900; color: #fff; -webkit-text-stroke: 3px rgba(2,16,28,.8); paint-order: stroke fill; }
@@ -956,6 +958,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-baits button.is-off { opacity: .42; }
 .fish-baits strong { font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; text-align: center; }
 .fish-baits small { font-size: 12px; font-family: var(--font-micro); line-height: 18px; color: #a9c9de; text-align: center; }
+/* 도감용 미끼(2026-11-20) — 하트로는 황금 떡밥보다 덜 남는다는 표시 */
+.fish-baits small.fish-bait-collect, .aqua-shop small.fish-bait-collect { color: #c4b5fd; }
 .fish-bait-pic { display: block; width: 38px; height: 38px; }
 .fish-bait-now { display: flex; align-items: center; gap: 8px; }
 .fish-bait-now p { flex: 1; min-width: 0; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
@@ -1001,6 +1005,9 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-coop-badge { display: inline-block; padding: 3px 12px; border-radius: 999px; background: linear-gradient(90deg, #0891b2, #16a34a); color: #fff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; }
 .fish-coop-wait { margin: 0; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; color: #a5f3fc; }
 .fish-chip.is-coop { width: auto; padding: 0 10px; border-color: rgba(103,232,249,.7); background: rgba(8,51,68,.8); }
+/* 오늘 할 일(2026-11-20, lib/fishtoday) — 글이 길어 폭은 글만큼, 좁은 화면에선 줄임표 */
+.fish-chip.is-today { width: auto; max-width: 100%; min-width: 0; padding: 0 10px; border-color: rgba(196,181,253,.8); background: rgba(46,16,101,.78); }
+.fish-chip.is-today b { overflow: hidden; text-overflow: ellipsis; }
 @media (prefers-reduced-motion: reduce) { .fish-coop-card, .fish-coop-result { animation: none; } .fish-coop-time b { transition: none; } }
 .fish-sway { position: absolute; z-index: 11; left: 15%; right: 5%; bottom: 13%; height: 34px; border: 2px solid #fff; border-radius: 999px; background: rgba(2,16,28,.62); pointer-events: none; transition: border-color .12s; }
 .fish-sway.is-ok { border-color: #4ade80; }

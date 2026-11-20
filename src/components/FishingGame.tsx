@@ -11,12 +11,14 @@ import { confirmDialog } from "@/lib/confirm";
 import { logDebug } from "@/lib/debug";
 import { claimableGoals } from "@/lib/fishinggoals";
 import { todayRequests } from "@/lib/fishrequest";
+import { fishTodayItems, fishTodayLabel } from "@/lib/fishtoday";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import AquariumGame from "@/components/AquariumGame";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { BaitIcon, CrownIcon, FishMark, JunkIcon, MethodIcon, MoonIcon, NetMark, RestIcon } from "@/components/FishingIcons";
 import DeepDial, { type DeepDialHandle } from "@/components/DeepDial";
+import { tickRound, type TickCtx } from "@/components/fishing/roundTick";
 import FishFever from "@/components/FishFever";
 import FishCoopHelp from "@/components/FishCoopHelp";
 import { coopBonus, coopChance, coopRoundId, wantHelp } from "@/lib/fishcoop";
@@ -48,20 +50,20 @@ import { islandSnapshot } from "@/lib/islandstore";
 import { sendPokePush } from "@/lib/push";
 import { BOSS_DUO, bossArt, bossChunk, bossDealt, bossDuo, familyName } from "@/lib/fishingworld";
 import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
-import { lightBand, lightFightTune, lightHook, lightQuality, lightTotalQuality, lightTune, startLight, stepLight, type Light, type LightTune } from "@/lib/fishinglight";
+import { lightBand, lightTune, startLight, type Light, type LightTune } from "@/lib/fishinglight";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
 import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
-  HERD_TIME_S, herdBest, herdTune, startHerd, stepHerd, type Herd, type HerdTune, DEEP_GENTLE, DEEP_GENTLE_BONUS, GRAB_CHANCE, GRAB_METERS, deepGrabbing, deepSurvivedGrab, deepBand, deepQuality, deepTune, lureLanded, lureQuality, lureRing, lureTune, startDeep, startLure, startSway, stepDeep, stepLure, stepSway, swayQuality, swayTune, tapLure,
+  HERD_TIME_S, herdBest, herdTune, startHerd, type Herd, type HerdTune, DEEP_GENTLE, DEEP_GENTLE_BONUS, GRAB_CHANCE, GRAB_METERS, deepGrabbing, deepBand, deepTune, lureLanded, lureTune, startDeep, startLure, startSway, swayTune, tapLure,
   type Deep, type DeepTune, type Lure, type LureTune, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMaxMeters, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
-  rankLine, revealMs, rollCatch, buySinker, buyReel, reelOf, deepestOf, noteDeepest, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, stepFight, storeBlock, traceMove, traceRelease, traceTick, tryStore, waitPlan, xpNeed, xpValue,
+  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMaxMeters, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, currentBait, formsSeen, currentSpot, expedFor, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
+  rankLine, revealMs, rollCatch, buySinker, buyReel, reelOf, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, storeBlock, traceMove, traceRelease, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
@@ -78,8 +80,8 @@ const SINK_MS = 2700;
 /** 어군 띠의 반폭(가라앉는 비율로) · 어군은 제자리에서 천천히 오르내린다(맞히기가 솜씨가 되게) */
 const SCHOOL_HALF = 0.07;
 const sinkBandAt = (c: number, ms: number) => Math.max(0.08, Math.min(0.92, c + 0.13 * Math.sin(Math.max(0, ms) / 1000 * 2.3)));
-type Phase = "ready" | "charge" | "sink" | "wait" | "bite" | "lure" | "aim" | "glow" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
-type StampTone = "hit" | "gold" | "miss";
+export type Phase = "ready" | "charge" | "sink" | "wait" | "bite" | "lure" | "aim" | "glow" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
+export type StampTone = "hit" | "gold" | "miss";
 /** 시각 · 주사위 — 눌렀을 때만 부른다(렌더 중에 부르지 않는다). 시각은 서버에 맞춘 지금(islandsync.gameNow) — 폰 날짜를 바꿔
  *  하루 도전 · 공짜 미끼 · 목표를 다시 열지 못하게(2026-11-11 리뷰). 경과 시간(프레임 · 챔질 · 휙)과 날씨 신선도는 기기 시계로 잰다:
  *  gameNow 는 저장 응답마다 다시 맞춰져 한 판 도중에 뛸 수 있고, 예보는 기기 시계로 찍힌다(useforecast). */
@@ -162,7 +164,7 @@ const LOST_TEXT = {
   lightEarly: "너무 일찍 챘어요! 무리가 터지기 전엔 불만 지켜요",
   lightMiss: "무리가 지나가 버렸어요. 불빛으로 솟구치는 순간 채세요",
 } as const;
-type LostKey = keyof typeof LOST_TEXT;
+export type LostKey = keyof typeof LOST_TEXT;
 const LOST_FX: Record<LostKey, FxLost> = { early: "early", late: "late", snapped: "snapped", slack: "slack", escaped: "escaped", swaySnap: "snapped", spinSnap: "snapped", idle: "slack", empty: "escaped", out: "escaped", time: "escaped", netDrop: "escaped", fever: "escaped", bossBroke: "escaped", lightScare: "escaped", lightGone: "escaped", lightEarly: "early", lightMiss: "late" };
 const LOST_STAMP: Record<FxLost, string> = { early: "앗, 일렀다!", late: "늦었다!", snapped: "툭! 끊어졌다", slack: "바늘이 빠졌다", escaped: "도망쳤다!" };
 const TAP_NOTE: Record<TapGrade, string> = { great: "완벽!", good: "좋아!", miss: "엇박!" };
@@ -760,6 +762,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   // 낚싯대 젖히기 · 모든 방식의 진행이 같은 박자로 돈다. 프레임이 밀려도 한 번에 0.1초까지만 센다.
   useEffect(() => {
     if (phase !== "charge" && phase !== "fight" && phase !== "lure" && phase !== "aim" && phase !== "glow") return;
+    // 방식별 처리는 fishing/roundTick(2026-11-20 정리) — 화면의 ref · setState 를 그대로 넘긴다
+    const tick: TickCtx = {
+      pausedRef, roundEnded, fxRef, keySpin, castAngRef, traceRef, spinRef, lureRef, lureTuneRef, fishRef, lightStrike, lightRef, lightTuneRef, holdRef, lightQ, effRef, planFeverRef, tuneRef, fightRef,
+      herdRef, herdTuneRef, herdCaught, markHerdCaught: () => { herdCaught.current = true; }, herdAt, gradeRef, timers, methodRef, swayRef, swayTuneRef, rodXRef, coopAskRef, deepRef, deepTuneRef, spinAcc, backAcc, spinNow, backNow, releasingRef, reelDir, reelDirShown, deepMeters, rowRef,
+      fightHpRef, bossChunkRef, bossPhaseRef, bossEffRef, setSpinLive, setCharge, setLureS, setLightS, setPerfectHook, setFight, setPhase, setHerdS, setFish, setSwayS, setReleasing, setReelDirS, setDeepS, setSpin, setDeepRecord, setBossRage,
+      loseRound, landRound, feverNow, showStamp, act, buzz, dice, clock,
+    };
     let last = deviceClock();
     const iv = setInterval(() => {
       const now = deviceClock();
@@ -768,219 +777,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       last = now;
       if (pausedRef.current) return;
       if (roundEnded.current) return; // 끝난 판의 상태(landed · snapped …)는 그대로 남아 있다 — 다시 보면 끝 처리가 두 번 돈다
-      const fxn = fxRef.current;
-      if (phase === "charge") {
-        // 프레임이 밀려도(0.1초 넘게) 모인 각도를 같은 비율로 줄여 센다 — 빠르기가 부풀지 않게(stepSpinFrame). 칸마다 상태를 남겨 둔다(튕김 창 앞을 잰다)
-        const keyAngle = keySpin.current ? elapsed * 2.6 * Math.PI * 2 : undefined;
-        if (keyAngle !== undefined) castAngRef.current += dt * 2.6 * Math.PI * 2;
-        const next = traceTick(traceRef.current, spinRef.current, elapsed, now, keyAngle);
-        spinRef.current = next;
-        setSpinLive(next);
-        setCharge(next.energy);
-        fxn?.set({ castAng: castAngRef.current });
-        return;
-      }
-      if (phase === "lure") {
-        const cur = lureRef.current, tune = lureTuneRef.current, c = fishRef.current;
-        if (!cur || !tune || !c) return;
-        const next = stepLure(cur, dt, tune, fightLevel(c));
-        lureRef.current = next;
-        setLureS(next);
-        fxn?.set({ beat: lureRing(next, tune), beatHot: Math.abs(next.t - next.nextBeat) <= tune.window, interest: next.interest, line: next.line });
-        if (next.status === "empty") loseRound("empty");
-        return;
-      }
-      if (phase === "glow") {
-        const cur = lightRef.current, tune = lightTuneRef.current, c = fishRef.current;
-        if (!cur || !tune || !c) return;
-        const strike = lightStrike.current;
-        lightStrike.current = false;
-        const next = stepLight(cur, dt, { hold: holdRef.current, strike }, tune);
-        lightRef.current = next;
-        setLightS(next);
-        const band = lightBand(next, tune);
-        fxn?.lanternSet(next.bright, band.lo, band.hi, next.school, next.scare);
-        if (cur.status !== "surge" && next.status === "surge") {
-          fxn?.lanternSurge();
-          buzz([30, 20, 60]);
-        }
-        if (cur.status === "gather" && next.status === "ready") buzz(15);
-        if (next.status === "hooked") {
-          // 걸렸다 — 3막(짧은 힘겨루기). 감기는 속도가 빠르고 줄은 조금 더 팽팽하다(lightFightTune)
-          const h = lightHook(next, tune);
-          lightQ.current = { gather: lightQuality(next), hook: h.q };
-          fxn?.lanternEnd(true);
-          setPerfectHook(h.perfect);
-          fxn?.hook(h.perfect);
-          showStamp(h.perfect ? "완벽한 챔질!" : "걸렸다!", h.perfect ? "gold" : "hit");
-          buzz([25, 20, 90]);
-          const ft = lightFightTune(fightLevel(c), effRef.current, c.family);
-          planFeverRef.current();
-          const f = startFight(Math.floor(dice() * 2 ** 31), ft);
-          tuneRef.current = ft;
-          fightRef.current = f;
-          setFight(f);
-          setPhase("fight");
-          return;
-        }
-        const lostKey = next.status === "scared" ? "lightScare" : next.status === "gone" ? "lightGone" : next.status === "early" ? "lightEarly" : next.status === "missed" ? "lightMiss" : null;
-        if (lostKey) {
-          fxn?.lanternEnd(false);
-          loseRound(lostKey);
-        }
-        return;
-      }
-      if (phase === "aim") {
-        const cur = herdRef.current, tune = herdTuneRef.current;
-        if (!cur || !tune || roundEnded.current || herdCaught.current) return;
-        const at = herdAt.current;
-        const next = stepHerd(cur, dt, at.x, at.y, tune);
-        herdRef.current = next;
-        setHerdS(next);
-        // 개발 빌드에서만 — 콘솔 · 자동 확인에서 판 상태를 본다(배포 빌드엔 이 분기가 없다)
-        if (process.env.NODE_ENV !== "production") (window as { __fishHerd?: Herd }).__fishHerd = next;
-        fxn?.setShoal(next.fish.map((f) => ({ id: f.id, x: f.x, y: f.y, h: Math.atan2(f.vy, f.vx || 1e-6), z: 1, reach: true, size: shadowSize(f.haul), grade: GRADES.indexOf(f.haul.grade), junk: !!f.haul.junk })));
-        fxn?.aim({ x: next.nx, y: next.ny, r: tune.netR });
-        const best = herdBest(next);
-        if (next.status === "on" && best.i >= 0 && !next.fish[best.i].haul.junk) {
-          const c = next.fish[best.i].haul;
-          fishRef.current = c;
-          gradeRef.current = GRADES.indexOf(c.grade);
-          if (feverNow(1 - best.p, Math.max(0, Math.min(1, 1.15 - next.t / (HERD_TIME_S * 0.8))))) { setFish(c); fxn?.aim(null); fxn?.setShoal([]); return; }
-        }
-        if (next.status === "caught") {
-          herdCaught.current = true;
-          const c = next.fish[next.caught].haul;
-          fishRef.current = c;
-          gradeRef.current = GRADES.indexOf(c.grade);
-          setFish(c);
-          const good = next.quality >= 0.75;
-          setPerfectHook(good);
-          fxn?.plunge(next.nx, next.ny, tune.netR, 0.2);
-          fxn?.netLand(true, gradeRef.current);
-          showStamp(good ? "단숨에!" : "건졌다!", good ? "gold" : "hit");
-          buzz([30, 30, 110]);
-          timers.current.push(setTimeout(() => {
-            fxRef.current?.aim(null);
-            fxRef.current?.setShoal([]);
-            landRound(next.quality);
-          }, 650));
-        } else if (next.status === "out") {
-          fxn?.aim(null);
-          fxn?.setShoal([]);
-          loseRound("time");
-        }
-        return;
-      }
-      const how = methodRef.current;
-      if (how === "lure") {
-        const cur = swayRef.current, tune = swayTuneRef.current;
-        if (!cur || !tune) return;
-        const next = stepSway(cur, dt, rodXRef.current, tune);
-        swayRef.current = next;
-        setSwayS(next);
-        fxn?.set({ tension: next.tension, dist: next.dist, rodX: rodXRef.current, fishX: next.fishX });
-        if (cur.warnLeft <= 0 && next.warnLeft > 0) {
-          fxn?.warn("surge");
-          buzz(15);
-        }
-        if (next.status === "on" && feverNow(next.dist, (lureQuality(lureRef.current ?? { hits: 0, beats: 0 }) + swayQuality(next)) / 2)) return;
-        if (next.status === "on") coopAskRef.current(next.dist);
-        if (next.status === "landed") landRound((lureQuality(lureRef.current ?? { hits: 0, beats: 0 }) + swayQuality(next)) / 2);
-        else if (next.status === "snapped") loseRound("swaySnap");
-        else if (next.status === "escaped") loseRound("escaped");
-        return;
-      }
-      if (how === "deep") {
-        const cur = deepRef.current, tune = deepTuneRef.current;
-        if (!cur || !tune) return;
-        const raw = keySpin.current ? 1.35 : spinAcc.current / (Math.PI * 2) / Math.max(0.001, dt);
-        const rawBack = backAcc.current / (Math.PI * 2) / Math.max(0.001, dt);
-        spinAcc.current = 0;
-        backAcc.current = 0;
-        // 손을 멈추면 곧바로 멈춘 것으로 — 내려갈 땐 빨리 따라간다(파고들기 예고에 멈췄는데 0.3초 늦게 멈춤으로 쳐서 장력을 먹었다)
-        spinNow.current += (raw - spinNow.current) * Math.min(1, dt * (raw < spinNow.current ? 18 : 7));
-        backNow.current += (rawBack - backNow.current) * Math.min(1, dt * (rawBack < backNow.current ? 18 : 7));
-        const rps = spinNow.current < 0.03 ? 0 : spinNow.current;
-        const back = backNow.current < 0.03 ? 0 : backNow.current;
-        const rel = back > 0.18;
-        if (+rel !== releasingRef.current) { releasingRef.current = +rel; setReleasing(rel); if (rel) buzz(10); }
-        if (reelDir.current !== reelDirShown.current) { reelDirShown.current = reelDir.current; setReelDirS(reelDir.current); }
-        const next = stepDeep(cur, dt, rps, tune, back);
-        deepRef.current = next;
-        setDeepS(next);
-        setSpin(rps);
-        fxn?.set({ tension: next.tension, dist: next.depth, spin: rps - back, deepM: deepMeters.current, grab: deepGrabbing(next) });
-        if (cur.grab !== 2 && next.grab === 2) { showStamp("대왕오징어가 덮쳐요!", "miss"); buzz([60, 40, 60, 40, 120]); }
-        if (cur.grab === 3 && next.grab === 4) showStamp("버텨 냈다!", "gold");
-        if (cur.warnLeft <= 0 && next.warnLeft > 0) {
-          fxn?.warn("dive");
-          buzz(15);
-        }
-        if (cur.diveLeft <= 0 && next.diveLeft > 0) {
-          fxn?.surge("surge");
-          buzz([35, 30, 35]);
-        } else if (cur.diveLeft > 0 && next.diveLeft <= 0) {
-          fxn?.surgeEnd();
-        }
-        if (next.status === "on" && feverNow(next.depth, deepQuality(next))) return;
-        if (next.status === "on") coopAskRef.current(next.depth);
-        if (next.status === "landed") {
-          // 습격을 버텨 냈으면 대물(cm 1.25배) · 가장 깊은 기록
-          const c = fishRef.current;
-          if (c && !c.junk && deepSurvivedGrab(next) && c.cm) { const big = { ...c, cm: Math.round(c.cm * 1.25 * 10) / 10 }; fishRef.current = big; setFish(big); }
-          const fin = fishRef.current, row0 = rowRef.current, m = Math.round(deepMeters.current);
-          if (fin && !fin.junk && !fin.special && row0 && m > (deepestOf(row0.state)?.m ?? 0)) {
-            const rec = { m, family: fin.family, key: catchArt(fin), at: clock() };
-            setDeepRecord(m);
-            void act((s) => ({ ok: true as const, state: noteDeepest(s, rec).state }), true);
-          }
-          landRound(deepQuality(next));
-        }
-        else if (next.status === "snapped") loseRound("spinSnap");
-        else if (next.status === "slack") loseRound("idle");
-        else if (next.status === "escaped") loseRound("escaped");
-        return;
-      }
-      const cur = fightRef.current, tune = tuneRef.current;
-      if (!cur || !tune) return;
-      const next = stepFight(cur, dt, holdRef.current, tune);
-      fightRef.current = next;
-      setFight(next);
-      fxn?.set({ tension: next.tension, dist: next.dist });
-      if (cur.warnLeft <= 0 && next.warnLeft > 0) {
-        fxn?.warn(next.event);
-        buzz(15);
-      }
-      if (cur.surgeLeft <= 0 && next.surgeLeft > 0) {
-        fxn?.surge(next.event);
-        buzz(next.event === "jump" ? 25 : [35, 30, 35]);
-      } else if (cur.surgeLeft > 0 && next.surgeLeft <= 0) {
-        fxn?.surgeEnd();
-      }
-      // 주인이 체력 3분의 2 · 3분의 1 밑으로 밀리면 화가 난다 — 그 자리에서 힘겨루기가 거칠어진다
-      const fb = bossOf(fishRef.current?.boss);
-      if (fb && next.status === "on") {
-        const p = bossPhase(bossLeft(fightHpRef.current, bossChunkRef.current || fb.chunk, next.dist));
-        if (p > bossPhaseRef.current) {
-          bossPhaseRef.current = p;
-          tuneRef.current = bossTune(fb, bossEffRef.current, p === 2 ? 0.2 : 0.5);
-          setBossRage(p);
-          fxn?.rage(p);
-          showStamp(`${fb.name} ${BOSS_PHASE_NAME[p]}!`, "miss");
-          buzz([60, 40, 60, 40, 160]);
-        }
-      }
-      // 집어등은 모으기 · 챔질 솜씨도 같이 센다(점수 · 포획 확률의 quality)
-      const fq = how === "light" ? lightTotalQuality(lightQ.current.gather, lightQ.current.hook, fightQuality(next)) : fightQuality(next);
-      if (next.status === "on" && feverNow(next.dist, fq)) return;
-      if (next.status === "on") coopAskRef.current(next.dist);
-      if (next.status === "landed") {
-        const b = bossOf(fishRef.current?.boss);
-        if (b && bossLeft(fightHpRef.current, bossChunkRef.current || b.chunk, 0) > 0) loseRound("bossBroke");
-        else landRound(fq);
-      } else if (next.status === "slack") loseRound("slack");
-      else if (next.status !== "on") loseRound(next.status);
+      tickRound(tick, phase, dt, elapsed, now);
     }, 33);
     return () => clearInterval(iv);
   }, [phase, loseRound, landRound, feverNow, showStamp, act]);
@@ -1850,6 +1647,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const pointsText = (estimate: number) => (serverPts === 0 ? "랭킹 점수 없음 · 너무 빨리 올렸거나 오늘 300마리를 넘겼어요" : `랭킹 +${serverPts ?? estimate}점`);
   // 목표 탭의 숫자는 받을 목표만 — 능력치 점수는 2026-11-13 장비 탭으로 옮겨서, 목표 탭에 더하면 목표를 다 받아도 숫자가 안 사라졌다
   const goalCount = claimableGoals(fs, today);
+  const todayItems = fishTodayItems(st, fs, today, who), todayLabel = fishTodayLabel(todayItems);
   const catchable = catchableCount(spot, baitIndex(bait.key), moment);
   /** 결과 카드의 소식 — 길이 · 기록 · 원정. 없으면 그리지 않는다 */
   const sizeLine = fish?.cm ? `${fmtCm(fish.cm)}${result?.sizeNote === "top" ? " · 상대 기록을 넘었어요!" : result?.sizeNote === "mine" ? " · 내 최고 기록!" : ""}${result?.sizeCoins ? ` +${result.sizeCoins.toLocaleString()}하트 · 경험치 1.5배` : ""}` : null;
@@ -1933,6 +1731,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     {spot.water === "sea" && <b>{tide.label}</b>}
                   </button>
                   {coop.partner.present && <span className="fish-chip is-coop" role="status">상대도 낚시 중</span>}
+                  {/* 오늘 할 일(2026-11-20) — 받을 목표 · 의뢰 · 주인 도전 중 남은 것을 급한 순서로. 누르면 목표 탭 */}
+                  {todayLabel && (
+                    <button type="button" className="tap fish-chip is-today" aria-label={`오늘 할 일 — ${todayItems.map((x) => x.text).join(" · ")} · 목표 탭 열기`} onClick={() => setTab("stat")}>
+                      <b>{todayLabel}</b>
+                    </button>
+                  )}
                 </div>
                 {boss && fs.level >= boss.level && (
                   <button type="button" className={`tap fish-chip ${activeBoss ? "is-on" : ""}`} aria-label={`낚시터의 주인 ${boss.name} ${bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `체력 ${Math.round(bossHp(bossRec, today) * 100)}%`}`} onClick={() => { setAwakeView(false); setWorldSheet("boss"); }}>
@@ -2093,7 +1897,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               <DeepDial handle={dialApi} spin={spin} lo={band.lo} hi={band.hi} warn={!diving && (deepS?.warnLeft ?? 0) > 0} dive={diving} guide={dialGuide} line={lineColor} reelDir={reelDirS} release={releasing} />
             )}
             {tapNote && <p key={tapNote.id} className={`fish-tapnote is-${tapNote.tone}`} aria-live="polite">{tapNote.text}</p>}
-            {hint && !coopHelping && <p className={`fish-hint ${loudHint ? "is-loud" : ""} ${leaping ? "is-jump" : ""}`}>{hint}</p>}
+            {hint && !coopHelping && <p className={`fish-hint ${loudHint ? "is-loud" : ""} ${leaping ? "is-jump" : ""}`}>{hint}{phase === "ready" && !blocked && !activeBoss && <small className="fish-hint-tip">{how.name} · {how.tip}</small>}</p>}
             {phase === "lost" && lost && <p className="fish-lost" aria-live="polite">{LOST_TEXT[lost]}{bossNote && <small>{bossNote}</small>}</p>}
 
             {(phase === "reveal" || phase === "landed" || phase === "scoop" || phase === "result") && fish && (
@@ -2237,7 +2041,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 </div>
                 <p className="fish-how">{how.how}</p>
 
-                <h3 className="fish-sheet-title">미끼 <small>높을수록 귀한 물고기가 물고, 횟수도 많아요</small></h3>
+                <h3 className="fish-sheet-title">미끼 <small>높을수록 귀한 물고기가 물고, 횟수도 많아요 · 도감용은 하트보다 귀한 물고기를 노릴 때</small></h3>
                 <div className="fish-baits">
                   {BAITS.map((b) => {
                     const left = baitStock(fs, b.key, today);
@@ -2247,6 +2051,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                         <span className="fish-bait-pic"><BaitIcon k={b.key} /></span>
                         <strong>{b.name}</strong>
                         <small>{GRADES[b.maxGrade]}까지 · {left}회</small>
+                        {b.collect && <small className="fish-bait-collect">도감용</small>}
                       </button>
                     );
                   })}

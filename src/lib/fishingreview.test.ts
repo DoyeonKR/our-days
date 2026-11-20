@@ -116,8 +116,8 @@ test("연출 — 움직임 줄이기면 비 · 눈 입자를 그리지 않는다
 });
 
 test("화면 — 판의 끝 처리는 한 번 · 저장이 안 된 미끼 · 주인 도전은 판을 물린다 · 보상 문구는 저장 뒤 · 점수는 서버 값", () => {
-  const src = code("src/components/FishingGame.tsx");
-  assert.match(src, /if \(roundEnded\.current\) return;\s+const fxn = fxRef\.current;/, "33ms 루프가 끝난 판을 다시 보지 않는다");
+  const src = code("src/components/FishingGame.tsx") + code("src/components/fishing/roundTick.ts");
+  assert.match(src, /if \(roundEnded\.current\) return;[^\n]*\n\s+tickRound\(tick, phase/, "33ms 루프가 끝난 판을 다시 보지 않는다");
   for (const fn of ["loseRound", "landRound"]) {
     const body = src.slice(src.indexOf(`const ${fn} = useCallback`), src.indexOf(`const ${fn} = useCallback`) + 200);
     assert.match(body, /if \(roundEnded\.current\) return;\s+roundEnded\.current = true;/, fn);
@@ -139,7 +139,7 @@ test("시트 · 피버 · 랭킹 — 포커스 · Esc · 바깥 누르기 · 실
   assert.match(panels, /downAt\.current = e\.target === e\.currentTarget \? e\.currentTarget : null/);
   assert.doesNotMatch(panels, /role="tab"/);
   assert.match(panels, /couple \? " · 둘이 함께 깎아요" : ""/);
-  const game = code("src/components/FishingGame.tsx");
+  const game = code("src/components/FishingGame.tsx") + code("src/components/fishing/roundTick.ts");
   assert.match(game, /useDialogFocus\(sheetOpen, closePrep\)/);
   const fever = code("src/components/FishFever.tsx");
   assert.match(fever, /performance\.now\(\)/);

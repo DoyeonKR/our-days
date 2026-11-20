@@ -117,7 +117,7 @@ test("귀할수록 빠르고 덜 지친다 · 같은 입력 같은 결과 · 다
 });
 
 test("화면 — 뜰채는 몰아서 건지기로 돈다 · 피버는 붙잡는 도중에 · 내리치기 · 들어올리기는 없다", () => {
-  const g = code("src/components/FishingGame.tsx");
+  const g = code("src/components/FishingGame.tsx") + code("src/components/fishing/roundTick.ts");
   assert.match(g, /stepHerd\(cur, dt, at\.x, at\.y, tune\)/);
   assert.match(g, /herdTune\(fs\.net, eff\)/, "뜰채 · 힘 · 줄 다루기가 그물에 듣는다");
   assert.match(g, /feverNow\(1 - best\.p,/);

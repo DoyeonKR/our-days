@@ -110,7 +110,11 @@ export const NETS: readonly { key: string; name: string; price: number; catch: n
   { key: "net_moon", name: "달빛 뜰채", price: 70000, catch: 30 },
 ];
 
-export type FishBait = { key: string; name: string; maxGrade: number; uses: number; price: number; desc: string };
+export type FishBait = { key: string; name: string; maxGrade: number; uses: number; price: number; desc: string;
+  /** 도감용 미끼(2026-11-20) — 하트로는 황금 떡밥보다 덜 남는다(행운 25 · 찌, 한 번당 10 ~ 25 하트). 귀한 물고기 · 도감 · 랭킹을 노릴 때 쓰는 미끼라고 화면이 알린다 */
+  collect?: true };
+/** 도감용 미끼 한 줄 — 미끼를 고르는 칸 · 장비 탭이 같이 쓴다 */
+export const BAIT_COLLECT_NOTE = "도감용 · 하트는 황금 떡밥보다 덜 남아요";
 /** 미끼 — maxGrade 가 물 수 있는 등급의 상한(GRADES 번호), uses 는 한 묶음으로 던질 수 있는 횟수. 높을수록 둘 다 크다.
  *  값(2026-11-11 경제 리뷰): 미끼 1% 규칙 때문에 한 단계 올린 미끼가 더 버는 건 몇 하트뿐인데, 한 번 값은 두 배씩 올라
  *  오징어살 · 떡밥 · 별가루는 쓰라고 만든 낚시터에서도 손해였다(행운 10 · 판매 기준 한 번당 오징어살 우포늪 −7 · 떡밥 울릉도 −14 · 별가루 용궁사 −21).
@@ -120,25 +124,28 @@ export const BAITS: readonly FishBait[] = [
   { key: "bait_shrimp", name: "민물새우", maxGrade: 2, uses: 15, price: 180, desc: "엔젤피시 · 흰동가리가 물어요" },
   { key: "bait_squid", name: "오징어살", maxGrade: 3, uses: 20, price: 320, desc: "디스커스 · 비단잉어가 물어요" },
   { key: "bait_paste", name: "황금 떡밥", maxGrade: 4, uses: 25, price: 600, desc: "참다랑어 · 아로와나가 물어요" },
-  { key: "bait_glow", name: "심해 발광 미끼", maxGrade: 5, uses: 30, price: 1200, desc: "고래상어 · 등용어가 물어요" },
-  { key: "bait_pearl", name: "용궁 진주 미끼", maxGrade: 6, uses: 35, price: 1750, desc: "별무리어가 물어요" },
-  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 2400, desc: "태초 등급까지 물어요" },
+  { key: "bait_glow", name: "심해 발광 미끼", maxGrade: 5, uses: 30, price: 1200, desc: "고래상어 · 등용어가 물어요", collect: true },
+  { key: "bait_pearl", name: "용궁 진주 미끼", maxGrade: 6, uses: 35, price: 1750, desc: "별무리어가 물어요", collect: true },
+  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 2400, desc: "태초 등급까지 물어요", collect: true },
 ];
 export const baitIndex = (key: string) => BAITS.findIndex((x) => x.key === key);
 
 export type MethodKey = "float" | "lure" | "scoop" | "deep" | "light";
 /** night — 밤바다에서만 켤 수 있는 방식(castBlock 이 막는다). 시각은 호출자가 넘긴다(엔진은 시계를 읽지 않는다) */
-export type FishMethod = { key: MethodKey; name: string; minLevel: number; baitCost: number; adult: number; lift: number; capture: number; junk: number; how: string; good: string; night?: boolean };
+export type FishMethod = { key: MethodKey; name: string; minLevel: number; baitCost: number; adult: number; lift: number; capture: number; junk: number; how: string; good: string; night?: boolean;
+  /** 손놀림 한 줄(2026-11-20) [사용자: 리뷰 "배운 조작과 반대인 순간이 있어요 … 방식을 고를 때 한 줄 요약" → 진행] — 오랜만에 들어온 사람이 헷갈리는 순간(떼기 · 풀기 · 튕기기)만.
+   *  던지기 전 화면 아래 안내 칸에 늘 같이 뜬다(처음 하는 법은 한 번만 뜨니까) */
+  tip: string };
 /** 낚시 방식 — 같은 낚시터도 방식에 따라 다른 물고기가 다른 비율로 온다 */
 export const METHODS: readonly FishMethod[] = [
-  { key: "float", name: "찌낚시", minLevel: 1, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 1, how: "입질에 챔질하고, 누르고 떼며 줄을 감아요", good: "기본" },
-  { key: "lure", name: "루어", minLevel: 2, baitCost: 1, adult: 2.4, lift: 0, capture: 0, junk: 0.6, how: "박자 맞춰 유인하고, 물고기 반대쪽으로 끌어요", good: "다 큰 물고기가 잘 와요" },
-  { key: "scoop", name: "뜰채", minLevel: 3, baitCost: 1, adult: 0, lift: 0, capture: 0.12, junk: 1, how: "그물을 끌고 다니며 달아나는 물고기를 구석으로 몰아 건져요", good: "고를 수 있고 잘 담겨요 · 타이밍 대신 몰이" },
-  { key: "deep", name: "심해", minLevel: 5, baitCost: 2, adult: 1.4, lift: 0.9, capture: -0.04, junk: 1.5, how: "릴을 빙글빙글 돌려 끌어올려요. 미끼를 2개 써요", good: "귀한 물고기가 와요" },
+  { key: "float", name: "찌낚시", minLevel: 1, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 1, how: "입질에 챔질하고, 누르고 떼며 줄을 감아요", good: "기본", tip: "차고 나가면 떼고, 뛰어오르면 감아요" },
+  { key: "lure", name: "루어", minLevel: 2, baitCost: 1, adult: 2.4, lift: 0, capture: 0, junk: 0.6, how: "박자 맞춰 유인하고, 물고기 반대쪽으로 끌어요", good: "다 큰 물고기가 잘 와요", tip: "고리가 겹칠 때 치고, 물고기 반대쪽으로 끌어요" },
+  { key: "scoop", name: "뜰채", minLevel: 3, baitCost: 1, adult: 0, lift: 0, capture: 0.12, junk: 1, how: "그물을 끌고 다니며 달아나는 물고기를 구석으로 몰아 건져요", good: "고를 수 있고 잘 담겨요 · 타이밍 대신 몰이", tip: "그물로 물가 · 구석에 몰아 붙잡아 두세요" },
+  { key: "deep", name: "심해", minLevel: 5, baitCost: 2, adult: 1.4, lift: 0.9, capture: -0.04, junk: 1.5, how: "릴을 빙글빙글 돌려 끌어올려요. 미끼를 2개 써요", good: "귀한 물고기가 와요 · 물고기 값 1.4배", tip: "감는 쪽으로 돌리고, 파고들면 멈추거나 반대로 풀어요" },
   // 집어등(2026-11-12) [사용자 승인: "밤에만 열리는 다섯 번째 방식입니다. 불빛으로 물고기를 모았다가 터지는 순간 낚아 올립니다"].
   // lift · adult 는 찌와 같다 — 귀한 등급을 더 부르지 않는다(미끼 1% 규칙). 밤 물고기 쪽으로 기우는 건 같은 단계 안에서만(rollCatch 의 lightRepick).
   // 쓰레기는 덜 걸린다 — 불빛에 모이는 건 살아 있는 것뿐이라. Lv.12 — 바다 낚시터 둘(통영 · 문섬)이 열린 뒤
-  { key: "light", name: "집어등", minLevel: 12, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 0.5, how: "불빛을 초록 칸에 맞춰 물고기를 모으고, 무리가 터지는 순간 위로 채요. 밤바다에서만 켤 수 있어요", good: "밤 물고기가 모여요", night: true },
+  { key: "light", name: "집어등", minLevel: 12, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 0.5, how: "불빛을 초록 칸에 맞춰 물고기를 모으고, 무리가 터지는 순간 위로 채요. 밤바다에서만 켤 수 있어요", good: "밤 물고기가 모여요", night: true, tip: "불빛을 초록 칸에 두고, 솟구칠 때 위로 튕겨요" },
 ];
 export const methodOf = (key: MethodKey) => METHODS.find((x) => x.key === key) ?? METHODS[0];
 /** 저장해 둔 방식(기기 prefs) 읽기 — 모르는 값은 찌로. 집어등은 method 칸이 아니라 lamp 칸에 둔다:
@@ -313,7 +320,9 @@ export type FishCatch = { family: string; stage: 0 | 1 | 2; species?: string; gr
   /** 물고기 · 꽝이 아닌 특별한 것(유리병 편지 · 보물 — fishplus.ts). 꽝 수집함 · 피버 · 순위판에 안 들어간다 */
   special?: { kind: "bottle" | "treasure"; id: string; title: string };
   /** 어느 낚시터에서 물었나(spot key, rollCatch 가 찍는다) — 낚시터 숙련도(fishmastery.ts)가 센다. 주인 · 특별한 것 · 옛 물고기엔 없다 */
-  at?: string };
+  at?: string;
+  /** 심해 방식으로 문 물고기(2026-11-20) — 파는 값 · 담을 때 받는 몫에 DEEP_VALUE 를 곱한다(catchValue). 쓰레기엔 안 붙는다 */
+  deep?: true };
 /** 낚시터마다 더해지는 힘(FishSpot.push) — 그 낚시터에 머무는 레벨의 보통 능력치로 끌어올림이 75~85%(첫 낚시터는 95%)가 되게
  *  사람 흉내 봇으로 잰 값이다(fishingbalance.test). 깊은 곳일수록 크지만 곧게 늘지 않는다 — 기본 물고기 등급이 낚시터마다 다르다. */
 export const spotPush = (spot: Pick<FishSpot, "push">) => spot.push ?? 0;
@@ -406,7 +415,15 @@ function sizedCatch<T extends FishCatch>(c: T, luck: number, cast: number, seed:
 }
 /** 무엇이 무는가 — 행운 · 캐스팅 · 미끼 · 방식이 다 큰 물고기와 귀한 쪽으로 기울인다. 미끼 등급을 넘는 물고기는 물지 않는다. 순수.
  *  junk: true 면 일정 확률로 쓰레기(별도 뽑기 — 쓰레기를 켜도 물고기 뽑기 순서는 그대로다). */
+/** 심해 덤(2026-11-20) [사용자: 리뷰 "심해 낚시가 손해예요" → 진행] — 심해는 미끼를 2개 쓰고 담기도 4%p 어렵다. 물고기 값이 찌와 거의 같아서(같은 미끼 단계)
+ *  한 번당 남는 하트가 찌의 60 ~ 85% 였다. 심해로 문 물고기는 1.4배 — 시뮬레이션(행운 10 · 가장 싼 미끼)으로 깊은 낚시터 아홉 곳 모두 찌보다 남는다(fishingdeepvalue.test).
+ *  뽑기 · 등급 · 미끼 1% 규칙은 그대로다(값에만 곱한다). 서버 랭킹 점수는 등급 공식이라 그대로 */
+export const DEEP_VALUE = 1.4;
 export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: number, opts: CatchOpts = {}): FishCatch {
+  const c = rollCatchCore(spot, luck, cast, seed, opts);
+  return opts.method === "deep" && !c.junk && !c.special && !c.boss ? { ...c, deep: true } : c;
+}
+function rollCatchCore(spot: FishSpot, luck: number, cast: number, seed: number, opts: CatchOpts = {}): FishCatch {
   const r = rng(seed);
   const how = methodOf(opts.method ?? "float");
   // 물때(2026-11-12) — 바다에서 사리면 대물이 조금 더. 길이 뽑기에만 닿는다(등급 · 계열 · 미끼 1% 규칙은 그대로 — luck 으로 넘기지 않는 이유)
@@ -1097,8 +1114,8 @@ export function claimFishGoal(st: IslandState, id: string, today: string): GearR
 export const SPOT_VALUE: Readonly<Record<string, number>> = { palace: 1.15, sejong: 1.22, starsea: 1.3, abyss: 1.45 };
 export const spotValue = (at: string | undefined) => (at ? SPOT_VALUE[at] ?? 1 : 1);
 /** 한 마리의 값 — 등급 · 단계 값 × 낚시터 값 */
-export const catchValue = (c: Pick<FishCatch, "difficulty" | "at">) => coinValue(c.difficulty) * spotValue(c.at);
-export const sellPrice = (st: Pick<IslandState, "fishPlus">, c: Pick<FishCatch, "difficulty" | "at">) => Math.round(catchValue(c) * (1 + masterySaleBonus(st, c.at)));
+export const catchValue = (c: Pick<FishCatch, "difficulty" | "at" | "deep">) => coinValue(c.difficulty) * spotValue(c.at) * (c.deep ? DEEP_VALUE : 1);
+export const sellPrice = (st: Pick<IslandState, "fishPlus">, c: Pick<FishCatch, "difficulty" | "at" | "deep">) => Math.round(catchValue(c) * (1 + masterySaleBonus(st, c.at)));
 /** 수조에 안 담고 팔기 — 하트 전부 */
 export function sellCatch(st: IslandState, c: FishCatch, today: string, by: CatchWho = NOBODY): FishResult {
   if (c.junk) return { ok: false, reason: "쓰레기는 팔 수 없어요" };

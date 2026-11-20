@@ -140,7 +140,7 @@ test("낚싯대 그림 — 그림이 있으면 그걸 그리고(휘어도), 낚�
   }
   const src = readFileSync(join(root, "src/lib/fishingfx.ts"), "utf8");
   assert.ok(src.includes("this.drawRodArt("), "실제로 부른다");
-  const game = readFileSync(join(root, "src/components/FishingGame.tsx"), "utf8");
+  const game = readFileSync(join(root, "src/components/FishingGame.tsx"), "utf8") + readFileSync(join(root, "src/components/fishing/roundTick.ts"), "utf8");
   assert.ok(game.includes("fx.art("), "화면이 그림 주소를 넘긴다");
   assert.ok(game.includes("RODS[cur.rod]?.key"), "산 낚싯대를 넘긴다");
 });
@@ -211,7 +211,7 @@ test("캔버스 금기 — 폰에서 무너지는 효과를 쓰지 않고, 시�
 });
 
 test("화면이 연출을 빠짐없이 부른다", () => {
-  const src = readFileSync(join(root, "src/components/FishingGame.tsx"), "utf8");
+  const src = readFileSync(join(root, "src/components/FishingGame.tsx"), "utf8") + readFileSync(join(root, "src/components/fishing/roundTick.ts"), "utf8");
   for (const ev of ["cast(", "nibble(", "bite(", "hook(", "warn(", "surge(", "surgeEnd(", "lost(", "land(", "stored(", "slipped(", "sold(", "reset(", "twitch(", "strike(", "setShoal(", "plunge(", "netLand(", "junked("]) assert.ok(src.includes(`.${ev}`), ev);
 });
 
@@ -239,7 +239,7 @@ test("낚시 준비 — 낚시터 · 미끼는 옆으로 밀지 않아도 전부
     assert.doesNotMatch(rule, /overflow-x/, name);
   }
   for (const m of css.matchAll(/[^{}]*\{[^}]*overflow-x: auto[^}]*\}/g)) assert.match(m[0], /touch-action: pan-x/, m[0].slice(0, 60));
-  const game = readFileSync("src/components/FishingGame.tsx", "utf8");
+  const game = readFileSync("src/components/FishingGame.tsx", "utf8") + readFileSync("src/components/fishing/roundTick.ts", "utf8");
   assert.ok(game.includes("fx?.weather("), "날씨가 연출에 전해진다");
   assert.doesNotMatch(css, /@keyframes fish-rain/);
 });

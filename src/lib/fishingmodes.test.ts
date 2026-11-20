@@ -109,7 +109,7 @@ test("심해 — 초록 속도를 지키고 파고들 때 멈춰야 잡힌다 ·
 });
 
 test("화면 — 네 방식의 진행 함수를 모두 부른다 · 모든 놓침에 문구가 있다", () => {
-  const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
+  const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8") + readFileSync(join(process.cwd(), "src/components/fishing/roundTick.ts"), "utf8");
   for (const k of ["stepFight(", "stepLure(", "tapLure(", "stepSway(", "stepHerd(", "stepDeep("]) assert.ok(src.includes(k), k);
   assert.ok(src.includes("spendBait("), "던질 때 미끼를 쓴다");
   assert.ok(src.includes("haulJunk("), "꽝을 치운다");
