@@ -344,7 +344,6 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     }
   }
   // 6) 보정을 부드럽게 — 길 자리(c) 대비 보정(겹침 밀기 · 몸 닿기 · 모래 · 유리)을 CORR_TAU 로 따라간다. 처음 · 순간 이동은 그대로 다 쓴다.
-  //    바닥에 앉은 물고기의 위아래(모래 높이)는 바로 쓴다 — 늦으면 모래에 묻힌다
   // 멈춘 그리기(dt 0 — 사진 모드 · 움직임 줄이기)는 따라간 값을 그대로 둔다(한 번에 다 더하면 그 프레임에 몸이 튄다). 오래 멈췄다 돌아오면(0.25초 넘게) 바로 다 쓴다
   const kc = dt > 0 && dt < 0.25 ? 1 - Math.exp(-dt / CORR_TAU) : dt === 0 ? 0 : 1;
   for (let k = 0; k < n; k++) {
@@ -353,7 +352,9 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     // 너무 크게 벌어진 보정(몸길이 넘게 — 수조가 바뀜 · 유리 · 모래 경계)은 바로 쓴다(유리 · 모래 밖으로 나가지 않게)
     const big = hyp3(tx - st.cx, ty - st.cy, tz - st.cz) > b.lengths[k];
     st.cx += (tx - st.cx) * (big ? 1 : f); st.cz += (tz - st.cz) * (big ? 1 : f);
-    st.cy = c.ground > 0.3 ? ty : st.cy + (ty - st.cy) * (big ? 1 : f);
+    // 바닥에 앉은 몸의 위아래는 바로 쓴다(늦으면 모래에 묻힌다) — 다만 쉼터에서 쉬는 포유류는 고른다(2026-11-20 — 모래 위에 나란히 쉬는 물범끼리 닿기 밀어내기로
+    //   한 프레임에 몸 두께만큼 튀었다). 올라갈 땐 세 배 빨리(모래에 묻히지 않게). 굴 속 곰치 · 바닥 물고기까지 고르면 제자리에서 오르내렸다(smoothmotion.test)
+    st.cy = c.ground > 0.3 ? (st.haul ? st.cy + (ty - st.cy) * (big ? 1 : ty > st.cy ? Math.min(1, f * 3) : f) : ty) : st.cy + (ty - st.cy) * (big ? 1 : f);
     st.corr = true;
     P[k * 3] = c.x + st.cx; P[k * 3 + 1] = c.y + st.cy; P[k * 3 + 2] = c.z + st.cz;
   }

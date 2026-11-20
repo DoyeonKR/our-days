@@ -56,7 +56,7 @@ test("scene wires the breach with splashes on exit and entry", () => {
 });
 
 // 포유류 재주(2026-11-15) — 물개류 세 번 뛰기 · 물범 머리 내밀기 · 해달 누워 조개 깨기 · 수달 빙글 돌기
-import { planTrick, trickOf } from "./breach.ts";
+import { planTrick, trickOf , trickSlow } from "./breach.ts";
 
 test("every marine mammal has its own trick", () => {
   assert.equal(trickOf("orca"), "breach");
@@ -84,9 +84,19 @@ test("tricks stay in the tank, move smoothly and end on the path", () => {
     }
     assert.ok(p.at(p.total - 1e-3).w < .02, `${kind} blends back`);
     assert.deepEqual(p.splashes.map((s) => s.t), [...p.splashes.map((s) => s.t)].sort((a, b) => a - b), `${kind} splash order`);
-    if (kind === "hop") { assert.equal(segments, 3, "three hops"); assert.equal(p.splashes.length, 6); }
+    // 2026-11-20 — 지금 자리에서 넓은 쪽으로, 자리만큼 1 ~ 3번(예전엔 뛸 자리로 먼저 날아가 몸길이 6배/초 넘게 가로질렀다)
+    if (kind === "hop") { assert.ok(segments >= 1 && segments <= 3, "one to three hops"); assert.equal(p.splashes.length, segments * 2); }
     if (kind === "spyhop") assert.ok(above > 60, "head above water about two seconds");
     if (kind === "float") { assert.equal(above, 0, "lies at the surface"); assert.ok(Math.abs(maxRoll - Math.PI) < 1e-6, "on its back"); assert.ok(p.splashes.length >= 5, "taps"); }
     if (kind === "twirl") { assert.equal(above, 0, "stays under water"); assert.ok(maxRoll > 3.9 * Math.PI, "two full rolls"); }
+  }
+});
+
+test("포유류 재주는 실제 빠르기 — 어디서 눌러도 몸길이 2배/초 안팎(2026-11-20, 예전엔 뛸 자리로 날아가 6.5배/초)", () => {
+  for (const [kind, fam] of [["hop", "fur_seal"], ["spyhop", "spotted_seal"], ["float", "sea_otter"], ["twirl", "otter"]] as const) for (const sx of [-10, 0, 9]) for (const sy of [-6, 2]) {
+    const L = 2.8, p = planTrick(kind, { x: sx, y: sy, z: 0, hx: 1 }, 7.3, -7, 11, L, 4, trickSlow(fam));
+    let vmax = 0, prev = p.at(0);
+    for (let t = 1 / 60; t < p.total; t += 1 / 60) { const c = p.at(t); if (c.phase !== "back" && prev.phase !== "back") vmax = Math.max(vmax, Math.hypot(c.x - prev.x, c.y - prev.y, c.z - prev.z) * 60 / L); prev = c; }
+    assert.ok(vmax < 2.2, `${kind} ${sx},${sy}: ${vmax.toFixed(2)}`);
   }
 });

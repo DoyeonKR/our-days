@@ -622,7 +622,7 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
 }
 
 // 길 위치 u(시간 → 길) 계산에 쓰는 값
-const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0 };
+const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0, bstretch: 1 };
 /** 두족류 — n 번째로 옮겨 가는 것이 물 뿜기인가(물고기마다 · 몇 번째인지로만 정해진다) */
 const jetHop = (n: number) => U.jetShare > 0 && unit(U.hash, 911 + (((n % 4999) + 4999) % 4999)) < U.jetShare;
 /** n 번째 옮겨 가기 전까지의 물 뿜기 수 — 물 뿜기는 길을 거꾸로 한 칸 가므로 그만큼(두 칸) 뒤에서 다음 걸음을 이어 간다. 물고기마다 앞에서부터 쌓아 둔다 */
@@ -678,7 +678,9 @@ const warpU = (u: number, w: number) => (w ? u + 0.5 * w * Math.sin(2 * u) : u);
 const B = { breath: 0, sand: 0, loss: 0 };
 function turtleAt(t: number, hash: number, period: number) {
   const start = unit(hash, 71) * period;
-  const l1 = windows(t, period, start, 22, 7 / 22, 11 / 22);
+  // 숨 쉬러 오르내리는 창(22초 — 7초 오르고 11초 내려온다)을 수조 높이만큼 늘인다(2026-11-20 U.bstretch) — 위로 늘린 수조에서 같은 7초에 더 높이 솟아
+  //   포유류가 옆으로는 거의 안 가고 곧게 떠올랐다(승강기처럼). 주기(period)도 같이 늘려 창이 겹치지 않게 한다
+  const l1 = windows(t, period, start, 22 * U.bstretch, 7 / 22, 11 / 22);
   B.breath = winWeight;
   const l2 = windows(t, period, (start + period / 2) % period, 26, 6 / 26, 6 / 26, 2);
   B.sand = U.noSand ? 0 : winWeight;
@@ -770,7 +772,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   U.hover = rest === 0 && habit.hug === undefined && !habit.jet && !habit.breathe;
   U.hoverP = 55 + 40 * unit(hash, 23); U.hoverO = unit(hash, 29) * U.hoverP;
   // 거북 숨 쉬는 주기 — 길(pathU)이 쉬는 몫을 빼려면 길보다 먼저 정한다
-  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.jetShare = habit.ceph === "crawl" ? 0.14 : habit.ceph === "hover" ? 0.5 : 0;
+  U.bstretch = habit.breathe ? Math.min(2.4, Math.max(1, tall)) : 1;
+  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) * U.bstretch : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.jetShare = habit.ceph === "crawl" ? 0.14 : habit.ceph === "hover" ? 0.5 : 0;
 
   // 어항 밖으로 몸이 나가지 않게 몸길이만큼 안쪽에서 돈다 — 가로 · 앞뒤 모두(옛 길은 앞뒤 폭이 몸길이를 안 봐서 고래상어가 앞 유리를 21% 뚫었다)
   const roomXs = roomX(half, 1), roomZs = roomZ(half);
@@ -1334,6 +1337,7 @@ export function haulRest(id: number, seconds: number): number {
   return 0;
 }
 /** 헤엄 길(out — 이미 계산한 schoolCourse)을 쉼터와 섞는다. 돌려주는 값 = 쉬는 정도(0~1) */
+const smooth01 = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
 export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number }, out: Course): number {
   let R = haulRest(id, seconds);
   // 먹이를 주면 쉬다가도 먹으러 간다
@@ -1363,14 +1367,34 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     fz = Math.abs(fz);
   }
   const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
-  // 쉼터로 오갈 때 — 곧장 가면 바위 옆구리 · 모래 경사를 뚫고(그 순간 바위 위로 한 번에 밀려 올라 튀었다 — 2026-11-15 해달 · 물범),
-  //   먼저 쉼터 높이까지 떠오르고(높이는 일찍) 그다음 옆으로 다가간다(가로는 늦게). 쉼터가 없으면(모래 위) 그대로
-  const Ry = o ? Math.sqrt(R) : R, Rx = o ? R * R : R;
-  out.x += (rx - out.x) * Rx; out.y += (ry - out.y) * Ry; out.z += (rz - out.z) * Rx;
-  const dl = hyp3(out.dx, out.dy, out.dz) || 1;
-  out.dx = out.dx / dl * (1 - R) + fx * R; out.dy = out.dy / dl * (1 - R); out.dz = out.dz / dl * (1 - R) + fz * R;
-  // 쉬는 동안 — 숨쉬듯 아주 조금만 움직인다(해달은 여기서 배를 위로 — glb 의 otterRoll 이 amp 가 낮을 때 뒤집는다)
-  out.effort = out.effort * (1 - R) + 0.12 * R; out.amp = out.amp * (1 - R) + 0.12 * R; out.turn *= 1 - R;
+  {
+    // 쉼터로 오갈 때(2026-11-20) [사용자: "포유류 움직임이 너무 이상해"] — 예전엔 헤엄 길과 쉼터를 곧장 섞었다(높이는 일찍 √R, 가로는 늦게 R²).
+    //   그래서 몸은 눕힌 채 승강기처럼 곧게 떠오르거나 가라앉고(오가는 동안의 60 ~ 75%), 머리 방향은 따로 섞여 뒤로 · 옆으로 미끄러졌고(움직이는 프레임의 8 ~ 17%),
+    //   꼬리 젓기는 쉬는 값으로 줄어 젓지 않고 떠갔다. 이제 쉼터 앞 물속 한 점(W — 바위면 바깥쪽 · 모래사장이면 물 쪽, 몸길이만큼 떨어지고 조금 아래)을 지나는
+    //   곡선(이차 베지어 헤엄 자리 → W → 쉼터)을 머리부터 헤엄쳐 오르내리고, 머리는 가는 쪽을 보다가 끝에서 쉬는 방향으로 돈다. 오가는 동안은 힘껏 젓는다
+    const deep = opts.deep || 1, tall = opts.tall || 1;
+    // 다가오는 쪽 — 바위는 바위 가운데에서 쉼터 쪽(바깥), 모래사장은 물 쪽(왼쪽), 바위가 없으면(뒤 유리 앞 모래) 앞쪽
+    let ax = o ? rx - o.x : 0, az = o ? (rz - o.z) * deep : 1;
+    if (o?.kind === "beach") { ax = -1; az = 0; }
+    const al = hyp2(ax, az) || 1; ax /= al; az /= al;
+    const wx = rx + ax * length * 1.1, wy = o ? Math.max(floorY + (length * 0.25) / tall, ry - (length * 0.65) / tall) : ry + (length * 0.45) / tall, wz = rz + (az * length * 1.1) / deep;
+    const u = R, a0 = (1 - u) * (1 - u), a1 = 2 * u * (1 - u), a2 = u * u;
+    const sx = out.x, sy = out.y, sz = out.z;
+    out.x = a0 * sx + a1 * wx + a2 * rx; out.y = a0 * sy + a1 * wy + a2 * ry; out.z = a0 * sz + a1 * wz + a2 * rz;
+    // 가는 쪽 — 곡선의 접선(올라가는 중이면 앞으로, 내려가는 중이면 뒤로). 위아래 기울기는 몸이 서지 않게 50° 안으로
+    const into = haulRest(id, seconds + 0.2) >= R, sg = into ? 1 : -1;
+    let tx = sg * (2 * (1 - u) * (wx - sx) + 2 * u * (rx - wx)), ty = sg * (2 * (1 - u) * (wy - sy) + 2 * u * (ry - wy)), tz = sg * (2 * (1 - u) * (wz - sz) + 2 * u * (rz - wz));
+    const th = hyp2(tx, tz * deep); if (Math.abs(ty * tall) > 1.2 * th) ty = Math.sign(ty) * 1.2 * th / tall;
+    const tl = hyp3(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+    // 가는 쪽을 보는 몫 — 오가는 한가운데 1, 끝(쉼터 위)에선 쉬는 방향, 처음(헤엄 길)에선 헤엄 방향
+    const travel = Math.min(1, u / 0.12) * (1 - smooth01((u - 0.78) / 0.22));
+    const dl = hyp3(out.dx, out.dy, out.dz) || 1;
+    let hx = out.dx / dl * (1 - R) + fx * R, hy = out.dy / dl * (1 - R), hz = out.dz / dl * (1 - R) + fz * R;
+    hx += (tx - hx) * travel; hy += (ty - hy) * travel; hz += (tz - hz) * travel;
+    out.dx = hx; out.dy = hy; out.dz = hz;
+    // 오가는 동안은 힘껏 젓는다(쉬는 값으로 줄면 젓지 않고 떠간다)
+    out.effort = Math.max(out.effort * (1 - R) + 0.12 * R, 1.1 * travel); out.amp = Math.max(out.amp * (1 - R) + 0.12 * R, 0.95 * travel); out.turn *= 1 - R;
+  }
   out.hover = out.hover * (1 - R) + R; out.ground = out.ground * (1 - R) + ground * R; out.puff = -1;
   return R;
 }

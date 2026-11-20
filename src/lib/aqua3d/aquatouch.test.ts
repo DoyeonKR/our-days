@@ -115,7 +115,32 @@ test("mammals glide to and from their rest spot slowly and are never pushed in o
   const step = readFileSync(new URL("./fishstep.ts", import.meta.url), "utf8");
   assert.match(step, /lim = Math\.max\(0\.01, b\.lengths\[k\] \* CONTACT_MAX_SPEED \* dt\)/);
   const habits = readFileSync(new URL("./habits.ts", import.meta.url), "utf8");
-  assert.match(habits, /const Ry = o \? Math\.sqrt\(R\) : R, Rx = o \? R \* R : R;/);
+  // 2026-11-20 — 곧장 섞기(높이 √R · 가로 R²)는 승강기처럼 떠오르고 뒤로 미끄러졌다 → 쉼터 앞 물속 한 점을 지나는 곡선을 머리부터 헤엄친다
+  assert.match(habits, /out\.x = a0 \* sx \+ a1 \* wx \+ a2 \* rx;/);
+});
+
+test("포유류는 쉼터를 오갈 때 머리부터 헤엄친다 — 가는 쪽을 보고, 위아래로만 곧게 오르내리지 않고, 젓는다(2026-11-20)", async () => {
+  const { haulBlend, haulRest } = await import("./habits.ts");
+  const { WORLD } = await import("./world.ts");
+  const rock = { x: 2, z: 0.2, r: 1.6, h: 1.2, kind: "rock" as const };
+  for (const id of [3, 11, 29]) {
+    let prev: { x: number; y: number; z: number } | null = null, moving = 0, forward = 0, steep = 0, stroke = 0;
+    for (let t = 0; t < 420; t += 0.1) {
+      const R = haulRest(id, t);
+      const c = { x: -3 + Math.sin(t * 0.05), y: 1, z: 0, dx: 1, dy: 0, dz: 0, effort: 1, amp: 1, turn: 0, hover: 0, ground: 0, puff: 0 } as unknown as Parameters<typeof haulBlend>[6];
+      haulBlend(id, t, 2.4, 1, WORLD.floor, { rock, share: 0, deep: 1, tall: 1.5 }, c);
+      const cur = { x: c.x, y: c.y * 1.5, z: c.z };
+      if (prev && R > 0.05 && R < 0.95) {
+        const dx = cur.x - prev.x, dy = cur.y - prev.y, dz = cur.z - prev.z, d = Math.hypot(dx, dy, dz);
+        if (d / 0.1 > 0.1) { moving++; if ((dx * c.dx + dy * c.dy * 1.5 + dz * c.dz) / (d * (Math.hypot(c.dx, c.dy * 1.5, c.dz) || 1)) > 0.3) forward++; if (Math.abs(dy) / d > 0.9) steep++; if (c.effort > 0.6) stroke++; }
+      }
+      prev = cur;
+    }
+    assert.ok(moving > 50, `${id} 오간다`);
+    assert.ok(forward / moving > 0.85, `${id} 머리부터 ${forward}/${moving}`);
+    assert.ok(steep / moving < 0.2, `${id} 곧게 오르내림 ${steep}/${moving}`);
+    assert.ok(stroke / moving > 0.6, `${id} 젓는다 ${stroke}/${moving}`);
+  }
 });
 
 // 2026-11-18 [사용자: "포유류들도 터치했을때 움직임이 너무 빨라 실제 동물과 비슷하게 … 땅에서 통통 튀며 움직이는거"]

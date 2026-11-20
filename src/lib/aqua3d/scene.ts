@@ -387,7 +387,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // 범고래 뛰어오르기(breach.ts · splash.ts, 2026-11-15) — 누르면 잠수 → 솟구쳐 수면을 박차고 나가 → 포물선 → 다시 들어와 원래 길로. 나갈 때 · 들어올 때 물보라 · 물결 고리 · 거품
   const splash=makeSplash();scene.add(splash.points);scene.add(splash.rings);
   // 2026-11-15 — 범고래만이 아니라 포유류마다 재주 하나(breach.ts 의 planTrick): 물개류 세 번 뛰기 · 물범 머리 내밀기 · 해달 누워 조개 깨기 · 수달 빙글 돌기
-  const breaches=new Map<number,{plan:TrickPlan;t0:number;fired:number;trailAt:number;holdPhase:number}>();
+  const breaches=new Map<number,{plan:TrickPlan;t0:number;fired:number;trailAt:number;holdPhase:number;last?:number[]}>();
   const waterTop=()=>tallY(5.56,tall);
   // 고래상어 — 34초마다 7초 동안 입을 크게 벌리고 헤엄치며 플랑크톤을 걸러 먹는다(2026-11-19 [사용자: "고래상어는 입 벌리고 플랑크톤을 먹는 애니메이션 기믹"]).
   //   입은 사냥 장면과 같은 턱(addJaw — 이빨 없음, 넓게), 입 앞 원뿔에서 작은 알갱이가 입속으로 빨려 든다("suck" 알갱이를 0.7초마다). 사냥 장면 중 · 움직임 줄이기면 안 한다
@@ -953,10 +953,19 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       resolveContacts(motion.positions,motion.lengths,motion.count,{heading:motion.heading,pinned:motion.pinned,skip:motion.busy,scale:wide,deep,top:tallY(4.7,tall),iters:2,rocks:motion.obstacles,tall,ground:heightAt});}
     // 범고래 뛰어오르기 — 길 위의 자리와 섞는다(처음 0.25초 · 끝 1.4초), 공중에선 꼬리를 멈추고 몸을 비튼다
     if(breaches.size){let j=0;for(const[id,m]of swimmers){const br=breaches.get(id);if(br&&j<motion.count){const t=elapsed-br.t0,pl=br.plan;
-      if(t>=pl.total||reduced.matches||(meal&&(id===meal.predId||id===meal.ghostId)))breaches.delete(id);
+      // 원래 길로 돌아가기(2026-11-20) — 재주 동안에도 길은 계속 갔다(쉼터로 오르는 중일 수도 있다). 예전엔 정해진 시간(약 2초)에 섞어 멀리 간 길로 미끄러져 날아갔다.
+      //   이제 마지막 재주 자리에서 길 쪽으로 몸길이 1.3배/초 안의 빠르기로 머리부터 헤엄쳐 가고, 닿으면 끝낸다(멀면 시간을 더 쓴다)
+      const P0=motion.positions,k0=j*3,Lb=motion.lengths[j],near=br.last?Math.hypot(P0[k0]-br.last[0],P0[k0+1]-br.last[1],P0[k0+2]-br.last[2]):0;
+      if(reduced.matches||(meal&&(id===meal.predId||id===meal.ghostId))||(t>=pl.total&&near<Lb*.05)||t>=pl.total+20)breaches.delete(id);
+      else if(br.last&&(t>=pl.total||pl.at(t).phase==="back")){const P=P0,H=motion.heading,k=k0,last=br.last;
+        const dx=P[k]-last[0],dy=P[k+1]-last[1],dz=P[k+2]-last[2],d=Math.hypot(dx,dy,dz),step=Lb*1.3*Math.max(0,dt),f=d>step&&d>1e-6?step/d:1;
+        const nx=last[0]+dx*f,ny=last[1]+dy*f,nz=last[2]+dz*f,close=clamp(1-d/(Lb*.6),0,1);
+        if(d>1e-6){const hx=dx/d,hy=dy/d*.5,hz=dz/d;H[k]=H[k]*close+hx*(1-close);H[k+1]=H[k+1]*close+hy*(1-close);H[k+2]=H[k+2]*close+hz*(1-close);}
+        P[k]=nx;P[k+1]=ny;P[k+2]=nz;last[0]=nx;last[1]=ny;last[2]=nz;if(dt>0)m.phase+=dt*Math.max(.6,m.course.effort)*.4;}
       else{const b=pl.at(t),P=motion.positions,H=motion.heading,k=j*3,w=b.w,L=motion.lengths[j];
         P[k]=P[k]*(1-w)+b.x*w;P[k+1]=P[k+1]*(1-w)+b.y*w;P[k+2]=P[k+2]*(1-w)+b.z*w;
         H[k]=H[k]*(1-w)+b.hx*w;H[k+1]=H[k+1]*(1-w)+b.hy*w;H[k+2]=H[k+2]*(1-w)+b.hz*w;
+        br.last=[P[k],P[k+1],P[k+2]];
         if(b.air){m.phase=br.holdPhase;}else{if(dt>0)m.phase+=dt*Math.max(.6,m.course.effort)*(b.beat-1);br.holdPhase=m.phase;}
         if(b.roll)motion.rolls[j]=(motion.rolls[j]??0)+b.roll;
         // 물보라 — 계획의 때마다 한 번씩(나갈 때 · 들어올 때 · 해달의 톡톡)

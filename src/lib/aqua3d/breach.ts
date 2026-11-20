@@ -163,10 +163,12 @@ function planTrickRaw(kind: TrickKind, start: { x: number; y: number; z: number;
   const z = Math.max(start.z, Math.min(zFront, .9));
   if (kind === "hop") {
     // 세 번 뛴다 — 한 번에 공중 .7초 · 높이 몸길이 .45, 사이 물속 .45초 · 깊이 .3
-    const A = .7, U = .45, H = .45 * len, D = .3 * len, n = 3, per = A + U;
-    const want = 1.5 * len / per, vx = Math.min(want, Math.max(0, 2 * halfW - len) / (n * per));
-    const xa = clampN(start.x, d > 0 ? -halfW : -halfW + vx * n * per, d > 0 ? halfW - vx * n * per : halfW);
-    const T0 = Math.min(2, .9 + Math.abs(xa - start.x) / (2.5 * len)), Tend = T0 + n * per, total = Tend + BACK;
+    // 2026-11-20 [사용자: "포유류 … 선택했을 때의 상호작용도"] — 예전엔 뛸 자리(세 번 뛸 만큼 넓은 쪽 끝)로 먼저 옮겨 가느라 수조 절반을 3초 안에 가로질렀다.
+    //   이제 지금 자리에서 넓은 쪽으로 뛰고, 자리가 모자라면 덜 뛴다(1 ~ 3번). 수면까지 오르는 시간은 깊이만큼(몸길이 1.4배/초)
+    const A = .7, U = .45, H = .45 * len, D = .3 * len, per = A + U, vx = 1.5 * len / per;
+    const n = Math.max(1, Math.min(3, Math.floor(Math.max(0, room(d) - len * .5) / (vx * per))));
+    const xa = clampN(start.x, -halfW, halfW);
+    const T0 = Math.min(4, .9 + Math.abs(surface - start.y) / (1.4 * len)), Tend = T0 + n * per, total = Tend + BACK;
     const splashes: TrickSplash[] = [];
     for (let i = 0; i < n; i++) {
       const t = T0 + i * per;
@@ -197,7 +199,7 @@ function planTrickRaw(kind: TrickKind, start: { x: number; y: number; z: number;
   if (kind === "spyhop") {
     // 몸을 세워 머리를 물 밖으로 — 몸 가운데가 수면 위 몸길이 .12(머리 · 어깨가 나온다)
     const x = clampN(start.x + d * .4 * len, -halfW, halfW), under = Math.max(lo, surface - .7 * len), up = surface + .12 * len;
-    const T0 = 1.1, T1 = T0 + .8, T2 = T1 + 2.2, T3 = T2 + .9, total = T3 + BACK;
+    const T0 = Math.min(4, 1.1 + Math.abs(under - start.y) / (1.4 * len)), T1 = T0 + .8, T2 = T1 + 2.2, T3 = T2 + .9, total = T3 + BACK;
     const upright = (k: number) => unit(d * (1 - .78 * k), .25 + .72 * k, 0);
     return {
       kind, total, surface, peak: up + .4 * len,
@@ -220,7 +222,7 @@ function planTrickRaw(kind: TrickKind, start: { x: number; y: number; z: number;
   if (kind === "float") {
     // 수면에 누워(배를 위로) 가슴을 톡톡 — 몸 가운데가 수면 바로 아래, 천천히 떠 간다
     const x = clampN(start.x + d * .3 * len, -halfW + len, halfW - len), at0 = surface - .08 * len, under = Math.max(lo, surface - .9 * len);
-    const T0 = 1.3, T1 = T0 + .6, T2 = T1 + 3.2, T3 = T2 + .6, T4 = T3 + .8, total = T4 + BACK, drift = .05 * len;
+    const T0 = Math.min(4, 1.3 + Math.abs(at0 - start.y) / (1.4 * len)), T1 = T0 + .6, T2 = T1 + 3.2, T3 = T2 + .6, T4 = T3 + .8, total = T4 + BACK, drift = .05 * len;
     const splashes: TrickSplash[] = [{ t: T0, x, z, enter: false, scale: .35, amount: .25 }];
     for (let i = 0; i < 5; i++) { const t = T1 + .3 + i * .55; splashes.push({ t, x: x + d * (.15 * len + drift * (t - T0)), z, enter: false, scale: .22, amount: .2 }); }
     const ex = x + d * drift * (T3 - T0);
