@@ -28,11 +28,13 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   haul: boolean; rest: number;
   /** 실제로 간 빠르기(부드럽게 거른 값, 월드/초)와 지난 자리 — 머리를 실제로 가는 쪽으로 돌린다(faceTravel) */
   fvx: number; fvy: number; fvz: number; fpx: number; fpy: number; fpz: number; fok: boolean; ceph: boolean; /** 지난 프레임에 그린 머리의 좌우(ohx) · 위아래(ohy) 각 — 큰 몸이 홱 돌지 않게 */ ohx: number; ohy: number; ohz: number; oh: boolean;
-  /** 모래 위로 올린 높이(부드럽게 — 한 프레임에 확 들리지 않게) */ lift: number };
+  /** 모래 위로 올린 높이(부드럽게 — 한 프레임에 확 들리지 않게) */ lift: number;
+  /** 겹침 밀기 + 몸 닿기 보정을 천천히 따라간 값(2026-11-20, CORR_TAU) — 화면에 실제로 더한 보정 */
+  cx: number; cy: number; cz: number; corr: boolean };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
-    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false, fvx: 0, fvy: 0, fvz: 0, fpx: 0, fpy: 0, fpz: 0, fok: false, lift: 0, ohx: 1, ohy: 0, ohz: 0, oh: false, ceph: !!h.ceph || a.kind === "jelly",
+    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false, cx: 0, cy: 0, cz: 0, corr: false, fvx: 0, fvy: 0, fvz: 0, fpx: 0, fpy: 0, fpz: 0, fok: false, lift: 0, ohx: 1, ohy: 0, ohz: 0, oh: false, ceph: !!h.ceph || a.kind === "jelly",
     stride: bendProfile(m.family, m.key).stride, freq: a.frequency,
     // 박자를 빠르기로 바꾸지 않는 몸 — 해파리(갓 박자는 길의 jet) · 불가사리 · 거북(turtle.ts 가 따로 젓는다 — 쉬는 동안은 habits 가 effort 를 줄인다)
     own: m.family === "starfish" || m.family === "sea_turtle" || a.kind === "jelly",
@@ -63,6 +65,11 @@ export const TURN_TAU = 0.2;
 export const SPEED_TAU = 0.25;
 /** 몸끼리 · 바위와 닿아 밀어내는 빠르기 상한(몸길이/초) — 한 프레임 순간 이동을 막는다 */
 export const CONTACT_MAX_SPEED = 4;
+/** 보정(겹침 밀기 + 몸 닿기)을 화면에 더하는 시간 상수(초, 2026-11-20) [사용자: "모델 움직임이 실제와 비슷하고 부드럽게"]
+ *  붐비는 수조를 90초 돌려 재 보니 혼자 헤엄치는 잉어는 움직이는 방향이 매끈한데(방향 가속 0.4 rad/s²), 18종 36마리 속에서는
+ *  몸끼리 닿기를 프레임마다 그 자리에서 밀어내고 다음 프레임 길이 다시 파고들어 몸이 앞뒤 · 좌우로 떨었다(평균 30 ~ 80 rad/s², 방향이 한 프레임에 거의 뒤집히는 일 수백 번).
+ *  보정을 이 시간만큼(0.3초) 천천히 따라가게 하면 떨림이 사라지고, 겹침은 한 박자 늦게(0.3초 안) 풀린다(smoothmotion.test) */
+export const CORR_TAU = 0.3;
 /** 꼬리 한 번에 나아가는 거리(몸길이) 위 · 아래 박자(Hz) — 화면에서 또렷이 보이는 만큼만 빠르게, 떠 있어도 꼬리가 아예 서지는 않게 */
 export const BEAT_MAX_HZ = 4.5, BEAT_IDLE_HZ = 0.35;
 const wrapA = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
@@ -336,6 +343,20 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (off) for (let k = 0; k < n * 3; k++) off[k] += (P[k] - before[k]) * 0.9;
     }
   }
+  // 6) 보정을 부드럽게 — 길 자리(c) 대비 보정(겹침 밀기 · 몸 닿기 · 모래 · 유리)을 CORR_TAU 로 따라간다. 처음 · 순간 이동 · 멈춘 그리기는 그대로 다 쓴다.
+  //    바닥에 앉은 물고기의 위아래(모래 높이)는 바로 쓴다 — 늦으면 모래에 묻힌다
+  const kc = dt > 0 && dt < 0.25 ? 1 - Math.exp(-dt / CORR_TAU) : 1;
+  for (let k = 0; k < n; k++) {
+    const c = b.courses[k], st = fishes[k].swim!, P = b.positions;
+    const tx = P[k * 3] - c.x, ty = P[k * 3 + 1] - c.y, tz = P[k * 3 + 2] - c.z, f = st.corr ? kc : 1;
+    // 너무 크게 벌어진 보정(몸길이 넘게 — 수조가 바뀜 · 유리 · 모래 경계)은 바로 쓴다(유리 · 모래 밖으로 나가지 않게)
+    const big = hyp3(tx - st.cx, ty - st.cy, tz - st.cz) > b.lengths[k];
+    st.cx += (tx - st.cx) * (big ? 1 : f); st.cz += (tz - st.cz) * (big ? 1 : f);
+    st.cy = c.ground > 0.3 ? ty : st.cy + (ty - st.cy) * (big ? 1 : f);
+    st.corr = true;
+    P[k * 3] = c.x + st.cx; P[k * 3 + 1] = c.y + st.cy; P[k * 3 + 2] = c.z + st.cz;
+  }
+  // 머리 방향은 부드럽게 따라간 자리로 잰다
   faceTravel(n, fishes, b, dt);
   fishes.length = 0;
   return n;
