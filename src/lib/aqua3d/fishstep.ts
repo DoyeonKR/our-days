@@ -343,9 +343,10 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (off) for (let k = 0; k < n * 3; k++) off[k] += (P[k] - before[k]) * 0.9;
     }
   }
-  // 6) 보정을 부드럽게 — 길 자리(c) 대비 보정(겹침 밀기 · 몸 닿기 · 모래 · 유리)을 CORR_TAU 로 따라간다. 처음 · 순간 이동 · 멈춘 그리기는 그대로 다 쓴다.
+  // 6) 보정을 부드럽게 — 길 자리(c) 대비 보정(겹침 밀기 · 몸 닿기 · 모래 · 유리)을 CORR_TAU 로 따라간다. 처음 · 순간 이동은 그대로 다 쓴다.
   //    바닥에 앉은 물고기의 위아래(모래 높이)는 바로 쓴다 — 늦으면 모래에 묻힌다
-  const kc = dt > 0 && dt < 0.25 ? 1 - Math.exp(-dt / CORR_TAU) : 1;
+  // 멈춘 그리기(dt 0 — 사진 모드 · 움직임 줄이기)는 따라간 값을 그대로 둔다(한 번에 다 더하면 그 프레임에 몸이 튄다). 오래 멈췄다 돌아오면(0.25초 넘게) 바로 다 쓴다
+  const kc = dt > 0 && dt < 0.25 ? 1 - Math.exp(-dt / CORR_TAU) : dt === 0 ? 0 : 1;
   for (let k = 0; k < n; k++) {
     const c = b.courses[k], st = fishes[k].swim!, P = b.positions;
     const tx = P[k * 3] - c.x, ty = P[k * 3 + 1] - c.y, tz = P[k * 3 + 2] - c.z, f = st.corr ? kc : 1;
