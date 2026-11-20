@@ -284,6 +284,10 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   sandTex.map.repeat.set(3, 1.8); sandTex.bump.repeat.set(3, 1.8);
   if (opts.anisotropy) sandTex.map.anisotropy = sandTex.bump.anisotropy = Math.min(4, opts.anisotropy);
   const rockMap = surfaceMap("rock");
+  // 절벽(2026-11-20) [사용자: "해변이나 절벽 구분을 좀 더 잘하고 실제 물처럼 느낄 수 있도록"] — 모래사장 경사는 수조 높이가 폭보다 커서 거의 서 있는데
+  // 위의 모래사장 · 바닥과 같은 모래 무늬라 전부 회색 모래 벽으로 보였다(물 밑인데도 마른 모래 색). 이제 가파른 면(늘인 수조 기준 기울기 약 40° 넘게)은
+  // 층이 진 바위 절벽(가로 지층 · 띠마다 다른 색 · 세로 갈라짐 · 물 밑 이끼), 완만한 곳만 모래. 물 밑 경사 · 절벽은 젖어 짙고 깊을수록 물 색(테마 water)에 잠기고,
+  // 물 밖 모래사장 · 절벽 꼭대기는 마른 밝은 땅이라 일렁이는 빛(caustics)을 받지 않는다. 절벽 면의 일렁임은 옆으로 투영한다(늘어진 줄무늬 없게). 셰이더 원문은 ASCII 만
   const sand = new T.MeshStandardMaterial({ color: theme.sand, map: sandTex.map, bumpMap: sandTex.bump, bumpScale: .05, roughness: .9 });
   sand.onBeforeCompile = shader => {
     shader.uniforms.aquaTime = time;
@@ -292,8 +296,12 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     shader.uniforms.aquaBankStrength = { value: tier === 1 ? .32 : .72 };
     // 모래사장(2026-11-15) — 경사 · 모래사장은 가장자리 어둡게(bank)를 끄고 밝은 모래색, 물 밖(수면 5.56 위) 마른 모래는 더 밝고 따뜻하게. 없으면 x0 = 99
     shader.uniforms.aquaBeachX0 = { value: beach ? beachStart(beach) : 99 };
-    shader.vertexShader = `varying vec3 vAquaPosition;\n${shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAquaPosition = position;");
-    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaClarity; uniform float aquaBankStrength; uniform float aquaBeachX0; float aquaWet=0.;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
+    // 절벽 · 물빛(2026-11-20) — 물 색으로 물 밑 경사를 물들인다
+    // 물 색은 장면이 수조 단계 · 물 상태로 정하는 물고기 테 색(WATER_LIGHT.aquaRimColor)을 같이 본다 — 물이 탁하면 절벽도 같이 탁해진다
+    shader.uniforms.aquaWaterTint = WATER_LIGHT.aquaRimColor;
+    // 기울기는 늘인 수조(root 의 가로 · 높이 · 깊이 배율) 그대로 잰다 — 높이를 늘리면 같은 경사도 더 가팔라 보인다
+    shader.vertexShader = `varying vec3 vAquaPosition; varying vec3 vAquaN;\n${shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAquaPosition = position; vec3 aquaS = vec3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz)); vAquaN = normalize(normal / aquaS);");
+    shader.fragmentShader = `varying vec3 vAquaPosition; varying vec3 vAquaN; uniform float aquaTime; uniform float aquaClarity; uniform float aquaBankStrength; uniform float aquaBeachX0; uniform vec3 aquaWaterTint; float aquaWet=0.; float aquaDry=0.;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
       .replace("#include <color_fragment>", `#include <color_fragment>
         float bank=smoothstep(1.15,2.7,abs(vAquaPosition.x+.58*sin(vAquaPosition.z*.8)));
         float beachK=smoothstep(aquaBeachX0,aquaBeachX0+.8,vAquaPosition.x);
@@ -314,10 +322,39 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
         aquaWet=wet;
         // 물 밑 모래는 곳곳이 축축하게 짙다 — 넓은 얼룩이 있어야 타일 반복이 안 보인다
         float damp=.5+.5*sin(vAquaPosition.x*.9+sin(vAquaPosition.z*1.3)*1.4)*sin(vAquaPosition.z*1.1+vAquaPosition.x*.35);
-        diffuseColor.rgb *= mix(.8,1.06,damp);`)
+        diffuseColor.rgb *= mix(.8,1.06,damp);
+        // cliff: steep faces -> layered rock, gentle -> sand (see TS comment above)
+        float steep=beachK*(1.-smoothstep(.55,.78,vAquaN.y));
+        float wz=vAquaPosition.z, wy=vAquaPosition.y;
+        float lay=wy*2.2+sin(wz*.7+wy*.3)*.9+sin(wz*2.3+wy*1.1)*.28+sin(wz*6.1)*.06;
+        float id=floor(lay), band=fract(lay);
+        float h1=fract(sin(id*91.7)*437.1), h2=fract(sin(id*13.1+3.)*921.7);
+        float blk=.5+.5*sin(wz*(.9+h2)+h1*6.)*sin(wz*.37+id);
+        vec3 rock=mix(vec3(.40,.37,.33),vec3(.60,.55,.47),h1*.7+blk*.3);
+        rock=mix(rock,rock*vec3(1.08,.98,.86),step(.7,h2)*.6);
+        float ledge=smoothstep(.0,.05,band)*(1.-smoothstep(.05,.2,band));
+        rock*=1.-.3*ledge*step(.35,h2);
+        rock*=.86+.28*smoothstep(.15,.95,band);
+        float crack=1.-smoothstep(.0,.05,abs(sin(wz*5.3+sin(wy*1.9+vAquaPosition.x)*1.6)))*smoothstep(.55,.8,h1);
+        rock*=.6+.4*crack;
+        float grit=dot(diffuseColor.rgb,vec3(.333));
+        diffuseColor.rgb=mix(diffuseColor.rgb,rock*(.75+.5*grit),steep);
+        float above2=smoothstep(5.52,5.62,vAquaPosition.y);
+        // underwater: wet + water tint by depth; above water: dry, lighter
+        diffuseColor.rgb*=mix(1.,.72,steep*(1.-above2));
+        float sink=beachK*(1.-above2)*smoothstep(.0,4.5,5.56-vAquaPosition.y);
+        float lum=dot(diffuseColor.rgb,vec3(.3,.59,.11));
+        diffuseColor.rgb=mix(diffuseColor.rgb,mix(vec3(lum),diffuseColor.rgb,.55)*.55+aquaWaterTint*.85,sink*.7);
+        diffuseColor.rgb*=mix(1.,1.12,steep*above2);
+        // algae on submerged rock, more toward the bottom
+        float moss=steep*(1.-above2)*smoothstep(.35,.85,sin(vAquaPosition.y*2.3+vAquaPosition.z*1.7)*.5+.5)*smoothstep(4.5,-1.,vAquaPosition.y);
+        diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.62,.78,.52),moss*.6);
+        aquaDry=beachK*above2;`)
       .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n        roughnessFactor = mix(roughnessFactor, .32, aquaWet);")
       .replace("#include <dithering_fragment>", `
-      gl_FragColor.rgb += vec3(.085,.115,.095)*aquaCaustic(vAquaPosition.xz,aquaTime)*aquaClarity;
+      // caustics only under water; side projection on steep faces
+      { float cz=mix(aquaCaustic(vAquaPosition.xz,aquaTime),aquaCaustic(vAquaPosition.zy*vec2(1.,1.3)+vec2(3.1,0.),aquaTime),beachK*(1.-smoothstep(.55,.78,vAquaN.y)));
+        gl_FragColor.rgb += vec3(.085,.115,.095)*cz*aquaClarity*(1.-aquaDry); }
       #include <dithering_fragment>`);
   };
   const terrain = new T.PlaneGeometry(10, 6, bed.nx, bed.nz); terrain.rotateX(-Math.PI / 2);

@@ -103,3 +103,13 @@ test("fish spread through the water instead of piling up on the beach slope", ()
     assert.ok(+r.max < 15, `${tier}단계 한 칸 최고 빠르기 ${r.max} L/s`);
   }
 });
+
+test("절벽 · 해변 구분(2026-11-20) — 가파른 모래사장 경사는 바위 절벽, 물 밑은 물 색에 잠기고, 물 밖은 일렁임을 받지 않는다 · 셰이더 원문에 새로 넣은 줄은 ASCII", () => {
+  const src = readFileSync(new URL("./habitat.ts", import.meta.url), "utf8");
+  assert.match(src, /float steep=beachK\*\(1\.-smoothstep\(\.55,\.78,vAquaN\.y\)\);/, "기울기로 바위 · 모래를 가른다");
+  assert.match(src, /vAquaN = normalize\(normal \/ aquaS\)/, "늘인 수조 그대로의 기울기");
+  assert.match(src, /shader\.uniforms\.aquaWaterTint = WATER_LIGHT\.aquaRimColor;/, "물 밑은 장면의 물 색");
+  assert.match(src, /\*aquaClarity\*\(1\.-aquaDry\)/, "물 밖 땅엔 일렁임 없음");
+  const block = src.slice(src.indexOf("float steep=beachK"), src.indexOf("aquaDry=beachK*above2;"));
+  assert.ok(/^[\x00-\x7f]*$/.test(block), "절벽 셰이더 줄에 ASCII 밖 글자");
+});

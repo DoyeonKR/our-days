@@ -659,6 +659,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   }
   function update(next:TankView){
     if(disposed)return;
+    // 개발 빌드 전용 — 콘솔에서 sessionStorage['ourdays.dev.aquaTier'] = 9 로 두고 다시 열면 수조 그림만 그 단계로 보인다(저장 · 정산은 그대로). 배포 빌드엔 없다
+    if(process.env.NODE_ENV!=="production"&&typeof sessionStorage!=="undefined"){const dev=Number(sessionStorage.getItem("ourdays.dev.aquaTier"));if(dev>=1&&dev<=11)next={...next,aquarium:{...next.aquarium,tank:dev}};}
     state=next;let topologyChanged=false,moved=false;const tierBefore=habitatTier,wideBefore=wide,sinkBefore=habitatSink;
     const approvedFish=next.aquarium.fish.filter(f=>isFishModelApproved(fishArtKey(f)));
     const ids=new Set(approvedFish.map(f=>f.id));
