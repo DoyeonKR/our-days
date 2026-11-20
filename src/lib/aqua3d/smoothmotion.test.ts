@@ -141,7 +141,7 @@ test("작은 무리 물고기가 큰 수조에서 쉬지 않고 질주하지 않
 });
 
 // 몸 단계(2026-11-20, fishstep.bodyFollow) — 보정 겹이 틀려도 몸은 최고 빠르기 안에서 따라간다
-import { BODY_MARGIN, BODY_ACC_T } from "./fishstep.ts";
+import { BODY_MARGIN, BODY_ACC_T, shoreSquash } from "./fishstep.ts";
 function bodyRun(tier: number, fams: string[], seconds: number, world?: { heightAt?: (x: number, z: number, t: number) => number; shore?: (y: number, z: number, t: number) => number }, hz = 30) {
   const { tank, heightAt, shore, beachObs } = realTank(tier);
   const fish = fams.flatMap((f, i) => [0, 1].map((j) => ({ id: i * 13 + j * 211 + 5, family: f, length: adult(f) })));
@@ -176,11 +176,19 @@ test("몸 단계 — 일부러 망가뜨린 모래 · 물가(몇 프레임마다
   for (const r of on) assert.ok(r.top < 9, `${r.family} ${r.top.toFixed(1)} 몸길이/초`);
   assert.ok(BODY_MARGIN > 1 && BODY_ACC_T > 0);
 });
-// 터널 · 돔 수조(10 · 11단계) — 무리 짓는 바닥 물고기의 길이 터널 · 돔을 가로지르면(길 쪽 문제 — 따르는 자리가 건너편에 잡힌다) 목표가 건너편으로 넘어간다.
-//   몸은 터널 뒤 · 돔 둘레로 돌아가느라 한동안 늦는다(늦음은 여기서 안 잰다 — 길 쪽을 고칠 때 잰다). 순간 이동만 없으면 된다
-test("몸 단계 — 터널 · 돔 수조(10 · 11단계)의 바닥 물고기도 순간 이동 없이 둘레를 돌아간다", () => {
-  for (const tier of [10, 11]) for (const r of bodyRun(tier, ["lanternfish", "hatchetfish", "corydoras", "cutlassfish_pollock", "catfish", "flounder", "octopus"], 150))
+// 터널 · 돔 수조(10 · 11단계, 2026-11-20 [사용자: "터널·돔 헤엄 길도 고쳐"]) — 길이 터널 · 돔을 가로질러 목표가 건너편으로 넘어가면 몸이 둘레로 돌아가느라 늦었다
+//   (10단계 샛비늘치 평균 몸길이 1.1). 원인은 모래사장 줄이기가 왼쪽 유리부터 줄여 터널 오른쪽 옆 길을 터널 띠 안 · 건너편으로 끌어간 것 — 이제 터널 · 돔 가장자리부터 줄인다
+test("몸 단계 — 터널 · 돔 수조(10 · 11단계)의 바닥 물고기도 순간 이동 없이, 목표 곁을 따라간다(중앙값 몸길이 0.1 안)", () => {
+  for (const tier of [10, 11]) for (const r of bodyRun(tier, ["lanternfish", "hatchetfish", "corydoras", "cutlassfish_pollock", "catfish", "flounder", "octopus", "mudskipper", "gudgeon", "ray"], 150)) {
     assert.ok(r.top < 10, `${tier}단계 ${r.family} ${r.top.toFixed(1)} 몸길이/초`);
+    assert.ok(r.lagMed < 0.1, `${tier}단계 ${r.family} 늦음 ${r.lagMed.toFixed(2)}`);
+  }
+});
+test("모래사장 줄이기는 터널 · 돔 가장자리(pivot)부터 — 그 왼쪽 길은 그대로, 오른쪽은 가장자리 밖에 남는다", () => {
+  const c = { x: 5.6, y: 0, z: 0, dx: 1, dy: 0, dz: 0 } as Course, d = { ...c, x: -6 } as Course;
+  shoreSquash(c, 1, 3.5, 6, 0, 2.6); shoreSquash(d, 1, 3.5, 6, 0, 2.6);
+  assert.ok(c.x > 2.6 && c.x < 5.6, `오른쪽 길 ${c.x.toFixed(2)}`);
+  assert.equal(d.x, -6);
 });
 test("몸 단계 — 6 · 9단계에서 몸은 목표 곁을 따라간다(중앙값 몸길이 0.1 안) · 순간 이동 없음", () => {
   for (const tier of [6, 9]) for (const r of bodyRun(tier, ["koi", "guppy", "flounder", "lanternfish", "fur_seal", "otter", "squid", "whale_shark", "clown", "catfish"], 120)) {
