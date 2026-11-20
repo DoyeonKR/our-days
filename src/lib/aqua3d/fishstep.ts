@@ -25,7 +25,7 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   /** 굴에 산다(habits.den — 곰치) */
   den: boolean;
   /** 바위 위에서 쉰다(habits.haul — 해양 포유류) · 지금 쉬는 정도(0~1, 겹침 밀기를 그만큼 덜 받는다) */
-  haul: boolean; rest: number;
+  haul: boolean; rest: number; /** 수면에 누워 쉰다(habits.float — 해달) — 바위 · 모래사장을 안 쓰고 물가 줄이기를 풀지 않는다 */ float: boolean;
   /** 실제로 간 빠르기(부드럽게 거른 값, 월드/초)와 지난 자리 — 머리를 실제로 가는 쪽으로 돌린다(faceTravel) */
   fvx: number; fvy: number; fvz: number; fpx: number; fpy: number; fpz: number; fok: boolean; ceph: boolean; /** 지난 프레임에 그린 머리의 좌우(ohx) · 위아래(ohy) 각 — 큰 몸이 홱 돌지 않게 */ ohx: number; ohy: number; ohz: number; oh: boolean;
   /** 모래 위로 올린 높이(부드럽게 — 한 프레임에 확 들리지 않게) */ lift: number;
@@ -47,7 +47,7 @@ const swimStateOf = (m: StepFish): SwimState => {
     disc: m.family === "starfish",
     lap: !!h.lap,
     den: !!h.den,
-    haul: !!h.haul, rest: 0,
+    haul: !!h.haul, rest: 0, float: !!h.float,
   };
 };
 export type StepWorld = {
@@ -112,7 +112,7 @@ let HAUL_SCALE = 1, HAUL_KEY = "", HAUL_OBS: readonly Obstacle[] | undefined, HA
 function haulPlan(swimmers: Iterable<[number, StepFish]>, obstacles: readonly Obstacle[], scale: number, beach?: Obstacle) {
   if (scale !== HAUL_SCALE) { HAUL_SCALE = scale; HAUL_KEY = ""; }
   HAUL_FISH.length = 0;
-  for (const [id, m] of swimmers) if ((m.swim ??= swimStateOf(m)).haul) HAUL_FISH.push({ id, length: m.length });
+  for (const [id, m] of swimmers) { const sw = (m.swim ??= swimStateOf(m)); if (sw.haul && !sw.float) HAUL_FISH.push({ id, length: m.length }); }
   if (!HAUL_FISH.length) { HAUL_KEY = ""; return HAUL_MAP; }
   // 모래사장 단계 — 모두 모래사장에서 쉰다(id 순으로 앞뒤 자리를 나눈다)
   if (beach) { const map: ReturnType<typeof haulAssign> = new Map(); [...HAUL_FISH].sort((a, b) => a.id - b.id).forEach((f, i) => map.set(f.id, { rock: beach, share: i })); HAUL_KEY = ""; return map; }
@@ -252,13 +252,13 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; opts.feed = m.visit ? null : w.feed; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts);
       // 해양 포유류 — 헤엄 길을 바위 쉼터와 섞는다(90% 는 바위 위)
       const sw = m.swim!;
-      if (sw.haul) { const a = hauls.get(id); sw.rest = haulBlend(id, elapsed, m.length, wide, WORLD.floor, { rock: a?.rock ?? null, share: a?.share ?? 0, deep, tall }, c); }
+      if (sw.haul) { const a = hauls.get(id); sw.rest = haulBlend(id, elapsed, m.length, wide, WORLD.floor, { rock: a?.rock ?? null, share: a?.share ?? 0, deep, tall, float: sw.float }, c); }
     }
     // 위로 늘리기 — 바닥에 붙은 만큼(ground)은 모래 높이만 따르고 몸 높이(hug)는 안 늘린다(2026-11-11 — 6단계에서 바닥 물고기가 몸 높이의 1.5배 떠 있었다). 헤엄치는 물고기는 그대로 tallY
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }
     if (deep !== 1) { c.z *= deep; c.dz *= deep; }
     // 모래사장 단계 — 길을 물가에서 자르지 않고 그 높이의 물 폭에 맞춰 가로로 줄인다(shoreSquash). 쉬러 올라가는 포유류는 쉬는 만큼 풀어 준다
-    if (b.shore) { const sw = (m.swim ??= swimStateOf(m)); const sh = b.shore, L2 = m.length; shoreSquash(c, L2, wide, (yy, zz) => sh(yy - L2 * 0.2, zz) - L2 * 0.45, sw.haul ? sw.rest : 0, hall ? Math.min(hall.r + L2 * 0.275 + 0.1, roomX(L2 / 2, wide) + 0.15 * wide) : undefined); }
+    if (b.shore) { const sw = (m.swim ??= swimStateOf(m)); const sh = b.shore, L2 = m.length; shoreSquash(c, L2, wide, (yy, zz) => sh(yy - L2 * 0.2, zz) - L2 * 0.45, sw.haul && !sw.float ? sw.rest : 0, hall ? Math.min(hall.r + L2 * 0.275 + 0.1, roomX(L2 / 2, wide) + 0.15 * wide) : undefined); }
     // 행사 손님 — 제 길(물가까지 줄인 뒤)과 왼쪽 유리 밖 한 점을 w 로 섞는다. 왼쪽은 어느 단계든 물이다(모래사장은 오른쪽).
     //   높이 · 깊이는 제 길 그대로라 그 높이로 옆에서 헤엄쳐 들어오고 나간다. 머리 방향은 섞은 자리의 빠르기(들어올 땐 오른쪽, 나갈 땐 왼쪽)
     if (m.visit) visitBlend(c, m.length, wide, m.visit);
@@ -328,7 +328,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (mz > 0) z = Math.max(-mz, Math.min(mz, z));
     }
     // 모래사장 경사 — 물가(shore) 안쪽에서만. 머리(몸 반)까지 모래에 안 닿게, 쉬러 올라가는 포유류는 쉬는 만큼 풀어 준다
-    if (b.shore) { const lim = b.shore(y - L * 0.2, z) - L * 0.45, give = fishes[k].swim!.haul ? fishes[k].swim!.rest : 0; if (x > lim) x = lim + (x - lim) * give; }
+    if (b.shore) { const lim = b.shore(y - L * 0.2, z) - L * 0.45, give = fishes[k].swim!.haul && !fishes[k].swim!.float ? fishes[k].swim!.rest : 0; if (x > lim) x = lim + (x - lim) * give; }
     FP.roll = 0;
     // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
     if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * hyp2(c.dx, c.dz); FP.roll *= c.ground; }
@@ -350,7 +350,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (st2.lift > 0) y += st2.lift;
     } else fishes[k].swim!.lift = 0;
     if (fishes[k].swim!.lap) { const hh = hyp2(c.dx, c.dz); if (hh > 1e-4 && Math.abs(dy) > 1.2 * hh) dy = Math.sign(dy) * 1.2 * hh; }
-    b.positions[k * 3] = x; b.positions[k * 3 + 1] = y; b.positions[k * 3 + 2] = z; b.heading[k * 3 + 1] = dy; b.rolls[k] = FP.roll;
+    b.positions[k * 3] = x; b.positions[k * 3 + 1] = y; b.positions[k * 3 + 2] = z; b.heading[k * 3 + 1] = dy; b.rolls[k] = FP.roll + (c.belly ?? 0) * Math.PI;
     // 4) 꼬리 박자 — 화면에 실제로 그린 자리가 움직인 빠르기(몸길이/초)를 골라 박자로(beatEffort). 처음 · 순간 이동(수조가 바뀜)은 잇기만 한다
     //    몸 단계(BODY)가 켜져 있으면 박자는 몸이 실제로 움직인 빠르기로 — 아래 7) 에서
     if (!bodyOn) {
@@ -481,7 +481,7 @@ function bodyFollow(n: number, fishes: StepFish[], b: StepBuffers, dt: number, w
       // 수면 — 쉼터(모래사장 · 바위 위)로 오르는 포유류가 아니면 물 위로 안 나간다(목표가 이미 그 위면 거기까지)
       if (!(st.haul && st.rest > 0)) { const top = Math.max(tallY(4.7, tall) - L * 0.2, ty); if (by > top) by = top; }
       // 물가 — 목표와 같은 식(쉬러 오르는 포유류는 쉬는 만큼 풀어 준다), 목표가 이미 그 너머면 거기까지
-      if (b.shore) { const give = st.haul ? st.rest : 0, lim = b.shore(by - L * 0.2, bz) - L * 0.45; if (bx > lim) bx = Math.max(lim + (bx - lim) * give, Math.min(bx, tx)); }
+      if (b.shore) { const give = st.haul && !st.float ? st.rest : 0, lim = b.shore(by - L * 0.2, bz) - L * 0.45; if (bx > lim) bx = Math.max(lim + (bx - lim) * give, Math.min(bx, tx)); }
       // 터널 · 돔 — 몸이 지난 프레임에 그 위에 있었으면 위에 남기고(옆으로 밀면 한 번에 둘레를 건너뛴다), 옆에 있었으면 지난 몸 쪽으로 둘레를 따라 민다.
       //   목표 쪽(가운데 — 방향이 뒤집힌다)이 아니라 몸 쪽으로 정해서 이어진다. 9 · 11단계 바닥 물고기의 길이 돔 한가운데를 지나 목표가 돔 둘레를 건너뛰어도 몸은 둘레를 돌아간다
       if (hall && by - L * 0.16 < hallTop) {

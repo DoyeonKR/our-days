@@ -71,7 +71,7 @@ import { tankTall as tTall } from "./world.ts";
 test("헤엄치며 오르내리는 각 — 포유류 · 물속 물고기 모두 중앙값 45° 아래, 움직이는 프레임 중 55° 넘는 것은 20% 아래, 높이 범위는 수조 높이의 30% 넘게(위 · 아래가 비지 않게)", () => {
   const tier = 6, ax = tankAxes(tier, tTall(tier), tankDeep(tier)), hz = 30;
   const tank = { ...tankOf(tier, 0, []), wide: ax.x, tall: ax.tall, deep: ax.deep, obstacles: rockObstacles(tier, ax.x, ax.deep), heightAt: (x: number, z: number) => WORLD.floor + (substrateHeight(x / ax.x, z / ax.deep, tier) - WORLD.floor) * ax.tall };
-  const fams = ["spotted_seal", "fur_seal", "steller_sea_lion", "otter", "koi", "salmon", "bluefin", "tetra"];
+  const fams = ["spotted_seal", "fur_seal", "steller_sea_lion", "otter", "sea_otter", "koi", "salmon", "bluefin", "tetra"];
   const fish = fams.map((f, i) => ({ id: i * 7 + 3, family: f, length: adult(f) }));
   const prev = fish.map(() => [NaN, 0, 0]), ang: number[][] = fish.map(() => []), yr = fish.map(() => [1e9, -1e9]), moving = fish.map(() => 0), steepN = fish.map(() => 0);
   run(tank as never, fish, 300, (_t, pos, cs) => {
@@ -195,4 +195,24 @@ test("몸 단계 — 6 · 9단계에서 몸은 목표 곁을 따라간다(중앙
     assert.ok(r.top < 10, `${tier}단계 ${r.family} ${r.top.toFixed(1)} 몸길이/초`);
     assert.ok(r.lagMed < 0.1, `${tier}단계 ${r.family} 늦음 ${r.lagMed.toFixed(2)}`);
   }
+});
+
+// 해달은 수면에 누워 쉰다(2026-11-20 [사용자: "해달 쉬는 방식도 고쳐"]) — 6단계에 맞는 바위가 없으면 뒤 유리 앞 모래에서 쉬어 수면 ~ 바닥을 거의 곧게(55° 넘게 오가는 프레임 36%) 오르내렸다
+import { haulBlend, haulRest, FLOAT_Y } from "./habits.ts";
+test("해달 — 쉬는 동안 수면 바로 아래에 배를 위로 하고 떠 있다(바위 · 모래사장을 안 쓴다) · 수달 · 물범은 그대로 바위 · 모래사장", async () => {
+  const { readFileSync } = await import("node:fs");
+  let rested = 0;
+  for (let t = 0; t < 400; t += 0.5) {
+    const c = { x: -3, y: 3, z: 0.2, dx: 1, dy: 0, dz: 0, effort: 1, amp: 1, turn: 0, hover: 0, ground: 0, puff: 0 } as unknown as Course;
+    const R = haulBlend(3, t, 2.6, 2.5, WORLD.floor, { rock: null, share: 0, deep: 1.9, tall: 2.175, float: true }, c);
+    if (R >= 0.999) { rested++; assert.ok(Math.abs(c.y - (FLOAT_Y - (2.6 * 0.08) / 2.175)) < 0.01, `수면 높이 ${c.y}`); assert.ok((c.belly ?? 0) > 0.99, `배 ${c.belly}`); assert.ok(c.ground < 0.01); assert.ok(c.x < 0, "모래사장과 먼 왼쪽 물 위"); }
+    if (haulRest(3, t) === 0) assert.equal(c.belly ?? 0, 0);
+  }
+  assert.ok(rested > 100, `쉰 시간 ${rested}`);
+  const step = readFileSync(new URL("./fishstep.ts", import.meta.url), "utf8"), scene = readFileSync(new URL("./scene.ts", import.meta.url), "utf8"), habits = readFileSync(new URL("./habits.ts", import.meta.url), "utf8");
+  assert.match(habits, /sea_otter: swim\([^)]*float: true/);
+  assert.doesNotMatch(habits.match(/ {2}otter: swim\([^\n]*/)?.[0] ?? "", /float/, "수달은 땅에서 쉰다");
+  assert.ok(step.includes("if (sw.haul && !sw.float) HAUL_FISH.push"), "바위 · 모래사장 자리를 안 차지한다");
+  assert.ok(step.includes("b.rolls[k] = FP.roll + (c.belly ?? 0) * Math.PI"), "배를 위로 굴린다");
+  assert.ok(scene.includes("onLand=!!sw?.haul&&!sw.float&&sw.rest>.5"), "눌러도 땅에서 튀지 않는다");
 });

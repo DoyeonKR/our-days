@@ -58,6 +58,8 @@ export type FishHabit = {
   den?: boolean;
   /** 바위 위에서 쉰다(해양 포유류, 2026-11-14) — 시간의 절반(HAUL_REST, 2026-11-15 90% → 50%)은 바위 · 장식 위에 올라가 쉬고 절반은 헤엄친다(haulBlend) */
   haul?: boolean;
+  /** 쉴 때 바위 · 모래사장 대신 수면에 배를 위로 하고 누워 떠 있는다(해달, 2026-11-20) — haulBlend 의 쉼터가 수면의 한 점이 된다 */
+  float?: boolean;
 };
 
 const swim = (lo: number, hi: number, speed: number, reach: number, depth: number, more: Partial<FishHabit> = {}): FishHabit => ({ lo, hi, speed, reach, depth, ...more });
@@ -224,7 +226,8 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   steller_sea_lion: swim(-1.8, 2, 0.24, 1, 2, { haul: true, breathe: 75, breathOnly: true, dart: 0.12, pace: 0.6, tilt: 0.35 }),
   japanese_sea_lion: swim(-1.6, 2.2, 0.26, 1, 2, { haul: true, breathe: 70, breathOnly: true, dart: 0.15, pace: 0.65, tilt: 0.4 }),
   // 해달: 수면 가까이 떠서 쉬다가 가끔 잠수한다. 수달: 바닥 바위 사이를 빠르게 누비고 자주 숨 쉬러 오른다
-  sea_otter: swim(2.2, 4.4, 0.08, 0.7, 1.4, { haul: true, breathe: 40, breathOnly: true, rest: 0.5, hop: 0.8, pace: 0.6, tilt: 0.2 }),
+  // 해달은 바위가 아니라 수면에 누워 쉰다(2026-11-20 [사용자: "해달 쉬는 방식도 고쳐"] — 맞는 바위가 없는 6단계에서 수면에서 바닥 모래까지 거의 곧게 오르내렸다)
+  sea_otter: swim(2.2, 4.4, 0.08, 0.7, 1.4, { haul: true, float: true, breathe: 40, breathOnly: true, rest: 0.5, hop: 0.8, pace: 0.6, tilt: 0.2 }),
   orca: swim(-1, 2.6, 0.26, 1, 2, { breathe: 60, breathOnly: true, pace: 0.55, tilt: 0.3 }),
   otter: swim(-3.4, -0.4, 0.3, 0.9, 1.8, { haul: true, breathe: 45, breathOnly: true, dart: 0.3, pace: 1.1, tilt: 0.45 }),
   sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
@@ -288,6 +291,8 @@ export type Course = {
   rev?: number;
   /** 0~1 — 몸을 세운 정도(habit.stand). 엔진이 머리를 위로 돌린다(1 이면 약 80°) */
   stand?: number;
+  /** 0~1 — 배를 위로 돌린 정도(수면에 누워 쉬는 해달). 엔진이 몸을 그만큼(π 배) 굴린다 */
+  belly?: number;
   /** 이 길이 평소 내는 가장 빠른 빠르기(월드/초) — 엔진의 몸 단계(fishstep BODY)가 최고 빠르기를 여기서 정한다. 없으면 몸길이로 */
   vtop?: number;
 };
@@ -1316,6 +1321,8 @@ export function denCourse(id: number, seconds: number, length: number, scale: nu
 export const CRUISE_LPS = 3;
 export const MAMMAL_CLIMB = 0.66, FISH_CLIMB = 0.6;
 export const HAUL_REST = 0.5;
+/** 수면에 누워 쉬는 높이(길 좌표 — 수면 5.56) */
+export const FLOAT_Y = 5.56;
 /** 바위에서 내려가고 · 올라오는 데 걸리는 몫(한 바퀴의) — 2026-11-15 [사용자: "물범 움직임이 너무 기이하게 빨라"] .02(약 3초)면 헤엄치던 자리에서 쉼터까지 몸길이의 3~4배/초로
  *  미끄러졌다(평소 헤엄은 .8배/초). .07(약 10 ~ 13초)로 천천히 오간다 */
 export const HAUL_RAMP = 0.07;
@@ -1359,7 +1366,7 @@ export function haulRest(id: number, seconds: number): number {
 }
 /** 헤엄 길(out — 이미 계산한 schoolCourse)을 쉼터와 섞는다. 돌려주는 값 = 쉬는 정도(0~1) */
 const smooth01 = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
-export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number }, out: Course): number {
+export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean }, out: Course): number {
   let R = haulRest(id, seconds);
   // 먹이를 주면 쉬다가도 먹으러 간다
   R *= 1 - clamp01((out.feed ?? 0) * 1.5);
@@ -1369,7 +1376,17 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
   // 몸이 보는 쪽 — 앞유리 쪽으로 비스듬히, 20초마다 천천히 고개를 돌린다(좌우 0.35 rad)
   const a0 = (unit(h, 131) < 0.5 ? 0 : Math.PI) + (unit(h, 137) - 0.5) * 0.8 + Math.sin(seconds / 20 * TAU + unit(h, 139) * TAU) * 0.35;
   let fx = Math.cos(a0), fz = Math.abs(Math.sin(a0)) * 0.5 + 0.15;
-  if (o && o.kind === "beach") {
+  if (opts.float) {
+    // 수면에 누워 쉰다(해달, 2026-11-20) — 쉼마다(한 바퀴마다) 다른 자리, 수조 왼쪽 반(모래사장 · 바위와 먼 물 위). 쉬는 동안 천천히 떠 가고 고개를 돌린다.
+    //   몸 가운데는 수면 바로 아래(뛰어오르기의 누워 떠 있기와 같은 높이 — 몸길이 0.08 아래). 길 좌표 높이라 tall 로 나눈다
+    const per = 140 + 50 * unit(h, 113), n = Math.floor((seconds + per * unit(h, 127)) / per), hn = Math.imul(h ^ (n * 40503), 2654435761) >>> 0;
+    const lim = 5 * scale - length * 0.6, zl = Math.max(0.2, roomZ(length / 2) * (opts.deep || 1) - 0.3);
+    const drift = Math.sin(seconds / 11 + unit(hn, 7) * TAU);
+    rx = Math.max(-lim, Math.min(lim, (-0.15 - 0.6 * unit(hn, 3)) * 5 * scale + drift * length * 0.6));
+    rz = Math.max(-zl, Math.min(zl, (unit(hn, 5) - 0.35) * 2 * zl + Math.cos(seconds / 13 + unit(hn, 9) * TAU) * length * 0.4)) / (opts.deep || 1);
+    ry = FLOAT_Y - (length * 0.08) / (opts.tall || 1);
+    fx = unit(hn, 11) < 0.5 ? 1 : -1; fz = 0.3 * Math.sin(seconds / 17 + unit(hn, 13) * TAU);
+  } else if (o && o.kind === "beach") {
     // 모래사장(2026-11-15) — 꼭대기 평지에 물 쪽(왼쪽)을 보고 눕는다. 나눠 쓰면 앞뒤로 비켜 눕는다(모래사장은 가로가 좁고 앞뒤가 길다)
     const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * length * 0.7;
     const lim = 5 * scale - length * 0.42, zl = Math.max(0.2, roomZ(length / 2) * (opts.deep || 1) - 0.2);
@@ -1397,8 +1414,12 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     // 다가오는 쪽 — 바위는 바위 가운데에서 쉼터 쪽(바깥), 모래사장은 물 쪽(왼쪽), 바위가 없으면(뒤 유리 앞 모래) 앞쪽
     let ax = o ? rx - o.x : 0, az = o ? (rz - o.z) * deep : 1;
     if (o?.kind === "beach") { ax = -1; az = 0; }
+    // 수면에 누우러 갈 때는 지금 헤엄 자리 쪽에서 — 그 방향으로 '올라갈 높이 × 1.2' 떨어진 수면 아래 점(W)을 지나 비스듬히 떠오른다
+    if (opts.float) { const sx0 = out.x - rx, sz0 = (out.z - rz) * deep, sl = hyp2(sx0, sz0); if (sl > 1e-3) { ax = sx0 / sl; az = sz0 / sl; } else { ax = -fx; az = 0; } }
     const al = hyp2(ax, az) || 1; ax /= al; az /= al;
-    const wx = rx + ax * length * 1.1, wy = o ? Math.max(floorY + (length * 0.25) / tall, ry - (length * 0.65) / tall) : ry + (length * 0.45) / tall, wz = rz + (az * length * 1.1) / deep;
+    // 수면에 누우러 갈 때는 올라갈 높이만큼 옆으로도 — 위로 늘린 수조(9 · 11단계)에서 곧게 솟지 않게(가로 거리 = 높이 × 1.2, 유리 안)
+    const reach = opts.float ? Math.max(length * 1.1, Math.abs(out.y - ry) * tall * 1.2) : length * 1.1;
+    const wx = Math.max(-(5 * scale - length * 0.6), Math.min(5 * scale - length * 0.6, rx + ax * reach)), wz0 = Math.max(-(roomZ(length / 2) * deep - 0.2), Math.min(roomZ(length / 2) * deep - 0.2, rz * deep + az * reach)) / deep, wy = opts.float ? ry - (length * 0.7) / tall : o ? Math.max(floorY + (length * 0.25) / tall, ry - (length * 0.65) / tall) : ry + (length * 0.45) / tall, wz = opts.float ? wz0 : rz + (az * length * 1.1) / deep;
     const u = R, a0 = (1 - u) * (1 - u), a1 = 2 * u * (1 - u), a2 = u * u;
     const sx = out.x, sy = out.y, sz = out.z;
     out.x = a0 * sx + a1 * wx + a2 * rx; out.y = a0 * sy + a1 * wy + a2 * ry; out.z = a0 * sz + a1 * wz + a2 * rz;
@@ -1417,5 +1438,7 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     out.effort = Math.max(out.effort * (1 - R) + 0.12 * R, 1.1 * travel); out.amp = Math.max(out.amp * (1 - R) + 0.12 * R, 0.95 * travel); out.turn *= 1 - R;
   }
   out.hover = out.hover * (1 - R) + R; out.ground = out.ground * (1 - R) + ground * R; out.puff = -1;
+  // 누워 쉬는 해달 — 수면에 거의 닿은 끝(R 0.75 ~ 1)에 배를 위로 굴리고, 떠날 때 다시 엎드린다
+  out.belly = opts.float ? smooth01((R - 0.75) / 0.25) : 0;
   return R;
 }

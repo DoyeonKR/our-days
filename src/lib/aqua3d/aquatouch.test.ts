@@ -154,6 +154,6 @@ test("포유류는 놀라도 천천히 — 물속은 초당 몸길이 1배 아�
   assert.ok(hops >= 6, `땅에서 여러 번 통통 ${hops}`);
   for (const k of ["glide", "dive", "galumph"] as const) assert.equal(startlePose(k, startleDuration(k)).dash, 0);
   const scene = readFileSync(new URL("./scene.ts", import.meta.url), "utf8");
-  assert.ok(scene.includes("onLand=!!sw?.haul&&sw.rest>.5"), "쉬는 중이면 땅의 몸짓");
+  assert.ok(scene.includes("onLand=!!sw?.haul&&!sw.float&&sw.rest>.5"), "쉬는 중이면 땅의 몸짓(수면에 누워 쉬는 해달은 물 위 — 2026-11-20)");
   assert.ok(scene.includes("if(!onLand&&trickOf"), "땅에선 물속 재주를 안 한다");
 });

@@ -459,7 +459,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(meal&&(id===meal.predId||id===meal.ghostId))return;
     if(breaches.has(id))return;
     // 모래사장 · 바위에서 쉬는 중이면(2026-11-18) 물속 재주 대신 땅에서 통통 튀며 몇 걸음 옮겨 간다(galumph)
-    const sw=(m as unknown as StepFish).swim,onLand=!!sw?.haul&&sw.rest>.5;
+    const sw=(m as unknown as StepFish).swim,onLand=!!sw?.haul&&!sw.float&&sw.rest>.5; // 수면에 누워 쉬는 해달은 물 위다(2026-11-20) — 눌러도 땅에서 튀지 않고 물속 재주(누워 조개 깨기)
     if(!onLand&&trickOf(m.family)&&!inTunnel&&!inDome&&startBreach(id,m))return;
     const kind=startleKind(m.family,m.key,onLand),side=Math.random()<.5?-1:1,p=m.root.position;
     const dir=kind==="galumph"?{x:0,y:0,z:side}:startleDir(kind,p.x-camera.position.x,p.z-camera.position.z,m.course.dx,m.course.dz,side);
