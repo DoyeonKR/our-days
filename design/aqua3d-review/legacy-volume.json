@@ -1,0 +1,146 @@
+{
+  "note": "2026-11-20 — 1단계 표면 몸(위에서 보면 등지느러미 자리마다 혹 · 지느러미 위 그라데이션)으로 지었던 기존 게임 종을 닫힌 몸통 + 따로 붙인 지느러미(volume-fish)로 다시 짓는다. body · widthRatio 는 expansion4-prompts.json 과 같은 뜻. 키는 게임 계열(family) — 그 계열의 모든 모습(어른 · 어린 · 치어)이 같은 몸을 쓴다.",
+  "species": {
+    "sea_bass": {
+      "body": "fish",
+      "widthRatio": 0.17
+    },
+    "koi": {
+      "body": "fish",
+      "widthRatio": 0.2
+    },
+    "bluefin": {
+      "body": "fish",
+      "widthRatio": 0.24
+    },
+    "goldfish": {
+      "body": "compressed",
+      "widthRatio": 0.24
+    },
+    "clown": {
+      "body": "compressed",
+      "widthRatio": 0.17
+    },
+    "black_seabream": {
+      "body": "compressed",
+      "widthRatio": 0.14
+    },
+    "barred_knifejaw": {
+      "body": "compressed",
+      "widthRatio": 0.14
+    },
+    "tetra": {
+      "body": "compressed",
+      "widthRatio": 0.12
+    },
+    "chinese_minnow": {
+      "body": "fish",
+      "widthRatio": 0.14
+    },
+    "common_carp": {
+      "body": "fish",
+      "widthRatio": 0.2
+    },
+    "croaker": {
+      "body": "fish",
+      "widthRatio": 0.17
+    },
+    "crucian": {
+      "body": "compressed",
+      "widthRatio": 0.17
+    },
+    "mackerel": {
+      "body": "fish",
+      "widthRatio": 0.16
+    },
+    "masu_salmon": {
+      "body": "fish",
+      "widthRatio": 0.16
+    },
+    "salmon": {
+      "body": "fish",
+      "widthRatio": 0.17
+    },
+    "sea_bream": {
+      "body": "compressed",
+      "widthRatio": 0.14
+    },
+    "rockfish": {
+      "body": "fish",
+      "widthRatio": 0.19
+    },
+    "rockfish_bollak": {
+      "body": "fish",
+      "widthRatio": 0.19
+    },
+    "striped_jack": {
+      "body": "compressed",
+      "widthRatio": 0.15
+    },
+    "yellowtail": {
+      "body": "fish",
+      "widthRatio": 0.17
+    },
+    "perch_kkeokji": {
+      "body": "fish",
+      "widthRatio": 0.16
+    },
+    "pale_chub": {
+      "body": "fish",
+      "widthRatio": 0.14
+    },
+    "mandarin_fish": {
+      "body": "fish",
+      "widthRatio": 0.18
+    },
+    "snakehead": {
+      "body": "fish",
+      "widthRatio": 0.17
+    },
+    "arowana": {
+      "body": "compressed",
+      "widthRatio": 0.13
+    },
+    "puffer": {
+      "body": "fish",
+      "widthRatio": 0.3
+    },
+    "sailfin_sandfish": {
+      "body": "fish",
+      "widthRatio": 0.17
+    },
+    "bullhead": {
+      "body": "fish",
+      "widthRatio": 0.17
+    },
+    "lenok": {
+      "body": "fish",
+      "widthRatio": 0.16
+    },
+    "smelt": {
+      "body": "fish",
+      "widthRatio": 0.12
+    },
+    "sweetfish": {
+      "body": "fish",
+      "widthRatio": 0.13
+    },
+    "discus": {
+      "body": "disc",
+      "widthRatio": 0.1
+    },
+    "eel": {
+      "body": "eel",
+      "widthRatio": 0.09
+    },
+    "hairtail": {
+      "body": "eel",
+      "widthRatio": 0.06
+    },
+    "cutlassfish_pollock": {
+      "body": "fish",
+      "widthRatio": 0.15
+    }
+  },
+  "excluded": "지느러미가 몸보다 큰 종(betta · guppy · angel · astral · rising)은 닫힌 몸통이 원화의 큰 지느러미를 잃어 그대로 둔다(2026-11-20 시험). 납작 · 세운 · 무척추 · 머리가 특수한 종(ray · manta · skate · flounder · goosefish · seahorse · jellyfish · kraken · starfish · anglerfish · gulper_eel · oarfish · whale_shark · megamouth)도 제외. 메기(긴 수염) · 실러캔스(자루 지느러미)도 닫힌 몸통에서 특징을 잃어 그대로 둔다."
+}

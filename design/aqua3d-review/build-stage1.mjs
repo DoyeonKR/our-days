@@ -27,6 +27,8 @@ const requestedKeys=new Set(process.argv.slice(2));
 const expansion4=JSON.parse(await readFile(`${OUT}/expansion4-prompts.json`,'utf8'));
 const expansion4Profiles=new Map(expansion4.species.map(s=>[s.key,s]));
 for(const [key,profile]of SHARK_PROFILES)expansion4Profiles.set(key,profile);
+// 기존 게임 종을 닫힌 몸통으로 다시 짓기(2026-11-20) — legacy-volume.json
+for(const [key,p]of Object.entries(JSON.parse(await readFile(`${OUT}/legacy-volume.json`,'utf8')).species))expansion4Profiles.set(key,{key,...p,legacy:true});
 export const fish=[...FAMILIES.filter(f=>f.key!=='sea_turtle').flatMap(f=>[...f.finals.map(s=>[f.key,s.key]),[f.key,`fry_${f.key}`],[f.key,`juv_${f.key}`]]),
  ...YOUNG.filter(([family])=>!FAMILIES.some(f=>f.key===family)&&FINALS.some(([key])=>key===family)).flatMap(([family])=>[[family,family],[family,`fry_${family}`],[family,`juv_${family}`]])];
 export const decors=DECOR.map(d=>d.key);
@@ -43,8 +45,8 @@ await mkdir(DIR,{recursive:true});for(const kind of ['fish','decor'])await mkdir
 function geometry(p,uv,indices){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();const n=g.attributes.normal;for(let i=0;i<n.count;i++)if(Math.hypot(n.getX(i),n.getY(i),n.getZ(i))<.001)n.setXYZ(i,0,1,0);return g;}
 
 const TEX=COMPRESSION.textureSize; // 512 — 그림 원본(public/aqua/fish/*.webp)과 같은 해상도. 키워도 세밀해지지 않고 바이트만 는다
-async function reference(key,kind){
- const original=await readFile(`public/aqua/${kind}/${key}.webp`),upright=kind==='fish'&&expansion4Profiles.get(key.replace(/^(fry_|juv_)/,''))?.body==='upright';
+async function reference(key,kind,family=null){
+ const original=await readFile(`public/aqua/${kind}/${key}.webp`),upright=kind==='fish'&&(expansion4Profiles.get(key.replace(/^(fry_|juv_)/,''))??expansion4Profiles.get(family))?.body==='upright';
  const {data,info}=await (upright?sharp(original).rotate(90):sharp(original)).ensureAlpha().raw().toBuffer({resolveWithObject:true});
  const n=info.width*info.height,skin=new Uint8Array(data),seen=new Uint8Array(n),q=new Int32Array(n);let head=0,tail=0;
  let left=info.width,right=0,top=info.height,bottom=0;
@@ -53,7 +55,7 @@ async function reference(key,kind){
  for(let i=0;i<n;i++)skin[i*4+3]=255;
  const paint=await sharp(skin,{raw:{width:info.width,height:info.height,channels:4}}).resize(TEX,TEX,{kernel:'lanczos3'}).raw().toBuffer();
  for(let k=0;k<6;k++)for(let y=0;y<TEX/64;y++)for(let x=k*TEX/64;x<(k+1)*TEX/64;x++){const i=(y*TEX+x)*4,c=[[12,17,23],[184,148,65],[248,246,226],[52,58,64],[187,164,193],[225,228,237]][k];paint.set([...c,255],i);}
- const profile=expansion4Profiles.get(key.replace(/^(fry_|juv_)/,''));
+ const profile=expansion4Profiles.get(key.replace(/^(fry_|juv_)/,''))??expansion4Profiles.get(family);
  if(profile&&profile.body!=='upright'&&!['skate','goosefish'].includes(profile.key)){
   // Continuous radial chart: blend colours, not UVs across unrelated atlas
   // islands. The previous strip made a visible seam and elongated eye stripes.
@@ -376,7 +378,7 @@ function packRawGLB(key,parts,png,bones){
 const report={schema:2,stage:'all',status:'generated_pending_visual_review',approved:false,notes:['All requested fish forms and decorations are generated. No numerical visual similarity scores or self-approval.','Fish have radial anatomical bodies or specialised ray/jelly/dragon surfaces with independent contour fins.','Source paintings constrain colour and visible silhouette; unseen sides are estimates.','Decorations are original low-poly sculptures with a procedural paint atlas. Detailed ornament/reference differences remain visible in comparisons.'],models:{}};
 if(requestedKeys.size)Object.assign(report,JSON.parse(await readFile(`${OUT}/models.json`,'utf8')));
 const decorPng=await atlas();
-for(const [family,key]of fish){if(requestedKeys.size&&!requestedKeys.has(key))continue;const ref=await reference(key,'fish'),big=largeFish.has(key),budget=big?8000:3000;let columns=big?58:42,g;
+for(const [family,key]of fish){if(requestedKeys.size&&!requestedKeys.has(key))continue;const ref=await reference(key,'fish',family),big=largeFish.has(key),budget=big?8000:3000;let columns=big?58:42,g;
  ref.loops=silhouetteLoops(ref,key==='moon_jelly');
  const invertebrate=family==='starfish';
  const profile=expansion4Profiles.get(family);
@@ -386,7 +388,7 @@ for(const [family,key]of fish){if(requestedKeys.size&&!requestedKeys.has(key))co
  const bones=invertebrate?makeInvertebrateRig(family,key):skeleton(g.userData.bodyCenter),bytes=await packGLB(key,[{name:key,geometry:g}],ref.png,bones),file=`public/aqua/models/fish/${key}.glb`;
  if(bytes.length>(big?800000:300000))throw new Error(`Size budget ${key}: ${bytes.length}`);
  await writeFile(file,bytes);report.models[key]={kind:'fish',family,form:key.startsWith('fry_')?'fry':key.startsWith('juv_')?'juvenile':'adult',file,triangles:g.index.count/3,bytes:bytes.length,bones:bones.map(b=>b.name),anatomyKind:anatomy(family,key).kind,textureSize:[TEX,TEX],materials:1,skinMeshes:1,animations:0,compression:{format:'EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp',tool:'design/aqua3d-review/glb-compress.mjs',settings:COMPRESSION},sourceSHA256:ref.hash,approval:'pending',limits:{triangles:budget,bytes:big?800000:300000}};
- if(profile)Object.assign(report.models[key],{authoringProfile:profile,geometryAuthoring:g.userData.authoring??'specialised-surface',wholeBodyPlate:g.userData.wholeBodyPlate??null,regions:g.userData.regions??[],swimmingMode:g.userData.swimmingMode??'specialised',referenceRotation:profile.body==='upright'?90:0,referenceDorsal:['skate','goosefish'].includes(family),coordinateSystem:{up:'+Y',front:'+X',origin:'body center'},visualApproval:'pending',activation:profile.shark?'existing game species':'not enabled'});
+ if(profile)Object.assign(report.models[key],{authoringProfile:profile,geometryAuthoring:g.userData.authoring??'specialised-surface',wholeBodyPlate:g.userData.wholeBodyPlate??null,regions:g.userData.regions??[],swimmingMode:g.userData.swimmingMode??'specialised',referenceRotation:profile.body==='upright'?90:0,referenceDorsal:['skate','goosefish'].includes(family),coordinateSystem:{up:'+Y',front:'+X',origin:'body center'},visualApproval:'pending',activation:profile.shark||profile.legacy?'existing game species':'not enabled'});
  console.log(`fish ${key}: ${g.index.count/3} triangles, ${bytes.length} bytes`);
 }
 for(const key of decors){if(requestedKeys.size&&!requestedKeys.has(key))continue;const parts=ornament(key),png=decorPng;
