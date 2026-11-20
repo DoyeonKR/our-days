@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as T from "three";
 import { EAT_MIN, FOOD_COUNT, FOOD_LIFE, FOOD_STILL_AGE, MOUTH_AHEAD, makeFood, type FoodFish } from "./food.ts";
-import { MOTE_COUNT, makeMotes } from "./murk.ts";
+import { MOTE_CLEAR, MOTE_COUNT, makeMotes, moteFlow } from "./murk.ts";
 import { WATER_LIGHT, waterLit } from "./waterlight.ts";
 import { FINAL_FRAG } from "./post.ts";
 
@@ -74,11 +74,18 @@ test("먹이 알갱이 — 움직임 줄이기면 한 장면(움직이지도 먹
   assert.doesNotMatch(step, /new [A-Z]|\[\]|\{\s*\}/, "step 안에서 새 객체 · 배열");
 });
 
-test("탁한 물 — 부유물은 탁할수록 나타나고 맑으면 그리지 않는다 · 터널 · 돔 안엔 두지 않는다", () => {
+test("물 속 부유물 — 맑은 물에도 옅은 미세 입자가 물살에 흘러가고(2026-11-20), 탁할수록 늘어난다 · 터널 · 돔 안엔 두지 않고 흘려보내지도 않는다", () => {
   const box = { halfX: 4.5, halfZ: 6, bottom: -5, top: 4.8 };
   const m = makeMotes(box, (x, y, z) => y < -2.5 && Math.abs(x) < 2.5 && z > -5);
-  m.setMurk(0); assert.equal(m.points.geometry.drawRange.count, 0);
-  m.setMurk(0.6); assert.equal(m.points.geometry.drawRange.count, MOTE_COUNT);
+  const u = (m.points.material as T.ShaderMaterial).uniforms;
+  m.setMurk(0); assert.equal(m.points.geometry.drawRange.count, Infinity, "맑아도 그린다(맑은 몫 MOTE_CLEAR)"); assert.equal(u.uMurk.value, 0);
+  m.setMurk(0.6); assert.equal(u.uMurk.value, 0.6);
+  assert.equal(u.uFlow.value, 0, "공기 방이 있는 수조는 물살에 싣지 않는다");
+  const open = makeMotes(box); assert.equal((open.points.material as T.ShaderMaterial).uniforms.uFlow.value, 1); open.dispose();
+  // 물살은 늘 한쪽으로 — 돌아 흐르지 않는다(미분 > 0), 그래도 세졌다 약해진다
+  let minV = Infinity, maxV = 0; for (let t = 0; t < 600; t += 0.25) { const v = (moteFlow(t + 0.01) - moteFlow(t)) / 0.01; minV = Math.min(minV, v); maxV = Math.max(maxV, v); }
+  assert.ok(minV > 0.005, `거꾸로 흐름 ${minV}`); assert.ok(maxV / minV > 3, "세기가 바뀐다");
+  assert.ok(MOTE_CLEAR > 0.2 && MOTE_CLEAR < 0.6);
   const P = m.points.geometry.getAttribute("position") as T.BufferAttribute;
   for (let i = 0; i < MOTE_COUNT; i++) assert.ok(!(P.getY(i) < -2.5 && Math.abs(P.getX(i)) < 2.5 && P.getZ(i) > -5), `공기 속 알 ${i}`);
   m.dispose();
