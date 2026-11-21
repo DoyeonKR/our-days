@@ -15,6 +15,7 @@ import { BOSSES, bossDuo, bossHp } from "@/lib/fishingworld";
 import { kstDate } from "@/lib/kst";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { TANK_IMAGE_KEYS } from "@/lib/aquaimages";
+import { aquaAlert } from "@/lib/aquatoday";
 import { FishArt } from "@/components/AquaArt";
 import { ALL_FORMS, aquaOf, fishArtKey, growBlock, TANK_ART_COUNT, tickAqua } from "@/lib/aquarium";
 import { CHAIN, mergeOf } from "@/lib/merge";
@@ -170,7 +171,8 @@ export default function GameArcade({
         .sort((x, y) => bossHp(x.r, today) - bossHp(y.r, today))[0] ?? null
     : null;
   const raidDuo = raid ? bossDuo(raid.r, myKey, today) : false;
-  const aquaWarn = aqua && aqua.fish.length ? growBlock(aqua) : null;
+  // 배고픈 사냥꾼 · 먹이 · 물 · 손님 중 급한 것을 먼저(2026-11-21, lib/aquatoday) — 앱을 열지 않으면 물고기를 잃는 줄 몰랐다
+  const aquaWarn = aqua && aqua.fish.length ? aquaAlert(aqua) ?? growBlock(aqua) : null;
   /* 카드 배경은 그 게임의 실제 그림 — 지금 내 낚시터 · 내 수조가 그대로 보인다 */
   const openSpots = fishStat ? SPOTS.filter((x) => x.minLevel <= fishStat.level) : SPOTS.slice(0, 1);
   const spotKey = spotArtKey(openSpots[openSpots.length - 1]);

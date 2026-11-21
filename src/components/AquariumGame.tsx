@@ -6,7 +6,8 @@
 import { HUNGRY_BELOW } from "@/lib/predation";
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
-import { SPOTS, formsSeen, releaseBossPlan, releaseToSea, releaseXp } from "@/lib/fishing";
+import { SPOTS, formsSeen, releaseBossPlan, releaseSpot, releaseToSea, releaseXp } from "@/lib/fishing";
+import { MASTERY_RELEASE_N } from "@/lib/fishmastery";
 import { fmtCm } from "@/lib/fishingworld";
 import { useBackClose } from "@/lib/useBackClose";
 import { useDialogFocus } from "@/lib/useDialogFocus";
@@ -29,7 +30,9 @@ import {
   releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank, sinkTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
 } from "@/lib/aquarium";
-import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
+import { loadIsland, saveIsland, type IslandRow } from "@/lib/couple";
+import { watchIslandStore } from "@/lib/islandstore";
+import { aquaTodayItems, type AquaTodayKey } from "@/lib/aquatoday";
 import { MORPHS, MORPH_INFO, morphDex, type Morph } from "@/lib/aquamorph";
 import { NAME_LEN, checkFishName } from "@/lib/aqualife";
 import { memorialLine, storyLine } from "@/lib/aquastory";
@@ -39,8 +42,9 @@ import { eventDef, eventGuest, eventsAt, modsAt, monthDay, nextEventAfter, occur
 import { claimBlock, claimEventDecor, eventSaveOf, eventTints, hasClaimed, tintedInBag, tintName } from "@/lib/aquaeventclaim";
 import type { IslandState } from "@/lib/island";
 
-type Tab = "tank" | "decor" | "dex";
-const TABS: readonly (readonly [Tab, string])[] = [["tank", "수조"], ["decor", "악세사리"], ["dex", "도감"]];
+type Tab = "tank" | "grow" | "decor" | "dex";
+// 넓히기(2026-11-21 리뷰 ⑨) — 늘리기 네 줄 · 다음 수조 조건이 수조 칸 맨 아래를 길게 늘였다. 따로 한 칸으로 뺐다
+const TABS: readonly (readonly [Tab, string])[] = [["tank", "수조"], ["grow", "넓히기"], ["decor", "악세사리"], ["dex", "도감"]];
 const KIND_LABEL: Record<DecorKind, string> = { gear: "장비", plant: "수초", rock: "돌 · 나무", ornament: "장식" };
 const EFFECT_LABEL = { clean: "물이 오래 깨끗해요", grow: "더 빨리 자라요", feed: "포만이 오래 가요" } as const;
 type DexFilter = "all" | "seen" | "missing";
@@ -168,16 +172,14 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
     }
   }, [coupleId]);
 
-  const load = useCallback(async () => {
-    const r = await loadIsland(coupleId).catch(() => null);
-    setRow(r);
+  // 공유 섬 저장소(lib/islandstore)를 본다(2026-11-21 리뷰 ⑩) — 예전엔 수조가 따로 구독하고 상대가 저장할 때마다 섬 전체를 한 번 더 받았다.
+  //   저장 응답은 couple.ts 의 onIslandRow 로 저장소에 들어오므로 여기로 다시 온다. 이 화면이 가진 행이 더 새면 그대로 둔다(act 가 막 저장한 행)
+  useEffect(() => watchIslandStore(coupleId, (snap) => {
+    if (!snap.loaded) return;
+    setRow((cur) => (cur && snap.row && snap.row.version < cur.version ? cur : snap.row ?? (snap.error ? cur : null)));
     setNow(gameNow());
     setLoaded(true);
-  }, [coupleId]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  useEffect(() => watchIsland(coupleId, () => void load()), [coupleId, load]);
+  }), [coupleId]);
   useEffect(() => {
     const iv = setInterval(() => setNow(gameNow()), 60_000);
     return () => clearInterval(iv);
@@ -299,6 +301,14 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   const foods = FOODS.filter((x) => x.cost === 0 || (a.food?.[x.key] ?? 0) > 0);
   const pick = foods.some((x) => x.key === food) ? food : "flake";
   const hiddenFish = a.alien?.fish.length ?? 0;
+  // 오늘 할 일(2026-11-21 리뷰 ④ · ⑦, lib/aquatoday) — 급한 순서. 누르면 그 일을 하거나 그 칸으로 간다
+  const today = aquaTodayItems(a);
+  function onToday(k: AquaTodayKey) {
+    if (k === "hunter" || k === "feed") { void feed(); return; }
+    if (k === "water") { void act((st, t) => cleanWater(st, t, { who })); return; }
+    const id = k === "request" ? "aqua-req" : k === "net" ? "aqua-net" : "aqua-full";
+    document.getElementById(id)?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
 
   function onPlaceAt(x: number, y: number) {
     if (busy) return;
@@ -321,6 +331,9 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
     const reward = releaseReward(f), xp = releaseXp(f);
     // 보내 주면 그 낚시터 주인이 빨리 온다(2026-11-18, lib/bosscall) — 몇 시간인지 · 왜 효과가 없는지 미리 말한다(저장도 같은 계산)
     const plan = view && f.stage === 2 ? releaseBossPlan(view.state, f.id, gameNow()) : null;
+    // 다 키워 보내면 잡은 낚시터 숙련도 +3(2026-11-21 리뷰 ⑥ — releaseToSea 가 같은 저장에서 더한다)
+    const origin = view && f.stage === 2 ? releaseSpot(f, view.a.life) : undefined;
+    const mastery = origin ? ` ${SPOTS.find((x) => x.key === origin)?.name ?? "그 낚시터"} 숙련도도 +${MASTERY_RELEASE_N} 올라요.` : "";
     // 24시간을 모아야 하루 일찍 온다 — '몇 시간 빨리'만 말하면 다시 나타나는 날이 그대로인데 거짓말이 된다(2026-11-18 화면 확인)
     const call = !plan ? "" : "total" in plan
       ? ` 바다에서 소문이 퍼져 ${plan.name}에게 ${plan.add}시간이 모여요 — 24시간마다 하루 일찍 와요(지금 ${plan.total % 24 === 0 && plan.days > 0 ? 24 : plan.total % 24}/24${plan.days > 0 ? ` · 이번에 하루 당겨져 ${plan.left}일 뒤` : ""}).`
@@ -328,12 +341,12 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
     const ok = await confirmDialog(f.crown ? {
       // 주인은 며칠을 겨뤄 잡았고, 다시 나타나기까지 7일이 걸린다 — 흔한 물고기와 같은 확인창으로 보내면 안 된다
       message: `${f.crown} — 낚시터의 주인이에요. 정말 보내 줄까요?`,
-      detail: `하트 ${reward.toLocaleString()}개를 받아요. 주인은 다시 잡으려면 며칠을 다시 겨뤄야 하고, 왕관 쓴 모습은 수조에서 사라져요.${call}`,
+      detail: `하트 ${reward.toLocaleString()}개를 받아요.${mastery} 주인은 다시 잡으려면 며칠을 다시 겨뤄야 하고, 왕관 쓴 모습은 수조에서 사라져요.${call}`,
       confirmText: "그래도 보내 주기",
       danger: true,
     } : {
       message: `${josa(fishName(f), "을/를")} 보내 줄까요?`,
-      detail: `하트 ${reward.toLocaleString()}개${xp > 0 ? ` · 낚시 경험치 +${xp}` : ""}를 받아요.${f.stage !== 2 ? " 다 키워서 보내면 더 받고, 그 낚시터 주인도 빨리 와요." : ""}${call} 도감 기록은 남아요.`,
+      detail: `하트 ${reward.toLocaleString()}개${xp > 0 ? ` · 낚시 경험치 +${xp}` : ""}를 받아요.${f.stage !== 2 ? " 다 키워서 보내면 더 받고, 그 낚시터 주인도 빨리 와요." : ""}${call}${mastery} 도감 기록은 남아요.`,
       confirmText: "보내 주기",
     });
     if (!ok) return;
@@ -384,6 +397,13 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
       <div role="tabpanel" id={`aqua-panel-${tab}`} aria-labelledby={`aqua-tab-${tab}`}>
       {tab === "tank" && (
         <>
+          {today.length > 0 && (
+            <div className="aqua-today" role="group" aria-label="수조 오늘 할 일">
+              {today.map((x) => (
+                <button key={x.key} type="button" className={`tap aqua-today-chip ${x.urgent ? "is-urgent" : ""} is-${x.key}`} disabled={busy} onClick={() => onToday(x.key)}>{x.text}</button>
+              ))}
+            </div>
+          )}
           <div ref={stageRef} className="aqua-stage">
             <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft, season: { keys: events.map((e) => e.def.key), tints, clock: gameNow, seed: coupleId ?? "" }, light: lights.on }}
               onFish={id => setSelFish(selFish === id ? null : id)}
@@ -535,7 +555,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
             onRelease={() => void release(sel)} onName={(name) => act((st, t) => nameFish(st, sel.id, name, t, coupleId ? who : undefined))} />}
 
           {a.req && (
-            <section className="aqua-card aqua-req">
+            <section id="aqua-req" className="aqua-card aqua-req">
               <header><strong>오늘의 손님</strong><small><Coin /> {a.req.reward}</small></header>
               {guest && <p className="aqua-note aqua-event-guest">{guest.event.name} 손님 — {josa(guest.name, "이/가")} 찾아왔어요</p>}
               <p className="aqua-note">{requestText(a.req)}</p>
@@ -548,7 +568,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
           )}
 
           {(a.net?.length ?? 0) > 0 && (
-            <section className="aqua-card">
+            <section id="aqua-net" className="aqua-card">
               <header><strong>대기 그물</strong><small>{a.net!.length}/{NET_MAX} · 하루가 지나면 잡을 때 값에 팔려요</small></header>
               <ul className="aqua-net">
                 {a.net!.map((n, i) => (
@@ -564,6 +584,49 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
             </section>
           )}
 
+          {fishRoom(a) <= 0 && a.fish.length > 0 && <FullCompare a={a} st={view.state} now={now} busy={busy} onRelease={(f) => void release(f)} />}
+          {coupons > 0 || Object.keys(a.food ?? {}).length > 0 ? (
+            <details className="aqua-card aqua-foodshop">
+              <summary>먹이 만들기 · 분리수거 쿠폰 {coupons}장</summary>
+              <p className="aqua-note">낚시에서 건진 쓰레기 하나가 쿠폰 한 장이에요(수집함 숫자는 그대로예요). 좋아하는 먹이를 주면 정성이 더 쌓이고 조금 더 빨리 자라요.</p>
+              <ul className="aqua-shop is-flat">
+                {FOODS.filter((x) => x.cost > 0).map((x) => (
+                  <li key={x.key}>
+                    <span className="min-w-0 flex-1"><strong>{x.name}</strong><small>{x.desc} · 남은 {a.food?.[x.key] ?? 0}번</small></span>
+                    <ActionButton disabled={busy || coupons < x.cost} onClick={() => void act((st, t) => makeFood(st, x.key, t))}>쿠폰 {x.cost}장</ActionButton>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+
+          {a.fish.length > 0 && (
+            <section className="aqua-card">
+              <header><strong>우리 물고기</strong></header>
+              <ul className="aqua-list">
+                {a.fish.map((f) => {
+                  const sp = speciesOf(f.species);
+                  return (
+                    <li key={f.id}>
+                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => { const on = selFish !== f.id; setSelFish(on ? f.id : null); /* 2026-11-14 [사용자: "하단에 물고기 선택하면 수조에 포커싱 되도록"] — 목록은 수조 아래라 골라도 카메라가 다가가는 걸 못 봤다. 고르면 수조로 올라간다 */ if (on) stageRef.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }}>
+                        <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
+                        {/* 변이 표는 이름 칸 안에 — 오른쪽 등급 · 남은 시간 칸을 375px 밖으로 밀어내지 않게(넘치면 길이 글이 먼저 잘린다) */}
+                        <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)}<MorphTag morph={fishMorph(a, f)} /> <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
+                        {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>{duration(hoursLeft(a, f))} 남음</small>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+          {(a.life?.memorial.length ?? 0) > 0 && <MemorialCard a={a} />}
+        </>
+      )}
+
+      {tab === "grow" && (
+        <>
+          <p className="aqua-note mt-3">수조를 키우면 물고기 · 장식 칸이 늘어요. 옆 · 앞뒤 · 아래로 늘리기는 단계와 따로 가요.</p>
           <section className="aqua-card">
             <header><strong>{tk.name}</strong><small>물고기 {fishCount(a)}/{tk.fish} · 악세사리 {a.placed.length}/{tk.decor}</small></header>
             <p className="aqua-note">
@@ -603,43 +666,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                 수조 넓히기 · {nextTank.name} · 물고기 {tk.fish}→{tankOf({ ...a, tank: a.tank + 1 }).fish} <span className="aqua-price"><Coin /> {nextTank.price.toLocaleString()}</span>
               </ActionButton>
             ) : <p className="aqua-note">가장 큰 수조예요.</p>}
-            {coupons > 0 || Object.keys(a.food ?? {}).length > 0 ? (
-              <details className="aqua-foodshop">
-                <summary>먹이 만들기 · 분리수거 쿠폰 {coupons}장</summary>
-                <p className="aqua-note">낚시에서 건진 쓰레기 하나가 쿠폰 한 장이에요(수집함 숫자는 그대로예요). 좋아하는 먹이를 주면 정성이 더 쌓이고 조금 더 빨리 자라요.</p>
-                <ul className="aqua-shop is-flat">
-                  {FOODS.filter((x) => x.cost > 0).map((x) => (
-                    <li key={x.key}>
-                      <span className="min-w-0 flex-1"><strong>{x.name}</strong><small>{x.desc} · 남은 {a.food?.[x.key] ?? 0}번</small></span>
-                      <ActionButton disabled={busy || coupons < x.cost} onClick={() => void act((st, t) => makeFood(st, x.key, t))}>쿠폰 {x.cost}장</ActionButton>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
           </section>
-
-          {a.fish.length > 0 && (
-            <section className="aqua-card">
-              <header><strong>우리 물고기</strong></header>
-              <ul className="aqua-list">
-                {a.fish.map((f) => {
-                  const sp = speciesOf(f.species);
-                  return (
-                    <li key={f.id}>
-                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => { const on = selFish !== f.id; setSelFish(on ? f.id : null); /* 2026-11-14 [사용자: "하단에 물고기 선택하면 수조에 포커싱 되도록"] — 목록은 수조 아래라 골라도 카메라가 다가가는 걸 못 봤다. 고르면 수조로 올라간다 */ if (on) stageRef.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }}>
-                        <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
-                        {/* 변이 표는 이름 칸 안에 — 오른쪽 등급 · 남은 시간 칸을 375px 밖으로 밀어내지 않게(넘치면 길이 글이 먼저 잘린다) */}
-                        <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)}<MorphTag morph={fishMorph(a, f)} /> <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
-                        {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>{duration(hoursLeft(a, f))} 남음</small>}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-          {(a.life?.memorial.length ?? 0) > 0 && <MemorialCard a={a} />}
         </>
       )}
 
@@ -970,6 +997,40 @@ function LightShop({ owned, on, coins, busy, onBuy, onSet }: { owned: readonly s
             </li>
           );
         })}
+      </ul>
+    </section>
+  );
+}
+
+/** 수조가 가득 찼을 때 — 누구를 보내면 무엇을 받나 한 장에서 견준다(2026-11-21 리뷰 ⑤). 확인창 · 저장과 같은 계산(releaseReward · releaseBossPlan · releaseSpot)
+ *  다 큰 물고기를 먼저, 그 안에서 받는 하트가 많은 순. 치어 · 어린 물고기는 주인 · 숙련 덤이 없다 */
+function FullCompare({ a, st, now, busy, onRelease }: { a: AquaState; st: IslandState; now: number; busy: boolean; onRelease: (f: AquaFish) => void }) {
+  const rows = a.fish.filter((f) => !f.crown).map((f) => {
+    const plan = f.stage === 2 ? releaseBossPlan(st, f.id, now) : null;
+    const spot = f.stage === 2 ? releaseSpot(f, a.life) : undefined;
+    return { f, heart: releaseReward(f), boss: plan && "total" in plan ? { name: plan.name, h: plan.add } : null, spot: spot ? SPOTS.find((x) => x.key === spot)?.name ?? null : null };
+  }).sort((x, y) => (y.f.stage === 2 ? 1 : 0) - (x.f.stage === 2 ? 1 : 0) || y.heart - x.heart).slice(0, 8);
+  if (!rows.length) return null;
+  return (
+    <section id="aqua-full" className="aqua-card aqua-full-compare">
+      <header><strong>수조가 가득 찼어요</strong><small>보내면 받는 것</small></header>
+      <p className="aqua-note">다 키워 보내면 하트에 더해 그 낚시터 주인이 빨리 오고 숙련도가 올라요. 도감 기록은 남아요.</p>
+      <ul>
+        {rows.map(({ f, heart, boss, spot }) => (
+          <li key={f.id}>
+            <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
+            <span className="min-w-0 flex-1">
+              <strong className="block truncate">{fishNick(a, f.id) ?? fishName(f)}</strong>
+              <small className="block">
+                <span className="aqua-price"><Coin /> {heart.toLocaleString()}</span>
+                {boss ? ` · ${boss.name} +${boss.h}시간` : ""}
+                {spot ? ` · ${spot} 숙련 +${MASTERY_RELEASE_N}` : ""}
+                {f.stage !== 2 ? " · 다 키우면 더 받아요" : ""}
+              </small>
+            </span>
+            <ActionButton disabled={busy} onClick={() => onRelease(f)}>보내기</ActionButton>
+          </li>
+        ))}
       </ul>
     </section>
   );

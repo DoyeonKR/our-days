@@ -329,7 +329,7 @@ test("연결 — 화면의 능력치는 gearStats · 연출은 이 사람의 꾸
   assert.match(game, /const look = wornLooks\(row\.state, who\);\s*fx\.setLook\(\{ bobber: look\.bobber\.id, line: look\.line\.color, rodTint: look\.rod\.color \}\);/);
   assert.doesNotMatch(strip("src/lib/fishing.ts"), /fishlooks/);
   assert.match(strip("src/components/FishGearPlus.tsx"), /<FishLooks \{\.\.\.p\} \/>/);
-  const fx = strip("src/lib/fishingfx.ts");
+  const fx = strip("src/lib/fishingfx.ts") + strip("src/lib/fishingfxgear.ts"); // 낚싯대 · 찌 그리기는 fishingfxgear 로 떼었다(2026-11-21)
   assert.doesNotMatch(fx, /shadowBlur|\.filter\s*=/, "색 입히기도 ctx.filter 없이");
   assert.match(fx, /`float:\$\{id\}`/, "찌 그라디언트 열쇠가 찌마다");
 });

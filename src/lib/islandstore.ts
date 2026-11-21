@@ -1,7 +1,7 @@
 "use client";
 
 /* 공유 섬 저장소 — 커플(솔로)마다 구독 하나 · 캐시 한 행. 몸통은 lib/islandcache(순수 — islandcache.test).
- * 홈 펫 · 게임 허브 · 섬 · 합치기가 이것만 본다. 낚시 · 수조는 아직 자기 loadIsland/watchIsland 를 쓰지만
+ * 홈 펫 · 게임 허브 · 섬 · 합치기 · 낚시 · 수조(2026-11-21 부터)가 이것만 본다. 동작 전 최신 읽기는 각자 loadIsland 로 하고,
  * 그 저장 응답도 couple.ts 의 onIslandRow 로 여기 캐시에 들어온다(다른 화면이 다시 받지 않는다).
  * ⚠ 섬 엔진(island.ts)을 값으로 부르지 않는다 — 홈 첫 로드(firstload.test)에 실리면 안 된다. */
 

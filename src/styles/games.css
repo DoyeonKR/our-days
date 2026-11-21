@@ -822,8 +822,6 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-throw.is-perfect { background: linear-gradient(90deg, rgba(234,179,8,.95), rgba(190,24,93,.92) 50%, rgba(76,29,149,.92)); box-shadow: 0 0 0 2px #fff7d6, 0 0 0 5px rgba(253,224,71,.6), 0 10px 32px rgba(253,224,71,.55); font-size: 1.12em; }
 .fish-throw { position: absolute; z-index: 11; left: 50%; top: 5%; padding: 6px 16px; border-radius: 999px; background: rgba(2,16,28,.78); color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; white-space: nowrap; pointer-events: none; transform: translateX(-50%); animation: fish-throw 2.6s ease-out both; }
 .aqua-full-btn { position: absolute; z-index: 6; top: 10px; right: 10px; }
-.aqua-tunnel-btn { position: absolute; z-index: 6; top: 10px; left: 10px; }
-.aqua-tank-3d.is-full .aqua-tunnel-btn { top: calc(var(--game-safe-top) + 8px); }
 .aqua-tank-3d.is-full { position: fixed; inset: 0; z-index: 950; width: auto; height: 100vh; height: 100dvh; max-width: none; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; }
 .aqua-tank-3d.is-full .aqua-full-btn { top: calc(var(--game-safe-top) + 8px); }
 /* 다시 보기(2026-11-13 다듬기) — 그만 보기는 수조 아래 가운데(도는 동안 끌기 안내 자리), 결과 안내는 위 버튼 줄 밑에 잠깐. 전체 보기에서도 보이게 수조 틀 안에 둔다 */
@@ -833,10 +831,24 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-tank-3d.is-full .aqua-replay-note { top: calc(var(--game-safe-top) + 62px); }
 /* 전체 보기는 페이지가 안 움직인다 — pan-y 를 두면 위아래로 끌어 시점을 숙이는 동작을 브라우저가 스크롤로 가져가 취소했다 */
 .aqua-tank-3d.is-full .aqua-webgl canvas { touch-action: none; }
-.aqua-photo-btn { position: absolute; z-index: 6; top: 62px; right: 10px; }
-.aqua-beach-btn { position: absolute; z-index: 6; top: 114px; right: 10px; }
-.aqua-tank-3d.is-full .aqua-beach-btn { top: calc(var(--game-safe-top) + 112px); }
-.aqua-tank-3d.is-full .aqua-photo-btn { top: calc(var(--game-safe-top) + 60px); }
+/* 보기 메뉴(2026-11-21 리뷰 ⑧) — 버튼 하나(오른쪽 위) → 펼친 목록. 전체 보기 중엔 닫기가 오른쪽 위, 보기는 그 왼쪽 */
+.aqua-view-btn { position: absolute; z-index: 6; top: 10px; right: 10px; }
+.aqua-tank-3d.is-full .aqua-view-btn { top: calc(var(--game-safe-top) + 8px); right: 84px; }
+.aqua-view-menu { position: absolute; z-index: 9; top: 58px; right: 10px; display: grid; gap: 4px; min-width: 150px; padding: 6px; border: 1px solid #9de6dd55; border-radius: 14px; background: #032633f2; box-shadow: 0 10px 28px rgba(0,0,0,.35); }
+.aqua-tank-3d.is-full .aqua-view-menu { top: calc(var(--game-safe-top) + 56px); }
+.aqua-view-menu button { min-height: 44px; padding: 0 12px; border-radius: 10px; color: #e3faf5; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 700; text-align: left; }
+.aqua-view-menu button:hover, .aqua-view-menu button:focus-visible { background: rgba(157,230,221,.16); }
+/* 수조 오늘 할 일(2026-11-21 리뷰 ④ · ⑦) — 수조 위 칩 한 줄. 급한 것은 붉게, 배고픈 사냥꾼은 깜빡인다(움직임 줄이기면 안 깜빡임) */
+.aqua-today { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; }
+.aqua-today-chip { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); background: rgba(3,38,51,.7); color: #cfe6f5; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
+.aqua-today-chip.is-urgent { border-color: #fb7185; background: rgba(136,19,55,.55); color: #ffe4e6; }
+.aqua-today-chip.is-hunter { animation: aqua-today-pulse 1.4s ease-in-out infinite; }
+@keyframes aqua-today-pulse { 50% { box-shadow: 0 0 0 3px rgba(251,113,133,.45); } }
+@media (prefers-reduced-motion: reduce) { .aqua-today-chip.is-hunter { animation: none; } }
+/* 가득 찼을 때 견주기(2026-11-21 리뷰 ⑤) */
+.aqua-full-compare ul { display: grid; gap: 8px; margin-top: 8px; }
+.aqua-full-compare li { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-full-compare li > button { flex: none; }
 /* 수조 사진 모드(2026-11-13) — 전체 보기 틀(is-full)에 펼치고 머리 단추 · 안내를 걷는다. 아래 판은 필터 · 확대 · 이름표 · 찍기, 찍으면 카드 미리보기 · 다시 찍기 · 공유하기 */
 .aqua-photo { position: absolute; inset: 0; z-index: 8; pointer-events: none; color: #eaf7f6; }
 .aqua-photo > * { pointer-events: auto; }

@@ -21,8 +21,10 @@ test("저장은 가진 행(이 화면 · 공유 저장소 중 새 쪽)으로 먼
   assert.match(fresh, /b\.version > a\.version \? b : a/);
 });
 
-test("내 저장의 메아리(받은 버전 ≤ 지금)는 섬 전체를 다시 받지 않는다", () => {
-  assert.match(game, /watchIsland\(coupleId, \(p\) => \{\s+const v = \(p\?\.new as \{ version\?: unknown \} \| undefined\)\?\.version;\s+const cur = rowRef\.current;\s+if \(typeof v === "number" && cur && v <= cur\.version\) return;\s+void load\(\);/);
+test("내 저장의 메아리(받은 버전 ≤ 지금)는 섬 전체를 다시 받지 않는다 — 공유 섬 저장소가 거르고, 화면은 더 새 행을 지킨다(2026-11-21)", () => {
+  assert.match(game, /watchIslandStore\(coupleId, \(snap\) => \{\s+if \(!snap\.loaded\) return;\s+const cur = rowRef\.current;\s+if \(cur && snap\.row && snap\.row\.version < cur\.version\) return;/);
+  assert.doesNotMatch(game, /watchIsland\(coupleId/, "낚시가 따로 구독하지 않는다");
+  assert.doesNotMatch(code("src/components/AquariumGame.tsx"), /watchIsland\(coupleId/, "수조도");
 });
 
 test("팔기는 결과를 먼저 보여 주고 저장은 뒤에서 — 실패하면 거두되 다음 판은 건드리지 않는다", () => {

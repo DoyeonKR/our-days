@@ -84,6 +84,17 @@ export function noteMastery(st: IslandState, c: Pick<FishCatch, "family" | "stag
   return withFishPlus(st, { mastery: { ...book, [c.at]: { n: cur.n + 1, kinds } } });
 }
 
+/** 수조에서 다 키워 바다로 보낸 물고기(2026-11-21) [사용자: 리뷰 "수조 → 낚시 이어짐이 약해요" → "진행해"] — 그 물고기를 잡은 낚시터의
+ *  숙련도에 끌어올린 수 MASTERY_RELEASE_N 과 다 큰 모습 한 종류를 더한다. 별 · 행운 상한(★5 · +2.5)은 그대로라 미끼 1% 규칙도 그대로다.
+ *  어디서 잡았는지 모르는 물고기(이야기에 잡은 낚시터가 없다)면 같은 st. 순수. */
+export const MASTERY_RELEASE_N = 3;
+export function noteReleaseMastery(st: IslandState, spot: string | undefined, art: string): IslandState {
+  if (!spot) return st;
+  const book = masteryOf(st), cur = book[spot] ?? { n: 0, kinds: [] };
+  const kinds = cur.kinds.includes(art) || cur.kinds.length >= MASTERY_KINDS_CAP ? cur.kinds : [...cur.kinds, art];
+  return withFishPlus(st, { mastery: { ...book, [spot]: { n: cur.n + MASTERY_RELEASE_N, kinds } } });
+}
+
 /** 그 낚시터에서 받는 행운 덤 */
 export const masteryLuck = (st: Pick<IslandState, "fishPlus">, spot: string) => spotStars(st, spot) * MASTERY_LUCK_PER_STAR;
 /** 팔기 하트 배수의 덤(0 또는 0.05) */

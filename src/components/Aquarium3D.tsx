@@ -48,6 +48,7 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   const [attempt, setAttempt] = useState(0);
   // 전체 보기 — 아이폰 사파리엔 요소 전체 화면이 없어서 화면 위에 펼치는 방식이 기본이고, 되는 브라우저는 진짜 전체 화면까지 쓴다
   const [full, setFull] = useState(false);
+  const [menu, setMenu] = useState(false);
   const shell = useRef<HTMLDivElement>(null);
   // 끊긴 뒤 저절로 다시 연 횟수 — 수조를 새로 열면(다시 시도) 0
   const recovered = useRef(0);
@@ -144,18 +145,40 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
     }).catch(() => { if (!cancelled) setError("3D 그래픽을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요."); });
     return () => { cancelled = true; window.clearTimeout(timer); document.removeEventListener("visibilitychange", recover); controller.current?.dispose(); controller.current = null; };
   }, [attempt]);
+  // 보기 메뉴 — 지금 쓸 수 있는 것만(예전 버튼 넷과 같은 조건)
+  const live = ready && !error;
+  type ViewKey = "full" | "photo" | "beach" | "tunnel";
+  const menuItems: { key: ViewKey; label: string }[] = [
+    ...(!full ? [{ key: "full" as const, label: "전체 보기" }] : []),
+    ...(live && !view.editing && !replaying ? [{ key: "photo" as const, label: "사진 찍기" }] : []),
+    ...(live && canBeach ? [{ key: "beach" as const, label: beachView ? "수조 전체 보기" : "해변 가까이 보기" }] : []),
+    ...(live && canTunnel ? [{ key: "tunnel" as const, label: outside ? inside : "밖에서 보기" }] : []),
+  ];
+  // 누를 때만 부른다(렌더 중엔 안 부른다 — ref 를 읽는 함수가 섞여 있다)
+  function runView(k: ViewKey) {
+    setMenu(false);
+    if (k === "full") toggleFull();
+    else if (k === "photo") enterPhoto();
+    else if (k === "beach") setBeachView((b) => !b);
+    else setOutside((o) => !o);
+  }
   const photoView = view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "dome" : "tunnel") : "outside";
   const chrome = !photo;
   return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full || photo ? "is-full" : ""} ${photo ? "is-photo" : ""}`}>
     <div ref={host} className="aqua-webgl" />
     {photo && <AquaPhoto tank={photo.tank} host={photo.host} view={photoView} fishNames={fishNames} people={people ?? []} subscribe={subscribeCam} onExit={exitPhoto} dead={!!photo.dead} onShot={setHasShot} />}
-    {chrome && <CloseButton onClose={toggleFull} label={full ? "닫기" : "전체 보기"} className="aqua-full-btn" />}
-    {chrome && ready && !error && !view.editing && !replaying && <CloseButton onClose={enterPhoto} label="사진" ariaLabel="수조 사진 찍기" className="aqua-photo-btn" />}
+    {/* 보기 메뉴(2026-11-21 리뷰 ⑧) — 전체 보기 · 사진 · 해변 보기 · 밖에서 보기가 버튼 넷으로 수조 위에 흩어져 있었다. 하나로 모은다.
+        전체 보기 중엔 닫기 버튼이 따로 남는다(나가는 길은 늘 한 번에) */}
+    {chrome && full && <CloseButton onClose={toggleFull} label="닫기" ariaLabel="전체 보기 닫기" className="aqua-full-btn" />}
+    {chrome && menuItems.length > 0 && <CloseButton onClose={() => setMenu((m) => !m)} label="보기" ariaLabel="수조 보는 방법 고르기" className={`aqua-view-btn ${menu ? "is-on" : ""}`} />}
+    {chrome && menu && menuItems.length > 0 && (
+      <div className="aqua-view-menu" role="menu" aria-label="수조 보는 방법">
+        {menuItems.map((x) => <button key={x.key} type="button" role="menuitem" className="tap" onClick={() => runView(x.key)}>{x.label}</button>)}
+      </div>
+    )}
     {photoNote && <p className="aqua-replay-note" role="status">{photoNote}</p>}
     {replaying && ready && !error && <CloseButton onClose={() => { if (!controller.current?.stopReplay()) onReplay?.("stopped"); }} label="그만 보기" ariaLabel="다시 보기 그만 보기" className="aqua-replay-stop" />}
     {replayNote && <p className="aqua-replay-note" role="status">{replayNote}</p>}
-    {chrome && canBeach && ready && !error && <CloseButton onClose={() => setBeachView((b) => !b)} label={beachView ? "수조 전체" : "해변 보기"} ariaLabel={beachView ? "수조 전체 보기로 돌아가기" : "모래사장 가까이 보기"} className="aqua-beach-btn" />}
-    {chrome && canTunnel && ready && !error && <CloseButton onClose={() => setOutside((o) => !o)} label={outside ? inside : "밖에서 보기"} className="aqua-tunnel-btn" />}
     {!ready && !error && <p className="aqua-empty" role="status">입체 수조를 준비하고 있어요…</p>}
     {error && <div className="aqua-3d-error" role="alert"><p>{error}</p><button type="button" className="tap aqua-btn" onClick={() => { recovered.current = 0; setError(null); setReady(false); setAttempt(n=>n+1); }}>다시 시도</button></div>}
     {chrome && ready && !error && view.aquarium.fish.length===0 && !view.editing && <p className="aqua-empty">낚시로 만난 물고기를<br/>입체 수조에서 키워 보세요</p>}

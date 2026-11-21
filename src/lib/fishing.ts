@@ -23,7 +23,7 @@ import { josa } from "./josa.ts";
 import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaFish, type AquaNews, type Grade } from "./aquarium.ts";
 import type { AquaLife } from "./aqualife.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
-import { awakeBlock, bossRecOf, isAwakeKey, masterySaleBonus, noteMastery, withAwakeRec } from "./fishmastery.ts";
+import { awakeBlock, bossRecOf, isAwakeKey, masterySaleBonus, noteMastery, noteReleaseMastery, withAwakeRec, MASTERY_RELEASE_N } from "./fishmastery.ts";
 import { noteRequest, type RequestHit } from "./fishrequest.ts";
 import { tideEffect } from "./fishtide.ts";
 import { kstDate } from "./kst.ts";
@@ -1059,6 +1059,11 @@ export const releaseXp = (f: Parameters<typeof raisedShare>[0] & { species?: str
 /** 보내 준 물고기가 부르는 주인(2026-11-18, lib/bosscall) — 다 큰 물고기만. 어느 낚시터의 주인인가:
  *  ① 그 물고기가 잡힌 낚시터(개체 이야기의 '잡혔어요' 줄 — 2026-11-13 부터) ② 그 계열이 사는 첫 낚시터(SPOTS 순서 · pool)
  *  ③ 주인 계열이면 그 주인(때 손님 · 주인처럼 pool 에 없는 물고기). 셋 다 없으면 null(효과 없음) */
+/** 이 물고기를 잡은 낚시터 — 수조 이야기(잡은 줄)에서. 모르면 undefined */
+export function releaseSpot(f: Pick<AquaFish, "id">, life?: AquaLife): string | undefined {
+  const caught = life?.log[String(f.id)]?.find((e) => e.k === "caught");
+  return caught && caught.k === "caught" && SPOTS.some((x) => x.key === caught.spot) ? caught.spot : undefined;
+}
 export function releaseBoss(f: Pick<AquaFish, "id" | "family" | "stage">, life?: AquaLife): string | null {
   if (f.stage !== 2) return null;
   const caught = life?.log[String(f.id)]?.find((e) => e.k === "caught");
@@ -1082,7 +1087,12 @@ export function releaseToSea(st: IslandState, id: number, now: number): { ok: tr
   const key = releaseBoss(f, synced.life);
   const call = key ? applyBossCall(r0.state, key, adultGrade(f), kstDate(now)) : null;
   const callNote = call?.plan && "total" in call.plan ? ` · ${call.plan.name}에게 ${call.plan.add}시간${call.plan.days > 0 ? ` — 하루 일찍 와요(${call.plan.left}일 뒤)` : ` 모였어요(${call.plan.total % 24}/24)`}` : "";
-  const r = { ...r0, state: call ? call.state : r0.state, note: `${r0.note ?? "보내 줬어요"}${callNote}` };
+  // 다 키워 보내면 잡은 낚시터 숙련도가 오른다(2026-11-21 — noteReleaseMastery). 치어 · 어린 물고기 · 어디서 잡았는지 모르는 물고기는 안 센다
+  const origin = f.stage === 2 ? releaseSpot(f, synced.life) : undefined;
+  const after0 = call ? call.state : r0.state;
+  const after = origin ? noteReleaseMastery(after0, origin, fishArtKey(f)) : after0;
+  const spotNote = origin ? ` · ${SPOTS.find((x) => x.key === origin)?.name ?? "낚시터"} 숙련 +${MASTERY_RELEASE_N}` : "";
+  const r = { ...r0, state: after, note: `${r0.note ?? "보내 줬어요"}${callNote}${spotNote}` };
   const xp = releaseXp(f);
   if (xp <= 0) return { ...r, xp: 0, levelUp: 0 };
   const fs = fishingOf(r.state), up = addXp(fs, xp);

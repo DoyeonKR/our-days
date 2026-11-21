@@ -28,7 +28,7 @@ test("굵은 몸통은 남고, 가는 줄 · 떠 있는 작은 조각은 지운�
 
 test("줄이 그려진 낚싯대만 지운다 — 끝이 가는 나머지 낚싯대는 깎으면 끝이 상한다", () => {
   assert.deepEqual([...RODS_WITH_DRAWN_LINE].sort(), ["rod_bamboo", "rod_dragon"]);
-  const fx = readFileSync(join(process.cwd(), "src/lib/fishingfx.ts"), "utf8");
+  const fx = readFileSync(join(process.cwd(), "src/lib/fishingfxgear.ts"), "utf8");
   assert.match(fx, /RODS_WITH_DRAWN_LINE\.has\(key\) \? withoutDrawnLine\(img\) : img/);
 });
 

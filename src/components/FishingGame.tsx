@@ -45,8 +45,8 @@ import { gearStats, wornLooks } from "@/lib/fishlooks";
 import { asset } from "@/lib/base";
 import { FISH_IMAGE_KEYS } from "@/lib/aquaimages";
 import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
-import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
-import { islandSnapshot } from "@/lib/islandstore";
+import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, type IslandRow } from "@/lib/couple";
+import { islandSnapshot, refreshIsland, watchIslandStore } from "@/lib/islandstore";
 import { sendPokePush } from "@/lib/push";
 import { BOSS_DUO, bossArt, bossChunk, bossDealt, bossDuo, familyName } from "@/lib/fishingworld";
 import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
@@ -517,22 +517,20 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     return () => clearInterval(iv);
   }, []);
 
-  const load = useCallback(async () => {
-    const r = await loadIsland(coupleId).catch(() => null);
-    setRow(r);
+  // 공유 섬 저장소(lib/islandstore)를 본다(2026-11-21 리뷰 ⑩) — 예전엔 낚시가 따로 구독해, 상대가 저장할 때마다 저장소와 낚시가 섬을 한 번씩 더 받았다.
+  //   저장소는 내 저장의 메아리(같은 버전)를 다시 받지 않고, 실시간이 행을 실어 오면 받지도 않는다. 이 화면이 가진 행이 더 새면 그대로 둔다
+  useEffect(() => watchIslandStore(coupleId, (snap) => {
+    if (!snap.loaded) return;
+    const cur = rowRef.current;
+    if (cur && snap.row && snap.row.version < cur.version) return;
+    if (!snap.row && snap.error) { setLoaded(true); return; }
+    rowRef.current = snap.row;
+    setRow(snap.row);
     setToday(kstDate(clock()));
     setLoaded(true);
-  }, [coupleId]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  // 내 저장의 메아리(받은 버전 ≤ 지금 버전)는 다시 받지 않는다 — 저장할 때마다 섬 전체를 한 번 더 받았다
-  useEffect(() => watchIsland(coupleId, (p) => {
-    const v = (p?.new as { version?: unknown } | undefined)?.version;
-    const cur = rowRef.current;
-    if (typeof v === "number" && cur && v <= cur.version) return;
-    void load();
-  }), [coupleId, load]);
+  }), [coupleId]);
+  /** 다시 받기 — 수조 창을 닫은 뒤 등. 결과는 위 구독으로 들어온다 */
+  const load = useCallback(() => refreshIsland(coupleId).catch(() => null), [coupleId]);
 
   /** 이 화면 · 공유 섬 저장소 중 더 새 행 — 저장 전에 다시 받지 않고 이걸로 먼저 해 본다 */
   const freshRow = useCallback((): IslandRow | null => {
