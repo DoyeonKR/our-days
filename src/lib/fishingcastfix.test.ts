@@ -202,7 +202,7 @@ test("장비 시트 · 낚싯대 목록의 최대 거리는 퍼펙트까지 — 
   assert.equal(castMaxMeters(5, 40), 90);
   const best = phases.map((phase) => throwSim({ phase, react: 50, flickMs: 90 }).m);
   for (const m of best) assert.ok(m <= castMaxMeters(5, 40), `${m}m`);
-  const game = src("src/components/FishingGame.tsx");
+  const game = src("src/components/FishingGame.tsx") + src("src/components/fishing/PrepSheet.tsx");
   assert.ok(game.includes("캐스팅 최대 {Math.round(castMaxMeters(fs.rod, fs.stats.power))}m"));
   assert.equal(nextGoals({ ...fishingOf({}), goals: ["cast_30", "cast_50"], bestCast: 0 }).find((g) => g.id.startsWith("cast_"))!.id, "cast_65", "65m 는 그대로 — 이미 던지고 안 받은 사람의 보상을 지킨다");
   const goals = nextGoals({ ...fishingOf({}), goals: ["cast_30", "cast_50", "cast_65"], bestCast: 0 }).find((g) => g.id.startsWith("cast_"))!;

@@ -1878,3 +1878,19 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 /* 수조 조명 가게(2026-11-18, lib/aqualight) — 견본은 그 조명 빛을 그라디언트로. 켠 조명은 테두리로 알린다 */
 .aqua-light-swatch { flex: none; width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--line, rgba(0,0,0,.12)); box-shadow: inset 0 -8px 14px rgba(0,0,0,.18); }
 .aqua-light-swatch.is-on { border-color: var(--accent, #f472b6); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #f472b6) 30%, transparent), inset 0 -8px 14px rgba(0,0,0,.18); }
+/* 알 낳기(2026-11-21 리뷰 ②) · 물고기 카드의 상성 한 줄(⑥) · 잡아먹힌 목록 접기(⑦) */
+.aqua-breed-bar { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.aqua-breed-bar i { position: relative; display: block; flex: 1; height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }
+.aqua-breed-bar b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f9a8d4, #fde68a); }
+.aqua-breed-bar small { flex: none; color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-fish-danger { margin-top: 8px; }
+summary.aqua-eaten-log-head { cursor: pointer; margin-bottom: 0; list-style: none; }
+details.aqua-eaten-log[open] > summary.aqua-eaten-log-head { margin-bottom: 6px; }
+/* 오늘 잡은 물고기(2026-11-21 리뷰 ④) — 낚시 수집 탭 맨 위 */
+.fish-today-log summary { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; cursor: pointer; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.fish-today-log summary small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.fish-today-log ul { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin-top: 8px; max-height: 320px; overflow-y: auto; }
+.fish-today-log li { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.fish-today-out { flex: none; padding: 0 8px; border-radius: 999px; background: rgba(255,255,255,.1); }
+.fish-today-out.is-stored, .fish-today-out.is-netted { background: rgba(56,189,248,.25); }
+.fish-today-out.is-slipped { background: rgba(251,113,133,.25); }

@@ -310,7 +310,8 @@ test("두 기기 결정성 — 새 칸도 Math.random · Date.now 없이 정해�
 });
 
 test("화면 — 포만 · 문턱 · 다음 먹이 · 접근성 · 그물 · 소식 · 손님 · 왕관 경고 · 도감 접기", () => {
-  const ui = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8");
+  // 아래쪽 카드(물고기 카드 · 막대 · 도감)는 2026-11-21 components/aquarium/AquaCards 로 옮겼다 — 두 파일을 같이 본다
+  const ui = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8") + readFileSync(join(process.cwd(), "src/components/aquarium/AquaCards.tsx"), "utf8");
   for (const s of ["포만", "role=\"meter\"", "aria-controls", "role=\"tabpanel\"", "다음 먹이까지", "대기 그물", "useDialogFocus", "unseenNews", "claimRequest", "<details", "낚시로 담아 오세요", "바로 놓기", "onFeedFx"]) assert.ok(ui.includes(s), s);
   assert.doesNotMatch(ui, /최종 형태 \{openFinals\(cq\)\}\/4/, "형태가 하나인 계열에 N/4 를 띄우지 않는다(B8)");
   const game = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");

@@ -110,9 +110,11 @@ test("연출 — 같은 크기의 resize 는 백버퍼를 다시 잡지 않는�
 });
 
 test("연출 — 움직임 줄이기면 비 · 눈 입자를 그리지 않는다", () => {
-  const src = code("src/lib/fishingfx.ts");
-  assert.match(src, /drawWeatherBack\(c: CanvasRenderingContext2D\) \{\s+if \(!this\.wx \|\| this\.reduced\) return;/);
-  assert.match(src, /drawWeatherFront\(c: CanvasRenderingContext2D\) \{\s+if \(!this\.wx \|\| this\.reduced\) return;/);
+  // 날씨 입자는 2026-11-21 fishingfxweather.ts(FxWeatherLayer)로 옮겼다 — 움직임 줄이기는 호스트가 env.reduced 로 넘긴다
+  const src = code("src/lib/fishingfxweather.ts");
+  assert.match(src, /drawBack\(c: CanvasRenderingContext2D, e: WxEnv\) \{\s+if \(!this\.wx \|\| e\.reduced\) return;/);
+  assert.match(src, /drawFront\(c: CanvasRenderingContext2D, e: WxEnv\) \{\s+if \(!this\.wx \|\| e\.reduced\) return;/);
+  assert.match(code("src/lib/fishingfx.ts"), /reduced: this\.reduced/);
 });
 
 test("화면 — 판의 끝 처리는 한 번 · 저장이 안 된 미끼 · 주인 도전은 판을 물린다 · 보상 문구는 저장 뒤 · 점수는 서버 값", () => {

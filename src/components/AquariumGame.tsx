@@ -13,7 +13,7 @@ import { useBackClose } from "@/lib/useBackClose";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { getAuthInfo } from "@/lib/auth";
 import { josa } from "@/lib/josa";
-import { AQUA_LIGHTS, aquaLightRec, buyAquaLight, setAquaLight } from "@/lib/aqualight";
+import { aquaLightRec, buyAquaLight, setAquaLight } from "@/lib/aqualight";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
 import Aquarium3D from "@/components/Aquarium3D";
@@ -23,24 +23,16 @@ import { confirmDialog } from "@/lib/confirm";
 // 먹이를 줄 때마다 뿌리는 자리가 다르다(같은 횟수 = 같은 자리) — 늘 가운데라 터널 축 · 돔 한가운데로 몰렸다(2026-11-11)
 import { feedSpot } from "@/lib/aqua3d/world";
 import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWaits, mealEndOf } from "@/lib/aqua3d/hunt";
-import {
-  ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS, DEEP_STEPS, SINK_STEPS,
-  aquaDangers, aquaEffects, buyDecor, eatenReplays, fishAge, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
-  fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
-  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank, sinkTank,
-  type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
-} from "@/lib/aquarium";
+import { ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, DECOR, FAMILIES, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS, DEEP_STEPS, SINK_STEPS, aquaDangers, aquaEffects, buyDecor, eatenReplays, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, feedFish, fishArtKey, fishCm, fishCount, fishName, fishRoom, gearOutclassed, growBlock, hoursLeft, junkCoupons, makeFood, moveDecor, netHoursLeft, netToTank, placeDecor, releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank, sinkTank, type AquaFish, type AquaNews, type AquaResult, type DecorKind, type Grade, type PlacedDecor } from "@/lib/aquarium";
 import { loadIsland, saveIsland, type IslandRow } from "@/lib/couple";
 import { watchIslandStore } from "@/lib/islandstore";
-import { aquaTodayItems, type AquaTodayKey } from "@/lib/aquatoday";
-import { MORPHS, MORPH_INFO, morphDex, type Morph } from "@/lib/aquamorph";
-import { NAME_LEN, checkFishName } from "@/lib/aqualife";
-import { memorialLine, storyLine } from "@/lib/aquastory";
-import { graphemes, normalizeShortText } from "@/lib/shorttext";
+import { aquaTodayItems, kstWhen, nextHuntAt, type AquaTodayKey } from "@/lib/aquatoday";
+import { MORPH_INFO, type Morph } from "@/lib/aquamorph";
 import { gameNow } from "@/lib/islandsync";
-import { eventDef, eventGuest, eventsAt, modsAt, monthDay, nextEventAfter, occurrence, type ActiveEvent, type AquaEventKey } from "@/lib/aquaevent";
+import { eventDef, eventGuest, eventsAt, modsAt, nextEventAfter, occurrence, type ActiveEvent } from "@/lib/aquaevent";
 import { claimBlock, claimEventDecor, eventSaveOf, eventTints, hasClaimed, tintedInBag, tintName } from "@/lib/aquaeventclaim";
 import type { IslandState } from "@/lib/island";
+import { BreedCard, EventCard, FishCard, FullCompare, LightShop, MemorialCard, Meter, MorphDexCard, MorphTag } from "@/components/aquarium/AquaCards";
 
 type Tab = "tank" | "grow" | "decor" | "dex";
 // 넓히기(2026-11-21 리뷰 ⑨) — 늘리기 네 줄 · 다음 수조 조건이 수조 칸 맨 아래를 길게 늘였다. 따로 한 칸으로 뺐다
@@ -65,7 +57,6 @@ function devEvent(now: number): ActiveEvent | null {
   const o = occurrence(def.key, y) ?? { start: "2026-12-20", end: "2026-12-27" };
   return { def, id: `${def.key}:dev`, start: o.start, end: o.end, daysLeft: 7 };
 }
-const hex = (n: number) => `#${n.toString(16).padStart(6, "0")}`;
 
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 /** 도감 빈칸의 길잡이 — 어디서 잡히나 · 정성 얼마면 열리나 */
@@ -303,6 +294,8 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   const hiddenFish = a.alien?.fish.length ?? 0;
   // 오늘 할 일(2026-11-21 리뷰 ④ · ⑦, lib/aquatoday) — 급한 순서. 누르면 그 일을 하거나 그 칸으로 간다
   const today = aquaTodayItems(a);
+  // 다음 사냥 시각(2026-11-21 리뷰 ③) — 사냥 기회는 정해진 시각표라 미리 알 수 있다(먹이를 안 준다고 칠 때)
+  const huntAt = dangers.length ? nextHuntAt(a, now || gameNow()) : null;
   function onToday(k: AquaTodayKey) {
     if (k === "hunter" || k === "feed") { void feed(); return; }
     if (k === "water") { void act((st, t) => cleanWater(st, t, { who })); return; }
@@ -411,9 +404,6 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
               people={[myName, partnerName]} onPhoto={setPhotoOpen} />
           </div>
 
-          <EventCard events={events} next={nextEv} busy={busy} claimed={(id) => hasClaimed(view.state, id)}
-            why={(k) => claimBlock(view.state, k, now)} onClaim={(k) => void act((st, t) => claimEventDecor(st, k, t))} />
-
           {a.fish.length === 0 ? (
             <section className="aqua-card aqua-empty-card">
               <header><strong>아직 물고기가 없어요</strong></header>
@@ -429,12 +419,12 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
             {dangers.length > 0 && (
               <p className={`aqua-danger ${a.hunger < 60 ? "is-hungry" : ""}`} role="note">
                 <b>상성 주의</b> {dangerLine(dangers)}
-                <small>{a.hunger < HUNGRY_BELOW ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : `약 ${Math.max(1, Math.round(((a.hunger - HUNGRY_BELOW) * fx.hungerHours) / 100))}시간 뒤 포만이 ${HUNGRY_BELOW} 밑으로 내려가면 잡아먹어요`}</small>
+                <small>{huntAt ? `먹이를 안 주면 ${kstWhen(huntAt, now)}에 잡아먹을 수 있어요${a.hunger < HUNGRY_BELOW ? " — 배가 고파요, 지금 먹이를 주세요" : ""}` : a.hunger < HUNGRY_BELOW ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : `포만이 ${HUNGRY_BELOW} 밑으로 내려가면 잡아먹어요`}</small>
               </p>
             )}
             {eaten.length > 0 && (
-              <section className="aqua-eaten-log" aria-label="잡아먹힌 물고기">
-                <p className="aqua-eaten-log-head"><b>잡아먹힌 물고기</b><small>사냥꾼 시점으로 다시 볼 수 있어요</small></p>
+              <details className="aqua-eaten-log" aria-label="잡아먹힌 물고기">
+                <summary className="aqua-eaten-log-head"><b>잡아먹힌 물고기 {eaten.length}</b><small>눌러서 사냥꾼 시점으로 다시 보기</small></summary>
                 <ul>
                   {eaten.map((g) => (
                     <li key={g.n}>
@@ -444,7 +434,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                     </li>
                   ))}
                 </ul>
-              </section>
+              </details>
             )}
           </div>
           {a.fish.length > 0 && (
@@ -481,6 +471,9 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
               {editing ? "꾸미기 끝" : "꾸미기"}
             </ActionButton>
           </div>
+
+          <EventCard events={events} next={nextEv} busy={busy} claimed={(id) => hasClaimed(view.state, id)}
+            why={(k) => claimBlock(view.state, k, now)} onClaim={(k) => void act((st, t) => claimEventDecor(st, k, t))} />
 
           {editing && (
             <section className="aqua-card">
@@ -554,6 +547,28 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
           {sel && !editing && <FishCard key={sel.id} f={sel} a={a} seen={seenForms} now={now} who={who} couple={!!coupleId} busy={busy}
             onRelease={() => void release(sel)} onName={(name) => act((st, t) => nameFish(st, sel.id, name, t, coupleId ? who : undefined))} />}
 
+          {a.fish.length > 0 && (
+            <section className="aqua-card">
+              <header><strong>우리 물고기</strong></header>
+              <ul className="aqua-list">
+                {a.fish.map((f) => {
+                  const sp = speciesOf(f.species);
+                  return (
+                    <li key={f.id}>
+                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => { const on = selFish !== f.id; setSelFish(on ? f.id : null); /* 2026-11-14 [사용자: "하단에 물고기 선택하면 수조에 포커싱 되도록"] — 목록은 수조 아래라 골라도 카메라가 다가가는 걸 못 봤다. 고르면 수조로 올라간다 */ if (on) stageRef.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }}>
+                        <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
+                        {/* 변이 표는 이름 칸 안에 — 오른쪽 등급 · 남은 시간 칸을 375px 밖으로 밀어내지 않게(넘치면 길이 글이 먼저 잘린다) */}
+                        <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)}<MorphTag morph={fishMorph(a, f)} /> <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
+                        {f.stage === 2 ? (sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>다 컸어요</small>) : <small>{duration(hoursLeft(a, f))} 남음</small>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+          <BreedCard a={a} />
+
           {a.req && (
             <section id="aqua-req" className="aqua-card aqua-req">
               <header><strong>오늘의 손님</strong><small><Coin /> {a.req.reward}</small></header>
@@ -600,26 +615,6 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
             </details>
           ) : null}
 
-          {a.fish.length > 0 && (
-            <section className="aqua-card">
-              <header><strong>우리 물고기</strong></header>
-              <ul className="aqua-list">
-                {a.fish.map((f) => {
-                  const sp = speciesOf(f.species);
-                  return (
-                    <li key={f.id}>
-                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => { const on = selFish !== f.id; setSelFish(on ? f.id : null); /* 2026-11-14 [사용자: "하단에 물고기 선택하면 수조에 포커싱 되도록"] — 목록은 수조 아래라 골라도 카메라가 다가가는 걸 못 봤다. 고르면 수조로 올라간다 */ if (on) stageRef.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }}>
-                        <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
-                        {/* 변이 표는 이름 칸 안에 — 오른쪽 등급 · 남은 시간 칸을 375px 밖으로 밀어내지 않게(넘치면 길이 글이 먼저 잘린다) */}
-                        <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)}<MorphTag morph={fishMorph(a, f)} /> <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
-                        {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>{duration(hoursLeft(a, f))} 남음</small>}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
           {(a.life?.memorial.length ?? 0) > 0 && <MemorialCard a={a} />}
         </>
       )}
@@ -808,293 +803,6 @@ function GrownCardInner({ g, morph, onNext }: { g: AquaNews; morph: Morph | null
         <ActionButton main wide data-dialog-initial onClick={onNext}>확인</ActionButton>
       </div>
     </div>
-  );
-}
-
-/** 계절 수조 행사 카드(2026-11-13) — 지금 열린 행사 · 남은 날 · 규칙 한 줄 · 한정 장식 받기. 행사가 없으면 다음 행사를 미리 알린다 */
-function EventCard({ events, next, busy, claimed, why, onClaim }: {
-  events: readonly ActiveEvent[]; next: { def: { name: string }; start: string; inDays: number } | null; busy: boolean;
-  claimed: (id: string) => boolean; why: (k: AquaEventKey) => string | null; onClaim: (k: AquaEventKey) => void;
-}) {
-  if (!events.length) {
-    if (!next) return null;
-    return <p className="aqua-note aqua-event-next">다음 수조 행사 · {next.def.name} — {monthDay(next.start)}부터({next.inDays}일 뒤)</p>;
-  }
-  return (
-    <section className="aqua-card aqua-event" aria-label="계절 수조 행사">
-      {events.map((e) => {
-        const got = claimed(e.id), block = got ? null : why(e.def.key);
-        return (
-          <div key={e.id} className="aqua-event-row" style={{ ["--ev" as string]: hex(e.def.decor.tint) }}>
-            <header><strong>{e.def.name}</strong><small>{e.daysLeft <= 1 ? "오늘까지" : `${e.daysLeft}일 남았어요`}</small></header>
-            <p className="aqua-note">{e.def.blurb}</p>
-            <div className="aqua-event-claim">
-              <span className="aqua-event-swatch" aria-hidden />
-              <span className="min-w-0 flex-1"><b>{e.def.decor.name}</b><small>한정 장식 · 행사마다 한 번</small></span>
-              <ActionButton main={!got && !block} disabled={busy || got || !!block} onClick={() => onClaim(e.def.key)}>{got ? "받았어요" : "받기"}</ActionButton>
-            </div>
-            {!got && block && <p className="aqua-note">{block}</p>}
-          </div>
-        );
-      })}
-    </section>
-  );
-}
-
-function Meter({ label, value, marks = [] }: { label: string; value: number; marks?: { at: number; label: string }[] }) {
-  const v = Math.round(value);
-  const low = marks.length ? v < marks[0].at : v < 30;
-  return (
-    <div className="aqua-meter" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} aria-valuetext={`${label} ${v}${marks.length ? ` — ${marks.map((m) => `${m.label} ${m.at}`).join(" · ")}` : ""}`}>
-      <span>{label}</span>
-      <i aria-hidden>
-        <b className={low ? "is-low" : ""} style={{ width: `${v}%` }} />
-        {marks.map((m) => <s key={m.at} style={{ left: `${m.at}%` }} title={`${m.label} ${m.at}`} />)}
-      </i>
-      <em>{v}</em>
-    </div>
-  );
-}
-
-function FishCard({ f, a, seen, now, who, couple, busy, onRelease, onName }: {
-  f: AquaFish; a: AquaState; seen: Set<string>; now: number; who: string; couple: boolean; busy: boolean; onRelease: () => void;
-  /** 이름 짓기 · 지우기(빈 값) — 저장까지 끝나면 true */
-  onName: (name: string) => Promise<boolean>;
-}) {
-  const fam = familyOf(f.family);
-  const cq = fishCare(f);
-  const sp = speciesOf(f.species);
-  const pct = fam ? Math.min(100, Math.round((f.growH / fam.hours) * 100)) : 0;
-  const forms = fam?.finals.length ?? 1;
-  const next = fam && f.stage !== 2 ? nextForm(fam, cq) : null;
-  const fav = FAVORITE_DECOR[f.family];
-  const favOn = !!fav && a.placed.some((p) => p.key === fav);
-  const reward = releaseReward(f);
-  const morph = fishMorph(a, f), nick = fishNick(a, f.id), age = fishAge(a, f.id, now);
-  return (
-    <section className="aqua-card" aria-label={`${nick ?? fishName(f)} 자세히`}>
-      <div className="aqua-row">
-        <span className="aqua-thumb is-big"><FishArt artKey={fishArtKey(f)} morph={morph} /></span>
-        <span className="min-w-0 flex-1">
-          {nick && <strong className="aqua-fish-nick block truncate">{nick}</strong>}
-          <strong className="block truncate">{fishName(f)} · {fmtCm(fishCm(f))}</strong>
-          <span className="aqua-fish-meta">
-            <MorphTag morph={morph} />
-            {age && <small className="aqua-note">우리 수조 {age.days}일째{age.approx ? " 넘게" : ""}</small>}
-          </span>
-          {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small className="aqua-note">성장 {pct}% · {duration(hoursLeft(a, f))} 남음 · 정성 {cq}</small>}
-        </span>
-        <ActionButton onClick={onRelease}>보내 주기 <span className="aqua-price"><Coin /> {reward.toLocaleString()}</span></ActionButton>
-      </div>
-      {f.crown && <p className="aqua-warn">낚시터의 주인이에요 — 보내면 다시 잡기까지 며칠을 겨뤄야 해요.</p>}
-      {f.stage !== 2 && fam && (
-        <>
-          <div className="aqua-care" role="meter" aria-label="정성" aria-valuemin={0} aria-valuemax={100} aria-valuenow={cq} aria-valuetext={`정성 ${cq}`}>
-            <i aria-hidden>
-              <b style={{ width: `${cq}%` }} />
-              {forms > 1 && CARE_MARKS.slice(0, forms - 1).map((m) => <s key={m} style={{ left: `${m}%` }} />)}
-            </i>
-            {forms > 1 && <small>{CARE_MARKS.slice(0, forms - 1).map((m) => <span key={m} style={{ left: `${m}%` }}>{m}</span>)}</small>}
-          </div>
-          {forms > 1 ? (
-            <>
-              <p className="aqua-note mt-1">지금 정성이면 최종 형태 {openFinals(cq)}/{forms}까지 열려요 · 아직 못 만난 형태가 먼저 나와요.</p>
-              {next && (
-                <p className="aqua-note aqua-next">
-                  <span className="aqua-silhouette" aria-hidden><FishArt artKey={next.sp.key} /></span>
-                  {seen.has(next.sp.key) ? next.sp.name : "다음 형태"} — 정성 {next.care} 넘게 키우면 열려요
-                </p>
-              )}
-            </>
-          ) : <p className="aqua-note mt-1">다 크면 {josa(fam.finals[0].name, "이/가")} 돼요.</p>}
-          <p className="aqua-note">하루 두 번 먹이를 주고 물을 깨끗하게 하면 정성이 올라요 · 둘이 같은 날 돌보면 조금 더.</p>
-        </>
-      )}
-      <p className="aqua-note">
-        좋아하는 먹이 {foodOf(likedFood(f.family))?.name}
-        {fav ? ` · 좋아하는 장식 ${decorOf(fav)?.name}${favOn ? "(놓여 있어요 — 정성이 더 빨리 차요)" : "(놓아 주면 정성이 더 빨리 차요)"}` : ""}
-      </p>
-      {morph && <p className="aqua-note">{MORPH_INFO[morph].name} 변이 — {MORPH_INFO[morph].desc}. 보기만 달라요(값 · 성장은 같아요)</p>}
-      <NameForm nick={nick ?? ""} busy={busy} onName={onName} />
-      <FishStory f={f} a={a} who={who} couple={couple} />
-    </section>
-  );
-}
-
-/** 색 변이 표 — 변이가 없으면 아무것도 안 그린다 */
-function MorphTag({ morph }: { morph: Morph | null }) {
-  if (!morph) return null;
-  return <span className={`aqua-morph-tag is-${morph}`}>{MORPH_INFO[morph].name}</span>;
-}
-
-/** 이름 짓기 — 10글자(자소 묶음) · 주소 금지는 엔진(nameFish)이 다시 본다. 한글 조합 중 Enter 는 보내지 않는다 */
-function NameForm({ nick, busy, onName }: { nick: string; busy: boolean; onName: (name: string) => Promise<boolean> }) {
-  const [draft, setDraft] = useState(nick);
-  const [err, setErr] = useState<string | null>(null);
-  const n = graphemes(normalizeShortText(draft)).length;
-  const same = normalizeShortText(draft) === nick;
-  async function submit() {
-    const c = checkFishName(draft);
-    if (!c.ok) { setErr(c.reason); return; }
-    setErr(null);
-    if (await onName(c.name)) setDraft(c.name);
-  }
-  return (
-    <form className="aqua-name" onSubmit={(e) => { e.preventDefault(); if (!busy && !same) void submit(); }}>
-      <label>
-        <span>이름</span>
-        <input value={draft} maxLength={40} placeholder="이름을 지어 주세요" enterKeyHint="done" autoComplete="off" aria-describedby="aqua-name-count"
-          onChange={(e) => { setDraft(e.target.value); setErr(null); }}
-          onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }} />
-        <small id="aqua-name-count" className={n > NAME_LEN ? "is-over" : ""}>{n}/{NAME_LEN}</small>
-      </label>
-      <ActionButton type="submit" disabled={busy || same || n > NAME_LEN}>{nick && !normalizeShortText(draft) ? "지우기" : "저장"}</ActionButton>
-      {err && <p className="aqua-warn" role="alert">{err}</p>}
-    </form>
-  );
-}
-
-/** 개체 이야기 — 오래된 것부터. 처음 한 줄(어떻게 왔나)과 최근 11줄이 남는다 */
-function FishStory({ f, a, who, couple }: { f: AquaFish; a: AquaState; who: string; couple: boolean }) {
-  const log = a.life?.log[String(f.id)] ?? [];
-  if (!log.length) return null;
-  return (
-    <section className="aqua-story" aria-label="이 물고기의 이야기">
-      <strong>이야기</strong>
-      <ol>
-        {log.map((e, i) => {
-          const [when, text] = storyLine(e, { who, couple, a });
-          return <li key={`${e.t}-${i}`}><small>{when}</small><span>{text}</span></li>;
-        })}
-      </ol>
-    </section>
-  );
-}
-
-/** 추모 칸 — 떠난 물고기(잡아먹힘 · 보내 줌 · 옛 앱에서 떠남) 최근 30마리 */
-/** 수조 조명 가게(2026-11-18) — 다 산 뒤 쌓이는 하트를 받는 늦은 소모처. 빛 색만 바뀐다(능력치 없음 · 되팔기 없음).
- *  사다리 순서대로 들인다 — 다음 하나만 '들이기', 그 뒤는 잠금. 가진 조명은 눌러 켜고 끈다(둘이 같이 보는 수조라 켠 것은 하나) */
-function LightShop({ owned, on, coins, busy, onBuy, onSet }: { owned: readonly string[]; on: string | null; coins: number; busy: boolean; onBuy: (key: string) => void; onSet: (key: string | null) => void }) {
-  const next = AQUA_LIGHTS.find((x) => !owned.includes(x.key));
-  return (
-    <section className="aqua-card aqua-light-shop">
-      <header><strong>수조 조명</strong><small>빛 색만 바뀌어요 · {owned.length}/{AQUA_LIGHTS.length}</small></header>
-      <ul className="aqua-shop is-flat">
-        {AQUA_LIGHTS.map((x) => {
-          const have = owned.includes(x.key), isOn = on === x.key, locked = !have && next?.key !== x.key;
-          return (
-            <li key={x.key} className={locked ? "is-locked" : ""}>
-              <i className={`aqua-light-swatch ${isOn ? "is-on" : ""}`} style={{ background: x.swatch }} aria-hidden />
-              <span className="min-w-0 flex-1">
-                <strong>{x.name}</strong>
-                <small>{x.desc}{locked && next ? ` · ${next.name} 다음에 들여요` : ""}</small>
-              </span>
-              {have ? (
-                <ActionButton main={isOn} disabled={busy} onClick={() => onSet(isOn ? null : x.key)}>{isOn ? "켜짐" : "켜기"}</ActionButton>
-              ) : (
-                <ActionButton disabled={busy || locked || coins < x.price} onClick={() => onBuy(x.key)}><span className="aqua-price"><Coin /> {x.price.toLocaleString()}</span></ActionButton>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-/** 수조가 가득 찼을 때 — 누구를 보내면 무엇을 받나 한 장에서 견준다(2026-11-21 리뷰 ⑤). 확인창 · 저장과 같은 계산(releaseReward · releaseBossPlan · releaseSpot)
- *  다 큰 물고기를 먼저, 그 안에서 받는 하트가 많은 순. 치어 · 어린 물고기는 주인 · 숙련 덤이 없다 */
-function FullCompare({ a, st, now, busy, onRelease }: { a: AquaState; st: IslandState; now: number; busy: boolean; onRelease: (f: AquaFish) => void }) {
-  const rows = a.fish.filter((f) => !f.crown).map((f) => {
-    const plan = f.stage === 2 ? releaseBossPlan(st, f.id, now) : null;
-    const spot = f.stage === 2 ? releaseSpot(f, a.life) : undefined;
-    return { f, heart: releaseReward(f), boss: plan && "total" in plan ? { name: plan.name, h: plan.add } : null, spot: spot ? SPOTS.find((x) => x.key === spot)?.name ?? null : null };
-  }).sort((x, y) => (y.f.stage === 2 ? 1 : 0) - (x.f.stage === 2 ? 1 : 0) || y.heart - x.heart).slice(0, 8);
-  if (!rows.length) return null;
-  return (
-    <section id="aqua-full" className="aqua-card aqua-full-compare">
-      <header><strong>수조가 가득 찼어요</strong><small>보내면 받는 것</small></header>
-      <p className="aqua-note">다 키워 보내면 하트에 더해 그 낚시터 주인이 빨리 오고 숙련도가 올라요. 도감 기록은 남아요.</p>
-      <ul>
-        {rows.map(({ f, heart, boss, spot }) => (
-          <li key={f.id}>
-            <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
-            <span className="min-w-0 flex-1">
-              <strong className="block truncate">{fishNick(a, f.id) ?? fishName(f)}</strong>
-              <small className="block">
-                <span className="aqua-price"><Coin /> {heart.toLocaleString()}</span>
-                {boss ? ` · ${boss.name} +${boss.h}시간` : ""}
-                {spot ? ` · ${spot} 숙련 +${MASTERY_RELEASE_N}` : ""}
-                {f.stage !== 2 ? " · 다 키우면 더 받아요" : ""}
-              </small>
-            </span>
-            <ActionButton disabled={busy} onClick={() => onRelease(f)}>보내기</ActionButton>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function MemorialCard({ a }: { a: AquaState }) {
-  const list = a.life?.memorial ?? [];
-  return (
-    <details className="aqua-card aqua-memorial">
-      <summary><strong>추모 칸</strong><small>떠난 물고기 {list.length}마리 · 최근 30마리까지 남아요</small></summary>
-      <ul>
-        {list.map((m) => {
-          const l = memorialLine(m, a);
-          return (
-            <li key={m.id}>
-              <span className="aqua-thumb"><FishArt artKey={m.key} morph={m.morph ?? null} /></span>
-              <span className="min-w-0 flex-1">
-                <strong className="block truncate">{l.name}{l.name !== l.form ? <small> {l.form}</small> : null} <MorphTag morph={m.morph ?? null} /></strong>
-                <small className="block">{l.cause}</small>
-                <small className="block">{l.span}</small>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </details>
-  );
-}
-
-/** 변이 도감 — 계열마다 만난 변이(알에서 깬 수). 낚시로는 안 오고 수조의 알에서만 나온다 */
-function MorphDexCard({ a }: { a: AquaState }) {
-  const rows = morphDex(a.morph);
-  const byFam = new Map<string, Map<Morph, number>>();
-  for (const r of rows) {
-    const m = byFam.get(r.family) ?? new Map<Morph, number>();
-    m.set(r.morph, r.n);
-    byFam.set(r.family, m);
-  }
-  const kinds = new Set(rows.map((r) => r.morph));
-  return (
-    <section className="aqua-card aqua-morph-dex" aria-label="변이 도감">
-      <header><strong>변이 도감</strong><small>만난 변이 {rows.length}칸 · 종류 {kinds.size}/{MORPHS.length}</small></header>
-      <p className="aqua-note">수조의 알에서 드물게 색이 다른 치어가 깨어나요(5%). 엄마 · 아빠가 변이면 더 잘 나오고 닮기도 해요. 보기만 달라요.</p>
-      <ul className="aqua-morph-legend">
-        {MORPHS.map((m) => <li key={m}><MorphTag morph={m} /><small>{MORPH_INFO[m].desc}</small></li>)}
-      </ul>
-      {byFam.size > 0 && (
-        <ul className="aqua-morph-rows">
-          {[...byFam].map(([fam, got]) => (
-            <li key={fam}>
-              <span className="aqua-thumb"><FishArt artKey={`fry_${fam}`} /></span>
-              <strong className="min-w-0 flex-1 truncate">{familyOf(fam)?.name ?? fam}</strong>
-              <span className="aqua-morph-cells">
-                {MORPHS.map((m) => (
-                  <span key={m} className={`aqua-morph-cell ${got.has(m) ? "is-seen" : ""}`} title={MORPH_INFO[m].name}>
-                    {got.has(m) ? <><b className={`aqua-morph-dot is-${m}`} aria-hidden />{MORPH_INFO[m].name} {got.get(m)}</> : "?"}
-                  </span>
-                ))}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }
 

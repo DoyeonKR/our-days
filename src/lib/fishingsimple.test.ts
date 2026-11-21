@@ -10,7 +10,7 @@ import { appCss } from "./cssfiles.ts";
 
 const root = process.cwd();
 const code = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-const game = code("src/components/FishingGame.tsx");
+const game = code("src/components/FishingGame.tsx") + code("src/components/fishing/PrepSheet.tsx"); // 준비 시트 내용은 2026-11-21 PrepSheet 로 옮겼다(시트 틀 뒤에 붙인다)
 const st = (over: Partial<FishStanding>): FishStanding => ({ rank: 12, score: 100, total: 40, gap_up: 30, partner_name: null, partner_score: 0, ...over });
 const DAY = "2026-11-02";
 const guppy: FishCatch = { family: "guppy", stage: 0, grade: "흔함", difficulty: 0 };

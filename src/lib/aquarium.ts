@@ -20,6 +20,7 @@ import { checkFishName, lifeLeave, lifeLog, lifeName, lifeSettle, lifeTime, read
 import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
 import { kstDate } from "./kst.ts";
+import type { AquaAlert } from "./aquanudge.ts";
 import { seasonAdd, type CountStat } from "./season.ts";
 import { changeAfter, modsAt, type AquaEventMods } from "./aquaevent.ts";
 
@@ -437,7 +438,7 @@ export type AquaPlus = Partial<Pick<AquaState, (typeof PLUS_KEYS)[number]>>;
 /** 섬 상태 + 수조의 맨 위 칸. 섬 타입(island.ts)은 건드리지 않는다 — 옛 저장분의 bubble 칸처럼 ...st 로 흘러간다.
  *  aquaTankTop: 7단계 위 수조. ⚠ aquaPlus 안에만 두면 2026-11-06 까지 배포된 앱(7ab54e1)이 aquaPlus 를 자기 칸 목록으로 다시 지어
  *  tankTop 을 버린다 — 하트는 그대로 쓰였는데 수조가 6단계로 내려앉는다. 섬 최상위 칸은 옛 앱도 ...st 로 그대로 흘려보낸다. */
-export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number; aquaWideTop?: number; aquaDeep?: number; aquaSink?: number; aquaMorph?: unknown; aquaLife?: unknown;
+export type Island = IslandState & { aquaAlert?: AquaAlert; aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number; aquaWideTop?: number; aquaDeep?: number; aquaSink?: number; aquaMorph?: unknown; aquaLife?: unknown;
   /** 계절 수조 행사의 받음 표시 · 한정 장식 빛깔(lib/aquaeventclaim, 2026-11-13) — 맨 위 칸이라 옛 앱도 ...st 로 흘린다 */ aquaEvent?: unknown };
 
 export const GROW_JUVENILE = 0.4;
@@ -547,6 +548,13 @@ export function aquaOf(st: AquaSource, now = 0): AquaState {
 }
 
 /** 쓰기 — 수조 칸(옛 앱도 읽는 모양)과 맨 위 칸으로 나눠 섬에 얹는다. 모르는 계열은 수조 칸에 그대로 되돌린다. 모든 쓰기가 여기를 지난다. */
+/** 수조 알림 값(2026-11-21, lib/aquanudge) — 크론 함수가 앱 규칙 없이 판단하게 저장할 때마다 적는다. 맨 위 칸이라 옛 앱은 흘린다 */
+function alertOf(a: AquaState): AquaAlert {
+  const perH = Math.round((100 / aquaEffects(a, modsAt(a.at)).hungerHours) * 1000) / 1000;
+  const prey = new Set(aquaDangers(a).map((x) => x.prey.id)).size;
+  const net = (a.net ?? []).reduce((m, n) => Math.min(m, n.at + NET_HOURS * HOUR), Infinity);
+  return { perH, prey, ...(Number.isFinite(net) ? { net } : {}) };
+}
 export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   const core: AquaState = {
     tank: Math.min(a.tank, TANK_CORE_MAX), hunger: a.hunger, water: a.water, at: a.at, nextId: a.nextId,
@@ -564,7 +572,7 @@ export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   // 변이 · 이야기도 맨 위 칸 — aquaPlus 에 두면 옛 앱이 PLUS_KEYS 로 다시 지으며 버린다(aquacare.test 가 aquaPlus 의 새 칸을 막는다).
   //   since · n 은 읽을 때마다 '지금'으로 시작하므로 한 번은 저장돼야 옛 앱이 낳은 치어 · 옛 소식을 이어 받는다 — 비어도 쓴다
   const out: Island = { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}), ...(a.tank > TANK_TOP_LEGACY ? { aquaTankMax: a.tank } : {}), ...((a.wide ?? 0) > WIDE_CORE_MAX ? { aquaWideTop: a.wide } : {}), ...((a.deepen ?? 0) > 0 ? { aquaDeep: a.deepen } : {}), ...((a.sink ?? 0) > 0 ? { aquaSink: a.sink } : {}),
-    ...(a.morph ? { aquaMorph: a.morph } : {}), ...(a.life ? { aquaLife: a.life } : {}) };
+    ...(a.morph ? { aquaMorph: a.morph } : {}), ...(a.life ? { aquaLife: a.life } : {}), aquaAlert: alertOf(a) };
   // 시즌 미션 — 알에서 깬 치어(eggN 은 늘기만 한다). 정산(syncAqua)도 여기를 지나므로 저장된 값과 견주면 한 번만 센다
   const eggs0 = num(((st as Island).aquaPlus as { eggN?: unknown } | undefined)?.eggN, 0);
   const hatched = Math.floor((a.eggN ?? 0) - eggs0);

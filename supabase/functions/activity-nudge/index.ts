@@ -42,6 +42,32 @@ function nudgeFor(
   return { title: "📔 오늘 일기가 아직이에요", body: "오늘 하루 어땠는지 적어봐요" };
 }
 
+// src/lib/aquanudge.ts 미러(2026-11-21 수조 알림) — 글자 그대로 같은 복사본(aquanudge.test 가 비교한다). 고치면 둘 다, 그리고 함수를 다시 배포한다.
+const NUDGE_HUNGRY = 75;
+const NUDGE_NET_H = 12;
+// ── 엣지 함수 복사본 시작 ──
+function aquaNudgeFor(
+  aq: { hunger?: unknown; at?: unknown } | null | undefined,
+  al: { perH?: unknown; prey?: unknown; net?: unknown } | null | undefined,
+  now: number,
+): { title: string; body: string } | null {
+  if (!aq || !al) return null;
+  const hunger = typeof aq.hunger === "number" ? aq.hunger : NaN;
+  const at = typeof aq.at === "number" ? aq.at : NaN;
+  const perH = typeof al.perH === "number" ? al.perH : NaN;
+  const prey = typeof al.prey === "number" ? al.prey : 0;
+  const net = typeof al.net === "number" ? al.net : NaN;
+  const lines: string[] = [];
+  if (prey > 0 && Number.isFinite(hunger) && Number.isFinite(at) && Number.isFinite(perH)) {
+    const nowHunger = hunger - Math.max(0, (now - at) / 3600000) * perH;
+    if (nowHunger < NUDGE_HUNGRY) lines.push(`배고픈 사냥꾼이 있어요 — 먹이를 안 주면 ${prey}마리가 잡아먹힐 수 있어요`);
+  }
+  if (Number.isFinite(net) && net > now && net - now <= NUDGE_NET_H * 3600000) lines.push("대기 그물의 물고기가 곧 팔려요 — 수조로 옮겨 주세요");
+  if (!lines.length) return null;
+  return { title: "🐟 우리 수조", body: lines.join(" · ") };
+}
+// ── 엣지 함수 복사본 끝 ──
+
 type PrefRow = {
   user_id: string;
   prefs?: Record<string, boolean> | null;
@@ -70,6 +96,10 @@ Deno.serve(async (req) => {
   const evening = kstHour >= 12; // 오후 슬롯 열린 뒤 = 저녁 점검
 
   const { data: couples } = await sb.from("couples").select("id");
+  // 수조 알림 재료 — 섬 행에서 수조(포만 · 시각)와 앱이 적어 둔 aquaAlert 만 받는다(섬 전체는 크다)
+  const { data: islands } = await sb.from("couple_island").select("couple_id, aq:state->aquarium, al:state->aquaAlert");
+  const islandOf = new Map((islands ?? []).map((r: { couple_id: string; aq: unknown; al: unknown }) => [r.couple_id, r]));
+  let aquaNudged = 0;
   let sent = 0;
   let nudged = 0;
 
@@ -92,6 +122,8 @@ Deno.serve(async (req) => {
 
     const ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
     if (!ids.length) continue;
+    const isl = islandOf.get(coupleId) as { aq?: { hunger?: unknown; at?: unknown } | null; al?: { perH?: unknown; prey?: unknown; net?: unknown } | null } | undefined;
+    const aquaMsg = isl ? aquaNudgeFor(isl.aq, isl.al, Date.now()) : null;
 
     const { data: prefRows } = await sb
       .from("notify_prefs")
@@ -118,19 +150,25 @@ Deno.serve(async (req) => {
       );
 
       const msg = nudgeFor(evening, { didAm, didPm, didDiary });
-      if (!msg) continue;
-      const { title, body: bodyMsg } = msg;
+      const out: { title: string; body: string; url: string }[] = [];
+      if (msg) out.push({ ...msg, url: "./" });
+      if (aquaMsg) out.push({ ...aquaMsg, url: "./?go=aquarium" });
+      if (!out.length) continue;
 
       const { data: subs } = await sb
         .from("push_subscriptions")
         .select("*")
         .eq("user_id", uid);
-      const native = await sendFcm(sb, [uid], { title, body: bodyMsg, url: "./", category: "remind" });
+      for (const m of out) {
+      const { title, body: bodyMsg, url } = m;
+      const native = await sendFcm(sb, [uid], { title, body: bodyMsg, url, category: "remind" });
       sent += native.sent;
       if (!subs?.length && !native.sent) continue;
       nudged++;
+      if (url !== "./") aquaNudged++;
 
-      const payload = JSON.stringify({ title, body: bodyMsg, url: "./" });
+      // 수조 알림은 따로 쌓이게 태그를 단다(같은 태그면 크롬 · 안드로이드에서 앞의 알림을 갈아 끼운다)
+      const payload = JSON.stringify({ title, body: bodyMsg, url, ...(url !== "./" ? { tag: "aquarium" } : {}) });
       await Promise.all(
         (subs ?? []).map(
           async (s: { endpoint: string; p256dh: string; auth: string }) => {
@@ -148,11 +186,12 @@ Deno.serve(async (req) => {
           },
         ),
       );
+      }
     }
   }
 
   return new Response(
-    JSON.stringify({ kstDate, kstHour, evening, nudged, sent }),
+    JSON.stringify({ kstDate, kstHour, evening, nudged, aquaNudged, sent }),
     { headers: { "Content-Type": "application/json" } },
   );
 });

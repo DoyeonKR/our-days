@@ -278,7 +278,7 @@ test("방식 저장 — 다섯 방식이 왕복한다 · 모르는 값은 찌 ·
   // 옛 번들이 읽는 method 칸엔 옛 넷 중 하나만 남는다 — 되돌린 앱의 COACH[method] 가 늘 있다
   const g = code("src/components/FishingGame.tsx") + code("src/components/fishing/roundTick.ts");
   assert.match(g, /prefMethod\(readPrefs\(\)\)/);
-  assert.match(g, /savePrefs\(prefMethodWrite\(m\.key\)\)/);
+  assert.match(g, /savePrefs\(prefMethodWrite\((?:m\.key|k)\)\)/);
   assert.doesNotMatch(g, /savePrefs\(\{ method: m\.key \}\)/);
 });
 

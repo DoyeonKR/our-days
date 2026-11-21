@@ -10,7 +10,7 @@ const read = (p: string) => readFileSync(p, "utf8");
 
 test("the three loss-making baits are marked for the collection, and both bait lists show it", () => {
   assert.deepEqual(BAITS.filter((b) => b.collect).map((b) => b.key), ["bait_glow", "bait_pearl", "bait_star"]);
-  assert.ok(read("src/components/FishingGame.tsx").includes("b.collect &&"));
+  assert.ok(read("src/components/fishing/PrepSheet.tsx").includes("b.collect &&"), "준비 시트(2026-11-21 PrepSheet 로 옮김)");
   assert.ok(read("src/components/FishingPanels.tsx").includes("BAIT_COLLECT_NOTE"));
 });
 

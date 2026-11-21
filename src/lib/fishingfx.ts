@@ -19,10 +19,8 @@ type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; h
   /** 던지기 전 돌린 각도 — 찌가 낚싯대 끝에서 이만큼 돈다 */ castAng: number };
 type FxShoalFish = { id: number; x: number; y: number; h: number; z: number; reach: boolean; size: number; grade: number; junk: boolean };
 
-/** 낚시터의 날씨 — 비 · 눈만 그린다(맑음은 그림 그대로) */
-type FxWeather = "rain" | "snow" | null;
-/** 한 화면의 입자 수 — 폰 프레임을 지키는 상한(테스트가 잠근다) */
-export const FX_WEATHER_MAX = { rain: 190, snow: 150, splash: 54 } as const;
+import { FX_WEATHER_MAX, FxWeatherLayer, type FxWeather, type WxEnv } from "./fishingfxweather.ts";
+export { FX_WEATHER_MAX };
 
 type SpotLook = { horizon: number; glint: string; air: "petal" | "mote" | "lantern" | "star" | "bird" };
 /** 수평선(그림마다 재서 적었다) · 물빛 반짝임 색 · 공중에 떠다니는 것 */
@@ -132,10 +130,8 @@ export class FishFx {
   private streaks: { x: number; y: number; w: number; v: number; p: number }[] = [];
   private air: { x: number; y: number; vx: number; vy: number; p: number; s: number }[] = [];
   private lookKey = "";
-  private wx: FxWeather = null;
   /** z = 깊이(0 먼 쪽 ~ 1 코앞). 먼 빗방울일수록 작고 흐리고 수평선 가까이에 떨어진다 */
-  private fall: { x: number; y: number; z: number; end: number; p: number }[] = [];
-  private ripples: { x: number; y: number; life: number; k: number }[] = [];
+  private sky = new FxWeatherLayer();
 
   private rodAng = 0.5;
   private rodVel = 0;
@@ -1004,149 +1000,24 @@ export class FishFx {
   }
 
   /** 날씨를 바꾼다 — 바뀔 때만 입자를 새로 뿌린다 */
+  /** 날씨 — 입자는 FxWeatherLayer(fishingfxweather.ts)가 들고 그린다 */
   weather(wx: FxWeather) {
-    if (wx === this.wx) return;
-    this.wx = wx;
-    this.seedWeather();
+    this.sky.set(wx, this.wxEnv());
   }
-
-  private seedWeather() {
-    this.ripples = [];
-    if (!this.wx) {
-      this.fall = [];
-      return;
-    }
-    const n = FX_WEATHER_MAX[this.wx];
-    this.fall = Array.from({ length: n }, () => this.newFall(this.rnd() * this.H * 1.2 - this.H * 0.2));
+  private wxEnv(): WxEnv {
+    return { W: this.W, H: this.H, u: this.u, t: this.t, horizon: this.look().horizon, spot: this.view.spot, reduced: this.reduced, rnd: () => this.rnd() };
   }
-
-  /** 앞쪽은 적게, 먼 쪽은 많이 — 코앞 입자가 많으면 화면이 줄무늬로 덮인다. into 가 있으면 그 입자를 다시 쓴다(초당 수백 개를 새로 만들지 않게) */
-  private newFall(y: number, into?: { x: number; y: number; z: number; end: number; p: number }) {
-    const z = this.rnd() ** 1.45;
-    const hz = this.look().horizon * this.H;
-    const f = into ?? { x: 0, y: 0, z: 0, end: 0, p: 0 };
-    f.x = this.rnd() * this.W * 1.3 - this.W * 0.15;
-    f.y = y;
-    f.z = z;
-    f.end = hz + (this.H - hz) * Math.min(1, z * 1.1 + this.rnd() * 0.08);
-    f.p = this.rnd() * 6.28;
-    return f;
-  }
-
-  private stepWeather(real: number) {
-    if (!this.wx || this.reduced) return;
-    const gust = Math.sin(this.t * 0.31) * 0.5 + Math.sin(this.t * 0.83 + 1.3) * 0.3;
-    const icy = this.view.spot === "hwacheon";
-    for (let i = 0; i < this.fall.length; i++) {
-      const f = this.fall[i];
-      if (this.wx === "rain") {
-        const vy = (720 + 760 * f.z) * this.u;
-        f.y += vy * real;
-        f.x += vy * (-0.14 + gust * 0.05) * real;
-        if (f.y >= f.end) {
-          if (!icy && this.ripples.length < FX_WEATHER_MAX.splash && (f.z > 0.12 || this.rnd() < 0.3)) this.ripples.push({ x: f.x, y: f.end, life: 1, k: 0.3 + f.z * 0.9 });
-          this.newFall(-this.rnd() * this.H * 0.25, f);
-        }
-      } else {
-        const vy = (20 + 58 * f.z) * this.u;
-        f.y += vy * real;
-        f.x += (Math.sin(this.t * (0.5 + f.z * 0.5) + f.p) * (7 + 20 * f.z) + gust * (8 + 16 * f.z)) * this.u * real;
-        if (f.y >= f.end) this.newFall(-this.rnd() * this.H * 0.12, f);
-      }
-    }
-    for (let i = this.ripples.length - 1; i >= 0; i--) {
-      this.ripples[i].life -= real * 2.4;
-      if (this.ripples[i].life <= 0) this.ripples.splice(i, 1);
-    }
-  }
-
-  /** 낚시찌 · 낚싯대 뒤의 먼 입자와 수면 파문 */
-  private drawWeatherBack(c: CanvasRenderingContext2D) {
-    if (!this.wx || this.reduced) return; // 움직임 줄이기면 입자는 멈춘 채 긁힌 자국으로 남는다 — 하늘 막(.fish-sky)만 남긴다
-    c.save();
-    c.lineCap = "round";
-    if (this.wx === "rain") {
-      // 파문 — 수면에 눕도록 납작한 타원. 첫 순간엔 튀어 오른 물방울이 위에 있다
-      c.strokeStyle = "#e4f0ff";
-      for (const p of this.ripples) {
-        const g = 1 - p.life, rx = (2 + 16 * g) * p.k * this.u;
-        c.globalAlpha = p.life * 0.62;
-        c.lineWidth = Math.max(0.5, 1.1 * p.k * p.life);
-        c.beginPath();
-        c.ellipse(p.x, p.y, rx, rx * 0.3, 0, 0, Math.PI * 2);
-        c.stroke();
-        if (g < 0.35 && p.k > 0.6) {
-          c.beginPath();
-          c.moveTo(p.x, p.y);
-          c.lineTo(p.x + 1.2 * this.u, p.y - (2 + 16 * g) * p.k * this.u);
-          c.stroke();
-        }
-      }
-      this.strokeRain(c, 0, 0.42, 0.3, 0.7);
-    } else {
-      this.fillSnow(c, 0, 0.5, 0.75);
-    }
-    c.restore();
-  }
-
-  /** 낚싯대 앞을 지나가는 가까운 입자 */
-  private drawWeatherFront(c: CanvasRenderingContext2D) {
-    if (!this.wx || this.reduced) return;
-    c.save();
-    c.lineCap = "round";
-    if (this.wx === "rain") {
-      this.strokeRain(c, 0.42, 0.78, 0.36, 1);
-      this.strokeRain(c, 0.78, 1.01, 0.3, 1.8);
-    } else {
-      this.fillSnow(c, 0.5, 1.01, 0.92);
-    }
-    c.restore();
-  }
-
-  /** 한 깊이 층을 경로 하나로 — 입자마다 stroke 를 부르면 폰에서 프레임이 떨어진다 */
-  private strokeRain(c: CanvasRenderingContext2D, lo: number, hi: number, alpha: number, width: number) {
-    const gust = Math.sin(this.t * 0.31) * 0.5 + Math.sin(this.t * 0.83 + 1.3) * 0.3, slant = -0.14 + gust * 0.05;
-    c.strokeStyle = "#dfeaff";
-    c.globalAlpha = alpha;
-    c.lineWidth = width * Math.max(0.8, this.u);
-    for (const part of [1, 0.45]) {
-      c.globalAlpha = part === 1 ? alpha * 0.55 : alpha;
-      c.beginPath();
-      for (const f of this.fall) {
-        if (f.z < lo || f.z >= hi) continue;
-        const len = (14 + 62 * f.z) * this.u * part;
-        c.moveTo(f.x, f.y);
-        c.lineTo(f.x - slant * len, f.y - len);
-      }
-      c.stroke();
-    }
-  }
-
-  /** 눈송이 = 옅은 원 세 겹이라 shadowBlur 없이 가장자리가 부드럽다. 코앞(z > 0.82)은 초점이 나간 큰 송이로 심만 뺀다 */
-  private fillSnow(c: CanvasRenderingContext2D, lo: number, hi: number, alpha: number) {
-    c.fillStyle = "#ffffff";
-    for (const [scale, a, far] of [[2.6, 0.07, 1], [1.7, 0.16, 1], [1, 0.8, 0.82]] as const) {
-      c.globalAlpha = alpha * a;
-      c.beginPath();
-      for (const f of this.fall) {
-        if (f.z < lo || f.z >= hi || f.z >= far) continue;
-        // 송이마다 크기가 조금씩 다르다(같은 크기면 점박이 무늬로 읽힌다)
-        const r = (0.55 + 2.1 * f.z + (f.z > 0.82 ? 2.2 : 0)) * (0.75 + 0.25 * Math.sin(f.p * 7)) * this.u * scale;
-        // 땅에 닿을 무렵 스러진다 — 수면에서 뚝 끊기지 않게
-        const q = r * Math.min(1, Math.max(0.25, (f.end - f.y) / (24 * this.u)));
-        c.moveTo(f.x + q, f.y);
-        c.arc(f.x, f.y, q, 0, Math.PI * 2);
-      }
-      c.fill();
-    }
-  }
+  private get wx(): FxWeather { return this.sky.wx; }
+  /** 테스트가 입자 수를 본다(fishingfx.test) */
+  private get fall() { return this.sky.fall; }
+  private get ripples() { return this.sky.ripples; }
 
   private seedLook() {
     const key = `${this.view.spot}:${this.W}`;
     if (key === this.lookKey) return;
     this.lookKey = key;
     const hz = this.look().horizon * this.H;
-    this.seedWeather();
+    this.sky.set(this.sky.wx, this.wxEnv(), true);
     this.spec = Array.from({ length: 30 }, () => {
       const k = this.rnd() ** 1.6;
       return { x: this.rnd() * this.W, y: hz + 4 + k * (this.H - hz - 4), f: 0.7 + this.rnd() * 1.8, p: this.rnd() * 6.28, s: 1 + this.rnd() * 2 };
@@ -1177,7 +1048,7 @@ export class FishFx {
     this.t += dt;
     this.seedLook();
     this.step(dt, real);
-    this.stepWeather(real);
+    this.sky.step(real, this.wxEnv());
     this.draw();
     if (this.host) {
       const s = this.reduced ? 0 : this.shake;
@@ -1501,7 +1372,7 @@ export class FishFx {
     c.clearRect(0, 0, this.W, this.H);
     if (!this.reduced && !this.wx) this.drawAir(c);
     this.drawWater(c);
-    this.drawWeatherBack(c);
+    this.sky.drawBack(c, this.wxEnv());
     this.drawRings(c);
     this.drawFoam(c);
     this.drawLantern(c);
@@ -1520,7 +1391,7 @@ export class FishFx {
     this.drawRod(c);
     this.drawNet(c);
     this.drawDrops(c);
-    this.drawWeatherFront(c);
+    this.sky.drawFront(c, this.wxEnv());
     this.drawStrain(c);
     this.drawOverlay(c);
   }
