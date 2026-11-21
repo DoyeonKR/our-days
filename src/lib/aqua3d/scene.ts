@@ -46,6 +46,7 @@ export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean
   /** 이 기기에서 이미 본 사냥 장면의 소식 번호 — 화면이 기억해 넘긴다(장면은 저장소를 안 만진다) */ mealSeen?: number;
   /** 안에서 보기 — 10단계 터널 · 11단계 돔만. 꾸미는 동안은 밖에서 본다 */ tunnel?: boolean;
   /** 해변 보기(2026-11-18) — 모래사장 쪽으로 다가가 수면 위에서 내려다본다(밖에서 볼 때만) */ beach?: boolean;
+  /** 수조 전체 보기(2026-11-21 — 기본) — 수조 가로 · 높이가 화면에 다 들어오는 거리. false 면 예전 '가까이 보기'(가로 일부 + 천천히 흘러가며 둘러보기) */ overview?: boolean;
   /** 계절 수조 행사(2026-11-13, lib/aquaevent) — 지금 열린 행사 · 한정 장식 빛깔(놓인 장식 id → 행사). 그림만 바뀐다 */
   season?: { keys: readonly AquaEventKey[]; tints: Readonly<Record<number, AquaEventKey>>;
     /** 게임 시각(ms, 서버에 맞춘 지금 — islandsync.gameNow) — 계절 헤엄 빠르기 · 손님 물고기 시간표가 본다. 없으면 기기 시계 */ clock?: () => number;
@@ -58,6 +59,8 @@ export type TankEvents = { fish: (id: number) => void; decor: (id: number) => vo
   lost?: () => void; restored?: () => void;
   /** 첫 장면을 그렸다 */
   ready?: () => void;
+  /** 전체 보기에서 수조가 화면에 차지하는 모양(가로 ÷ 세로, 2026-11-21) — 화면이 수조 칸 높이를 맞춰 위아래 빈 곳을 줄인다. 바뀔 때만 */
+  shape?: (ratio: number) => void;
   /** 사냥 장면을 다시 그리기 시작했다 — 그 소식 번호(화면이 이 기기에 기억한다) */
   meal?: (n: number) => void;
   /** 사진 모드에서 끌기 · 집기로 카메라가 바뀌었다(2026-11-13) — 화면이 확대 막대 · 이름표를 맞춘다 */
@@ -190,7 +193,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // 두 손가락 · 휠 당기기 배율 — 0.45 배까지 다가가고 1.5 배까지 물러난다
   const ZOOM_MIN=.45,ZOOM_MAX=1.5;let userZoom=1;
   const XRAY_LAYER=3,XRAY_SKIP=/^(moray|octopus|squid|giant_squid|kraken|jellyfish)$/;
-  let habitat:Habitat|null=null, habitatTier=0, habitatSink=0, wide=1, wideBase=1, tierX=1, tall=1, pan=0, panReach=0, panPerPx=.02, lastTouch=-99, schools=new Map<number,{leader:number;slot:number}>();
+  let shapeSent=0, overK=1, habitat:Habitat|null=null, habitatTier=0, habitatSink=0, wide=1, wideBase=1, tierX=1, tall=1, pan=0, panReach=0, panPerPx=.02, lastTouch=-99, schools=new Map<number,{leader:number;slot:number}>();
   /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
   let foodTimer=0,motes:Motes|null=null;
   /** 계절 수조 행사(seasonfx.ts) — 물 위 그림 한 묶음 · 여름 거품 · 명절 장식 빛. 행사 · 수조 크기가 바뀌면 새로 */
@@ -799,10 +802,20 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
     // 2026-11-14 — 단계마다 수조가 커져(가로 최대 2.9배 × 넓히기 1.5배) 다 담으면 세로 화면에서 물고기가 점이 된다. 카메라는 가로를 크기의 0.4제곱만큼만 담고(6단계 1.44배 — 물러난 만큼 넓어진 게 보인다)
     //   나머지는 옆으로 끌어 둘러본다(panReach). 가만히 두면 천천히 한쪽 끝에서 다른 끝까지 흘러간다. 높이는 다 담는다(세로 끌기는 페이지 스크롤이라)
-    const half=Math.tan(camera.fov*Math.PI/360),fitW=5*wideBase*tierX**.4/(half*camera.aspect)+3,fitH=5.9*tall/half+3;
+    // 수조 전체 보기(2026-11-21 [사용자: "수조 전체뷰를 만들어줘 전체적으로 넓게 볼 수 있는 뷰 그게 메인이어야해"]) — 가로를 다(5·wide) 담는다. 앞유리 앞 3·깊이도 더해 앞모서리가 안 잘리게
+    const over=state.overview!==false;
+    const half=Math.tan(camera.fov*Math.PI/360),fitW=over?(5*wide*1.04)/(half*camera.aspect)+3*deep:5*wideBase*tierX**.4/(half*camera.aspect)+3,fitH=over?(5.9*tall*1.04)/half+3*deep:5.9*tall/half+3;
     // 자유롭게 보기(2026-11-14) — 두 손가락 · 휠로 당기고 민다(userZoom). 다가간 만큼 옆으로 더 끌 수 있다(panReach 가 camD 로 다시 잰다)
     // 앞유리(z = 3·깊이) 밖에서 본다 — 앞뒤로 늘린 수조에서 카메라가 물속에 들어가지 않게(2026-11-19)
-    const camD=Math.max(3*deep+3,clamp(Math.max(fitW,fitH)/tankDisplay(habitatTier,wideBase),19,80)*userZoom);
+    const camD=Math.max(3*deep+3,(over?clamp(Math.max(fitW,fitH),19,400):clamp(Math.max(fitW,fitH)/tankDisplay(habitatTier,wideBase),19,80))*userZoom);
+    // 멀리 물러나도 수조 뒤까지 그린다(예전 끝면 110 은 큰 수조 전체 보기에서 뒷벽을 잘랐다)
+    // 전체 보기의 내려다보기 — 가로로 긴 수조는 세로 화면에서 가는 띠가 되고 위아래가 빈다. 그만큼 위에서 비스듬히 내려다봐 바닥(앞뒤 깊이)까지 보이게(디오라마처럼).
+    //   수조가 화면보다 가로로 길수록 더 높이(0.08 ~ 0.55 rad). 작은 수조는 거의 정면 그대로. 터널 · 돔 안 · 가까이 보기는 안 함
+    const overEl=over&&!inTunnel&&!inDome?clamp(.5*(1-camera.aspect*(11.8*tall)/(10*wide)),.08,.55):0;
+    overK=dt>0?overK+((over?1:0)-overK)*Math.min(1,dt*2):(over?1:0);
+    // 수조 칸의 모양 — 화면 비율과 상관없이 정한다(화면이 이 값으로 칸을 바꾸면 위의 내려다보기 각이 바뀌니 둘이 서로를 흔들지 않게). 0.3 rad 내려다볼 때의 앞모습 + 여유
+    if(over&&!inTunnel&&!inDome){const r=(10*wide*1.04)/((11.8*tall*Math.cos(.3)+6*deep*Math.sin(.3))*1.08);if(Math.abs(r-shapeSent)>.02){shapeSent=r;events.shape?.(r);}}
+    {const far=Math.max(110,camD+6*deep+40);if(Math.abs(camera.far-far)>1){camera.far=far;camera.updateProjectionMatrix();}}
     panReach=Math.max(0,5*wide+.3-camD*half*camera.aspect*.96);panPerPx=2*camD*half*camera.aspect/Math.max(1,canvas.clientWidth);
     if(dt>0&&!start&&!sel&&!reduced.matches&&panReach>0&&elapsed-lastTouch>8)pan+=(panReach*.9*Math.sin(elapsed*.03)-pan)*Math.min(1,dt*.35);
     pan=clamp(pan,-panReach,panReach);const camX=pan;
@@ -863,7 +876,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       camera.position.set(0,eye,walkZ);
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,walkZ-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
-    }else{const el=mealK*mealElev+aboveK*ABOVE_ELEV+beachK*(BEACH_VIEW_ELEV-ABOVE_ELEV),ce=Math.cos(el);camera.position.set(lookAt.x+Math.sin(camA)*camD*scale*ce, lookAt.y+(1+pitch*10)*scale+(meal&&meal.t0>=0?mealK*dist*.07:0)+Math.sin(el)*dist,lookAt.z+Math.cos(camA)*camD*scale*ce);} // 사냥 장면은 조금 위에서 — 바닥 장식 너머로
+    }else{const el=mealK*mealElev+aboveK*ABOVE_ELEV+beachK*(BEACH_VIEW_ELEV-ABOVE_ELEV)+overK*overEl*(1-focusK)*(1-beachK)*(1-mealK),ce=Math.cos(el);camera.position.set(lookAt.x+Math.sin(camA)*camD*scale*ce, lookAt.y+(1+pitch*10)*scale+(meal&&meal.t0>=0?mealK*dist*.07:0)+Math.sin(el)*dist,lookAt.z+Math.cos(camA)*camD*scale*ce);} // 사냥 장면은 조금 위에서 — 바닥 장식 너머로
     // 사냥꾼 시점(다시 보기) — 사냥꾼 눈 자리(머리 옆)에서 먹이를 본다. 사냥꾼의 주둥이 · 벌어지는 턱이 화면 한쪽에 걸린다
     // 시점으로 들어가고 나올 때 부드럽게(povK) — 예전엔 장면이 끝나는 순간 카메라가 밖으로 툭 튀었다
     // 사냥꾼이 제 길로 돌아가기 시작하면(back) 시점에서 빠진다 — 돌아가는 길이 빨라(초당 10 칸 남짓) 카메라가 못 따라가 빈 물만 보였다

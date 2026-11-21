@@ -26,6 +26,7 @@ import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWait
 import { ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, DECOR, FAMILIES, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS, DEEP_STEPS, SINK_STEPS, aquaDangers, aquaEffects, buyDecor, eatenReplays, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, feedFish, fishArtKey, fishCm, fishCount, fishName, fishRoom, gearOutclassed, growBlock, hoursLeft, junkCoupons, makeFood, moveDecor, netHoursLeft, netToTank, placeDecor, releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank, sinkTank, type AquaFish, type AquaNews, type AquaResult, type DecorKind, type Grade, type PlacedDecor } from "@/lib/aquarium";
 import { loadIsland, saveIsland, type IslandRow } from "@/lib/couple";
 import { watchIslandStore } from "@/lib/islandstore";
+import { revealTop } from "@/lib/revealtop";
 import { aquaTodayItems, kstWhen, nextHuntAt, type AquaTodayKey } from "@/lib/aquatoday";
 import { MORPH_INFO, type Morph } from "@/lib/aquamorph";
 import { gameNow } from "@/lib/islandsync";
@@ -193,7 +194,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   /** 꾸미기 · 놓기를 시작하면 수조를 머리글 밑으로 — 고정 머리글이 수조 윗부분을 가렸다 */
   const showStage = useCallback(() => {
     setMsg(null); // 머리글 밑에 붙는 안내가 수조 윗부분을 다시 가리지 않게
-    requestAnimationFrame(() => stageRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
+    revealTop(stageRef.current); // 아이폰은 고정 창 안의 scrollIntoView 를 무시했다(2026-11-21, lib/revealtop)
   }, []);
 
   /** 다시 보기를 연다 — 카드는 수조 탭 밖에도 뜨므로 수조 탭으로 옮기고, 꾸미는 중이면 끝낸다(꾸미는 동안은 수조 시계가 서서 장면이 안 돈다).
@@ -555,7 +556,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                   const sp = speciesOf(f.species);
                   return (
                     <li key={f.id}>
-                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => { const on = selFish !== f.id; setSelFish(on ? f.id : null); /* 2026-11-14 [사용자: "하단에 물고기 선택하면 수조에 포커싱 되도록"] — 목록은 수조 아래라 골라도 카메라가 다가가는 걸 못 봤다. 고르면 수조로 올라간다 */ if (on) stageRef.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }}>
+                      <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} aria-pressed={selFish === f.id} onClick={() => { const on = selFish !== f.id; setSelFish(on ? f.id : null); /* 2026-11-14 [사용자: "하단에 물고기 선택하면 수조에 포커싱 되도록"] — 목록은 수조 아래라 골라도 카메라가 다가가는 걸 못 봤다. 고르면 수조로 올라간다 */ if (on) revealTop(stageRef.current); }}>
                         <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} morph={fishMorph(a, f)} /></span>
                         {/* 변이 표는 이름 칸 안에 — 오른쪽 등급 · 남은 시간 칸을 375px 밖으로 밀어내지 않게(넘치면 길이 글이 먼저 잘린다) */}
                         <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)}<MorphTag morph={fishMorph(a, f)} /> <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>

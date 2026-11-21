@@ -30,7 +30,7 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   people?: readonly string[]; onPhoto?: (on: boolean) => void;
 }) {
   // 10단계(터널) · 11단계(돔)는 안에서 보는 것이 기본 — '밖에서 보기'로 바꿀 수 있다(꾸미는 동안은 밖). 기준값은 tunnel.ts 한곳
-  const [outside, setOutside] = useState(false);
+  const [outside, setOutside] = useState(true);
   const canTunnel = given.aquarium.tank >= TUNNEL_TIER && !given.editing;
   const inside = given.aquarium.tank >= DOME_TIER ? "돔 안으로" : "터널 안으로";
   // 이 기기에서 이미 본 사냥 장면(lib/predation · scene.ts) — 다시 열어도 같은 장면을 또 그리지 않게.
@@ -38,8 +38,12 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   const mealSeenRef = useRef(0);
   // 해변 보기(2026-11-18) — 모래사장이 있는 단계(8 ~)에서 밖에서 볼 때만
   const [beachView, setBeachView] = useState(false);
+  // 수조 전체 보기가 기본(2026-11-21) — 끄면 예전 '가까이 보기'. 터널 · 돔 단계도 밖에서 전체를 먼저 본다('터널 안으로'는 메뉴)
+  const [close, setClose] = useState(false);
+  // 전체 보기에서 수조 칸의 높이를 수조 모양에 맞춘다 — 가로로 긴 수조는 세로 화면에서 띠가 되고 위아래가 검게 비었다(0.8 = 예전 4:5 보다 길어지지 않게, 2.4 까지 납작하게)
+  const [shape, setShape] = useState<number | null>(null);
   const canBeach = given.aquarium.tank >= BEACH_VIEW_TIER && !given.editing && !(canTunnel && !outside);
-  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside, beach: canBeach && beachView }), [given, canTunnel, outside, canBeach, beachView]);
+  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside, beach: canBeach && beachView, overview: !close }), [given, canTunnel, outside, canBeach, beachView, close]);
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef({ view, onFish, onDecor, onPlace });
   const controller = useRef<TankHandle | null>(null);
@@ -134,6 +138,7 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
           fish: id => latest.current.onFish(id), decor: id => latest.current.onDecor(id),
           place: (x,y) => latest.current.onPlace(x,y), error: msg => { if (!cancelled) setError(msg); },
           ready: () => { if (!cancelled) setReady(true); },
+          shape: (r) => { if (!cancelled) setShape(r); },
           lost: () => { lostAt = Date.now(); recover(); },
           restored: () => { lostAt = 0; window.clearTimeout(timer); },
           photoCam: () => { for (const fn of camListeners.current) fn(); },
@@ -147,9 +152,10 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   }, [attempt]);
   // 보기 메뉴 — 지금 쓸 수 있는 것만(예전 버튼 넷과 같은 조건)
   const live = ready && !error;
-  type ViewKey = "full" | "photo" | "beach" | "tunnel";
+  type ViewKey = "full" | "photo" | "beach" | "tunnel" | "close";
   const menuItems: { key: ViewKey; label: string }[] = [
-    ...(!full ? [{ key: "full" as const, label: "전체 보기" }] : []),
+    ...(live && !view.tunnel ? [{ key: "close" as const, label: close ? "수조 전체 보기" : "가까이 보기" }] : []),
+    ...(!full ? [{ key: "full" as const, label: "전체 화면" }] : []),
     ...(live && !view.editing && !replaying ? [{ key: "photo" as const, label: "사진 찍기" }] : []),
     ...(live && canBeach ? [{ key: "beach" as const, label: beachView ? "수조 전체 보기" : "해변 가까이 보기" }] : []),
     ...(live && canTunnel ? [{ key: "tunnel" as const, label: outside ? inside : "밖에서 보기" }] : []),
@@ -160,11 +166,13 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
     if (k === "full") toggleFull();
     else if (k === "photo") enterPhoto();
     else if (k === "beach") setBeachView((b) => !b);
+    else if (k === "close") setClose((c) => !c);
     else setOutside((o) => !o);
   }
   const photoView = view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "dome" : "tunnel") : "outside";
   const chrome = !photo;
-  return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full || photo ? "is-full" : ""} ${photo ? "is-photo" : ""}`}>
+  const fitShape = !close && !full && !photo && !view.tunnel && !view.editing && shape ? Math.min(2.4, Math.max(0.8, shape)) : null;
+  return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full || photo ? "is-full" : ""} ${photo ? "is-photo" : ""}`} style={fitShape ? { aspectRatio: String(Math.round(fitShape * 100) / 100) } : undefined}>
     <div ref={host} className="aqua-webgl" />
     {photo && <AquaPhoto tank={photo.tank} host={photo.host} view={photoView} fishNames={fishNames} people={people ?? []} subscribe={subscribeCam} onExit={exitPhoto} dead={!!photo.dead} onShot={setHasShot} />}
     {/* 보기 메뉴(2026-11-21 리뷰 ⑧) — 전체 보기 · 사진 · 해변 보기 · 밖에서 보기가 버튼 넷으로 수조 위에 흩어져 있었다. 하나로 모은다.
@@ -187,6 +195,6 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
       <span>원본과의 유사도 검수를 통과한 모델만 표시해요.<br/>보유 물고기는 그대로이며 아래 목록에서 확인할 수 있어요.</span>
     </div>}
     {view.editing && !error && <p className="aqua-hint">{view.preview ? "미리보기 · 아래에서 회전·크기를 조절하고 확정하세요" : view.placing ? "바닥을 눌러 장식을 미리 놓아 보세요" : "장식을 눌러 선택하세요"}</p>}
-    {chrome && !view.editing && ready && !error && !replaying && <span className="aqua-3d-guide" aria-hidden>{view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "끌어서 한 바퀴 둘러보기 · 물고기를 누르면 그쪽을 봐요" : "끌어서 둘러보기 · 물고기를 누르면 올려다봐요") : "좌우로 드래그해 둘러보기"}</span>}
+    {chrome && !view.editing && ready && !error && !replaying && <span className="aqua-3d-guide" aria-hidden>{view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "끌어서 한 바퀴 둘러보기 · 물고기를 누르면 그쪽을 봐요" : "끌어서 둘러보기 · 물고기를 누르면 올려다봐요") : (close ? "좌우로 드래그해 둘러보기" : "물고기를 누르면 다가가요 · 끌어서 둘러보기")}</span>}
   </div>;
 }
