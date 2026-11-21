@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { widestZoom, zoomOutFully } from "./camerazoom.ts";
+import { CAMERA_FORMATS, cameraConstraints, isFullSensor, openWideCamera, widestZoom, zoomOutFully } from "./camerazoom.ts";
 
 const root = join(import.meta.dirname, "../..");
 const code = (f: string) => readFileSync(join(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
@@ -36,9 +36,30 @@ test("트랙에 최소 줌을 건다 · 실패해도 던지지 않는다", async
 
 test("3초 로그 카메라 — 줌 범위를 묻고, 열리자마자 가장 넓게", () => {
   const cap = code("src/components/LogCapture.tsx");
-  assert.match(cap, /aspectRatio: \{ ideal: 3 \/ 4 \}, zoom: true \}/);
+  // 2026-11-21 — 3:4 세로를 청하면 16:9 모드로 잘려 당겨 보였다. 센서 비율(4:3)을 청하는 openWideCamera 로
+  assert.match(cap, /openWideCamera\(\(c\) => navigator\.mediaDevices\.getUserMedia\(c\), facing\)/);
+  assert.doesNotMatch(cap, /aspectRatio: \{ ideal: 3 \/ 4 \}/, "3:4 세로를 직접 청하지 않는다");
   assert.match(cap, /streamRef\.current = stream;\s+void zoomOutFully\(stream\)\.then\(/);
-  assert.match(cap, /logDebug\("cam_zoom", \{ applied, \.\.\.zoomInfo\(stream\) \}\)/);
+  assert.match(cap, /logDebug\("cam_zoom", \{ applied, \.\.\.zoomInfo\(stream\), w: camW, h: camH, tried: camTried \}\)/);
+});
+
+test("센서 그대로(4:3) — 16:9 로 오면 한 번 더 청하고, 앞의 카메라는 닫고 연다", async () => {
+  assert.ok(isFullSensor(1280, 960) && isFullSensor(960, 1280) && isFullSensor(640, 480));
+  assert.ok(!isFullSensor(1280, 720) && !isFullSensor(720, 1280) && !isFullSensor(null, 1));
+  for (const f of CAMERA_FORMATS) assert.ok(isFullSensor(f.width, f.height), "청하는 모양은 모두 4:3");
+  const c = cameraConstraints("user", CAMERA_FORMATS[0]) as Record<string, unknown>;
+  assert.equal(c.resizeMode, "none", "크롬이 잘라 맞추지 않게");
+  const fake = (w: number, h: number, log: string[]) => ({ getTracks: () => [{ stop: () => log.push(`stop ${w}x${h}`) }], getVideoTracks: () => [{ getSettings: () => ({ width: w, height: h }) }] }) as unknown as MediaStream;
+  const log: string[] = [];
+  const sizes = [[1280, 720], [640, 480]];
+  let i = 0;
+  const got = await openWideCamera(async () => { const [w, h] = sizes[i++]; log.push(`open ${w}x${h}`); return fake(w, h, log); }, "user");
+  assert.deepEqual(log, ["open 1280x720", "stop 1280x720", "open 640x480"]);
+  assert.deepEqual([got.tried, got.w, got.h], [2, 640, 480]);
+  const log2: string[] = [];
+  const once = await openWideCamera(async () => fake(960, 1280, log2), "user");
+  assert.equal(once.tried, 1, "4:3 이면 한 번에 끝");
+  await assert.rejects(openWideCamera(async () => { throw Object.assign(new Error("x"), { name: "NotAllowedError" }); }, "user"));
 });
 
 test("사진 입력은 image/* 하나 — 확장자 · 다른 형식을 섞으면 브라우저가 사진 선택기 대신 파일 앱을 연다", () => {

@@ -142,7 +142,8 @@ test("#5 #6 렌더러가 자른 칸을 셰이더에서 읽고, 회전(resize)하
   assert.match(renderer, /vec2 p=crop\.xy\+vec2\(mix\(uv\.x,1\.0-uv\.x,mirror\),uv\.y\)\*crop\.zw;/);
   assert.match(capture, /onResize=\{prepareColorPreview\}/);
   assert.match(capture, /if\(rendererRef\.current&&rendererCanvasRef\.current===canvas\)\{/, "회전마다 렌더러를 새로 만들면 컨텍스트를 다시 잡는다");
-  assert.match(capture, /aspectRatio: \{ ideal: 3 \/ 4 \}/);
+  // 2026-11-21 — 3:4 세로를 청하면 16:9 로 잘려 당겨 보였다. 이제 센서 비율(4:3)을 청하고(openWideCamera) 렌더러가 가운데 3:4 로 자른다
+  assert.match(capture, /openWideCamera\(/);
   assert.doesNotMatch(capture, /width: \{ ideal: 640 \}, height: \{ ideal: 640 \}/);
 });
 

@@ -51,3 +51,49 @@ export function zoomInfo(stream: { getVideoTracks: () => unknown[] } | null | un
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
   return { min: n(caps?.zoom?.min), max: n(caps?.zoom?.max), now: n(set?.zoom), facing: typeof set?.facingMode === "string" ? set.facingMode : null };
 }
+
+/* ── 센서 그대로(4:3) 받기 — 2026-11-21 [사용자: "카메라가 줌인 된 것 같은 느낌이야 이유가 뭔지 확인하고 고쳐"] ──
+ * 운영 기록(debug_logs 'cam_zoom')은 줌이 이미 최소(1배)였다 — 당겨 보이는 건 줌이 아니라 '잘라 내기'였다.
+ * 예전엔 3:4 세로(720×960)를 달라고 했는데, 폰 센서는 4:3 이라 브라우저가 이 요청을 16:9 모드(1280×720)로 맞췄다.
+ * 16:9 모드는 센서의 양옆(세로 화면 기준)을 잘라 낸 것이고, 그 위에서 렌더러가 다시 가운데 3:4 로 잘라(cropFrame34) 약 1.33배 당겨 보였다.
+ * 이제 센서의 원래 비율(4:3 — 세로로 들면 3:4)을 달라고 하고, 실제로 받은 비율을 보고 16:9 면 한 번 더(640×480) 청한다.
+ * resizeMode "none" — 크롬이 요청 크기에 맞추려고 영상을 잘라 내지(crop-and-scale) 않게. 모르는 브라우저는 무시한다. */
+
+/** 청할 모양 — 센서 방향(가로) 기준 4:3. 앞의 것부터 */
+export const CAMERA_FORMATS: readonly { width: number; height: number }[] = [{ width: 1280, height: 960 }, { width: 640, height: 480 }];
+
+/** 받은 영상이 센서 그대로(4:3 · 3:4)인가 — 16:9 면 이미 잘린 것 */
+export function isFullSensor(w: unknown, h: unknown): boolean {
+  if (typeof w !== "number" || typeof h !== "number" || !(w > 0) || !(h > 0)) return false;
+  const r = Math.max(w, h) / Math.min(w, h);
+  return r > 1.28 && r < 1.4;
+}
+
+export function cameraConstraints(facing: string, f: { width: number; height: number }): MediaTrackConstraints {
+  return { facingMode: facing, width: { ideal: f.width }, height: { ideal: f.height }, aspectRatio: { ideal: f.width / f.height }, resizeMode: "none", zoom: true } as MediaTrackConstraints;
+}
+
+type Gum = (c: MediaStreamConstraints) => Promise<MediaStream>;
+/** 4:3 을 받을 때까지 CAMERA_FORMATS 를 차례로 — 다음 것을 열기 전에 앞의 스트림을 닫는다(아이폰은 카메라를 둘 못 연다).
+ *  끝내 16:9 면 마지막 것을 쓴다. 첫 시도가 던지면 그대로 던진다(부르는 쪽이 느슨한 제약으로 다시 연다). */
+export async function openWideCamera(gum: Gum, facing: string): Promise<{ stream: MediaStream; tried: number; w: number | null; h: number | null }> {
+  let last: MediaStream | null = null, w: number | null = null, h: number | null = null;
+  for (let i = 0; i < CAMERA_FORMATS.length; i++) {
+    if (last) last.getTracks().forEach((t) => t.stop());
+    let s: MediaStream;
+    try {
+      s = await gum({ video: cameraConstraints(facing, CAMERA_FORMATS[i]), audio: false });
+    } catch (e) {
+      if (i === 0) throw e;
+      // 두 번째가 안 열리면 첫 모양으로 다시(앞에서 닫았다)
+      s = await gum({ video: cameraConstraints(facing, CAMERA_FORMATS[0]), audio: false });
+      const st0 = (s.getVideoTracks()[0]?.getSettings?.() ?? {}) as { width?: number; height?: number };
+      return { stream: s, tried: i + 1, w: st0.width ?? null, h: st0.height ?? null };
+    }
+    const st = (s.getVideoTracks()[0]?.getSettings?.() ?? {}) as { width?: number; height?: number };
+    w = st.width ?? null; h = st.height ?? null;
+    last = s;
+    if (isFullSensor(w, h) || w === null) return { stream: s, tried: i + 1, w, h };
+  }
+  return { stream: last!, tried: CAMERA_FORMATS.length, w, h };
+}

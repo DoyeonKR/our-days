@@ -31,7 +31,7 @@ import {
   retakeWarning,
   withTimeout,
 } from "@/lib/logreview";
-import { zoomInfo, zoomOutFully } from "@/lib/camerazoom";
+import { zoomInfo, zoomOutFully, openWideCamera } from "@/lib/camerazoom";
 import { logDebug } from "@/lib/debug";
 import { deleteLogDraft, downloadBlob, draftKey, putLogDraft } from "@/lib/logdraft";
 import { posterFromBlob } from "@/lib/logmontage";
@@ -269,15 +269,15 @@ export default function LogCapture({
     };
     // 무음 촬영(셋로그처럼) — 마이크 미사용. 요청한 카메라(facingMode)가 없으면
     // 느슨한 제약으로 한 번 더 시도해 '무조건' 카메라를 연다(권한 거부만 예외로 던짐).
-    // 해상도는 3:4 세로(720×960)를 바란다 — 어떤 비율이 와도 렌더러가 가운데 3:4 로 자른다(cropFrame34).
+    // 센서의 원래 비율(4:3)을 달라고 한다(2026-11-21, lib/camerazoom 의 openWideCamera) — 3:4 세로를 청하면 16:9 모드로 잘려 약 1.33배 당겨 보였다.
+    //   어떤 비율이 와도 렌더러가 가운데 3:4 로 자른다(cropFrame34). zoom: true 는 줌 범위를 알려 달라는 뜻 — 열린 뒤 zoomOutFully 가 최소로 맞춘다.
+    let camTried = 0, camW: number | null = null, camH: number | null = null;
     const getStream = async () => {
       if(services?.camera)return services.camera(facing);
       try {
-        return await navigator.mediaDevices.getUserMedia({
-          // zoom: true — 줌 범위를 알려 달라는 뜻(크롬). 모르는 브라우저는 무시한다. 열린 뒤 zoomOutFully 가 최소로 맞춘다.
-          video: { facingMode: facing, width: { ideal: 720 }, height: { ideal: 960 }, aspectRatio: { ideal: 3 / 4 }, zoom: true } as MediaTrackConstraints,
-          audio: false,
-        });
+        const got = await openWideCamera((c) => navigator.mediaDevices.getUserMedia(c), facing);
+        camTried = got.tried; camW = got.w; camH = got.h;
+        return got.stream;
       } catch (e) {
         const name = (e as { name?: string })?.name;
         if (name === "NotAllowedError" || name === "SecurityError") throw e; // 권한 거부는 그대로
@@ -301,7 +301,7 @@ export default function LogCapture({
           } catch {
             return;
           }
-          void logDebug("cam_zoom", { applied, ...zoomInfo(stream) });
+          void logDebug("cam_zoom", { applied, ...zoomInfo(stream), w: camW, h: camH, tried: camTried });
         });
         stream.getVideoTracks().forEach((t) =>
           t.addEventListener("ended", () => setCamTry((n) => n + 1)),
