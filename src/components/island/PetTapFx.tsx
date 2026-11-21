@@ -17,6 +17,7 @@
  *   회전은 어느 쪽이든 쓰지 않는다(도트가 격자를 벗어난다 — README §14.5).
  */
 
+import { haptic } from "@/lib/haptic";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { type PetVibe, TAP_COMBO_MS, TAP_RECENT_LIMIT, TAP_PARTICLE_LIMIT, homeHopPx, tapReaction } from "@/lib/petmotion";
 
@@ -87,7 +88,7 @@ export default function PetTapFx({
     setHopPx(homeHopPx(n));
     setTapKey((k) => k + 1);
     try {
-      if (!reduced) navigator.vibrate?.(R.vibrate);
+      if (!reduced) haptic(R.vibrate);
     } catch {
       /* noop */
     }

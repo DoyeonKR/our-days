@@ -261,7 +261,7 @@ test("#17 보정 · 색감은 칩 한 줄, 펼친 패널은 하나", () => {
 /* ── 18 · 접근성 · 촉감 · 되돌리기 ── */
 test("#18 카운트다운은 읽히고, 셔터는 진동하고, 댓글 삭제는 5초 되돌리기", () => {
   assert.match(capture, /<span role="status" aria-live="polite" className="sr-only">/);
-  assert.match(capture, /navigator\.vibrate\?\.\(ms\)/);
+  assert.match(capture, /haptic\(ms\)/); // 진동은 lib/haptic 으로(아이폰은 스위치 햅틱 — 2026-11-21)
   assert.match(capture, /if\(!opts\.auto\)\{buzz\(10\);/);
   assert.match(todayLog, /undoTimerRef\.current = setTimeout\(commitDelete, UNDO_MS\);/);
   assert.match(todayLog, /onClick=\{undoDelete\}>되돌리기<\/button>/);

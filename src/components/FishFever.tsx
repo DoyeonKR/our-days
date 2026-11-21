@@ -4,13 +4,14 @@
  * ⚠ 낚시터 안(캔버스 · 스크롤 창 · 둥근 클립 속)에 두면 사파리에서 안 보였다는 신고가 있어 body 로 빼서 그린다(2026-11-03).
  * ⚠ 시계는 준비 화면 뒤에 돈다 — 그림을 그 자리에서 받으면 10초 중 앞쪽이 빈 칸으로 지나간다.
  * ⚠ 피버가 뜨기 전에 누른 손가락은 답이 아니다 — 줄을 감던 손을 떼거나 이어 누르는 순간 절반 확률로 틀려 화면이 번쩍하고 사라졌다. */
+import { haptic } from "@/lib/haptic";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { FEVER_ROUNDS, FEVER_SECONDS, answerFever, feverDt, feverPick, feverRound, feverRoundArts, startFever, tickFever, type Fever, type FeverSide } from "@/lib/fishingfever";
 import type { FishSpot } from "@/lib/fishing";
 
-const buzz = (p: number | number[]) => navigator.vibrate?.(p);
+const buzz = (p: number | number[]) => haptic(p);
 /** 규칙을 읽을 만큼은 보여 준다 */
 const READY_MIN_MS = 1200;
 /** 그림이 늦어도 이 뒤엔 시작한다 — 망이 끊겨도 판이 멈추면 안 된다 */

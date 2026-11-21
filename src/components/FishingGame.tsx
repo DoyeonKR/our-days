@@ -3,6 +3,7 @@
 /* 낚시 화면 — 규칙은 전부 lib/fishing(순수), 찌 · 줄 · 물보라는 lib/fishingfx(캔버스). 여기는 입력 · 타이머 · 글자판과 저장뿐이다.
  * 한 손가락으로 다 한다. 방식마다 손이 다르다: 찌(누르고 떼기) · 루어(박자 맞춰 치기 → 좌우로 끌기) · 뜰채(앞서 겨눠 누르기) · 심해(릴 돌리기) · 집어등(불 밝기 지키기 → 터질 때 채기). 규칙은 lib/fishingmodes · lib/fishinglight.
  * 저장은 던질 때(미끼) · 끌어올린 뒤 · 장비를 바꿀 때만(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 힘겨루기 중엔 쓰지 않는다. */
+import { haptic } from "@/lib/haptic";
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { BossSheet, FishAbility, FishGear, FishListSheet, FishStats, GearPic, MoonSheet, TimedSheet, useBackdropClose } from "@/components/FishingPanels";
@@ -99,7 +100,7 @@ const dice = () => Math.random();
 const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear", "장비"], ["stat", "목표"], ["more", "수집"], ["rank", "랭킹"]];
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
-const buzz = (p: number | number[]) => navigator.vibrate?.(p);
+const buzz = (p: number | number[]) => haptic(p);
 const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 /** 뜰채로 건지는 시간 — 판정은 바로 나도 이만큼은 조마조마해야 한다 */
 const SCOOP_MS = 1500;

@@ -6,6 +6,7 @@
    · 기분(기력/포만/행복/아픔)에 따라 속도·깡총·이모트가 달라진다 (petmotion.ts 순수 로직)
    · 접근성: 펫은 button, prefers-reduced-motion 이면 배회를 끈다 */
 
+import { haptic } from "@/lib/haptic";
 import { useEffect, useRef, useState } from "react";
 import type { ArtFC } from "@/components/island/art/parts";
 import {
@@ -191,7 +192,7 @@ export default function PetYard({
     if (asleep) {
       if (onWake) {
         try {
-          navigator.vibrate?.(14);
+          haptic(14);
         } catch {
           /* noop */
         }
@@ -228,7 +229,7 @@ export default function PetYard({
       setHopPx(homeHopPx(n));
       setTapKey((k) => k + 1);
       try {
-        if (!reducedRef.current) navigator.vibrate?.(R.vibrate);
+        if (!reducedRef.current) haptic(R.vibrate);
       } catch {
         /* noop */
       }
@@ -273,7 +274,7 @@ export default function PetYard({
     setHopPx(homeHopPx(n));
     setTapKey((k) => k + 1);
     try {
-      navigator.vibrate?.(tier === 3 ? [12, 40, 18] : tier === 2 ? 16 : 10);
+      haptic(tier === 3 ? [12, 40, 18] : tier === 2 ? 16 : 10);
     } catch {
       /* noop */
     }

@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { confirmDialog } from "@/lib/confirm";
 import Icon from "@/components/Icon";
@@ -596,7 +597,7 @@ export default function CoupleSync({
       });
     }
     try {
-      navigator.vibrate?.(12); // 살짝 햅틱(모바일)
+      haptic(12); // 살짝 햅틱(모바일)
     } catch {
       /* noop */
     }
@@ -625,7 +626,7 @@ export default function CoupleSync({
     if (!couple || !uid || pokeId.startsWith("tmp-")) return; // 임시(미저장) 버블엔 반응 불가
     setPickerFor(null);
     try {
-      navigator.vibrate?.(8);
+      haptic(8);
     } catch {
       /* noop */
     }

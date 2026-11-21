@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptic";
 import { CloseButton } from "@/components/AppButtons";
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/Icon";
@@ -58,7 +59,7 @@ function removeStorage(path: string) {
 
 /** 짧은 진동(지원하는 안드로이드만 — iOS 사파리는 조용히 무시한다). */
 function buzz(ms = 10) {
-  try { navigator.vibrate?.(ms); } catch { /* noop */ }
+  try { haptic(ms); } catch { /* noop */ }
 }
 
 /**

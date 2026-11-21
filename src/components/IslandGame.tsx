@@ -8,6 +8,7 @@
    (펫 아트를 PetYard 로 넘긴 뒤로는 static-components 경고가 안 떠서 disable 을 뗐다 — 다시
     뜨면 이 위치에 `eslint-disable react-hooks/static-components` 를 되살릴 것.) */
 
+import { haptic } from "@/lib/haptic";
 import { CloseButton } from "@/components/AppButtons";
 import { useBackClose } from "@/lib/useBackClose";
 import { Fragment, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -706,7 +707,7 @@ export default function IslandGame({
     const id = ++fxSeq.current;
     setHarvestFx({ id, plot: i, star, coins, bumper });
     try {
-      navigator.vibrate?.(bumper ? [14, 40, 14, 40, 30] : star >= 5 ? [12, 40, 12, 40, 26] : star >= 4 ? [10, 40, 10] : 12);
+      haptic(bumper ? [14, 40, 14, 40, 30] : star >= 5 ? [12, 40, 12, 40, 26] : star >= 4 ? [10, 40, 10] : 12);
     } catch {
       /* noop */
     }

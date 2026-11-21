@@ -5,6 +5,7 @@
  * 시계는 화면이 보일 때만 돈다. 판이 끝나면 한 번만 onEnd 를 부르고(저장은 부른 쪽이), 요약을 보여 준다.
  * ⚠ 판 도중 앱을 떠나면(화면이 숨거나 pagehide) 그 자리에서 판을 끝낸다 — 결과 창을 닫을 때까지 기다리면 앱이 꺼질 때 깎은 몫 · 토벌이 사라졌다.
  *   안내 화면(판 시작 전)에서 나가면 onQuit — 아직 겨루지 않았으니 부른 쪽이 도전 한 번을 돌려준다. */
+import { haptic } from "@/lib/haptic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
@@ -15,7 +16,7 @@ import { RAID_DIRS, RAID_DIR_NAME, raidInterrupted, raidKillPace, raidLeft, raid
 import { DRAW_MS, frameGate } from "@/lib/advframe";
 import { CrownIcon } from "@/components/FishingIcons";
 
-const buzz = (p: number | number[]) => navigator.vibrate?.(p);
+const buzz = (p: number | number[]) => haptic(p);
 const READY_MS = 1600;
 
 /** bg — 그 낚시터 그림(어둡게 깔아 물속 무대로). 없으면 짙은 물빛만 */

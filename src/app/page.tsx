@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptic";
 import Sheet from "@/components/Sheet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sendEventPush } from "@/lib/notify";
@@ -1341,7 +1342,7 @@ export default function Home() {
     if (next === "home") setRecapHold(false); // 사용자가 직접 홈으로 — 미뤄 둔 매달 팝업을 이제 보여 준다
     // 지금 탭을 한 번 더 누르면 맨 위로(iOS 는 main 이 스크롤해서 상태 표시줄 누르기가 안 듣는다)
     if (next === view) { pageScrollToTop(); return; }
-    try { navigator.vibrate?.(8); } catch { /* 없는 기기 */ }
+    try { haptic(8); } catch { /* 없는 기기 */ }
     setView(next);
   }
 

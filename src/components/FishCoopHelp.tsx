@@ -4,12 +4,13 @@
  * 상대가 큰 걸 걸어 "도와줘!"가 오면 낚시터 위에 뜬다: 받기 창(6초) → 짧은 뜰채 들어올리기(최대 5초) → 결과 한 줄.
  * 낚시터 위에 얹지만 자기 판은 건드리지 않는다 — 누르기 · 끌기는 여기서 멈추고(stopPropagation) 낚시터의 던지기로 새지 않는다.
  * ⚠ 이 창은 아무것도 저장하지 않는다(단일 작성자 — 결과는 메시지로 상대 화면에 가고, 저장은 상대가 한 번만 한다). */
+import { haptic } from "@/lib/haptic";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { ActionButton } from "@/components/AppButtons";
 import { COOP_ACCEPT_MS, COOP_BONUS, COOP_GAME_MS, coopLiftQuality, coopLiftTune, startCoopLift, stepCoopLift, type Coop } from "@/lib/fishcoop";
 import { LIFT_EDGE, LIFT_SLIP_S, type Lift } from "@/lib/fishingmodes";
 
-const buzz = (p: number | number[]) => navigator.vibrate?.(p);
+const buzz = (p: number | number[]) => haptic(p);
 
 /** 받기 창 — 남은 시간 막대. 시각은 effect 에서만 읽는다(렌더 중 Date.now 금지) */
 function Prompt({ at, onAccept, onDecline }: { at: number; onAccept: () => void; onDecline: () => void }) {
