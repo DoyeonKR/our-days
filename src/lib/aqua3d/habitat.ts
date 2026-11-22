@@ -42,14 +42,16 @@ export function substrateHeight(x: number, z: number, tier: number, beach: boole
 export const BEACH_TIER = 8;
 /** 모래사장 꼭대기(root 안 높이) — 수면(5.56)보다 조금 위 */
 export const BEACH_TOP = 5.82;
-export const BEACH_X0 = 1.2, BEACH_X0_OPEN = 0, BEACH_X1 = 3.7, BEACH_X1_OPEN = 3.1;
+/** 해변 폭 절반(2026-11-22 [사용자: "해변절벽이 수조에 거의 반 차지하는 것 같아 불편해 해변은 지금의 절반으로 줄이자"]) — 예전 8 · 9단계는 가운데(0)부터 오른쪽 끝(5)까지 수조의 절반,
+ *  10 · 11단계는 1.2 부터(38%)였다. 이제 2.5 · 3.1 부터(25% · 19%). 폭을 줄이면 물가가 41°로 가팔라져서(beach.test 25° 규칙), 물속 둑을 짧고 높게(0.5 · 턱 5.35 — 수면 5.56 바로 밑) 올리고 물가 위 오르막(→ X1)은 그대로 완만하게 둔다(물가 15 ~ 22°). 쉼터(4.65)는 꼭대기에 남는다 */
+export const BEACH_X0 = 3.1, BEACH_X0_OPEN = 2.5, BEACH_X1 = 4.75, BEACH_X1_OPEN = 4.7;
 /** 모래사장 종류 — 8 · 9단계는 가운데부터 넓게(덜 가파르게), 10 · 11단계는 가운데 터널 · 돔(반지름 .9 안) 밖에서부터 */
 export const hasBeach = (tierInput: number): boolean | "hall" => Math.round(tierInput) >= 10 ? "hall" : Math.round(tierInput) >= BEACH_TIER;
 export const beachStart = (beach: boolean | "hall") => beach === "hall" ? BEACH_X0 : BEACH_X0_OPEN;
 /** 완만한 해변(2026-11-18 [사용자: "경사를 완만하게 하고 해변을 사용자가 더 편하게 볼 수 있게"]) — 예전엔 바닥에서 꼭대기까지 한 곡선이라 물가가
  *  60° 넘는 벽이었다. 실제 해변처럼 물속은 짧은 둑(x0 → x0 + BEACH_BANK)으로 얕은 턱(BEACH_SHELF 높이)까지 올라오고, 물가 둘레는 그 턱에서
  *  꼭대기까지 넓고 완만하게(턱 → X1) 오른다. 반환은 바닥 → 꼭대기 사이의 몫(0 ~ 1) */
-export const BEACH_BANK = 1.1, BEACH_SHELF = 4.75;
+export const BEACH_BANK = 0.5, BEACH_SHELF = 5.35;
 /** 해변은 뒤쪽 오른편 — 앞유리 쪽으로 올수록 물가가 오른쪽으로 물러나 앞유리 앞엔 물만 남는다. 앞에서 보면 물 너머로 오르는 모래사장이 보인다
  *  (예전엔 해변이 앞유리까지 닿아 앞에서 보면 키 큰 모래 단면 벽만 보였다). z 는 root 안(앞유리 +3) */
 export const BEACH_Z0 = -0.3, BEACH_ZK = 1.35;
