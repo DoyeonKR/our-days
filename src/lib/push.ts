@@ -37,6 +37,39 @@ async function getReg(): Promise<ServiceWorkerRegistration | null> {
  * 브라우저 푸시 구독 + Supabase 저장. 성공 시 true.
  * 실패 시 사용자에게 보여줄 구체적 사유를 담아 throw (안드로이드 진단용).
  */
+/* 이 기기의 구독 기억(2026-11-22) [사용자: "지금 일기 작성이나 그런 푸쉬 알람이 사파리 즉 ios 에서 제대로 보내지고 있는지 검토해" → "고칠 수 있는것 다 지워"]
+ * 아이폰 사용자의 옛 구독(8월)이 서버에 남아, 일기 알림이 그 옛 구독으로만 가고(애플은 '받았다'고 답한다 — 서버는 죽은 구독인지 모른다) 지금 앱엔 안 왔다.
+ * 기기가 자기 endpoint 를 기억해 두고, 다시 켜거나 브라우저가 구독을 갈아 endpoint 가 바뀌면 옛 행을 지운다(본인 행만 — RLS). 실패해도 켜기는 그대로 성공이다.
+ * ⚠ 홈 화면 앱을 지웠다 다시 깔면 저장소도 새로라 옛 것을 모른다 — 그런 행은 운영 점검(push_out 기록 · 사람 확인)으로 치운다. */
+const ENDPOINT_KEY = "ourdays:push-endpoint";
+async function rememberEndpoint(endpoint: string): Promise<void> {
+  let prev: string | null = null;
+  try {
+    prev = localStorage.getItem(ENDPOINT_KEY);
+    localStorage.setItem(ENDPOINT_KEY, endpoint);
+  } catch {
+    return; // 저장소가 막힌 기기 — 옛 것을 모른다
+  }
+  if (!prev || prev === endpoint) return;
+  const sb = getSupabase();
+  if (!sb) return;
+  try {
+    await sb.from("push_subscriptions").delete().eq("endpoint", prev);
+    logDebug("push_replaced", { old: prev.slice(0, 40) + "…" });
+  } catch {
+    /* 네트워크 — 다음 켜기 · 부팅에 다시 해 보지는 않는다(행은 남아도 새 구독으로도 온다) */
+  }
+}
+/** 홈 화면 앱(PWA)으로 열었나 — 아이폰은 홈 화면 앱에서만 푸시가 온다(사파리 탭은 안 온다). 진단 기록용 */
+export function pushDisplayMode(): "standalone" | "browser" {
+  try {
+    const nav = navigator as Navigator & { standalone?: boolean };
+    return nav.standalone || window.matchMedia?.("(display-mode: standalone)").matches ? "standalone" : "browser";
+  } catch {
+    return "browser";
+  }
+}
+
 export async function enablePush(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (!isPushConfigured)
@@ -109,7 +142,8 @@ export async function enablePush(): Promise<boolean> {
     saveErr = await saveSubscription(sub);
     if (saveErr) throw new Error("구독 저장 실패: " + saveErr.message);
   }
-  logDebug("push_enabled", { endpoint: sub.endpoint.slice(0, 40) + "…" });
+  await rememberEndpoint(sub.endpoint);
+  logDebug("push_enabled", { endpoint: sub.endpoint.slice(0, 40) + "…", mode: pushDisplayMode() });
   return true;
 }
 
@@ -140,6 +174,7 @@ export async function resyncPushSubscription(): Promise<void> {
     const sub = await reg?.pushManager.getSubscription();
     if (!reg || !sub) return;
     const err = await saveSubscription(sub);
+    if (!err) await rememberEndpoint(sub.endpoint);
     if (err?.code === "42501") {
       try {
         await sub.unsubscribe();
@@ -150,7 +185,7 @@ export async function resyncPushSubscription(): Promise<void> {
       const fresh = await reg.pushManager
         .subscribe({ userVisibleOnly: true, applicationServerKey: key })
         .catch(() => null);
-      if (fresh) await saveSubscription(fresh);
+      if (fresh && !(await saveSubscription(fresh))) await rememberEndpoint(fresh.endpoint);
     }
   } catch {
     /* 조용히 — 부팅 경로에서 오류 배너 금지 */
@@ -180,6 +215,7 @@ export async function disablePushOnThisDevice(): Promise<void> {
   } catch {
     /* noop */
   }
+  try { localStorage.removeItem(ENDPOINT_KEY); } catch { /* noop */ }
   logDebug("push_disabled");
 }
 
