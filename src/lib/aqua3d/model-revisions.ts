@@ -38,7 +38,7 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_sea_otter:'72f29b2ea3c7',juv_sea_otter:'4b14a35f6cac',sea_otter:'2927da64b2fd',
  fry_otter:'d0e2ded853db',juv_otter:'49b1848a2a3b',otter:'59d19de107ce',
  // 2026-11-18 고래 다섯 · 톱상어 — 가슴지느러미를 몸 밖으로 벌리고 꼬리 윗면을 등 색으로(whales/build.mjs)
- fry_minke_whale:'80e9d640ac06',juv_minke_whale:'8be673671ffe',minke_whale:'a85efd88ebb6',fry_gray_whale:'d9d580e96720',juv_gray_whale:'98a286156e78',gray_whale:'e577e3079295',fry_humpback_whale:'7c25832c1133',juv_humpback_whale:'07113f8a291d',humpback_whale:'5d564e6b757e',fry_sperm_whale:'ef688635d471',juv_sperm_whale:'fcdafe55a024',sperm_whale:'8ffe859f90a3',fry_blue_whale:'f5ec17b5d70c',juv_blue_whale:'d6501f71cf80',blue_whale:'13fb70646208',fry_sawshark:'745f77fff5fd',juv_sawshark:'ab97150b1b9b',sawshark:'11d185a2bd89',
+ fry_minke_whale:'bb3564e2c52a',juv_minke_whale:'2dea721f3685',minke_whale:'9d6b7f542bae',fry_gray_whale:'d9d580e96720',juv_gray_whale:'98a286156e78',gray_whale:'e577e3079295',fry_humpback_whale:'030d79f0f163',juv_humpback_whale:'abd09f0c2797',humpback_whale:'ef72fe4536bd',fry_sperm_whale:'ef688635d471',juv_sperm_whale:'fcdafe55a024',sperm_whale:'8ffe859f90a3',fry_blue_whale:'ebae282b2d33',juv_blue_whale:'24ee9cc44f76',blue_whale:'48dc21cd27b4',fry_sawshark:'23722bab10b3',juv_sawshark:'ab94aa0aab2e',sawshark:'7ba142536416',
  // 2026-11-18 범고래 새끼 · 어린 개체 전용 모델 — 다 큰 모델에서 비율만 바꿔 다시 구움(orca-young-build.mjs)
  fry_orca:'8acf0d5ebcd3',juv_orca:'f7ef99a634e6',
  // 2026-11-18 오징어 · 대왕오징어 6모습 v3(문어 · 크라켄 v3 는 후보로만 — ceph-v3/octopus-candidates) — 그림을 세운 판 → 진짜 입체(design/aqua3d-review/ceph-v3-build.mjs, 옛 판은 ceph-v3/old)

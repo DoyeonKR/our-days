@@ -32,6 +32,10 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
   bx1=front;}
  // 머리 크기 — 사진 · 피규어처럼 머리가 몸통보다 높고(1.32배) 아래로 깊다(위 선은 곧게)
  const SPERM_GROW=.32,SPERM_DROP=.26;
+ if(!sperm&&!/sawshark/.test(key)){let front=bx1;for(let x=bx1;x<W;x++){for(let y=0;y<H;y++)if(mask[y*W+x]){front=x;break;}}
+  // 2026-11-23 [사용자: "이런것들이 또 있나 검토해봐 고래류에 많을 것 같은데"] — 빠진 주둥이 끝은 그 열의 세로 폭(위 · 아래 끝)으로 잰다. 뾰족한 주둥이라 그대로 가늘어진다
+  for(let x=bx1+1;x<=front;x++){let t=-1,b=-1,bt=-1,bb=-1;for(let y=0;y<=H;y++){const on=y<H&&mask[y*W+x];if(on&&t<0)t=y;if(!on&&t>=0){if(y-1-t>bb-bt)[bt,bb]=[t,y-1];t=-1;}}if(bt<0)continue;C[x]=(bt+bb)/2;Rr[x]=Math.max(.8,(bb-bt)/2*.95);}
+  bx1=front;}
  const spermBox=x=>sperm?Math.min(1,Math.max(0,(x-headX0)/((bx1-bx0)*.06))):0;
  // 텍스처: 위 반 = 관 둘레로 굽은 몸 · 아래 반 = 원화(다리 · 더듬이가 원화 자리의 색을 쓴다). 투명한 곳은 가장 가까운 색
  const near=new Int32Array(W*H).fill(-1),q=new Int32Array(W*H);let qa=0,qb=0;for(let i=0;i<W*H;i++)if(data[i*4+3]>140){near[i]=i;q[qb++]=i;}while(qa<qb){const i=q[qa++],x=i%W;for(const j of[i-W,i+W,...(x?[i-1]:[]),...(x<W-1?[i+1]:[])])if(j>=0&&j<W*H&&near[j]<0){near[j]=near[i];q[qb++]=j;}}
@@ -63,7 +67,7 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const inSaw=(x,y)=>sawKey&&x>bx1&&x<=sawTip&&Math.abs(y-SC[Math.round(x)])<=SR[Math.round(x)]*1.6;
  const outside=(x,y)=>(whale&&x<bx0)?false:!inSaw(x,y)&&(x<bx0||x>bx1||Math.abs(y-cAt(x))>rAt(x)*1.0);
  const app=relief(art,{depth:.02,round:.015,step:2,alpha:A,inside:outside,targetTris:1500});const appStart=P.length/3,APP=[];
- for(const side of[-1,1]){const base=P.length/3,n=app.P.length/3;for(let i=0;i<n;i++){const x=app.P[i*3],y=app.P[i*3+1],z=app.P[i*3+2],inBody=x>=bx0&&x<=bx1,below=inBody&&y>cAt(x),off=inBody?rAt(x)*(below?.45:.3):0;APP.push([vtx(x,y,z+side*off,...refUV(x,y)),side,x,y]);}for(const k of app.I)I.push(base+k);}
+ for(const side of[-1,1]){const base=P.length/3,n=app.P.length/3;for(let i=0;i<n;i++){const x=app.P[i*3],y=app.P[i*3+1],z=app.P[i*3+2],inBody=x>=bx0&&x<=bx1,below=inBody&&y>cAt(x),off=inBody&&below?rAt(x)*.45:0;APP.push([vtx(x,y,z+side*off,...refUV(x,y)),side,x,y]);}for(const k of app.I)I.push(base+k);}
  const mid=(bx0+bx1)/2,front=APP.filter(([, ,x,y])=>x>mid&&x<=bx1&&y>cAt(x));let fx=0,fy=0,rx=0;for(const [, ,x,y]of front){fx+=x;fy+=y;}const nf=Math.max(1,front.length);fx/=nf;fy/=nf;rx=fx+ (bx1-bx0)*.04;const rootY=cAt(rx)+rAt(rx)*.6;
  // 가슴지느러미를 몸 밖으로 벌린다(2026-11-18 — 앞에서 보면 몸 옆에 붙은 말뚝 둘이었다). 실제 고래 · 상어는 몸 옆에서 아래 · 바깥으로 비스듬히 뻗는다.
  //   몸 아래 붙는 선(가운데 + 반두께 .6)보다 아래로 나온 만큼 바깥(z)으로 옮기고 조금 들어 올린다. 상어(톱상어)는 더 수평으로
