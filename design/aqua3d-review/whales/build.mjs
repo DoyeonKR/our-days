@@ -18,8 +18,21 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const cy=new Float32Array(W).fill(NaN),rr=new Float32Array(W);for(let x=0;x<W;x++){let best=0,by=-1;for(let y=0;y<H;y++){const d=dist[y*W+x];if(d>best){best=d;by=y;}}if(by>=0){cy[x]=by;rr[x]=best;}}
  // 몸통 = 반두께가 가장 굵은 곳의 18% 넘는 열 중 가장 긴 이어진 구간(더듬이 · 다리 끝은 얇아서 빠진다)
  let rmax=0;for(let x=0;x<W;x++)rmax=Math.max(rmax,rr[x]);let best=[0,0],s0=-1;for(let x=0;x<=W;x++){const on=x<W&&rr[x]>rmax*.18;if(on&&s0<0)s0=x;if(!on&&s0>=0){if(x-s0>best[1]-best[0])best=[s0,x-1];s0=-1;}}
- const [bx0,bx1]=best;const sm=(arr,i,w)=>{let s=0,n=0;for(let k=-w;k<=w;k++){const j=Math.min(bx1,Math.max(bx0,i+k));if(Number.isFinite(arr[j])){s+=arr[j];n++;}}return s/n;};
+ const bx0=best[0];let bx1=best[1];const sm=(arr,i,w)=>{let s=0,n=0;for(let k=-w;k<=w;k++){const j=Math.min(bx1,Math.max(bx0,i+k));if(Number.isFinite(arr[j])){s+=arr[j];n++;}}return s/n;};
  const C=new Float32Array(W),Rr=new Float32Array(W);for(let x=bx0;x<=bx1;x++){C[x]=sm(cy,x,7);Rr[x]=sm(rr,x,5)*1.08;}
+ // 향유고래 머리(2026-11-22 [사용자: "지금 향유고래 앞머리 아니 대가리가 아예 그려지지않았어 … 대가리 기준이미지 보내줄테니까 참고해서 모델 그려"])
+ //   몸 두께를 '가장자리에서 떨어진 거리'로 재면, 앞면이 수직으로 끊긴 네모 머리는 앞쪽 열이 전부 얇게 재져 몸통(18% 문턱)에서 빠지고 얇은 판으로만 남았다 — 게임에선 둥글게 깎인 코였다.
+ //   머리 구간(몸 앞 34%)은 그 열의 세로 폭(위 · 아래 끝)으로 재고 몸통을 그림의 진짜 앞끝까지 늘린다. 단면은 네모에 가까운 둥근 사각(아래 spermBox) — 크고 뭉툭한 머리. 기준 사진 · 피규어는 비율만 보고 그림은 쓰지 않았다(저작권).
+ const sperm=/sperm_whale/.test(key);let headX0=Infinity;
+ if(sperm){let front=bx1;for(let x=bx1;x<W;x++){for(let y=0;y<H;y++)if(mask[y*W+x]){front=x;break;}}
+  const run=x=>{let bt=-1,bb=-1,t=-1;for(let y=0;y<=H;y++){const on=y<H&&mask[y*W+x];if(on&&t<0)t=y;if(!on&&t>=0){if(y-1-t>bb-bt)[bt,bb]=[t,y-1];t=-1;}}return [bt,bb];};
+  headX0=Math.round(front-(front-bx0)*.34);const blend=(front-bx0)*.08;
+  for(let x=headX0-Math.round(blend);x<=front;x++){const [t,b]=run(x);if(t<0)continue;const w=Math.min(1,Math.max(0,(x-(headX0-blend))/blend)),c=(t+b)/2,r=(b-t)/2*.97;
+   const c0=x<=bx1?C[x]:c,r0=x<=bx1?Rr[x]:r;C[x]=c0+(c-c0)*w;Rr[x]=Math.max(r0*(1-w),r0+(r-r0)*w);}
+  bx1=front;}
+ // 머리 크기 — 사진 · 피규어처럼 머리가 몸통보다 높고(1.32배) 아래로 깊다(위 선은 곧게)
+ const SPERM_GROW=.32,SPERM_DROP=.26;
+ const spermBox=x=>sperm?Math.min(1,Math.max(0,(x-headX0)/((bx1-bx0)*.06))):0;
  // 텍스처: 위 반 = 관 둘레로 굽은 몸 · 아래 반 = 원화(다리 · 더듬이가 원화 자리의 색을 쓴다). 투명한 곳은 가장 가까운 색
  const near=new Int32Array(W*H).fill(-1),q=new Int32Array(W*H);let qa=0,qb=0;for(let i=0;i<W*H;i++)if(data[i*4+3]>140){near[i]=i;q[qb++]=i;}while(qa<qb){const i=q[qa++],x=i%W;for(const j of[i-W,i+W,...(x?[i-1]:[]),...(x<W-1?[i+1]:[])])if(j>=0&&j<W*H&&near[j]<0){near[j]=near[i];q[qb++]=j;}}
  const px=(x,y)=>{x=Math.max(0,Math.min(W-1,Math.round(x)));y=Math.max(0,Math.min(H-1,Math.round(y)));const k=near[y*W+x]*4;return [data[k],data[k+1],data[k+2]];};
@@ -30,9 +43,16 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  // 몸통 관
  // 톱상어(2026-11-20) — 머리는 위아래로 납작하고 옆으로 넓다(앞 18% 에서 옆 폭을 1.45 배까지)
  const sawKey=/sawshark/.test(key),headK=x=>sawKey?1+.45*Math.max(0,Math.min(1,(x-(bx1-(bx1-bx0)*.18))/((bx1-bx0)*.18)))**1.5:1;
- const N=16,step=4,rings=[];for(let x=bx0;x<=bx1;x+=step){const r=Rr[x],c=C[x],ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2;ring.push(vtx(x,c-Math.cos(phi)*r,Math.sin(phi)*r**.95*headK(x),(x-bx0)/(bx1-bx0),(j/N*254+.5)/511));}rings.push(ring);}
+ const N=16,step=4,rings=[];for(let x=bx0;x<=bx1;x+=step){const r=Rr[x],c=C[x],ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2;const bk=spermBox(x),ex=2/(2+1.2*bk),cs=Math.cos(phi),sn=Math.sin(phi),ys=Math.sign(cs)*Math.abs(cs)**ex,zs=Math.sign(sn)*Math.abs(sn)**ex,rg=r*(1+SPERM_GROW*bk),cg=c+r*SPERM_DROP*bk;ring.push(vtx(x,cg-ys*rg,zs*rg**.95*headK(x)*(1-.14*bk),(x-bx0)/(bx1-bx0),(j/N*254+.5)/511));}rings.push(ring);}
+ if(sperm){const xl=bx0+(rings.length-1)*step,cl=C[Math.min(bx1,xl)],rl=Rr[Math.min(bx1,xl)];for(const [dx,k]of[[2,.94],[3.5,.8]]){const ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2,cs=Math.cos(phi),sn=Math.sin(phi),ex=2/3.2;const rg=rl*(1+SPERM_GROW)*k,cg=cl+rl*SPERM_DROP;ring.push(vtx(xl+dx,cg-Math.sign(cs)*Math.abs(cs)**ex*rg,Math.sign(sn)*Math.abs(sn)**ex*rg**.95*.86,1,(j/N*254+.5)/511));}rings.push(ring);}
+  // 아래턱 — 머리 밑에 가늘고 긴 막대(앞끝은 머리 앞면보다 조금 뒤), 위쪽 절반은 머리 속에 묻혀 떠 있지 않다. 색은 그림의 입가(머리 아래 밝은 줄)
+  {const hl=bx1-headX0,j0=headX0+hl*.12,j1=bx1-hl*.07,NJ=10,jr=[],mUV=refUV(bx1-hl*.25,C[Math.round(bx1-hl*.25)]+Rr[Math.round(bx1-hl*.25)]*.85);
+   for(let x=j0;x<=j1+1e-6;x+=(j1-j0)/12){const xi=Math.round(Math.min(bx1,x)),r0=Rr[xi],bottom=C[xi]+r0*SPERM_DROP+r0*(1+SPERM_GROW),t=(x-j0)/(j1-j0),ry=r0*.16*(t<.85?1:1-(t-.85)/.15*.5),rz=r0*.34*(1-.35*t),cy0=bottom-ry*.45,ring=[];
+    for(let j=0;j<=NJ;j++){const phi=j/NJ*Math.PI*2;ring.push(vtx(x,cy0-Math.cos(phi)*ry,Math.sin(phi)*rz,...mUV));}jr.push(ring);}
+   for(let i=0;i<jr.length-1;i++)for(let j=0;j<NJ;j++){const a=jr[i][j],b=jr[i][j+1],c=jr[i+1][j],d=jr[i+1][j+1];I.push(a,c,b,b,c,d);}
+   for(const [k,rev]of[[0,true],[jr.length-1,false]]){const ring=jr[k],cx=P[ring[0]*3],cyy=(P[ring[0]*3+1]+P[ring[NJ/2]*3+1])/2,ctr=vtx(cx,cyy,0,...mUV);for(let j=0;j<NJ;j++)I.push(...(rev?[ctr,ring[j+1],ring[j]]:[ctr,ring[j],ring[j+1]]));}}}
  for(let i=0;i<rings.length-1;i++)for(let j=0;j<N;j++){const a=rings[i][j],b=rings[i][j+1],c=rings[i+1][j],d=rings[i+1][j+1];I.push(a,c,b,b,c,d);}
- for(const [k,rev]of[[0,true],[rings.length-1,false]]){const x=bx0+k*step,ctr=vtx(x,C[Math.min(bx1,x)],0,(x-bx0)/(bx1-bx0),.25);for(let j=0;j<N;j++){const a=rings[k][j],b=rings[k][j+1];I.push(...(rev?[ctr,b,a]:[ctr,a,b]));}}
+ for(const [k,rev]of[[0,true],[rings.length-1,false]]){const x=k===rings.length-1&&sperm?bx0+(rings.length-3)*step+3.5:bx0+k*step,ctr=vtx(x,C[Math.min(bx1,x)]+(sperm&&k?Rr[Math.min(bx1,x)]*SPERM_DROP:0),0,Math.min(1,(x-bx0)/(bx1-bx0)),.25);for(let j=0;j<N;j++){const a=rings[k][j],b=rings[k][j+1];I.push(...(rev?[ctr,b,a]:[ctr,a,b]));}}
  // 몸 밖의 얇은 부분(다리 · 더듬이 · 꼬리부채) — 몸통 타원 안쪽 조금(뿌리)부터
  const rAt=x=>{const xi=Math.max(bx0,Math.min(bx1,Math.round(x)));return Rr[xi];},cAt=x=>C[Math.max(bx0,Math.min(bx1,Math.round(x)))];
  // 고래는 꼬리지느러미가 수평이다 — 원화(옆모습)의 꼬리 판은 빼고 아래에서 수평 꼬리를 따로 짓는다. 톱상어(상어)는 세로 꼬리 그대로

@@ -3,7 +3,7 @@ import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 const qs = new URLSearchParams(location.search), status = document.querySelector('#status'), out = document.querySelector('#out');
-const newDir = qs.get('dir') ?? '/public/aqua/models/fish', oldDir = '/design/aqua3d-review/ceph-v3/old';
+const newDir = qs.get('dir') ?? '/public/aqua/models/fish', oldDir = qs.get('old') ?? '/design/aqua3d-review/ceph-v3/old';
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), CELL = +(qs.get('cell') ?? 220);
 const VIEWS = {side: [0, 0, 1], top: [0, 1, .001], front: [1, 0, 0], oblique: [1, .6, 1.3], tank: [.35, .42, 1]};
 const renderer = new T.WebGLRenderer({antialias: true, preserveDrawingBuffer: true}); renderer.setSize(CELL, CELL); renderer.toneMapping = T.NeutralToneMapping; renderer.outputColorSpace = T.SRGBColorSpace;
