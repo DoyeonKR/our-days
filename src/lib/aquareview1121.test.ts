@@ -30,7 +30,7 @@ test("⑥ 다 키워 보내면 잡은 낚시터 숙련도가 오른다 — 낚�
   const after = noteReleaseMastery(st, "brook", "guppy");
   assert.equal(spotMastery(after, "brook").n, MASTERY_RELEASE_N);
   assert.deepEqual(spotMastery(noteReleaseMastery(after, "brook", "guppy"), "brook").kinds, ["guppy"], "같은 모습은 한 번만");
-  assert.match(read("src/lib/fishing.ts"), /const origin = f\.stage === 2 \? releaseSpot\(f, synced\.life\) : undefined;/);
+  assert.match(read("src/lib/fishing.ts"), /const origin = f\.stage === 2 && raisedShare\(f\) > 0 \? releaseSpot\(f, synced\.life\) : undefined;/, "수조에서 자란 몫이 있을 때만(2026-11-23)");
 });
 
 test("⑤ · ⑨ 수조 화면 — 가득 차면 견주기 카드, 늘리기는 넓히기 칸, 오늘 할 일 칩", () => {

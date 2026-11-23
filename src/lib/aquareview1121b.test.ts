@@ -57,7 +57,7 @@ test("⑤ 수조 알림 — 저장마다 aquaAlert, 배고프면 · 그물이 �
   const copy = lib.slice(lib.indexOf("// ── 엣지 함수 복사본 시작 ──"), lib.indexOf("// ── 엣지 함수 복사본 끝 ──")).replace("export function aquaNudgeFor", "function aquaNudgeFor");
   assert.ok(fn.includes(copy), "함수 복사본이 다르다 — 고치면 둘 다, 그리고 다시 배포");
   assert.match(fn, /select\("couple_id, aq:state->aquarium, al:state->aquaAlert"\)/);
-  assert.ok(fn.indexOf("if (!canNudge(pref, kstHour)) continue;") < fn.indexOf("aquaMsg) out.push"), "설정 · 조용시간을 지나야 보낸다");
+  assert.ok(fn.includes("if (aquaMsg && okAqua) out.push") && fn.indexOf("okAqua = canNudge(pref, localHour, \"aquarium\")") < fn.indexOf("aquaMsg && okAqua"), "설정(수조 알림 · 조용시간 — 받는 사람 시간대)을 지나야 보낸다(2026-11-23)");
 });
 
 test("④ 오늘 잡은 물고기 — 날이 바뀌면 새로, 상한, 요약", () => {
@@ -93,4 +93,20 @@ test("⑨ ⑩ ⑪ 파일 나누기 — 준비 시트 · 날씨 · 수조 카드"
   assert.match(read("src/lib/fishingfx.ts"), /private sky = new FxWeatherLayer\(\);/);
   assert.match(read("src/lib/fishingfxweather.ts"), /export class FxWeatherLayer/);
   for (const n of ["FishCard", "BreedCard", "FullCompare", "MemorialCard", "MorphDexCard", "LightShop", "EventCard"]) assert.match(read("src/components/aquarium/AquaCards.tsx"), new RegExp(`export function ${n}\\(`), n);
+});
+
+// 2026-11-23 리뷰 — 늦은 사냥 알림 · 버려진 수조 · 그물 사각지대
+test("수조 알림 — 문턱 밑 3시간 넘으면 '벌써 사냥했을 수 있어요'(숫자 없이) · 마지막 저장 48시간 뒤엔 사냥 알림 없음 · 그물은 15시간 안", async () => {
+  const { aquaNudgeFor, NUDGE_NET_H, NUDGE_STALE_H, NUDGE_LATE_H } = await import("./aquanudge.ts");
+  const H = 3_600_000, T0 = Date.parse("2026-11-23T01:00:00Z");
+  assert.equal(NUDGE_NET_H >= 14, true); assert.equal(NUDGE_STALE_H, 48); assert.equal(NUDGE_LATE_H, 3);
+  // 저장 때 포만 80, 시간당 5 → 1시간 뒤 문턱(75). 2시간 뒤면 막 내려간 참 — 숫자로 막을 수 있다고
+  assert.match(aquaNudgeFor({ hunger: 80, at: T0 }, { perH: 5, prey: 3 }, T0 + 2 * H)?.body ?? "", /3마리가 잡아먹힐 수 있어요/);
+  // 10시간 뒤면 문턱 밑 9시간 — 이미 사냥했을 수 있다
+  const late = aquaNudgeFor({ hunger: 80, at: T0 }, { perH: 5, prey: 3 }, T0 + 10 * H)?.body ?? "";
+  assert.match(late, /벌써 사냥했을 수 있어요/); assert.doesNotMatch(late, /3마리/);
+  // 버려진 수조 — 저장 49시간 뒤엔 사냥 알림 없음
+  assert.equal(aquaNudgeFor({ hunger: 10, at: T0 }, { perH: 1, prey: 3 }, T0 + 49 * H), null);
+  // 그물 — 14시간 뒤 팔리는 물고기도 알린다(20시 → 다음 날 10시 사이)
+  assert.match(aquaNudgeFor({ hunger: 100, at: T0 }, { perH: 0, prey: 0, net: T0 + 14 * H }, T0)?.body ?? "", /대기 그물/);
 });

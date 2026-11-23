@@ -15,7 +15,8 @@ export type NotifyCategory =
   | "remind"
   | "dday"
   | "question"
-  | "rank";
+  | "rank"
+  | "aquarium";
 
 /* 2026-08-26 정리:
  * · 'letter'·'game' 토글 제거 — 발송처가 코드 전체에 0곳인 죽은 스위치였다(편지·대결 기능
@@ -37,6 +38,8 @@ export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: stri
   { key: "question", label: "아침 질문 알림", desc: "매일 아침, 오늘의 질문이 도착했다고" },
   // 2026-11-01 [사용자: "내 최고 탑 점수가 다른 사람한테 역전당하면 푸쉬"] — 정원 합치기 10등 안의 내 최고 기록을 누가 넘었을 때
   { key: "rank", label: "게임 순위", desc: "정원 합치기에서 내 기록이 역전됐을 때" },
+  // 2026-11-23 — 수조 알림(배고픈 사냥꾼 · 곧 팔리는 대기 그물)을 '오늘 남기기 알림'과 따로 끈다(activity-nudge 가 이 키를 본다)
+  { key: "aquarium", label: "우리 수조", desc: "배고픈 사냥꾼 · 곧 팔리는 대기 그물" },
 ];
 
 export type NotifyPrefs = {

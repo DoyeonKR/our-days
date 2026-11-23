@@ -187,7 +187,7 @@ test("접지 그림자 텍스처는 멀리서도 반짝이지 않는다(Linear)"
 });
 
 test("보기 모드 누르기 — 물고기만 · 빗나가면 24px 안의 가장 가까운 물고기", () => {
-  assert.match(scene, /ray\.intersectObjects\(\[\.\.\.swimmers\.values\(\)\]\.map\(m=>m\.root\),true\)/);
+  assert.match(scene, /ray\.intersectObjects\(\[\.\.\.swimmers\]\.filter\(\(\[id,m\]\)=>pickable\(id,m\)\)\.map\(\(\[,m\]\)=>m\.root\),true\)/);
   assert.doesNotMatch(scene, /\[\.\.\.swimmers\.values\(\),\.\.\.decorations\.values\(\)\]/);
   assert.match(scene, /let best=-1,bestD=24;/);
 });
@@ -241,7 +241,7 @@ test("물속 빛 — 모래와 같은 일렁임 식을 장식 · 물고기 재�
 
 test("깊이 안개 · 물고기 그림자", () => {
   // 안개는 카메라 거리를 따라간다 — 고른 물고기를 따라 다가가면(dist) 같이 당겨진다
-  assert.match(scene, /scene\.fog\.near=dist-2;scene\.fog\.far=dist\+9;/);
+  assert.match(scene, /scene\.fog\.near=dist-2;scene\.fog\.far=dist\+9\+3\*Math\.max\(0,deep-1\);/);
   assert.match(scene, /dist=camD\+\(near-camD\)\*focusK/);
   assert.match(scene, /"fish-floor-shadows"/);
   assert.match(scene, /fishShadows\.setMatrixAt\(i,shadowDummy\.matrix\)/);

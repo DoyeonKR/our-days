@@ -104,7 +104,7 @@ test("⑥ 화면 — 결과 창이 단계 줄을 그리고, 레이드는 못 깎
   const game = readFileSync(join(import.meta.dirname, "../components/FishingGame.tsx"), "utf8");
   assert.doesNotMatch(game, /if \(dealt <= 0\.0005\) return;/, "못 깎은 판을 빼면 못한 판만 평균에서 빠진다");
   assert.match(game, /bossLost\(s, cur\.key, dealt, day, who, cur\.seen, cur\.seed, raidInterrupted\(r\) \? undefined : raidScore\(r\)\)/);
-  assert.match(game, /saveBossWin\(b, cur\.seen, pace === null \? undefined/);
+  assert.match(game, /const kill = pace === null \? undefined : \{ id: cur\.seed, score: pace \}; raidRetry\.current = \(\) => saveBossWin\(b, cur\.seen, kill\);/);
 });
 
 /* ── ④ 보내 주면 주인이 빨리 ─────────────────────── */

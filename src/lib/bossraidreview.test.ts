@@ -161,7 +161,7 @@ test("화면 — 판 끝에 바로 저장 · 결과 창 닫기는 알리기만 �
   const game = code("src/components/FishingGame.tsx"), ui = code("src/components/BossRaidGame.tsx");
   const endRaid = game.slice(game.indexOf("function endRaid("), game.indexOf("function quitRaid("));
   // 2026-11-18: 토벌 판의 빠르기(raidKillPace)를 같은 저장에 싣는다 — 보상 단계(lib/bossmark)
-  assert.match(endRaid, /r\.end === "kill"[\s\S]*?raidSave\.current = saveBossWin\(b, cur\.seen, pace === null \? undefined/, "토벌을 결과 창을 닫을 때까지 미뤘다");
+  assert.match(endRaid, /r\.end === "kill"[\s\S]*?raidRetry\.current = \(\) => saveBossWin\(b, cur\.seen, kill\); raidSave\.current = raidRetry\.current\(\);/, "토벌을 결과 창을 닫을 때까지 미뤘다");
   assert.match(endRaid, /const dealt = Math\.max\(0, cur\.chunk \* raidScore\(r\)\)/, "깎은 양(남은 체력이 아니다)");
   const closeRaid = game.slice(game.indexOf("function closeRaid("), game.indexOf("function clearRound("));
   assert.doesNotMatch(closeRaid, /bossWon\(|bossLost\(|act\(/, "닫을 때 저장하면 앱이 꺼질 때 사라지고 두 번 준다");

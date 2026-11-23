@@ -44,7 +44,9 @@ function nudgeFor(
 
 // src/lib/aquanudge.ts 미러(2026-11-21 수조 알림) — 글자 그대로 같은 복사본(aquanudge.test 가 비교한다). 고치면 둘 다, 그리고 함수를 다시 배포한다.
 const NUDGE_HUNGRY = 75;
-const NUDGE_NET_H = 12;
+const NUDGE_NET_H = 15;
+const NUDGE_STALE_H = 48;
+const NUDGE_LATE_H = 3;
 // ── 엣지 함수 복사본 시작 ──
 function aquaNudgeFor(
   aq: { hunger?: unknown; at?: unknown } | null | undefined,
@@ -58,9 +60,13 @@ function aquaNudgeFor(
   const prey = typeof al.prey === "number" ? al.prey : 0;
   const net = typeof al.net === "number" ? al.net : NaN;
   const lines: string[] = [];
-  if (prey > 0 && Number.isFinite(hunger) && Number.isFinite(at) && Number.isFinite(perH)) {
-    const nowHunger = hunger - Math.max(0, (now - at) / 3600000) * perH;
-    if (nowHunger < NUDGE_HUNGRY) lines.push(`배고픈 사냥꾼이 있어요 — 먹이를 안 주면 ${prey}마리가 잡아먹힐 수 있어요`);
+  if (prey > 0 && Number.isFinite(hunger) && Number.isFinite(at) && Number.isFinite(perH) && now - at <= NUDGE_STALE_H * 3600000) {
+    const sinceH = Math.max(0, (now - at) / 3600000), nowHunger = hunger - sinceH * perH;
+    if (nowHunger < NUDGE_HUNGRY) {
+      // 문턱 밑으로 내려간 때 — 저장 때 이미 밑이었으면 저장 시각
+      const crossedH = hunger < NUDGE_HUNGRY || perH <= 0 ? sinceH : sinceH - (hunger - NUDGE_HUNGRY) / perH;
+      lines.push(crossedH >= NUDGE_LATE_H ? "배고픈 사냥꾼이 벌써 사냥했을 수 있어요 — 지금 먹이를 주면 더 잃지 않아요" : `배고픈 사냥꾼이 있어요 — 먹이를 안 주면 ${prey}마리가 잡아먹힐 수 있어요`);
+    }
   }
   if (Number.isFinite(net) && net > now && net - now <= NUDGE_NET_H * 3600000) lines.push("대기 그물의 물고기가 곧 팔려요 — 수조로 옮겨 주세요");
   if (!lines.length) return null;
@@ -75,12 +81,22 @@ type PrefRow = {
   quiet_end?: number | null;
 };
 
-/** 이 사용자에게 리마인더를 보낼 수 있나(카테고리 off / 조용시간 게이트). */
-function canNudge(p: PrefRow | undefined, kstHour: number): boolean {
+/** 이 사용자에게 이 카테고리 알림을 보낼 수 있나(카테고리 off / 조용시간 게이트). 조용시간은 받는 사람 시간대의 시(2026-11-23 — 예전엔 KST 라 해외에 있는 사람에게 그쪽 밤에 갔다) */
+function canNudge(p: PrefRow | undefined, localHour: number, category: "remind" | "aquarium"): boolean {
   if (!p) return true; // 설정 없음 = 수신
-  if (p.prefs && p.prefs["remind"] === false) return false;
-  if (inQuietHours(kstHour, p.quiet_start, p.quiet_end)) return false;
+  if (p.prefs && p.prefs[category] === false) return false;
+  if (inQuietHours(localHour, p.quiet_start, p.quiet_end)) return false;
   return true;
+}
+/** 시간대의 지금 시(0~23) — 잘못된 시간대면 KST(daily-reminders 의 localParts 와 같은 방식) */
+function hourIn(now: Date, timezone: string | null | undefined): number {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone || "Asia/Seoul", hour: "2-digit", hourCycle: "h23" }).formatToParts(now);
+    const h = Number(parts.find((x) => x.type === "hour")?.value);
+    return Number.isFinite(h) ? h : hourIn(now, "Asia/Seoul");
+  } catch {
+    return timezone === "Asia/Seoul" ? new Date(now.getTime() + 9 * 3600 * 1000).getUTCHours() : hourIn(now, "Asia/Seoul");
+  }
 }
 
 Deno.serve(async (req) => {
@@ -107,7 +123,7 @@ Deno.serve(async (req) => {
     const coupleId = (c as { id: string }).id;
 
     const [{ data: members }, { data: logs }, { data: diaries }] = await Promise.all([
-      sb.from("couple_members").select("user_id").eq("couple_id", coupleId),
+      sb.from("couple_members").select("user_id, timezone").eq("couple_id", coupleId),
       sb
         .from("couple_logs")
         .select("created_by, slot")
@@ -134,7 +150,10 @@ Deno.serve(async (req) => {
       const pref = (prefRows ?? []).find(
         (r: PrefRow) => r.user_id === uid,
       ) as PrefRow | undefined;
-      if (!canNudge(pref, kstHour)) continue;
+      const tz = (members ?? []).find((m: { user_id: string; timezone?: string | null }) => m.user_id === uid)?.timezone;
+      const localHour = hourIn(new Date(), tz);
+      const okRemind = canNudge(pref, localHour, "remind"), okAqua = canNudge(pref, localHour, "aquarium");
+      if (!okRemind && !okAqua) continue;
 
       // 이 사용자가 오늘 남긴 것
       const didAm = (logs ?? []).some(
@@ -151,8 +170,8 @@ Deno.serve(async (req) => {
 
       const msg = nudgeFor(evening, { didAm, didPm, didDiary });
       const out: { title: string; body: string; url: string }[] = [];
-      if (msg) out.push({ ...msg, url: "./" });
-      if (aquaMsg) out.push({ ...aquaMsg, url: "./?go=aquarium" });
+      if (msg && okRemind) out.push({ ...msg, url: "./" });
+      if (aquaMsg && okAqua) out.push({ ...aquaMsg, url: "./?go=aquarium" });
       if (!out.length) continue;
 
       const { data: subs } = await sb

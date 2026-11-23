@@ -283,7 +283,7 @@ test("the guest is not a tank fish: no feeding, no whale-shark escort, no prey, 
   assert.match(scene, /m\.root\.userData=\{type:"fish",id:GUEST_ID,guest:true\}/);
   // 몸 크기는 실제 자리(왼쪽 유리에서 얼마나 안쪽인가)로 — 보이는 동안만
   assert.match(scene, /if\(m\.visit&&m\.root\.visible\)m\.root\.scale\.setScalar\(m\.scale\*guestSize\(x,m\.length\)\);/);
-  assert.match(scene, /for\(const\[id,m\]of swimmers\)\{if\(m\.visit\)continue;projected\.copy/);
+  assert.match(scene, /for\(const\[id,m\]of swimmers\)\{if\(!pickable\(id,m\)\)continue;projected\.copy/); assert.match(scene, /const pickable=\(id:number,m:Swimmer\)=>id>0&&!m\.visit&&!m\.root\.userData\.guest&&m\.root\.visible;/);
   assert.match(scene, /if\(m\.visit\)return;/);
   // 저장 · 물고기 목록과 무관 — 음수 id(update 는 0 이상만 지운다), 움직임 줄이기면 오지 않는다, 개발 훅은 배포 빌드에 없다
   assert.match(scene, /const GUEST_ID=-3_000_000/);

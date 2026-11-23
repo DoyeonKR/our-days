@@ -1283,9 +1283,14 @@ export function keepInNet(st: IslandState, fish: Omit<NetFish, "at">, now: numbe
   if ((a.net?.length ?? 0) >= NET_MAX) return { ok: false, reason: `대기 그물이 가득 찼어요(${NET_MAX}마리)` };
   return put(s, { ...a, net: [...(a.net ?? []), { ...fish, value: Math.max(0, Math.round(fish.value)), at: now }] }, s.coins, `대기 그물에 두었어요 — ${NET_HOURS}시간 안에 수조로 옮겨 주세요`);
 }
-export function netToTank(st: IslandState, index: number, now: number): AquaResult {
+/** 대기 그물 칸을 가리키는 열쇠(2026-11-23) — 화면이 그린 '몇 번째'가 아니라 그 물고기. 저장 직전에 다시 읽은 상태에서 한 마리가 기한이 지나 팔렸거나
+ *  상대가 그물을 바꾸면 순서가 밀려, 비단잉어를 팔려고 눌렀는데 아로와나가 팔렸다 */
+export const netKeyOf = (n: { family: string; at: number; value: number }) => `${n.family}@${n.at}#${n.value}`;
+const netIndexOf = (a: AquaState, ref: number | string) => (typeof ref === "number" ? ref : (a.net ?? []).findIndex((n) => netKeyOf(n) === ref));
+export function netToTank(st: IslandState, ref: number | string, now: number): AquaResult {
   const { s, a } = begin(st, now);
-  const n = a.net?.[index];
+  const index = netIndexOf(a, ref);
+  const n = index >= 0 ? a.net?.[index] : undefined;
   if (!n) return { ok: false, reason: "이미 그물에 없어요" };
   const fam = familyOf(n.family);
   const grade = speciesOf(n.species)?.grade ?? fam?.finals[0].grade;
@@ -1295,9 +1300,10 @@ export function netToTank(st: IslandState, index: number, now: number): AquaResu
   const moved = addFish(stow(s, { ...a, net: rest }), n.family, n.stage, n.species, now, n.crown, n.cm, n.value, { spot: n.spot, by: n.by, at: n.at, net: true });
   return { ok: true, state: moved, note: `${josa(fishName(n), "을/를")} 수조로 옮겼어요` };
 }
-export function sellNet(st: IslandState, index: number, now: number): AquaResult {
+export function sellNet(st: IslandState, ref: number | string, now: number): AquaResult {
   const { s, a } = begin(st, now);
-  const n = a.net?.[index];
+  const index = netIndexOf(a, ref);
+  const n = index >= 0 ? a.net?.[index] : undefined;
   if (!n) return { ok: false, reason: "이미 그물에 없어요" };
   return put(s, { ...a, net: (a.net ?? []).filter((_, i) => i !== index) }, s.coins + n.value, `${josa(fishName(n), "을/를")} 팔았어요 — 하트 +${n.value.toLocaleString()}`);
 }

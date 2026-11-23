@@ -8,8 +8,12 @@
 
 /** 사냥이 일어나는 포만 문턱 — lib/predation 의 HUNGRY_BELOW 와 같은 값(aquanudge.test) */
 export const NUDGE_HUNGRY = 75;
-/** 대기 그물 — 이 시간 안에 팔리면 알린다(크론이 12시간마다 돈다) */
-export const NUDGE_NET_H = 12;
+/** 대기 그물 — 이 시간 안에 팔리면 알린다. 크론은 10 · 20시라 20시 → 다음 날 10시가 14시간 — 12시간이면 그 사이(8 ~ 10시)에 팔리는 물고기를 놓쳤다(2026-11-23) */
+export const NUDGE_NET_H = 15;
+/** 마지막 저장에서 이만큼 지나면 사냥 알림을 그만 보낸다 — 아무도 안 여는 수조에 묵은 숫자로 하루 두 번 끝없이 갔다(2026-11-23) */
+export const NUDGE_STALE_H = 48;
+/** 포만이 문턱 밑으로 내려간 지 이만큼 지났으면 '이미 사냥했을 수 있다'고 말한다 — 사냥은 다음에 앱을 열 때 정산돼, 알림이 도착할 땐 이미 먹힌 뒤가 많았다(2026-11-23) */
+export const NUDGE_LATE_H = 3;
 
 export type AquaAlert = { perH: number; prey: number; net?: number };
 
@@ -26,9 +30,13 @@ export function aquaNudgeFor(
   const prey = typeof al.prey === "number" ? al.prey : 0;
   const net = typeof al.net === "number" ? al.net : NaN;
   const lines: string[] = [];
-  if (prey > 0 && Number.isFinite(hunger) && Number.isFinite(at) && Number.isFinite(perH)) {
-    const nowHunger = hunger - Math.max(0, (now - at) / 3600000) * perH;
-    if (nowHunger < NUDGE_HUNGRY) lines.push(`배고픈 사냥꾼이 있어요 — 먹이를 안 주면 ${prey}마리가 잡아먹힐 수 있어요`);
+  if (prey > 0 && Number.isFinite(hunger) && Number.isFinite(at) && Number.isFinite(perH) && now - at <= NUDGE_STALE_H * 3600000) {
+    const sinceH = Math.max(0, (now - at) / 3600000), nowHunger = hunger - sinceH * perH;
+    if (nowHunger < NUDGE_HUNGRY) {
+      // 문턱 밑으로 내려간 때 — 저장 때 이미 밑이었으면 저장 시각
+      const crossedH = hunger < NUDGE_HUNGRY || perH <= 0 ? sinceH : sinceH - (hunger - NUDGE_HUNGRY) / perH;
+      lines.push(crossedH >= NUDGE_LATE_H ? "배고픈 사냥꾼이 벌써 사냥했을 수 있어요 — 지금 먹이를 주면 더 잃지 않아요" : `배고픈 사냥꾼이 있어요 — 먹이를 안 주면 ${prey}마리가 잡아먹힐 수 있어요`);
+    }
   }
   if (Number.isFinite(net) && net > now && net - now <= NUDGE_NET_H * 3600000) lines.push("대기 그물의 물고기가 곧 팔려요 — 수조로 옮겨 주세요");
   if (!lines.length) return null;

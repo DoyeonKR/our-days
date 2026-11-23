@@ -288,6 +288,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const raidClosing = useRef(false);
   /** 이미 저장한 토벌 — landRound 는 이걸로 알리기만 한다(보상을 두 번 주지 않는다) */
   const bossPaid = useRef<BossSaved | null>(null);
+  /** 레이드 토벌 저장을 한 번 더 부르는 길 — 저장이 결과 없이(연결 끊김) 끝나면 같은 저장을 다시 한다(bossWon 은 같은 판을 두 번 적지 않는다) */
+  const raidRetry = useRef<(() => Promise<BossSaved>) | null>(null);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const [bossNote, setBossNote] = useState<string | null>(null);
@@ -389,6 +391,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const releasingRef = useRef(0);
   const reelDirShown = useRef(0);
   const deepMeters = useRef(0);
+  /** 심해 판이 피버로 넘어갈 때 남긴 '끌어올릴 때 할 일'(깊이 기록 · 대물) — 피버를 이기면 부른다(roundTick deepPend) */
+  const deepPend = useRef<(() => void) | null>(null);
   const dialRef = useRef(0);
   /** 다이얼 SVG — 도는 각도는 여기로 바로 쓴다(손가락이 움직일 때마다 화면 전체를 다시 그리지 않는다) */
   const dialApi = useRef<DeepDialHandle>(null);
@@ -440,7 +444,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   }, [bossWin]);
   const later = useCallback((fn: () => void, ms: number) => {
     timers.current.push(setTimeout(function fire() {
-      if (pausedRef.current) timers.current.push(setTimeout(fire, ms));
+      if (pausedRef.current || document.hidden) timers.current.push(setTimeout(fire, ms));
       else fn();
     }, ms));
   }, []);
@@ -509,7 +513,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const look = wornLooks(row.state, who);
     fx.setLook({ bobber: look.bobber.id, line: look.line.color, rodTint: look.rod.color });
   }, [fx, row, spotPick, today, baitPick, method, who]);
-  // 앱을 켜 둔 채 자정을 넘겨도 오늘 값(지렁이 · 하트 한도 · 목표)이 어제에 머물지 않는다
+  // 앱을 켜 둔 채 자정을 넘겨도 오늘 값(지렁이 · 목표)이 어제에 머물지 않는다(낚시 하트에는 하루 한도가 없다 — README §14.4.7)
   useEffect(() => {
     const iv = setInterval(() => setToday(kstDate(clock())), 60_000);
     return () => clearInterval(iv);
@@ -771,7 +775,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       pausedRef, roundEnded, fxRef, keySpin, castAngRef, traceRef, spinRef, lureRef, lureTuneRef, fishRef, lightStrike, lightRef, lightTuneRef, holdRef, lightQ, effRef, planFeverRef, tuneRef, fightRef,
       herdRef, herdTuneRef, herdCaught, markHerdCaught: () => { herdCaught.current = true; }, herdAt, gradeRef, timers, methodRef, swayRef, swayTuneRef, rodXRef, coopAskRef, deepRef, deepTuneRef, spinAcc, backAcc, spinNow, backNow, releasingRef, reelDir, reelDirShown, deepMeters, rowRef,
       fightHpRef, bossChunkRef, bossPhaseRef, bossEffRef, setSpinLive, setCharge, setLureS, setLightS, setPerfectHook, setFight, setPhase, setHerdS, setFish, setSwayS, setReleasing, setReelDirS, setDeepS, setSpin, setDeepRecord, setBossRage,
-      loseRound, landRound, feverNow, showStamp, act, buzz, dice, clock,
+      loseRound, landRound, feverNow, deepPend, showStamp, act, buzz, dice, clock,
     };
     let last = deviceClock();
     const iv = setInterval(() => {
@@ -779,7 +783,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const elapsed = (now - last) / 1000;
       const dt = Math.min(0.1, elapsed);
       last = now;
-      if (pausedRef.current) return;
+      // 앱이 숨은 동안(전화 · 알림 · 다른 앱)은 판을 멈춘다(2026-11-23 — 피버 · 레이드만 멈추고 일반 낚시는 계속 돌아 미끼만 쓰고 놓쳤다)
+      if (pausedRef.current || document.hidden) return;
       if (roundEnded.current) return; // 끝난 판의 상태(landed · snapped …)는 그대로 남아 있다 — 다시 보면 끝 처리가 두 번 돈다
       tickRound(tick, phase, dt, elapsed, now);
     }, 33);
@@ -939,11 +944,14 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   /** 피버타임 결과 — 실패하면 무조건 놓치고, 성공하면 바로 끌어올리며 1~5% 로 등급이 오른다 */
   function endFever(won: boolean, left: number) {
     setFeverSeed(null);
+    const pend = deepPend.current;
+    deepPend.current = null;
     if (!won) {
       loseRound("fever");
       return;
     }
     setFeverWon(true);
+    pend?.(); // 심해 판 — 깊이 기록 · 대물(습격을 버텼으면)을 피버 등급 올리기 전에
     const c = fishRef.current;
     if (c && dice() < upgradeChance(left)) {
       const up = upgradeCatch(c, spot, roundBait.current, eff.luck, Math.floor(dice() * 2 ** 31), moment);
@@ -1024,7 +1032,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const b = bossOf(cur.key);
       // 토벌 판도 오래 싸웠으면 그 빠르기를 점수로 한 줄(raidKillPace — 짧게 끝난 판은 null 이라 안 넣는다)
       const pace = raidKillPace(r);
-      if (b) raidSave.current = saveBossWin(b, cur.seen, pace === null ? undefined : { id: cur.seed, score: pace });
+      if (b) { const kill = pace === null ? undefined : { id: cur.seed, score: pace }; raidRetry.current = () => saveBossWin(b, cur.seen, kill); raidSave.current = raidRetry.current(); }
       return;
     }
     // 깎은 양(chunk × 점수)을 저장한다 — 연 때의 체력이 아니라 저장할 때의 체력에서 뺀다(둘이 같은 때 싸워도 둘 다 남는다)
@@ -1052,8 +1060,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     // 시간 제한이 지나면 창을 닫고 '저장 중'이라 알린다. 그 저장은 계속 가고, 늦게 끝나면 그 결과(note)를 알린다.
     void withTimeout(raidSave.current ?? Promise.resolve(null), RAID_CLOSE_TIMEOUT_MS, (late) => {
       if (late) setMsg(late.note);
-    }).then((saved) => {
+    }).then(async (saved) => {
       raidSave.current = null;
+      // 2026-11-23 — 토벌 저장이 결과 없이 끝나면(연결 끊김 · 저장 둘 다 실패) 예전엔 그래도 왕관 물고기를 끌어올렸다: 보상 · 잡은 수는 안 들어가고
+      //   주인도 쉬러 가지 않아, 같은 주인을 다시 잡아 왕관 물고기를 또 받을 수 있었다. 같은 저장을 한 번 더 하고, 그래도 없으면 끌어올리지 않는다
+      if (r.end === "kill" && saved && !saved.res && raidRetry.current) saved = await raidRetry.current().catch(() => saved);
+      raidRetry.current = null;
       setRaid(null);
       if (r.end !== "kill") {
         setMsg(saved ? saved.note : `${cur.name} 체력을 깎지 못했어요`);
@@ -1062,6 +1074,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const b = bossOf(cur.key);
       if (!b) return;
       if (saved?.res && !saved.res.ok) { setMsg(saved.note); return; } // 상대가 먼저 잡았다 — 이 판의 토벌은 없다
+      if (!saved?.res) { setMsg(`${b.name} 토벌을 저장하지 못했어요 — 연결을 확인하고 다시 도전해 주세요`); return; }
       // 끌어올리기 — 찌낚시로 잡았을 때와 같은 길(공개 · 수조에 담기 · 결과 카드). 보상은 위에서 저장했다
       clearRound();
       const c = bossCatch(b);
@@ -1083,6 +1096,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   function clearRound() {
     setRoundCraft(null);
+    deepPend.current = null;
     sinkRef.current = null;
     setDepthPick(null);
     setSinkNow({ f: 0, band: 0.5 });
@@ -1587,6 +1601,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     if (r?.ok) {
       logCatch(r, c, who, t);
       void reportCatch(myName, c, quality, perfectHook, false).then(noteStanding);
+      // 그 사이 다음 판을 시작했으면 결과 카드는 건드리지 않는다(2026-11-23 — 늦게 끝난 저장이 새 물고기 카드에 지난 '내 최고 기록' · 판매 하트를 띄웠다)
+      if (fishRef.current !== c) return;
       setResult(r);
       if (!guess?.ok) {
         setPhase("result");

@@ -48,7 +48,7 @@ const cors: Record<string, string> = {
 // 보내는 사람이 정하는 칸의 상한(2026-11-09) — 예전엔 category · 제목 · 본문을 받은 그대로 상대 기기에 띄웠다.
 // 종류는 앱이 실제로 보내는 것만(src/lib/notify.ts 의 NotifyCategory) — 모르는 값은 쿡(poke)으로 본다.
 // 앱에 새 종류를 더하면 여기에도 더하고 이 함수를 다시 배포한다(serverguard.test 가 두 목록을 견준다).
-const PUSH_CATEGORIES = new Set(["poke", "event", "log", "diary", "interact", "bucket", "moodq", "remind", "dday", "question", "rank"]);
+const PUSH_CATEGORIES = new Set(["poke", "event", "log", "diary", "interact", "bucket", "moodq", "remind", "dday", "question", "rank", "aquarium"]);
 const TITLE_MAX = 60;
 const BODY_MAX = 200;
 /** 글자(코드 포인트) 단위로 자른다 — 이모지 반쪽이 남지 않게. 글자가 아니면 빈 문자열. */

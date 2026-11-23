@@ -236,17 +236,26 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   //   카메라 → 고른 몸 사이 선분이 장식의 경계 구를 지나면 그 장식만 재질을 복제해 반투명(OCCLUDE_ALPHA)으로, 비키면 천천히 되돌린 뒤 원래 재질로
   let aboveK=0,beachK=0;
   const fadeSeg=new T.Vector3(),fadeTo=new T.Vector3(),fadeC=new T.Vector3(),fadeBox=new T.Box3(),fadeSphere=new T.Sphere();
+  // 장식의 경계 구 — 장식은 거의 안 움직이니 자리 · 크기가 그대로면 지난 값을 쓴다(2026-11-23 — 물고기를 따라가는 동안 매 프레임 장식마다 Box3.setFromObject 를 돌았다)
+  //   묶음(batch)에 들어간 부품도 같은 상자를 쓴다. 결과는 fadeSphere 에
+  function decorSphere(root:T.Object3D){
+    root.updateWorldMatrix(true,false);
+    const ud=root.userData as {fadeSph?:T.Sphere;fadeAt?:Float32Array},e=root.matrixWorld.elements;let at=ud.fadeAt,same=!!(ud.fadeSph&&at);
+    if(same)for(let i=0;i<16;i++)if(at![i]!==Math.fround(e[i])){same=false;break;}
+    if(!same){fadeBox.setFromObject(root);ud.fadeSph=fadeBox.getBoundingSphere(ud.fadeSph??new T.Sphere());at=ud.fadeAt??new Float32Array(16);for(let i=0;i<16;i++)at[i]=e[i];ud.fadeAt=at;}
+    fadeSphere.copy(ud.fadeSph!);
+  }
   function fadeOccluders(target:Swimmer|undefined,dt:number){
     if(target){fadeTo.copy(target.root.position);fadeSeg.copy(fadeTo).sub(camera.position);}
     const len2=fadeSeg.lengthSq();
     for(const d of decorations.values()){
       let want=1;
-      if(target&&len2>1e-6){fadeBox.setFromObject(d.root);fadeBox.getBoundingSphere(fadeSphere);fadeC.copy(fadeSphere.center).sub(camera.position);const t=clamp(fadeC.dot(fadeSeg)/len2,0,1);if(t>.02&&t<.98){fadeC.copy(camera.position).addScaledVector(fadeSeg,t);if(fadeC.distanceTo(fadeSphere.center)<fadeSphere.radius*.85+target.length*.3)want=OCCLUDE_ALPHA;}}
+      if(target&&len2>1e-6){decorSphere(d.root);fadeC.copy(fadeSphere.center).sub(camera.position);const t=clamp(fadeC.dot(fadeSeg)/len2,0,1);if(t>.02&&t<.98){fadeC.copy(camera.position).addScaledVector(fadeSeg,t);if(fadeC.distanceTo(fadeSphere.center)<fadeSphere.radius*.85+target.length*.3)want=OCCLUDE_ALPHA;}}
       const now=(d.root.userData.fade as number|undefined)??1;if(want===1&&now>=.999)continue;
       const next=dt>0?now+(want-now)*Math.min(1,dt*4):want;d.root.userData.fade=next;
       d.root.traverse(o=>{if(!(o instanceof T.Mesh))return;const ud=o.userData;
-        if(next>=.995){if(ud.fadeOrig){(o.material as T.Material|T.Material[])=ud.fadeOrig;const c=ud.fadeMat as T.Material[]|undefined;c?.forEach(m=>m.dispose());delete ud.fadeOrig;delete ud.fadeMat;}return;}
-        if(!ud.fadeOrig){ud.fadeOrig=o.material;const list=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const c=m.clone();c.transparent=true;c.depthWrite=false;return c;});ud.fadeMat=list;o.material=Array.isArray(o.material)?list:list[0];}
+        if(next>=.995){if(ud.fadeOrig){(o.material as T.Material|T.Material[])=ud.fadeOrig;const c=ud.fadeMat as T.Material[]|undefined;c?.forEach(m=>m.dispose());delete ud.fadeOrig;delete ud.fadeMat;batchesDirty=true;}return;}
+        if(!ud.fadeOrig){batchesDirty=true;ud.fadeOrig=o.material;const list=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const c=m.clone();c.transparent=true;c.depthWrite=false;return c;});ud.fadeMat=list;o.material=Array.isArray(o.material)?list:list[0];}
         for(const m of ud.fadeMat as T.Material[])m.opacity=next;});
       if(next>=.995)delete d.root.userData.fade;
     }
@@ -258,6 +267,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // Original mesh nodes remain for accurate ray picking; only the batch is drawn.
   const batches: { mesh: T.InstancedMesh; originals: T.Mesh[]; dynamic: boolean; ready: boolean }[] = [];
   let batchesDirty = true;
+  let xrayLastSec = -1;
   // 물고기 몸 · 흔들리는 장식 부품 밑이 아니면 안 움직인다 — 위치를 매 프레임 GPU 로 다시 올리지 않는다.
   // ⚠ 예전엔 장식 밑이면 전부 '움직인다'로 쳐서 장식 묶음이 매 프레임 다시 올라갔다
   const moves=(o:T.Object3D)=>{for(let p:T.Object3D|null=o;p;p=p.parent)if(p.userData.type==="fish"||p.userData.moving)return true;return false;};
@@ -808,6 +818,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 자유롭게 보기(2026-11-14) — 두 손가락 · 휠로 당기고 민다(userZoom). 다가간 만큼 옆으로 더 끌 수 있다(panReach 가 camD 로 다시 잰다)
     // 앞유리(z = 3·깊이) 밖에서 본다 — 앞뒤로 늘린 수조에서 카메라가 물속에 들어가지 않게(2026-11-19)
     const camD=Math.max(3*deep+3,(over?clamp(Math.max(fitW,fitH),19,400):clamp(Math.max(fitW,fitH)/tankDisplay(habitatTier,wideBase),19,80))*userZoom);
+    // 가까이 보기 거리(전체 보기가 아닐 때의 camD) — 해변 가까이 보기는 이 거리로 다가간다(2026-11-23 — 전체 보기에서 camD 가 400 까지 늘어 해변이 멀리 보였다)
+    const closeD=Math.max(3*deep+3,clamp(Math.max(5*wideBase*tierX**.4/(half*camera.aspect)+3,5.9*tall/half+3)/tankDisplay(habitatTier,wideBase),19,80)*userZoom);
     // 멀리 물러나도 수조 뒤까지 그린다(예전 끝면 110 은 큰 수조 전체 보기에서 뒷벽을 잘랐다)
     // 전체 보기의 내려다보기 — 가로로 긴 수조는 세로 화면에서 가는 띠가 되고 위아래가 빈다. 그만큼 위에서 비스듬히 내려다봐 바닥(앞뒤 깊이)까지 보이게(디오라마처럼).
     //   수조가 화면보다 가로로 길수록 더 높이(0.08 ~ 0.55 rad). 작은 수조는 거의 정면 그대로. 터널 · 돔 안 · 가까이 보기는 안 함
@@ -831,7 +843,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const selBreach=sel?breaches.get(sel.root.userData.id):undefined;
     // 2026-11-17 — 바위 · 모래사장(수면 위)에서 쉬는 포유류를 고르면 예전엔 4.6 까지만 봐서 그 아래 물속을 봤다
     if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,selBreach?(selBreach.plan.surface+selBreach.plan.peak)/2:Math.max(tallY(4.6,tall),Math.min(sel.root.position.y+.15,tallY(4.6,tall)+2.4)));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
-    if(beachOn&&habitat?.beachRest){const bz=3*deep*BEACH_REST_FRONT*.75,sx=habitat.shoreX?habitat.shoreX(tallY(5.56,tall),bz):4*wide,rx=habitat.beachRest.x*wide;focusGoal.set(Math.min(4.6*wide,(sx+rx)/2),tallY(5.8,tall),bz);focusLen=camD*.55/3.4;}
+    if(beachOn&&habitat?.beachRest){const bz=3*deep*BEACH_REST_FRONT*.75,sx=habitat.shoreX?habitat.shoreX(tallY(5.56,tall),bz):4*wide,rx=habitat.beachRest.x*wide;focusGoal.set(Math.min(4.6*wide,(sx+rx)/2),tallY(5.8,tall),bz);focusLen=closeD*.55/3.4;}
     beachK=dt>0?beachK+((beachOn?1:0)-beachK)*Math.min(1,dt*1.8):beachOn?1:0;
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
     {const up=(sel&&!state.editing&&sel.root.position.y>tallY(4.4,tall))||beachOn?1:0;aboveK=dt>0?aboveK+(up-aboveK)*Math.min(1,dt*1.8):up;}
@@ -860,7 +872,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 사진 모드 확대(밖) — 앞유리 안으로는 못 들어간다(photo.ts photoDistance). 안개도 이 거리를 따라간다
     if(photoOn&&!inTunnel)dist=photoDistance({dist,zoom:photoZoom,angle:camA,deep,following:focusK>.5});
     lookAt.set(camX,tallY(-.1,tall),0).lerp(focusLook,focusK);
-    if(scene.fog instanceof T.Fog){scene.fog.near=dist-2;scene.fog.far=dist+9;}
+    // 안개 끝은 늘린 깊이만큼 뒤로(2026-11-23) — 앞뒤로 늘린 수조는 뒤쪽 최대 37% 가 안개 색에 묻혀 그쪽 물고기가 사라졌다. 깊이 1 이면 예전 그대로
+    if(scene.fog instanceof T.Fog){scene.fog.near=dist-2;scene.fog.far=dist+9+3*Math.max(0,deep-1);}
     const scale=dist/camD;
     if(inDome){
       // 돔 안 — 가운데에 서서 천천히 한 바퀴 둘러보고(1바퀴 약 5분), 끌면 그쪽으로 돈다. 물고기를 고르면 그쪽을 본다
@@ -1157,7 +1170,12 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const focusDist=focusK>.05?camera.position.distanceTo(mealK>.5?focusLook:sel?sel.root.position:focusLook):inTunnel?10:camera.position.distanceTo(lookAt);
     // 가려진 물고기 윤곽(2026-11-14) [사용자: "물범이 아예 보이지 않아 수초에 가려서 · 이런 문제들은 해결해야해"] — 물고기 몸(뼈 있는 GLB)만 XRAY 레이어에 두면
     //   후처리가 그 깊이를 따로 그려, 수초 · 바위 · 장식 뒤에 있으면 그 자리에 옅은 윤곽을 비춘다. 굴에 숨은 곰치(일부러 숨는다) · 두족류(팔이 셰이더로 움직여 윤곽이 어긋난다)는 뺀다
-    for(const m of swimmers.values()){const on=m.root.visible&&!XRAY_SKIP.test(m.family)&&!/jelly/.test(m.key);m.root.traverse(o=>{if((o as T.Mesh).isMesh){if(on)o.layers.enable(XRAY_LAYER);else o.layers.disable(XRAY_LAYER);}});}
+    // 바뀐 몸만 다시 훑는다(2026-11-23 — 매 프레임 물고기마다 몸 전체를 훑고 정규식 둘을 돌렸다). 켤지 · 자식 수(모델이 갈아 끼워짐)가 그대로면 건너뛴다
+    //   1초에 한 번은 모두 다시 훑는다 — 모델이 깊은 곳에서 바뀌어도(자식 수 그대로) 1초 안에 따라온다
+    const xraySec=Math.floor(elapsed),xrayAll=xraySec!==xrayLastSec;xrayLastSec=xraySec;
+    for(const m of swimmers.values()){const ud=m.root.userData as {xrayOk?:boolean;xrayOn?:boolean;xrayN?:number};if(ud.xrayOk===undefined)ud.xrayOk=!XRAY_SKIP.test(m.family)&&!/jelly/.test(m.key);
+      const on=m.root.visible&&ud.xrayOk,n=m.root.children.length;if(!xrayAll&&ud.xrayOn===on&&ud.xrayN===n)continue;ud.xrayOn=on;ud.xrayN=n;
+      m.root.traverse(o=>{if((o as T.Mesh).isMesh){if(on)o.layers.enable(XRAY_LAYER);else o.layers.disable(XRAY_LAYER);}});}
     postNow.render(scene,camera,elapsed,{distance:focusDist,strength:focusK>.02?focusK*(inTunnel?.45:.8):0},inTunnel||inDome?undefined:XRAY_LAYER);
     if(!announced){announced=true;events.ready?.();}
     if(process.env.NODE_ENV!=="production"){
@@ -1267,11 +1285,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const owner=(o:T.Object3D|null)=>{while(o&&!o.userData.type)o=o.parent;return o;};
     if(state.editing){const hit=ray.intersectObjects([...decorations.values()].map(m=>m.root),true)[0],o=hit?owner(hit.object):null;if(o?.userData.type==="decor")events.decor(o.userData.id);return;}
     // 보기 모드는 물고기만 — 장식이 앞에 있으면 장식이 탭을 가로챘다. 치어는 10~14px 이라, 빗나가면 24px 안의 가장 가까운 물고기를 고른다
-    const hit=ray.intersectObjects([...swimmers.values()].map(m=>m.root),true)[0],o=hit?owner(hit.object):null;
+    // 고를 수 있는 몸만(2026-11-23) — Raycaster 는 숨긴 몸도 맞혀서, 다시 보기를 기다리며 숨긴 사냥꾼 · 사냥 장면의 유령(음수 id) · 숨어 기다리는 손님이
+    //   탭을 가로챘다(고른 물고기가 말없이 풀리고 카메라가 안 보이는 사냥꾼을 따라갔다). 사진 고르기(photoPoints)와 같은 거름
+    const pickable=(id:number,m:Swimmer)=>id>0&&!m.visit&&!m.root.userData.guest&&m.root.visible;
+    const hit=ray.intersectObjects([...swimmers].filter(([id,m])=>pickable(id,m)).map(([,m])=>m.root),true)[0],o=hit?owner(hit.object):null;
     if(o?.userData.guest)return; // 행사 손님 — 고를 수 없다(물고기 목록 · 카드에 없다)
     if(o?.userData.type==="fish"){startleFish(o.userData.id);events.fish(o.userData.id);return;}
     const px=e.clientX-r.left,py=e.clientY-r.top;let best=-1,bestD=24;
-    for(const[id,m]of swimmers){if(m.visit)continue;projected.copy(m.root.position).project(camera);if(projected.z>1)continue;const d=Math.hypot((projected.x+1)/2*r.width-px,(1-projected.y)/2*r.height-py);if(d<bestD){bestD=d;best=id;}}
+    for(const[id,m]of swimmers){if(!pickable(id,m))continue;projected.copy(m.root.position).project(camera);if(projected.z>1)continue;const d=Math.hypot((projected.x+1)/2*r.width-px,(1-projected.y)/2*r.height-py);if(d<bestD){bestD=d;best=id;}}
     if(best>=0){startleFish(best);events.fish(best);}
   };
   on(canvas,"pointerdown",down);on(canvas,"pointermove",move);on(canvas,"pointerup",end);on(canvas,"pointercancel",cancel);on(canvas,"wheel",wheel,{passive:false});

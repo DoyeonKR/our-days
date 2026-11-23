@@ -23,13 +23,13 @@ import { confirmDialog } from "@/lib/confirm";
 // 먹이를 줄 때마다 뿌리는 자리가 다르다(같은 횟수 = 같은 자리) — 늘 가운데라 터널 축 · 돔 한가운데로 몰렸다(2026-11-11)
 import { feedSpot } from "@/lib/aqua3d/world";
 import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX, TEMP_LINGER, eatenCardWaits, mealEndOf } from "@/lib/aqua3d/hunt";
-import { ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, DECOR, FAMILIES, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS, DEEP_STEPS, SINK_STEPS, aquaDangers, aquaEffects, buyDecor, eatenReplays, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, feedFish, fishArtKey, fishCm, fishCount, fishName, fishRoom, gearOutclassed, growBlock, hoursLeft, junkCoupons, makeFood, moveDecor, netHoursLeft, netToTank, placeDecor, releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank, sinkTank, type AquaFish, type AquaNews, type AquaResult, type DecorKind, type Grade, type PlacedDecor } from "@/lib/aquarium";
+import { ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, DECOR, FAMILIES, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS, DEEP_STEPS, SINK_STEPS, aquaDangers, aquaEffects, buyDecor, netKeyOf, EATEN_REPLAY_MS, eatenReplays, fishMorph, fishNick, nameFish, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, feedFish, fishArtKey, fishCm, fishCount, fishName, fishRoom, gearOutclassed, growBlock, hoursLeft, junkCoupons, makeFood, moveDecor, netHoursLeft, netToTank, placeDecor, releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank, deepenTank, sinkTank, type AquaFish, type AquaNews, type AquaResult, type DecorKind, type Grade, type PlacedDecor } from "@/lib/aquarium";
 import { loadIsland, saveIsland, type IslandRow } from "@/lib/couple";
 import { watchIslandStore } from "@/lib/islandstore";
 import { revealTop } from "@/lib/revealtop";
 import { aquaTodayItems, kstWhen, nextHuntAt, type AquaTodayKey } from "@/lib/aquatoday";
 import { MORPH_INFO, type Morph } from "@/lib/aquamorph";
-import { gameNow } from "@/lib/islandsync";
+import { gameNow, hasSaveMark, newSaveMark } from "@/lib/islandsync";
 import { eventDef, eventGuest, eventsAt, modsAt, nextEventAfter, occurrence, type ActiveEvent } from "@/lib/aquaevent";
 import { claimBlock, claimEventDecor, eventSaveOf, eventTints, hasClaimed, tintedInBag, tintName } from "@/lib/aquaeventclaim";
 import type { IslandState } from "@/lib/island";
@@ -129,11 +129,19 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
     busyRef.current = true;
     setBusy(true);
     try {
+      // 저장 표식(2026-11-23) — 저장은 들어갔는데 응답만 잃으면(연결 끊김 · 5xx) 예전엔 다시 읽어 같은 동작을 한 번 더 해서 장식 · 단계 · 넓히기 값이
+      //   두 번 빠졌다. 첫 시도의 표식이 다시 읽은 상태에 있으면 그 저장은 들어간 것 — 다시 하지 않는다(섬 · 낚시와 같은 방식, islandsync)
+      const mark = newSaveMark();
+      let landed: { ok: boolean; msg: string | null } | null = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         const r = await loadIsland(coupleId).catch(() => null);
         if (!r) {
           setMsg("불러오지 못했어요. 잠시 후 다시 해 주세요.");
           return false;
+        }
+        if (attempt > 0 && landed && hasSaveMark(r.state, mark)) {
+          setRow(r); setNow(gameNow()); setMsg(landed.msg);
+          return landed.ok;
         }
         const t = gameNow(); // 서버 시각에 맞춘 지금 — 폰 날짜를 바꿔 손님 · 돌보기 하루를 다시 열지 못하게
         const synced = syncAqua(r.state, t);
@@ -144,13 +152,14 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
           setNow(t);
           if (!synced.dirty) return false; // 정산에 남길 변화가 없으면 저장할 것도 없다
         }
+        const sold = synced.netSold ? `대기 그물의 ${synced.netSold}마리가 하루가 지나 팔렸어요 — 하트 +${synced.netCoins.toLocaleString()}` : null;
+        const okMsg = res.ok ? [res.note, sold].filter(Boolean).join(" · ") || null : sold;
+        landed = { ok: res.ok, msg: okMsg };
         try {
-          const saved = await saveIsland(coupleId, r.version, res.ok ? res.state : synced.state);
+          const saved = await saveIsland(coupleId, r.version, res.ok ? res.state : synced.state, mark);
           setRow(saved);
           setNow(t);
-          const sold = synced.netSold ? `대기 그물의 ${synced.netSold}마리가 하루가 지나 팔렸어요 — 하트 +${synced.netCoins.toLocaleString()}` : null;
-          if (res.ok) setMsg([res.note, sold].filter(Boolean).join(" · ") || null);
-          else if (sold) setMsg(sold);
+          if (res.ok || sold) setMsg(okMsg);
           return res.ok;
         } catch {
           /* 상대가 그 사이 섬을 바꿨다 — 다시 읽어서 한 번 더 */
@@ -404,6 +413,10 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
               onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} replaying={replaying} replayNote={replayNote}
               people={[myName, partnerName]} onPhoto={setPhotoOpen} />
           </div>
+          {/* 고른 물고기 카드는 수조 바로 아래(2026-11-23) — 목록에서 고르면 수조로 올라가는데(revealTop) 카드가 게이지 · 버튼 아래라 보내기 · 이름 짓기를 하려면 다시 내려가야 했다 */}
+          {sel && !editing && <FishCard key={sel.id} f={sel} a={a} seen={seenForms} now={now} who={who} couple={!!coupleId} busy={busy}
+            onRelease={() => void release(sel)} onName={(name) => act((st, t) => nameFish(st, sel.id, name, t, coupleId ? who : undefined))} />}
+
 
           {a.fish.length === 0 ? (
             <section className="aqua-card aqua-empty-card">
@@ -545,9 +558,6 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
             </section>
           )}
 
-          {sel && !editing && <FishCard key={sel.id} f={sel} a={a} seen={seenForms} now={now} who={who} couple={!!coupleId} busy={busy}
-            onRelease={() => void release(sel)} onName={(name) => act((st, t) => nameFish(st, sel.id, name, t, coupleId ? who : undefined))} />}
-
           {a.fish.length > 0 && (
             <section className="aqua-card">
               <header><strong>우리 물고기</strong></header>
@@ -591,8 +601,8 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                   <li key={`${n.family}-${n.at}-${i}`} className="aqua-net-row">
                     <span className="aqua-thumb"><FishArt artKey={fishArtKey(n)} /></span>
                     <span className="min-w-0 flex-1"><strong className="block truncate text-sm">{fishName(n)}</strong><small>{duration(netHoursLeft(n, now))} 남음</small></span>
-                    <ActionButton main disabled={busy || fishRoom(a) <= 0} onClick={() => void act((st, t) => netToTank(st, i, t))}>수조로</ActionButton>
-                    <ActionButton disabled={busy} onClick={() => void act((st, t) => sellNet(st, i, t))}><span className="aqua-price"><Coin /> {n.value.toLocaleString()}</span></ActionButton>
+                    <ActionButton main disabled={busy || fishRoom(a) <= 0} onClick={() => void act((st, t) => netToTank(st, netKeyOf(n), t))}>수조로</ActionButton>
+                    <ActionButton disabled={busy} onClick={() => void act((st, t) => sellNet(st, netKeyOf(n), t))}><span className="aqua-price"><Coin /> {n.value.toLocaleString()}</span></ActionButton>
                   </li>
                 ))}
               </ul>
@@ -744,7 +754,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
       )}
       </div>
 
-      {news[0] && !replaying && !photoOpen && <GrownCard key={news[0].n} g={news[0]} waits={tab === "tank" && eatenCardWaits(news[0].n, news.filter((x) => x.ate).map((x) => x.n), mealDone)} morph={news[0].egg ? (a.morph?.by[String(news[0].id)] ?? null) : null} onNext={() => setLocalSeen(news[0].n)} onReplay={() => { setLocalSeen(news[0].n); startReplay(news[0].n); }} />}
+      {news[0] && !replaying && !photoOpen && <GrownCard key={news[0].n} g={news[0]} waits={tab === "tank" && eatenCardWaits(news[0].n, news.filter((x) => x.ate).map((x) => x.n), mealDone)} morph={news[0].egg ? (a.morph?.by[String(news[0].id)] ?? null) : null} onNext={() => setLocalSeen(news[0].n)} onReplay={typeof news[0].at === "number" && (now || gameNow()) - news[0].at < EATEN_REPLAY_MS ? () => { setLocalSeen(news[0].n); startReplay(news[0].n); } : undefined} />}
       {inspect && <DecorPreview artKey={inspect} onClose={() => setInspect(null)} />}
     </div>,
   );

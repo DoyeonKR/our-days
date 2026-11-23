@@ -1088,7 +1088,8 @@ export function releaseToSea(st: IslandState, id: number, now: number): { ok: tr
   const call = key ? applyBossCall(r0.state, key, adultGrade(f), kstDate(now)) : null;
   const callNote = call?.plan && "total" in call.plan ? ` · ${call.plan.name}에게 ${call.plan.add}시간${call.plan.days > 0 ? ` — 하루 일찍 와요(${call.plan.left}일 뒤)` : ` 모였어요(${call.plan.total % 24}/24)`}` : "";
   // 다 키워 보내면 잡은 낚시터 숙련도가 오른다(2026-11-21 — noteReleaseMastery). 치어 · 어린 물고기 · 어디서 잡았는지 모르는 물고기는 안 센다
-  const origin = f.stage === 2 ? releaseSpot(f, synced.life) : undefined;
+  //   2026-11-23 — 다 큰 채로 잡은 물고기를 수조에 넣었다 바로 보내면(수조에서 자란 몫 0) 팔 때(숙련 +1)의 4배를 받았다. 수조에서 자란 몫이 있을 때만
+  const origin = f.stage === 2 && raisedShare(f) > 0 ? releaseSpot(f, synced.life) : undefined;
   const after0 = call ? call.state : r0.state;
   const after = origin ? noteReleaseMastery(after0, origin, fishArtKey(f)) : after0;
   const spotNote = origin ? ` · ${SPOTS.find((x) => x.key === origin)?.name ?? "낚시터"} 숙련 +${MASTERY_RELEASE_N}` : "";

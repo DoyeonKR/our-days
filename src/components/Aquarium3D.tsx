@@ -14,6 +14,8 @@ const AquaPhoto = dynamic(() => import("@/components/AquaPhoto"), { ssr: false }
 
 /** 연결이 끊긴 뒤 저절로 다시 여는 횟수 — 넘으면 '다시 시도' 화면 */
 const AUTO_RECOVER = 3;
+/** 자동 복구 횟수를 세는 창(밀리초) — 이보다 오래 전 복구는 잊는다 */
+const RECOVER_WINDOW_MS = 10 * 60 * 1000;
 
 /** feedSignal: 먹이를 줄 때마다 바뀌는 값(횟수 · 시각). 바뀌면 수조의 feed 를 부른다(feedX = 수조 가로 위치, 없으면 가운데) */
 const MEAL_SEEN_KEY = "ourdays:aqua:mealSeen";
@@ -56,6 +58,7 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   const shell = useRef<HTMLDivElement>(null);
   // 끊긴 뒤 저절로 다시 연 횟수 — 수조를 새로 열면(다시 시도) 0
   const recovered = useRef(0);
+  const recoveredAt = useRef(0);
   // 사진 모드(2026-11-13) — 수조 시계를 세우고 머리 단추 · 안내를 걷는다. 들어올 때의 전체 보기 · 카메라는 끝낼 때 그대로(scene.photoEnd)
   // dead — 찍은 카드를 보는 중에 수조가 다시 지어졌다(연결 끊김). 카드는 남겨 공유할 수 있고, 다시 찍기는 사진 모드를 끝낸다
   const [photo, setPhoto] = useState<{ tank: TankHandle; host: HTMLDivElement | null; dead?: boolean } | null>(null);
@@ -126,8 +129,10 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         if (cancelled || !lostAt || document.hidden) return;
+        // 자동 복구 횟수는 최근 10분 안만 센다(2026-11-23) — 예전엔 한 번 연 동안 쌓이기만 해서, 아이폰에서 수조를 연 채 앱을 네 번째로 내렸다 올리면 '끊어졌어요'가 영영 남았다
+        if (Date.now() - recoveredAt.current > RECOVER_WINDOW_MS) recovered.current = 0;
         if (recovered.current >= AUTO_RECOVER) { setError("3D 그래픽 연결이 끊어졌어요. 다시 열어 주세요."); return; }
-        recovered.current++; setReady(false); setAttempt(n => n + 1);
+        recovered.current++; recoveredAt.current = Date.now(); setReady(false); setAttempt(n => n + 1);
       }, 1500);
     };
     document.addEventListener("visibilitychange", recover);

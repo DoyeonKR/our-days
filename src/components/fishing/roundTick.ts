@@ -79,6 +79,8 @@ export type TickCtx = {
   loseRound: (key: LostKey) => void;
   landRound: (q: number) => void;
   feverNow: (dist: number, quality: number) => boolean;
+  /** 심해 판이 피버로 넘어갈 때 남겨 둔 '끌어올릴 때 할 일' — 피버를 이기면 화면이 부른다 */
+  deepPend: { current: (() => void) | null };
   showStamp: (text: string, tone: StampTone) => void;
   act: <R extends FishResult | GearResult>(make: (st: IslandState) => R, queued?: boolean) => Promise<R | null>;
   buzz: (p: number | number[]) => void;
@@ -274,18 +276,23 @@ export function tickDeep(k: TickCtx, dt: number): void {
   } else if (cur.diveLeft > 0 && next.diveLeft <= 0) {
     fxn?.surgeEnd();
   }
-  if (next.status === "on" && feverNow(next.depth, deepQuality(next))) return;
-  if (next.status === "on") coopAskRef.current(next.depth);
-  if (next.status === "landed") {
-    // 습격을 버텨 냈으면 대물(cm 1.25배) · 가장 깊은 기록
+  // 습격을 버텨 냈으면 대물(cm 1.25배) · 가장 깊은 기록 — 끌어올릴 때(그 깊이 · 그 판의 습격으로 정한다).
+  //   피버로 넘어가면 피버를 이겼을 때 같은 걸 한다(k.deepPend — 2026-11-23: 예전엔 피버로 끝난 심해 판이 깊이 기록 · 대물을 건너뛰었다)
+  const survived = deepSurvivedGrab(next), m = Math.round(deepMeters.current);
+  const finish = () => {
     const c = fishRef.current;
-    if (c && !c.junk && deepSurvivedGrab(next) && c.cm) { const big = { ...c, cm: Math.round(c.cm * 1.25 * 10) / 10 }; fishRef.current = big; setFish(big); }
-    const fin = fishRef.current, row0 = rowRef.current, m = Math.round(deepMeters.current);
+    if (c && !c.junk && survived && c.cm) { const big = { ...c, cm: Math.round(c.cm * 1.25 * 10) / 10 }; fishRef.current = big; setFish(big); }
+    const fin = fishRef.current, row0 = rowRef.current;
     if (fin && !fin.junk && !fin.special && row0 && m > (deepestOf(row0.state)?.m ?? 0)) {
       const rec = { m, family: fin.family, key: catchArt(fin), at: clock() };
       setDeepRecord(m);
       void act((s) => ({ ok: true as const, state: noteDeepest(s, rec).state }), true);
     }
+  };
+  if (next.status === "on" && feverNow(next.depth, deepQuality(next))) { k.deepPend.current = finish; return; }
+  if (next.status === "on") coopAskRef.current(next.depth);
+  if (next.status === "landed") {
+    finish();
     landRound(deepQuality(next));
   }
   else if (next.status === "snapped") loseRound("spinSnap");

@@ -427,11 +427,11 @@ test("⑧ webpush 를 쓰는 엣지 함수는 모두 sendFcm 을 부르고, 설�
   assert.match(poke, /for \(const v of victims\.filter\(\(x\) => to\.includes\(x\.user_id\)\)\)/, "역전 알림도 거른 사람에게만");
 
   const nudge = code("supabase/functions/activity-nudge/index.ts");
-  const gate = nudge.indexOf("if (!canNudge(pref, kstHour)) continue;");
+  const gate = nudge.indexOf("if (!okRemind && !okAqua) continue;"); // 2026-11-23 — 받는 사람 시간대 · 수조 알림 따로(okRemind · okAqua)
   assert.ok(gate > 0);
   for (const i of calls(nudge)) assert.ok(i > gate, "activity-nudge: canNudge 앞의 sendFcm");
   const can = body(nudge, "function canNudge(");
-  assert.match(can, /p\.prefs\["remind"\] === false/);
+  assert.match(can, /p\.prefs\[category\] === false/);
   assert.match(can, /inQuietHours\(/);
 
   const dr = code("supabase/functions/daily-reminders/index.ts");
