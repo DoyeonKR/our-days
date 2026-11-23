@@ -25,6 +25,7 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   /** 굴에 산다(habits.den — 곰치) */
   den: boolean;
   /** 바위 위에서 쉰다(habits.haul — 해양 포유류) · 지금 쉬는 정도(0~1, 겹침 밀기를 그만큼 덜 받는다) */
+  /** 기울기 상한(habits.level — 큰 고래). 없으면 0.7(35°) */ lvl: number;
   haul: boolean; rest: number; /** 수면에 누워 쉰다(habits.float — 해달) — 바위 · 모래사장을 안 쓰고 물가 줄이기를 풀지 않는다 */ float: boolean;
   /** 실제로 간 빠르기(부드럽게 거른 값, 월드/초)와 지난 자리 — 머리를 실제로 가는 쪽으로 돌린다(faceTravel) */
   fvx: number; fvy: number; fvz: number; fpx: number; fpy: number; fpz: number; fok: boolean; ceph: boolean; /** 지난 프레임에 그린 머리의 좌우(ohx) · 위아래(ohy) 각 — 큰 몸이 홱 돌지 않게 */ ohx: number; ohy: number; ohz: number; oh: boolean;
@@ -48,6 +49,7 @@ const swimStateOf = (m: StepFish): SwimState => {
     lap: !!h.lap,
     den: !!h.den,
     haul: !!h.haul, rest: 0, float: !!h.float,
+    lvl: h.level ?? 0.7,
   };
 };
 export type StepWorld = {
@@ -553,8 +555,9 @@ function faceTravel(n: number, fishes: StepFish[], b: StepBuffers, dt: number) {
     const hl = hyp3(hx, hy, hz) || 1; hx /= hl; hy /= hl; hz /= hl;
     const vx = st.fvx / sp, vy = st.fvy / sp, vz = st.fvz / sp;
     let tx = hx * (1 - w) + vx * w, ty = hy * (1 - w) + vy * w, tz = hz * (1 - w) + vz * w;
+    // 향유고래(2026-11-23 — habits.level 0.27 ≈ 15°): 작은 수조에서 서로 밀려 위아래로 움직일 때 머리가 그 쪽(35° 까지)을 따라 들려, 길은 수평인데 몸이 비스듬히 섰다
     // 오르내릴 때 머리가 곧게 서지 않게(위아래 35° 안) — 거의 수직이면 좌우 방향이 한 프레임에 홱 돌았다. 옆 방향이 거의 없으면 길 쪽 옆 방향을 쓴다
-    { let th = Math.sqrt(tx * tx + tz * tz); if (th < 0.05) { const ph = Math.sqrt(hx * hx + hz * hz) || 1; tx = hx / ph * 0.05; tz = hz / ph * 0.05; th = 0.05; } if (Math.abs(ty) > 0.7 * th) ty = Math.sign(ty) * 0.7 * th; }
+    { let th = Math.sqrt(tx * tx + tz * tz); if (th < 0.05) { const ph = Math.sqrt(hx * hx + hz * hz) || 1; tx = hx / ph * 0.05; tz = hz / ph * 0.05; th = 0.05; } if (Math.abs(ty) > st.lvl * th) ty = Math.sign(ty) * st.lvl * th; }
     const tl = hyp3(tx, ty, tz); if (tl < 1e-4) continue; tx /= tl; ty /= tl; tz /= tl;
     H[k * 3] = tx * hl; H[k * 3 + 1] = ty * hl; H[k * 3 + 2] = tz * hl;
     const c = b.courses[k]; if (c) { c.dx = H[k * 3]; c.dy = H[k * 3 + 1]; c.dz = H[k * 3 + 2]; }

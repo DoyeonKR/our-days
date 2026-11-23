@@ -33,6 +33,8 @@ export type FishHabit = {
   pace?: number;
   /** 오르내릴 때 몸을 얼마나 기울이나 */
   tilt?: number;
+  /** 기울기 상한 — 머리가 앞으로 가는 만큼의 몇 배까지만 들거나 숙이나(tan, 큰 고래). 없으면 상한 없음 */
+  level?: number;
   /** 바닥 물고기의 고리 크기(0.5~1) — 광어 · 메기가 같은 고리를 돌면 한 바퀴마다 겹쳤다. 계열마다 다른 고리를 돈다 */
   lane?: number;
   /** 숨 쉬러 수면까지 올라가는 주기(초) — 거북. 가끔 모래 위에서 쉬기도 한다 */
@@ -229,6 +231,9 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   // 해달은 바위가 아니라 수면에 누워 쉰다(2026-11-20 [사용자: "해달 쉬는 방식도 고쳐"] — 맞는 바위가 없는 6단계에서 수면에서 바닥 모래까지 거의 곧게 오르내렸다)
   sea_otter: swim(2.2, 4.4, 0.08, 0.7, 1.4, { haul: true, float: true, breathe: 40, breathOnly: true, rest: 0.5, hop: 0.8, pace: 0.6, tilt: 0.2 }),
   orca: swim(-1, 2.6, 0.26, 1, 2, { breathe: 60, breathOnly: true, pace: 0.55, tilt: 0.3 }),
+  // 향유고래(2026-11-23) [사용자: "급한 기울기"] — 표에 없어 기본 습성(가운데 위아래 5칸을 오르내림 · 기울기 0.36)을 써서 작은 수조에서 머리를 45° 가까이 들거나 박은 채 헤엄쳤다.
+  //   큰 몸이 수평으로 느리게 돌고(기울기 0.12 · 상한 약 15° — level) 오르내리는 폭을 좁혔다. 숨 쉬러 가끔 수면으로(그때 물을 뿜는다 — scene SPOUTERS). 고개를 드는 스파이호핑(breach.ts)은 그대로
+  sperm_whale: swim(-0.8, 2, 0.22, 1, 2, { breathe: 90, breathOnly: true, pace: 0.45, tilt: 0.12, level: 0.27 }),
   otter: swim(-3.4, -0.4, 0.3, 0.9, 1.8, { haul: true, breathe: 45, breathOnly: true, dart: 0.3, pace: 1.1, tilt: 0.45 }),
   sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
   marlin: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
@@ -1102,6 +1107,9 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
     y += stand * (length * 0.55 + 0.05);
     amp = amp * (1 - 0.7 * stand); effort *= 1 - 0.6 * stand;
   }
+  // 큰 고래(2026-11-23 향유고래) — 몸이 수조에 비해 커서 자주 돌아서는데, 도는 동안 앞으로 가는 빠르기가 0 에 가까워 작은 오르내림도 45° 넘는 기울기가 됐다.
+  //   머리가 앞으로 가는 만큼의 level 배까지만 들거나 숙인다(0.27 ≈ 15°). 스파이호핑(breach.ts)은 따로 세우므로 그대로
+  if (habit.level !== undefined) { const lim = hyp2(hx, hz * D) * habit.level; if (Math.abs(hy) > lim) hy = Math.sign(hy) * lim; }
   const out = opts?.out ?? ({} as Course);
   out.x = x; out.y = y; out.z = z;
   out.dx = hx || 1e-3; out.dy = hy; out.dz = hz;
