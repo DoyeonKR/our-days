@@ -1767,28 +1767,28 @@
       "sheet": "design/aqua3d-review/whales/review.webp"
     },
     "fry_walrus": {
-      "sourceHash": "5bcab7ff079ee111d30e55409f94bad07cd9e4f21dde2d549387415cda2861e5",
-      "sheet": "design/aqua3d-review/walrus/review.webp"
+      "sourceHash": "90d118bd8433c1b28a6ad0dfefdf4b07287ffa51614e6fa9feed0803a06d189f",
+      "sheet": "design/aqua3d-review/polar/review-walrus.webp"
     },
     "juv_walrus": {
-      "sourceHash": "9767aa1bb769068d6988044b12c96dddc6f75cdece86b6e75885eaec623b2ad2",
-      "sheet": "design/aqua3d-review/walrus/review.webp"
+      "sourceHash": "6f1aca9cd7fb8a5d531af7989d47b3b2d51bca88f5e76db67f91ee7e82db1283",
+      "sheet": "design/aqua3d-review/polar/review-walrus.webp"
     },
     "walrus": {
-      "sourceHash": "2f2da069bb3b0512753f36a416125d1d1c2b9c302289feea906761f5f2a60445",
-      "sheet": "design/aqua3d-review/walrus/review.webp"
+      "sourceHash": "1b6808d382072decdfe9e0ea98cb059bab9617ae373d75d613a947222a55d130",
+      "sheet": "design/aqua3d-review/polar/review-walrus.webp"
     },
     "fry_emperor_penguin": {
-      "sourceHash": "f3e85bf02ef32849e2f98512064756f593db8535a8fd256129afb4ab90c79237",
-      "sheet": "design/aqua3d-review/penguin/review.webp"
+      "sourceHash": "ef2e4097b1a7b6d055e9f0b5758d44c45e17a6aa33ba55a7efd9292b99614a54",
+      "sheet": "design/aqua3d-review/polar/review-penguin.webp"
     },
     "juv_emperor_penguin": {
-      "sourceHash": "cdf886a94f5c57e88c5617a7934e17203008c401947ff1531fcfaa2ba68d3d30",
-      "sheet": "design/aqua3d-review/penguin/review.webp"
+      "sourceHash": "bedf8bdae662bf382b0284fa124b843775e6960d6f342e8be6a174ff5ca731d6",
+      "sheet": "design/aqua3d-review/polar/review-penguin.webp"
     },
     "emperor_penguin": {
-      "sourceHash": "a1c5134c38482dc47e441c4bc9c4fe1bff89dea5d5e2c9cc3160d6ea5498c30d",
-      "sheet": "design/aqua3d-review/penguin/review.webp"
+      "sourceHash": "08d3f74995ae8d4652b7e35f7c1accfa4a45c9934da1d2932364df62750aabdf",
+      "sheet": "design/aqua3d-review/polar/review-penguin.webp"
     }
   }
 }

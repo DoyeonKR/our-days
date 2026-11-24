@@ -37,6 +37,29 @@ async function sheet(keys, name) {
   out.append(cv); if (qs.get('save')) await save(cv, name + '.webp');
 }
 
+// 머리 확대(2026-11-24 바다코끼리 · 황제펭귄) — 앞 · 비스듬한 앞 · 옆 · 위, 머리 쪽(+X 끝)을 가운데로
+async function closeup(keys, name) {
+  const views = [["front", [1, .08, 0]], ["3/4", [1, .35, .9]], ["side", [0, .05, 1]], ["top", [.3, 1, .001]]];
+  const cv = document.createElement("canvas"); cv.width = views.length * CELL; cv.height = keys.length * CELL; const ctx = cv.getContext("2d"); ctx.font = "13px system-ui";
+  let r = 0;
+  for (const key of keys) {
+    const m = await load(`${newDir}/${key}.glb`), sc = scene(); sc.add(m); const box = skinnedBox(m), c = new T.Vector3(box.max.x - .36, (box.min.y + box.max.y) / 2 - .05, 0);
+    views.forEach(([v, d], i) => { ctx.drawImage(shot(sc, c, d, .5), i * CELL, r * CELL); label(ctx, i * CELL + 4, r * CELL + 4, key + " · " + v); });
+    r++;
+  }
+  out.append(cv); if (qs.get("save")) await save(cv, name + ".webp");
+}
+
+// 카드 그림(2026-11-24) — 모델을 조금 위 · 앞에서 비스듬히 본 옆모습으로, 투명 바탕 1024 PNG(card-<key>.png). 2D 카드 그림이 3D 모델과 같게
+async function card(keys) {
+  const r2 = new T.WebGLRenderer({antialias: true, alpha: true, preserveDrawingBuffer: true}); r2.setSize(1024, 1024); r2.toneMapping = T.NeutralToneMapping; r2.outputColorSpace = T.SRGBColorSpace; r2.setClearColor(0x000000, 0);
+  for (const key of keys) {
+    const m = await load(`${newDir}/${key}.glb`), sc = scene(); sc.background = null; sc.add(m); const box = skinnedBox(m), c = box.getCenter(new T.Vector3()), half = Math.max(box.max.x - box.min.x, box.max.y - box.min.y) * .56;
+    const cam = new T.OrthographicCamera(-half, half, half, -half, .01, 100); cam.position.copy(c).add(new T.Vector3(.22, .2, 1).normalize().multiplyScalar(10)); cam.lookAt(c); r2.render(sc, cam);
+    const blob = await new Promise((r) => r2.domElement.toBlob(r, "image/png")); await fetch("/save/card-" + key + ".png", {method: "PUT", body: blob});
+  }
+}
+
 async function motion(keys, name) {
   const {fishMotion} = await import('/src/lib/aqua3d/glb.ts');
   const {WATER_LIGHT} = await import('/src/lib/aqua3d/waterlight.ts');
@@ -62,6 +85,8 @@ async function motion(keys, name) {
 
 try {
   if (qs.get('sheet')) await sheet(qs.get('sheet').split(','), qs.get('name') ?? 'review');
+  if (qs.get('close')) await closeup(qs.get('close').split(','), qs.get('name') ?? 'review-close');
+  if (qs.get('card')) await card(qs.get('card').split(','));
   if (qs.get('motion')) await motion(qs.get('motion').split(','), qs.get('name') ?? 'review-motion');
   status.textContent = 'done' + (errors.length ? '\nERRORS:\n' + errors.join('\n') : '');
 } catch (e) { status.textContent = 'FAIL ' + (e.stack ?? e) + '\n' + errors.join('\n'); }

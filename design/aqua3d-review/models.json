@@ -51357,7 +51357,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_walrus.glb",
       "triangles": 2784,
-      "bytes": 82372,
+      "bytes": 74512,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51378,8 +51378,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "5bcab7ff079ee111d30e55409f94bad07cd9e4f21dde2d549387415cda2861e5",
-      "sha256": "2f96334bb7d93e1d2e715b73e93717d9f36729fb3c91739684f83a7434ed2a62",
+      "sourceSHA256": "90d118bd8433c1b28a6ad0dfefdf4b07287ffa51614e6fa9feed0803a06d189f",
+      "sha256": "17d883edcbc4f5b74645ccf62e57c1eb04127df2e3b95cafce0d19b27600aeb5",
       "authoringProfile": {
         "key": "walrus",
         "name": "바다코끼리",
@@ -51390,7 +51390,7 @@
         "widthRatio": 0.3,
         "life": "바닥 가까이 천천히 · 수염 주둥이로 조개를 찾고 숨 쉬러 수면 · 바위와 모래사장에서 쉰다"
       },
-      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 머리 USFWS 사진(퍼블릭 도메인) · 엄니 원뿔",
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/walrus-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
@@ -51440,7 +51440,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_walrus.glb",
       "triangles": 2784,
-      "bytes": 81448,
+      "bytes": 88732,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51461,8 +51461,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "9767aa1bb769068d6988044b12c96dddc6f75cdece86b6e75885eaec623b2ad2",
-      "sha256": "97f0165c261718f74d862524d5fc80ded5a3ed965ed867098f354eaf4b15ab84",
+      "sourceSHA256": "6f1aca9cd7fb8a5d531af7989d47b3b2d51bca88f5e76db67f91ee7e82db1283",
+      "sha256": "326d5a1f444f3c87e1df47ace8ca00062b0a4f1c932e907f5f38b2d2b951b342",
       "authoringProfile": {
         "key": "walrus",
         "name": "바다코끼리",
@@ -51473,7 +51473,7 @@
         "widthRatio": 0.3,
         "life": "바닥 가까이 천천히 · 수염 주둥이로 조개를 찾고 숨 쉬러 수면 · 바위와 모래사장에서 쉰다"
       },
-      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 머리 USFWS 사진(퍼블릭 도메인) · 엄니 원뿔",
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/walrus-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
@@ -51523,7 +51523,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/walrus.glb",
       "triangles": 2784,
-      "bytes": 88300,
+      "bytes": 93284,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51544,8 +51544,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "2f2da069bb3b0512753f36a416125d1d1c2b9c302289feea906761f5f2a60445",
-      "sha256": "c8f1afb59ca49f0e5665c00eeaa783c28df1c66da01fac71926a725824ca4d09",
+      "sourceSHA256": "1b6808d382072decdfe9e0ea98cb059bab9617ae373d75d613a947222a55d130",
+      "sha256": "fcce17321d2186cfcff897b28e4667eb8bc8559d84500a166e19c32cb3e2b3cc",
       "authoringProfile": {
         "key": "walrus",
         "name": "바다코끼리",
@@ -51556,7 +51556,7 @@
         "widthRatio": 0.3,
         "life": "바닥 가까이 천천히 · 수염 주둥이로 조개를 찾고 숨 쉬러 수면 · 바위와 모래사장에서 쉰다"
       },
-      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 머리 USFWS 사진(퍼블릭 도메인) · 엄니 원뿔",
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/walrus-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
@@ -51606,7 +51606,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_emperor_penguin.glb",
       "triangles": 2784,
-      "bytes": 63480,
+      "bytes": 71784,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51627,8 +51627,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "f3e85bf02ef32849e2f98512064756f593db8535a8fd256129afb4ab90c79237",
-      "sha256": "93c25ca9f9bf143736de9cd938553d2df38473dcdeb77d6d51d505a2190aec07",
+      "sourceSHA256": "ef2e4097b1a7b6d055e9f0b5758d44c45e17a6aa33ba55a7efd9292b99614a54",
+      "sha256": "6819acf51841f2709a3f902cc03f1fe4f7906b89991ab06365c884ed9371fd35",
       "authoringProfile": {
         "key": "emperor_penguin",
         "name": "황제펭귄",
@@ -51639,7 +51639,7 @@
         "widthRatio": 0.3,
         "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다"
       },
-      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 그림 SVG + 펭귄 사진(퍼블릭 도메인) 깃털 결",
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguin-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
@@ -51689,7 +51689,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_emperor_penguin.glb",
       "triangles": 2784,
-      "bytes": 75032,
+      "bytes": 54648,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51710,8 +51710,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "cdf886a94f5c57e88c5617a7934e17203008c401947ff1531fcfaa2ba68d3d30",
-      "sha256": "d549ba55f7edbf2d3bdb31dee227cc7f5be73571a41dd327d00954fce5d1f858",
+      "sourceSHA256": "bedf8bdae662bf382b0284fa124b843775e6960d6f342e8be6a174ff5ca731d6",
+      "sha256": "276af566a1110f8629f460c4d3354604e23ce25d00b4fe861f8011ceaa4bde55",
       "authoringProfile": {
         "key": "emperor_penguin",
         "name": "황제펭귄",
@@ -51722,7 +51722,7 @@
         "widthRatio": 0.3,
         "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다"
       },
-      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 그림 SVG + 펭귄 사진(퍼블릭 도메인) 깃털 결",
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguin-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
@@ -51772,7 +51772,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/emperor_penguin.glb",
       "triangles": 2784,
-      "bytes": 82300,
+      "bytes": 51512,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51793,8 +51793,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "a1c5134c38482dc47e441c4bc9c4fe1bff89dea5d5e2c9cc3160d6ea5498c30d",
-      "sha256": "f949275c2da45aa363481b0e58c802773c2657788dd67fd52725a6a37d9d9b16",
+      "sourceSHA256": "08d3f74995ae8d4652b7e35f7c1accfa4a45c9934da1d2932364df62750aabdf",
+      "sha256": "9bf12513bcb5323b713fde90a0a0a6004830802cd50f1169eb53021938b13891",
       "authoringProfile": {
         "key": "emperor_penguin",
         "name": "황제펭귄",
@@ -51805,7 +51805,7 @@
         "widthRatio": 0.3,
         "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다"
       },
-      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 그림 SVG + 펭귄 사진(퍼블릭 도메인) 깃털 결",
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguin-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
