@@ -31,12 +31,12 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  fry_barracuda:'d72e86246bc9',juv_barracuda:'354c073a7b35',barracuda:'8207053b34a1',
  fry_frilled_shark:'5c580463f82b',juv_frilled_shark:'2dd008da6992',frilled_shark:'afbd12a5e186',
  // 2026-11-15 포유류 V3(네 방향 그림 → 입체) — 18모습
- fry_spotted_seal:'79aaa4bbbace',juv_spotted_seal:'1c811a11949c',spotted_seal:'39cc89bebc51',
- fry_fur_seal:'ae9d0143a629',juv_fur_seal:'f593209b3b67',fur_seal:'9015a2fcc7cf',
- fry_steller_sea_lion:'1eb088ebc5c1',juv_steller_sea_lion:'f80db8d73652',steller_sea_lion:'4d191159fddf',
- fry_japanese_sea_lion:'03155b85c463',juv_japanese_sea_lion:'8988024bd6c7',japanese_sea_lion:'fe19c740b9f7',
- fry_sea_otter:'72f29b2ea3c7',juv_sea_otter:'4b14a35f6cac',sea_otter:'2927da64b2fd',
- fry_otter:'d0e2ded853db',juv_otter:'49b1848a2a3b',otter:'59d19de107ce',
+ fry_spotted_seal:'5eb7a4d1574d',juv_spotted_seal:'e7b312b98cb5',spotted_seal:'cdc2a0f9f538',
+ fry_fur_seal:'d32caaeb6128',juv_fur_seal:'9ff1a51f4222',fur_seal:'def0e7439fb6',
+ fry_steller_sea_lion:'649a268c0171',juv_steller_sea_lion:'df77b1968de3',steller_sea_lion:'7bc7a4c638fb',
+ fry_japanese_sea_lion:'935938f2d25d',juv_japanese_sea_lion:'6019fce151ba',japanese_sea_lion:'0336967822ea',
+ fry_sea_otter:'3e4065899b0a',juv_sea_otter:'fcc58406ed32',sea_otter:'3c20a0ca8163',
+ fry_otter:'928a1c2d9d9e',juv_otter:'168eac4e92b0',otter:'31341b2a7bd9',
  // 2026-11-18 고래 다섯 · 톱상어 — 가슴지느러미를 몸 밖으로 벌리고 꼬리 윗면을 등 색으로(whales/build.mjs)
  fry_minke_whale:'bb3564e2c52a',juv_minke_whale:'2dea721f3685',minke_whale:'9d6b7f542bae',fry_gray_whale:'d9d580e96720',juv_gray_whale:'98a286156e78',gray_whale:'e577e3079295',fry_humpback_whale:'030d79f0f163',juv_humpback_whale:'abd09f0c2797',humpback_whale:'ef72fe4536bd',fry_sperm_whale:'539ff9b09574',juv_sperm_whale:'1f454c017422',sperm_whale:'5d5080f1c852',fry_blue_whale:'ebae282b2d33',juv_blue_whale:'24ee9cc44f76',blue_whale:'48dc21cd27b4',fry_sawshark:'23722bab10b3',juv_sawshark:'ab94aa0aab2e',sawshark:'7ba142536416',
  // 2026-11-18 범고래 새끼 · 어린 개체 전용 모델 — 다 큰 모델에서 비율만 바꿔 다시 구움(orca-young-build.mjs)

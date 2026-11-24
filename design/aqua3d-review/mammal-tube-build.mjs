@@ -16,8 +16,13 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const cy=new Float32Array(W).fill(NaN),rr=new Float32Array(W);for(let x=0;x<W;x++){let best=0,by=-1;for(let y=0;y<H;y++){const d=dist[y*W+x];if(d>best){best=d;by=y;}}if(by>=0){cy[x]=by;rr[x]=best;}}
  // 몸통 = 반두께가 가장 굵은 곳의 18% 넘는 열 중 가장 긴 이어진 구간(더듬이 · 다리 끝은 얇아서 빠진다)
  let rmax=0;for(let x=0;x<W;x++)rmax=Math.max(rmax,rr[x]);let best=[0,0],s0=-1;for(let x=0;x<=W;x++){const on=x<W&&rr[x]>rmax*.18;if(on&&s0<0)s0=x;if(!on&&s0>=0){if(x-s0>best[1]-best[0])best=[s0,x-1];s0=-1;}}
- const [bx0,bx1]=best;const sm=(arr,i,w)=>{let s=0,n=0;for(let k=-w;k<=w;k++){const j=Math.min(bx1,Math.max(bx0,i+k));if(Number.isFinite(arr[j])){s+=arr[j];n++;}}return s/n;};
+ const bx0=best[0];let bx1=best[1];const sm=(arr,i,w)=>{let s=0,n=0;for(let k=-w;k<=w;k++){const j=Math.min(bx1,Math.max(bx0,i+k));if(Number.isFinite(arr[j])){s+=arr[j];n++;}}return s/n;};
  const C=new Float32Array(W),Rr=new Float32Array(W);for(let x=bx0;x<=bx1;x++){C[x]=sm(cy,x,7);Rr[x]=sm(rr,x,5)*1.08;}
+ // 코끝까지 몸통으로(2026-11-24 [사용자: "해달 모델 얼굴 앞쪽 코부분에 뭔가 어색한것이 붙어있어 확인하고 없애줘"]) — 가장자리 거리로 잰 반두께가 얇은 코끝 열은 18% 문턱에서 빠져
+ // 관이 코 앞에서 끊기고, 남은 코끝은 몸 밖 얇은 판으로 · 관 끝 마개는 회색 원판으로 붙어 보였다. 빠진 코끝은 그 열의 세로 폭으로 재 관에 넣는다(고래 빌더와 같은 처리)
+ {let front=bx1;for(let x=bx1;x<W;x++){for(let y=0;y<H;y++)if(mask[y*W+x]){front=x;break;}}
+  for(let x=bx1+1;x<=front;x++){let t=-1,bt=-1,bb=-1;for(let y=0;y<=H;y++){const on=y<H&&mask[y*W+x];if(on&&t<0)t=y;if(!on&&t>=0){if(y-1-t>bb-bt)[bt,bb]=[t,y-1];t=-1;}}if(bt<0){C[x]=C[x-1];Rr[x]=.8;continue;}C[x]=(bt+bb)/2;Rr[x]=Math.max(.8,(bb-bt)/2*.95);}
+  bx1=front;}
  // 텍스처: 위 반 = 관 둘레로 굽은 몸 · 아래 반 = 원화(다리 · 더듬이가 원화 자리의 색을 쓴다). 투명한 곳은 가장 가까운 색
  const near=new Int32Array(W*H).fill(-1),q=new Int32Array(W*H);let qa=0,qb=0;for(let i=0;i<W*H;i++)if(data[i*4+3]>140){near[i]=i;q[qb++]=i;}while(qa<qb){const i=q[qa++],x=i%W;for(const j of[i-W,i+W,...(x?[i-1]:[]),...(x<W-1?[i+1]:[])])if(j>=0&&j<W*H&&near[j]<0){near[j]=near[i];q[qb++]=j;}}
  const px=(x,y)=>{x=Math.max(0,Math.min(W-1,Math.round(x)));y=Math.max(0,Math.min(H-1,Math.round(y)));const k=near[y*W+x]*4;return [data[k],data[k+1],data[k+2]];};
@@ -28,7 +33,7 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  // 몸통 관
  const N=16,step=4,rings=[];for(let x=bx0;x<=bx1;x+=step){const r=Rr[x],c=C[x],ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2;ring.push(vtx(x,c-Math.cos(phi)*r,Math.sin(phi)*r**.95,(x-bx0)/(bx1-bx0),(j/N*254+.5)/511));}rings.push(ring);}
  for(let i=0;i<rings.length-1;i++)for(let j=0;j<N;j++){const a=rings[i][j],b=rings[i][j+1],c=rings[i+1][j],d=rings[i+1][j+1];I.push(a,c,b,b,c,d);}
- for(const [k,rev]of[[0,true],[rings.length-1,false]]){const x=bx0+k*step,ctr=vtx(x,C[Math.min(bx1,x)],0,(x-bx0)/(bx1-bx0),.25);for(let j=0;j<N;j++){const a=rings[k][j],b=rings[k][j+1];I.push(...(rev?[ctr,b,a]:[ctr,a,b]));}}
+ for(const [k,rev]of[[0,true],[rings.length-1,false]]){const x=bx0+k*step,ctr=vtx(x,C[Math.min(bx1,x)],0,Math.min(1,(x-bx0)/(bx1-bx0)),(N/4/N*254+.5)/511);for(let j=0;j<N;j++){const a=rings[k][j],b=rings[k][j+1];I.push(...(rev?[ctr,b,a]:[ctr,a,b]));}}
  // 몸 밖의 얇은 부분(다리 · 더듬이 · 꼬리부채) — 몸통 타원 안쪽 조금(뿌리)부터
  const rAt=x=>{const xi=Math.max(bx0,Math.min(bx1,Math.round(x)));return Rr[xi];},cAt=x=>C[Math.max(bx0,Math.min(bx1,Math.round(x)))];
  const outside=(x,y)=>x<bx0||x>bx1||Math.abs(y-cAt(x))>rAt(x)*1.0;
