@@ -51350,6 +51350,504 @@
       "remodel": "2026-11-18 whales/build.mjs (NOAA public-domain whale illustrations · public-domain Pristiophorus plate, traced round body tube)",
       "rebuilt": "2026-11-20 sawshark flattened saw blade + teeth",
       "triangles": 6412
+    },
+    "fry_walrus": {
+      "kind": "fish",
+      "family": "walrus",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_walrus.glb",
+      "triangles": 2784,
+      "bytes": 82372,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "5bcab7ff079ee111d30e55409f94bad07cd9e4f21dde2d549387415cda2861e5",
+      "sha256": "2f96334bb7d93e1d2e715b73e93717d9f36729fb3c91739684f83a7434ed2a62",
+      "authoringProfile": {
+        "key": "walrus",
+        "name": "바다코끼리",
+        "grade": "전설",
+        "cm": 330,
+        "water": "sea",
+        "body": "walrus",
+        "widthRatio": 0.3,
+        "life": "바닥 가까이 천천히 · 수염 주둥이로 조개를 찾고 숨 쉬러 수면 · 바위와 모래사장에서 쉰다"
+      },
+      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 머리 USFWS 사진(퍼블릭 도메인) · 엄니 원뿔",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+    },
+    "juv_walrus": {
+      "kind": "fish",
+      "family": "walrus",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_walrus.glb",
+      "triangles": 2784,
+      "bytes": 81448,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "9767aa1bb769068d6988044b12c96dddc6f75cdece86b6e75885eaec623b2ad2",
+      "sha256": "97f0165c261718f74d862524d5fc80ded5a3ed965ed867098f354eaf4b15ab84",
+      "authoringProfile": {
+        "key": "walrus",
+        "name": "바다코끼리",
+        "grade": "전설",
+        "cm": 330,
+        "water": "sea",
+        "body": "walrus",
+        "widthRatio": 0.3,
+        "life": "바닥 가까이 천천히 · 수염 주둥이로 조개를 찾고 숨 쉬러 수면 · 바위와 모래사장에서 쉰다"
+      },
+      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 머리 USFWS 사진(퍼블릭 도메인) · 엄니 원뿔",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+    },
+    "walrus": {
+      "kind": "fish",
+      "family": "walrus",
+      "form": "adult",
+      "file": "public/aqua/models/fish/walrus.glb",
+      "triangles": 2784,
+      "bytes": 88300,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "2f2da069bb3b0512753f36a416125d1d1c2b9c302289feea906761f5f2a60445",
+      "sha256": "c8f1afb59ca49f0e5665c00eeaa783c28df1c66da01fac71926a725824ca4d09",
+      "authoringProfile": {
+        "key": "walrus",
+        "name": "바다코끼리",
+        "grade": "전설",
+        "cm": 330,
+        "water": "sea",
+        "body": "walrus",
+        "widthRatio": 0.3,
+        "life": "바닥 가까이 천천히 · 수염 주둥이로 조개를 찾고 숨 쉬러 수면 · 바위와 모래사장에서 쉰다"
+      },
+      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 머리 USFWS 사진(퍼블릭 도메인) · 엄니 원뿔",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+    },
+    "fry_emperor_penguin": {
+      "kind": "fish",
+      "family": "emperor_penguin",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_emperor_penguin.glb",
+      "triangles": 2784,
+      "bytes": 63480,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "f3e85bf02ef32849e2f98512064756f593db8535a8fd256129afb4ab90c79237",
+      "sha256": "93c25ca9f9bf143736de9cd938553d2df38473dcdeb77d6d51d505a2190aec07",
+      "authoringProfile": {
+        "key": "emperor_penguin",
+        "name": "황제펭귄",
+        "grade": "영웅",
+        "cm": 115,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다"
+      },
+      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 그림 SVG + 펭귄 사진(퍼블릭 도메인) 깃털 결",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+    },
+    "juv_emperor_penguin": {
+      "kind": "fish",
+      "family": "emperor_penguin",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_emperor_penguin.glb",
+      "triangles": 2784,
+      "bytes": 75032,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "cdf886a94f5c57e88c5617a7934e17203008c401947ff1531fcfaa2ba68d3d30",
+      "sha256": "d549ba55f7edbf2d3bdb31dee227cc7f5be73571a41dd327d00954fce5d1f858",
+      "authoringProfile": {
+        "key": "emperor_penguin",
+        "name": "황제펭귄",
+        "grade": "영웅",
+        "cm": 115,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다"
+      },
+      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 그림 SVG + 펭귄 사진(퍼블릭 도메인) 깃털 결",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+    },
+    "emperor_penguin": {
+      "kind": "fish",
+      "family": "emperor_penguin",
+      "form": "adult",
+      "file": "public/aqua/models/fish/emperor_penguin.glb",
+      "triangles": 2784,
+      "bytes": 82300,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "a1c5134c38482dc47e441c4bc9c4fe1bff89dea5d5e2c9cc3160d6ea5498c30d",
+      "sha256": "f949275c2da45aa363481b0e58c802773c2657788dd67fd52725a6a37d9d9b16",
+      "authoringProfile": {
+        "key": "emperor_penguin",
+        "name": "황제펭귄",
+        "grade": "영웅",
+        "cm": 115,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다"
+      },
+      "geometryAuthoring": "reference-traced-mammal (design/aqua3d-review/mammal-tube-build.mjs) · 그림 SVG + 펭귄 사진(퍼블릭 도메인) 깃털 결",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
     }
   },
   "structuralValidation": "passed",

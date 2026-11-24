@@ -1765,6 +1765,30 @@
     "sawshark": {
       "sourceHash": "840d2d3bb1da37033a051e93367064d9ac9bbcc1fb8db436d0a01e882cf8f1bc",
       "sheet": "design/aqua3d-review/whales/review.webp"
+    },
+    "fry_walrus": {
+      "sourceHash": "5bcab7ff079ee111d30e55409f94bad07cd9e4f21dde2d549387415cda2861e5",
+      "sheet": "design/aqua3d-review/walrus/review.webp"
+    },
+    "juv_walrus": {
+      "sourceHash": "9767aa1bb769068d6988044b12c96dddc6f75cdece86b6e75885eaec623b2ad2",
+      "sheet": "design/aqua3d-review/walrus/review.webp"
+    },
+    "walrus": {
+      "sourceHash": "2f2da069bb3b0512753f36a416125d1d1c2b9c302289feea906761f5f2a60445",
+      "sheet": "design/aqua3d-review/walrus/review.webp"
+    },
+    "fry_emperor_penguin": {
+      "sourceHash": "f3e85bf02ef32849e2f98512064756f593db8535a8fd256129afb4ab90c79237",
+      "sheet": "design/aqua3d-review/penguin/review.webp"
+    },
+    "juv_emperor_penguin": {
+      "sourceHash": "cdf886a94f5c57e88c5617a7934e17203008c401947ff1531fcfaa2ba68d3d30",
+      "sheet": "design/aqua3d-review/penguin/review.webp"
+    },
+    "emperor_penguin": {
+      "sourceHash": "a1c5134c38482dc47e441c4bc9c4fe1bff89dea5d5e2c9cc3160d6ea5498c30d",
+      "sheet": "design/aqua3d-review/penguin/review.webp"
     }
   }
 }

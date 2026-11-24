@@ -11,7 +11,13 @@ import {compressGLB} from './glb-compress.mjs';
 import {packAsset} from './shrimp-pack.mjs';
 import {loadArt,relief,material,distance} from './relief-build.mjs';
 async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`),{data,W,H}=art,A=45;
- const mask=new Uint8Array(W*H);for(let i=0;i<W*H;i++)mask[i]=data[i*4+3]>A?1:0;const dist=distance(mask,W,H);
+ // 바다코끼리 엄니(2026-11-24) — 상아색(밝고 채도 낮은) 픽셀이 머리 앞쪽 아래에 있으면 엄니다. 몸 · 지느러미 판에서 빼고 아래에서 원뿔 둘로 짓는다
+ const walrus=/walrus/.test(key),tuskPx=new Uint8Array(W*H);
+ // 엄니 자리는 그림을 만들 때 남긴 마스크(walrus/make-art.mjs → walrus/<key>-tusk.png)
+ if(walrus){const {data:tm}=await sharp(`design/aqua3d-review/walrus/${key}-tusk.png`).resize(W,H).ensureAlpha().raw().toBuffer({resolveWithObject:true});for(let i=0;i<W*H;i++)if(tm[i*4+3]>100)tuskPx[i]=1;}
+ // 엄니 테두리(어두운 선)까지 — 3픽셀 넓힌 판(tuskWide)은 몸 · 지느러미 판에서 뺀다. 원뿔은 tuskPx 로
+ const tuskWide=new Uint8Array(W*H);if(walrus)for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(tuskPx[y*W+x])for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const yy=y+dy,xx=x+dx;if(yy>=0&&yy<H&&xx>=0&&xx<W)tuskWide[yy*W+xx]=1;}
+ const mask=new Uint8Array(W*H);for(let i=0;i<W*H;i++)mask[i]=data[i*4+3]>A&&!tuskWide[i]?1:0;const dist=distance(mask,W,H);
  // 열마다 중심선(가장 깊은 점)과 반두께
  const cy=new Float32Array(W).fill(NaN),rr=new Float32Array(W);for(let x=0;x<W;x++){let best=0,by=-1;for(let y=0;y<H;y++){const d=dist[y*W+x];if(d>best){best=d;by=y;}}if(by>=0){cy[x]=by;rr[x]=best;}}
  // 몸통 = 반두께가 가장 굵은 곳의 18% 넘는 열 중 가장 긴 이어진 구간(더듬이 · 다리 끝은 얇아서 빠진다)
@@ -23,10 +29,15 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  {let front=bx1;for(let x=bx1;x<W;x++){for(let y=0;y<H;y++)if(mask[y*W+x]){front=x;break;}}
   for(let x=bx1+1;x<=front;x++){let t=-1,bt=-1,bb=-1;for(let y=0;y<=H;y++){const on=y<H&&mask[y*W+x];if(on&&t<0)t=y;if(!on&&t>=0){if(y-1-t>bb-bt)[bt,bb]=[t,y-1];t=-1;}}if(bt<0){C[x]=C[x-1];Rr[x]=.8;continue;}C[x]=(bt+bb)/2;Rr[x]=Math.max(.8,(bb-bt)/2*.95);}
   bx1=front;}
+ // 바다코끼리 머리 · 목(사진에서 붙인 앞쪽 40%) — 가장자리 거리로 재면 엄니를 뺀 자리 · 턱 밑이 얇게 재져 몸통 밖으로 나가 앞지느러미로 잘못 갔다.
+ //   그 구간은 열의 위 · 아래 끝(엄니 제외)으로 재서 머리 전체를 몸통 관에 넣는다(앞지느러미는 그보다 뒤에 있다)
+ if(walrus){const h0=Math.round(bx0+(bx1-bx0)*.6),bl=Math.round((bx1-bx0)*.05);for(let x=h0-bl;x<=bx1;x++){let t=-1,b=-1;for(let y=0;y<H;y++)if(mask[y*W+x]){if(t<0)t=y;b=y;}if(t<0)continue;const w=Math.min(1,Math.max(0,(x-(h0-bl))/bl)),c=(t+b)/2,r=(b-t)/2*.97;C[x]=C[x]+(c-C[x])*w;Rr[x]=Math.max(Rr[x],Rr[x]+(r-Rr[x])*w);}}
  // 텍스처: 위 반 = 관 둘레로 굽은 몸 · 아래 반 = 원화(다리 · 더듬이가 원화 자리의 색을 쓴다). 투명한 곳은 가장 가까운 색
  const near=new Int32Array(W*H).fill(-1),q=new Int32Array(W*H);let qa=0,qb=0;for(let i=0;i<W*H;i++)if(data[i*4+3]>140){near[i]=i;q[qb++]=i;}while(qa<qb){const i=q[qa++],x=i%W;for(const j of[i-W,i+W,...(x?[i-1]:[]),...(x<W-1?[i+1]:[])])if(j>=0&&j<W*H&&near[j]<0){near[j]=near[i];q[qb++]=j;}}
+ const nearB=new Int32Array(W*H).fill(-1);{const q2=new Int32Array(W*H);let a2=0,b2=0;for(let i=0;i<W*H;i++)if(data[i*4+3]>140&&!tuskWide[i]){nearB[i]=i;q2[b2++]=i;}while(a2<b2){const i=q2[a2++],x=i%W;for(const j of[i-W,i+W,...(x?[i-1]:[]),...(x<W-1?[i+1]:[])])if(j>=0&&j<W*H&&nearB[j]<0){nearB[j]=nearB[i];q2[b2++]=j;}}}
+ const pxB=(x,y)=>{x=Math.max(0,Math.min(W-1,Math.round(x)));y=Math.max(0,Math.min(H-1,Math.round(y)));const k=nearB[y*W+x]*4;return [data[k],data[k+1],data[k+2]];};
  const px=(x,y)=>{x=Math.max(0,Math.min(W-1,Math.round(x)));y=Math.max(0,Math.min(H-1,Math.round(y)));const k=near[y*W+x]*4;return [data[k],data[k+1],data[k+2]];};
- const atlas=Buffer.alloc(512*512*3);for(let v=0;v<256;v++)for(let u=0;u<512;u++){const x=bx0+(bx1-bx0)*u/511,phi=v/255*Math.PI*2,xi=Math.round(x);atlas.set(px(x,C[xi]-Math.cos(phi)*Rr[xi]*.78),(v*512+u)*3);}
+ const atlas=Buffer.alloc(512*512*3);for(let v=0;v<256;v++)for(let u=0;u<512;u++){const x=bx0+(bx1-bx0)*u/511,phi=v/255*Math.PI*2,xi=Math.round(x);atlas.set(pxB(x,C[xi]-Math.cos(phi)*Rr[xi]*.78),(v*512+u)*3);}
  const ref=await sharp(Buffer.from(Array.from({length:W*H},(_,i)=>px(i%W,Math.floor(i/W))).flat()),{raw:{width:W,height:H,channels:3}}).resize(512,256,{fit:'fill'}).raw().toBuffer();ref.copy(atlas,512*256*3);
  const png=await sharp(atlas,{raw:{width:512,height:512,channels:3}}).png().toBuffer();
  const P=[],UV=[],I=[];const vtx=(x,y,z,u,v)=>{P.push(x,y,z);UV.push(u,v);return P.length/3-1;};const refUV=(x,y)=>[x/W,(256+y/H*255)/511];
@@ -36,7 +47,7 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  for(const [k,rev]of[[0,true],[rings.length-1,false]]){const x=bx0+k*step,ctr=vtx(x,C[Math.min(bx1,x)],0,Math.min(1,(x-bx0)/(bx1-bx0)),(N/4/N*254+.5)/511);for(let j=0;j<N;j++){const a=rings[k][j],b=rings[k][j+1];I.push(...(rev?[ctr,b,a]:[ctr,a,b]));}}
  // 몸 밖의 얇은 부분(다리 · 더듬이 · 꼬리부채) — 몸통 타원 안쪽 조금(뿌리)부터
  const rAt=x=>{const xi=Math.max(bx0,Math.min(bx1,Math.round(x)));return Rr[xi];},cAt=x=>C[Math.max(bx0,Math.min(bx1,Math.round(x)))];
- const outside=(x,y)=>x<bx0||x>bx1||Math.abs(y-cAt(x))>rAt(x)*1.0;
+ const outside=(x,y)=>!tuskWide[Math.min(H-1,Math.max(0,Math.round(y)))*W+Math.min(W-1,Math.max(0,Math.round(x)))]&&(x<bx0||x>bx1||Math.abs(y-cAt(x))>rAt(x)*1.0);
  const app=relief(art,{depth:.02,round:.015,step:2,alpha:A,inside:outside,targetTris:1500});const appStart=P.length/3,APP=[];
  for(const side of[-1,1]){const base=P.length/3,n=app.P.length/3;for(let i=0;i<n;i++){const x=app.P[i*3],y=app.P[i*3+1],z=app.P[i*3+2],inBody=x>=bx0&&x<=bx1,below=inBody&&y>cAt(x),off=inBody?rAt(x)*(below?.45:.3):0;APP.push([vtx(x,y,z+side*off,...refUV(x,y)),side,x,y]);}for(const k of app.I)I.push(base+k);}
  const mid=(bx0+bx1)/2,front=APP.filter(([, ,x,y])=>x>mid&&x<=bx1&&y>cAt(x));let fx=0,fy=0,rx=0;for(const [, ,x,y]of front){fx+=x;fy+=y;}const nf=Math.max(1,front.length);fx/=nf;fy/=nf;rx=fx+ (bx1-bx0)*.04;const rootY=cAt(rx)+rAt(rx)*.6;
@@ -45,6 +56,19 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  //   물범은 몸에 붙이고, 수달 · 해달은 다리라 조금만
  const SPLAY=/sea_lion|fur_seal/.test(key)?.95:/seal/.test(key)?.6:.75,cs=Math.cos(SPLAY),sn=Math.sin(SPLAY);
  for(const [v,side,x,y]of APP){if(!(x>mid&&x<=bx1&&y>cAt(x)))continue;const d=y-rootY;if(d<=0)continue;P[v*3+1]=rootY+d*cs;P[v*3+2]+=side*d*sn;}
+ const tuskV=new Set();
+ if(walrus){const rows=[];for(let y=0;y<H;y++){let sx=0,n=0,lo=1e9,hi=-1;for(let x=0;x<W;x++)if(tuskPx[y*W+x]){sx+=x;n++;lo=Math.min(lo,x);hi=Math.max(hi,x);}if(n){let bx=sx/n,bl=-1;for(let x=lo;x<=hi;x++)if(tuskPx[y*W+x]){const k=(y*W+x)*4,l=data[k]+data[k+1]+data[k+2];if(l>bl){bl=l;bx=x;}}rows.push([y,sx/n,(hi-lo+1)/2,bx]);}}
+  if(rows.length>4){const y0=rows[0][0],y1=rows[rows.length-1][0],NT=8,K=10,top=rows[0],rootR=Math.max(...rows.slice(0,Math.ceil(rows.length*.3)).map(r=>r[2]));
+   // 뿌리는 주둥이 속으로 조금 묻는다(떠 있지 않게)
+   // 엄니 색은 한 자리 — 엄니 픽셀 밝기의 80% 지점(반사광은 피한다). 줄마다 집으면 그늘진 줄이 띠로 남았다
+   const lums=[];for(let i=0;i<W*H;i++)if(tuskPx[i])lums.push([data[i*4]+data[i*4+1]+data[i*4+2],i]);lums.sort((a,b)=>a[0]-b[0]);const ivI=lums[Math.floor(lums.length*.8)][1],ivX=ivI%W,ivY=(ivI-ivX)/W;
+   const len=(y1-y0)*1.05,rx0=Math.round(bx1-(bx1-bx0)*.075),ry0=C[rx0]+Rr[rx0]*.78,ang=.33,dx=-Math.sin(ang),dy=Math.cos(ang);
+   const pts=[[rx0-dx*rootR*2.4,ry0-dy*rootR*2.4,rootR*.95,top[3],top[0]]];for(let k=0;k<=K;k++){const r=rows[Math.round(k/K*(rows.length-1))],t=k/K;pts.push([rx0+dx*len*t,ry0+dy*len*t,Math.max(.5,(k===K?.15:1)*rootR*(1-.8*t)),r[3],r[0]]);}
+   const zc=rAt(rx0)*.32;
+   for(const side of[-1,1]){const rr=[];for(const [x,y,r,ux,uy]of pts){const ring=[];for(let j=0;j<=NT;j++){const a=j/NT*Math.PI*2,v=vtx(x+Math.cos(a)*r*dy,y-Math.cos(a)*r*dx,side*zc+Math.sin(a)*r,...refUV(ivX,ivY));tuskV.add(v);ring.push(v);}rr.push(ring);}
+    for(let i=0;i<rr.length-1;i++)for(let j=0;j<NT;j++){const a=rr[i][j],b=rr[i][j+1],c=rr[i+1][j],d=rr[i+1][j+1];I.push(a,b,c,b,d,c);}
+    const last=rr[rr.length-1],[lx,ly,,lux,luy]=pts[pts.length-1],tipv=vtx(lx+dx*1.5,ly+dy*1.5,side*zc,...refUV(ivX,ivY));tuskV.add(tipv);for(let j=0;j<NT;j++)I.push(last[j],last[j+1],tipv);
+    const first=rr[0],[fx0,fy0,,fux,fuy]=pts[0],capv=vtx(fx0,fy0,side*zc,...refUV(ivX,ivY));tuskV.add(capv);for(let j=0;j<NT;j++)I.push(first[j+1],first[j],capv);}}}
  // 게임 좌표: 머리 +X(원화 오른쪽), 위 +Y, 길이 2
  const n=P.length/3,pos=new Float32Array(n*3);let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(let i=0;i<n;i++){x0=Math.min(x0,P[i*3]);x1=Math.max(x1,P[i*3]);y0=Math.min(y0,P[i*3+1]);y1=Math.max(y1,P[i*3+1]);}const S=2/(x1-x0),mx=(x0+x1)/2,my=(y0+y1)/2;for(let i=0;i<n;i++){pos[i*3]=(P[i*3]-mx)*S;pos[i*3+1]=(my-P[i*3+1])*S;pos[i*3+2]=P[i*3+2]*S;}
  if(n>65535)throw Error('vertices '+n);
@@ -52,9 +76,9 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  for(let i=0;i<6;i++){bones[i].position.set(i?BX[i]-BX[i-1]:BX[0],0,0);if(i)bones[i-1].add(bones[i]);}bones[1].add(bones[6]);bones[6].add(bones[7]);bones[1].add(bones[8]);bones[8].add(bones[9]);const G=(px,py,pz)=>[(px-mx)*S,(my-py)*S,pz*S],root=G(rx,rootY,0),fd=Math.max(0,fy-rootY),tip=G(fx,rootY+fd*cs,0),zr=rAt(rx)*.6*S,zt=zr*.4+fd*sn*S;bones[6].position.set(root[0]-BX[1],root[1],zr);bones[7].position.set(tip[0]-root[0],tip[1]-root[1],zt);bones[8].position.set(root[0]-BX[1],root[1],-zr);bones[9].position.set(tip[0]-root[0],tip[1]-root[1],-zt);
  bones[0].updateMatrixWorld(true);
  const finOf=new Map();for(const [v,side,x,y]of APP)if(x>mid&&x<=bx1&&y>cAt(x)){const d=Math.hypot(x-rx,y-rootY),f=Math.min(1,d/Math.max(4,Math.hypot(fx-rx,fy-rootY)*1.6));finOf.set(v,[side>0?6:8,f]);}
- const J=new Uint16Array(n*4),Wt=new Float32Array(n*4);for(let i=0;i<n;i++){const x=pos[i*3];const fb=finOf.get(i);if(fb){J[i*4]=fb[0];J[i*4+1]=fb[0]+1;Wt[i*4]=1-fb[1];Wt[i*4+1]=fb[1];continue;}if(x>=BX[0]){Wt[i*4]=1;continue;}let k=0;while(k<4&&x<BX[k+1])k++;const f=Math.max(0,Math.min(1,(BX[k]-x)/(BX[k]-BX[k+1])));J[i*4]=k;J[i*4+1]=k+1;Wt[i*4]=1-f;Wt[i*4+1]=f;}
+ const J=new Uint16Array(n*4),Wt=new Float32Array(n*4);for(let i=0;i<n;i++){const x=pos[i*3];if(tuskV.has(i)){J[i*4]=0;Wt[i*4]=1;continue;}const fb=finOf.get(i);if(fb){J[i*4]=fb[0];J[i*4+1]=fb[0]+1;Wt[i*4]=1-fb[1];Wt[i*4+1]=fb[1];continue;}if(x>=BX[0]){Wt[i*4]=1;continue;}let k=0;while(k<4&&x<BX[k+1])k++;const f=Math.max(0,Math.min(1,(BX[k]-x)/(BX[k]-BX[k+1])));J[i*4]=k;J[i*4+1]=k+1;Wt[i*4]=1-f;Wt[i*4+1]=f;}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setAttribute('skinIndex',new T.Uint16BufferAttribute(J,4));g.setAttribute('skinWeight',new T.Float32BufferAttribute(Wt,4));g.setIndex((()=>{/* 2026-11-19 위아래를 뒤집어(my-y) 담으면 감기 방향도 뒤집힌다 — 삼각형을 바깥으로(flip-inward.mjs 와 같은 일, facing.test) */for(let t=0;t<I.length;t+=3){const s=I[t+1];I[t+1]=I[t+2];I[t+2]=s;}return I;})());g.computeVertexNormals();
  const glb=await compressGLB(material(packAsset(key,[{name:key,geometry:g,extras:{aquaGeometry:'reference-traced-mammal',source:`public/aqua/fish/${key}.webp`,bodyCrossSection:'closed ellipse'}}],png,bones),m=>{m.name='painted_PBR_atlas';m.doubleSided=true;m.pbrMetallicRoughness.metallicFactor=.08;m.pbrMetallicRoughness.roughnessFactor=.72;}),{webpQuality:92});
  return {glb,tris:I.length/3,body:[bx0,bx1]};}
 await mkdir('design/aqua3d-review/mammal-v3-old',{recursive:true});
-for(const key of process.argv.slice(2)){try{await readFile(`design/aqua3d-review/mammal-v3-old/${key}.glb`);}catch{await writeFile(`design/aqua3d-review/mammal-v3-old/${key}.glb`,await readFile(`public/aqua/models/fish/${key}.glb`));}const {glb,tris,body}=await build(key);if(tris>8000)throw Error(key+' tris '+tris);await writeFile(`public/aqua/models/fish/${key}.glb`,glb);console.log(key,tris,'tris',glb.length,'bytes','body',body.join('-'));}
+for(const key of process.argv.slice(2)){try{await readFile(`design/aqua3d-review/mammal-v3-old/${key}.glb`);}catch{try{await writeFile(`design/aqua3d-review/mammal-v3-old/${key}.glb`,await readFile(`public/aqua/models/fish/${key}.glb`));}catch{/* 새 종 */}}const {glb,tris,body}=await build(key);if(tris>8000)throw Error(key+' tris '+tris);await writeFile(`public/aqua/models/fish/${key}.glb`,glb);console.log(key,tris,'tris',glb.length,'bytes','body',body.join('-'));}
