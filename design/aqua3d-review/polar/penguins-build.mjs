@@ -17,11 +17,11 @@ const SHAPE = {
   chinstrap: {bill: .92, billR: .9, wing: 2.1, tail: .95, head: 1.0},
   adelie: {bill: .7, billR: 1.0, wing: 2.05, tail: 1.05, head: 1.06},
 };
-// 몸 단면(x: 꼬리 → 머리 앞). 황제펭귄보다 짧고 머리가 크다
+// 몸 단면(x: 꼬리 → 머리 앞). 2026-11-25 2판 — 사진(NOAA · USAP · CC0, reference/SOURCES.md)과 견줘 머리를 줄이고(몸 굵기의 0.62) 목을 잘록하게
 const PROF = [[-3.9, .3, .28, .1], [-3.3, .74, .66, .02], [-2.2, 1.18, 1.08, -.06], [-.8, 1.46, 1.32, -.1], [.5, 1.44, 1.3, -.08], [1.55, 1.22, 1.1, 0],
-  [2.2, 1.0, .92, .12], [2.75, 1.02, .93, .2], [3.3, .82, .75, .22], [3.75, .44, .42, .22]];
+  [2.2, .84, .78, .12], [2.75, .9, .82, .2], [3.3, .72, .66, .2], [3.75, .4, .38, .2]];
 const PROF_CHICK = [[-3.0, .42, .4, .06], [-2.4, 1.02, .94, 0], [-1.2, 1.46, 1.38, -.06], [.1, 1.6, 1.5, -.06], [1.2, 1.4, 1.3, 0], [1.85, 1.16, 1.06, .1],
-  [2.45, 1.14, 1.04, .2], [2.95, .92, .84, .22], [3.35, .46, .44, .22]];
+  [2.45, 1.0, .92, .2], [2.95, .82, .76, .22], [3.35, .42, .4, .22]];
 const profOf = (T, hk) => (x) => { let i = 0; while (i < T.length - 2 && x > T[i + 1][0]) i++; const A = T[i], B = T[i + 1], t = clamp((x - A[0]) / (B[0] - A[0])), k = t * t * (3 - 2 * t), h = smooth(T[T.length - 4][0], T[T.length - 3][0], x) * (hk - 1) + 1; return {a: (A[1] + (B[1] - A[1]) * k) * h, b: (A[2] + (B[2] - A[2]) * k) * h, cy: A[3] + (B[3] - A[3]) * k}; };
 
 function build(key) {
@@ -52,7 +52,7 @@ function build(key) {
       c = mix(c, head > .5 ? WHITE : c, head * (1 - cap));
       c = mix(c, CAP, cap);
       // 턱끈: 눈 뒤 아래에서 턱 밑을 가로지르는 가는 고리
-      const tq = clamp((eyeY - .12 - yr) / (eyeY + .88)), sx = eyeX - .42 + .3 * tq, strap = smooth(.05, .018, Math.abs(x - sx)) * smooth(eyeY - .08, eyeY - .2, yr) * head;
+      const tq = clamp((eyeY - .12 - yr) / (eyeY + .88)), sx = eyeX - .3 + .36 * tq, strap = smooth(.05, .018, Math.abs(x - sx)) * smooth(eyeY - .08, eyeY - .2, yr) * head;
       c = mix(c, juv ? [70, 72, 80] : [16, 17, 22], strap * (juv ? .55 : 1));
       if (juv) c = mix(c, [176, 178, 184], head * (1 - cap) * smooth(-.2, .3, yr) * .55);  // 어린 개체: 얼굴이 거뭇하다
       // 목 뒤는 검정(모자가 등으로 이어진다)
@@ -93,19 +93,19 @@ function build(key) {
         return c.map((v) => v * grain);
       }});
 
-  // ── 부리(위 · 아래 두 쪽) ──
+  // ── 부리 — 닫힌 하나의 쐐기(1판은 위 · 아래 두 쪽이 벌어져 포크처럼 보였다). 옆으로 납작하고 입 선을 칠한다 ──
   const bx = X1 - .14, bp = P(X1 - .3), B = sh.bill * (chick ? .6 : juv ? .9 : 1), R = sh.billR * (chick ? 1.15 : 1);
   const ORANGE = juv ? [214, 116, 70] : [232, 92, 52];
-  for (const [nm, dy, lower] of [['billU', .04, false], ['billL', -.1, true]]) {
-    m.sweep(nm, (s) => ({c: [bx + B * s, bp.cy + dy - .1 * B * s * s - (lower ? .03 * s : 0), 0], u: [0, 1, 0], v: [0, 0, 1], a: (lower ? .16 : .2) * R * (1 - .8 * s ** .8), b: .22 * R * (1 - .8 * s ** .8)}),
-      {ns: 10, nt: 12, capEnd: .04, capRings: 2, island: lower ? [.15, .62, .3, .74] : [0, .62, .14, .74], bone: 'head',
-        paint: (p, n, [s, t]) => {
-          const up = Math.cos(t * Math.PI * 2 + Math.PI); // 1 = 위(등줄)
-          if (sp === 'gentoo' && !chick) return mix(ORANGE, [22, 20, 22], lower ? smooth(.85, .95, s) : smooth(.55, .85, up) + smooth(.85, .95, s) * .8).map((v) => v * (.94 + .1 * noise(p[0] * 30, p[1] * 30, p[2] * 30)));
-          if (sp === 'adelie' && !chick) return mix([30, 28, 30], [16, 16, 18], s);              // 짙은 부리(밑동은 몸통 깃털이 덮는다)
-          return [18, 18, 22];
-        }});
-  }
+  m.sweep('bill', (s) => ({c: [bx + B * s, bp.cy - .03 - .07 * B * s * s, 0], u: [0, 1, 0], v: [0, 0, 1], a: .21 * R * (1 - .84 * s ** .85), b: .16 * R * (1 - .8 * s ** .85)}),
+    {ns: 12, nt: 14, capStart: .05, capEnd: .03, capRings: 2, island: [0, .62, .3, .74], bone: 'head',
+      paint: (p, n, [s, t]) => {
+        const up = Math.cos(t * Math.PI * 2 + Math.PI), mouth = smooth(.09, .03, Math.abs(up + .12)) * smooth(.95, .8, s); // 1 = 위(등줄), 입 선은 옆 가운데 조금 아래
+        let c = [18, 18, 22];
+        if (sp === 'gentoo' && !chick) c = mix(ORANGE, [22, 20, 22], clamp(smooth(.5, .8, up) + smooth(.82, .95, s) * .8));   // 주황 부리 · 검은 등줄 · 검은 끝
+        else if (sp === 'adelie' && !chick) c = mix([34, 30, 30], [14, 14, 16], s);
+        else if (sp === 'chinstrap' && !chick) c = mix([26, 26, 30], [12, 12, 14], s);
+        return mix(c, [6, 6, 8], mouth * .9).map((v) => v * (.94 + .1 * noise(p[0] * 30, p[1] * 30, p[2] * 30)));
+      }});
   // 아델리: 부리 밑동 절반을 덮는 깃털 — 머리 쪽으로 짧은 덮개
   if (sp === 'adelie' && !chick) m.sweep('billFeather', (s) => ({c: [bx - .05 + B * .42 * s, bp.cy - .02, 0], u: [0, 1, 0], v: [0, 0, 1], a: .26 * (1 - .45 * s), b: .26 * (1 - .4 * s)}),
     {ns: 6, nt: 12, capEnd: .04, capRings: 1, island: [.31, .74, .4, .8], bone: 'head', paint: (p) => CAP.map((v) => v * (.9 + .2 * noise(p[0] * 30, p[1] * 30, p[2] * 30)))});

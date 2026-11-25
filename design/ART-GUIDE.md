@@ -132,8 +132,8 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 | `toothfish` | 메로(남극이빨고기) | 전설 | 1.75m | 세종기지 밤 |
 | `salp` | 살프 사슬 | 전설 | 60cm(사슬) | 세종기지 눈 오는 날 |
 
-**3D**: 그림 픽셀 없이 부위로 지었다 — `polar/penguins-build.mjs`(황제펭귄과 같은 몸 · 종마다 머리 무늬 · 부리 · 발 색 · 눈테), `polar/antfish-build.mjs`(몸통 관 + 몸에 뿌리를 묻은 지느러미 막 · 아래턱 · 큰 눈, 빙어는 납작한 긴 주둥이와 검은 돛 지느러미), `polar/inverts-build.mjs`(클리오네 · 살프는 재질 알파 BLEND 로 반투명 · 속 기관을 먼저 쌓고 껍질에 닿게, 바다돼지 관족 · 돌기, 등각류 마디 · 다리 일곱 쌍 · 더듬이, 성게 가시 130 · 얹은 조개껍데기). 도구 `polar/kit.mjs`(alpha 옵션).
-**그림**: 모델을 찍었다(`ceph-v3/review.html?card=` → `polar/cards-to-art.mjs`). 다시 그릴 때의 설명은 `design/AQUARIUM-ART.md` 의 같은 key 줄. 검수 `polar/review-antarctic.webp`(다섯 방향) · `polar/review-antarctic-cards.webp`.
+**3D(2판 — 2026-11-25 [사용자: "기준이미지 없이 모델을 만드니 그렇게 허접하게 만들지 너무 다르잖아 실제 어종과"])**: 기준은 퍼블릭 도메인 · CC0 사진과 도판(`polar/reference/SOURCES.md`). `polar/ref-art.mjs` 가 바탕을 오려 카드 그림과 3D 용 그림(`polar/model-art/`)을 만든다. 메로 · 빙어 = `whales/build.mjs`(사진에서 잰 중심선 · 두께의 둥근 몸통 + 사진을 몸에 입힘, 단면 타원) — 빙어 도판은 꼬리가 휘어 있어 곧게 편 그림(`icefishModelArt`)으로. 클리오네 · 등각류 = 위에서 본 사진을 `crab-build.mjs` 로 부풀림(`polar/top-build.mjs` — 클리오네 날개는 얇게 · 반투명). 성게 = 사진 윤곽의 회전체 + 사진 무늬 + 가시 520(`polar/urchin-build.mjs`). 바다돼지 = 도판 윤곽대로 몸통 + 도판 자리의 돌기 · 다리 · 입 촉수, 도판 무늬(`polar/seapig-build.mjs`). 살프 = 낱개 도판 무늬를 입힌 통 여덟 사슬(`polar/salp-build.mjs`, 사슬 사진은 퍼블릭 도메인으로 찾지 못했다). 펭귄 셋 = 부위로 짓고(`polar/penguins-build.mjs`) 사진과 견줘 머리 · 목 · 닫힌 부리 · 턱끈을 맞췄다. 1판(그림 없이 지은 `antfish-build` · `inverts-build`)은 지웠다.
+**그림**: 메로 · 빙어 · 클리오네 · 등각류 · 성게 · 바다돼지는 기준 사진 · 도판을 오린 것(바다돼지는 흑백 도판을 살아 있는 분홍으로, 빙어는 흰 몸빛으로 칠했다). 펭귄 셋 · 살프는 모델을 찍었다(`ceph-v3/review.html?card=` → `polar/cards-to-art.mjs`). 검수 `polar/review-antarctic.webp`(기준 | 카드 | 다섯 방향).
 
 ### F. 범고래 새끼 · 어린 개체 — 그림 2장 + 3D 모델 2개 (2026-11-14)
 
