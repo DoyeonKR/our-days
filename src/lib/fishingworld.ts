@@ -76,7 +76,7 @@ export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: N
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 /** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
  *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
-export const TIMED_ONLY: ReadonlySet<string> = new Set(["minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "walrus", "emperor_penguin", "chinstrap_penguin", "icefish", "clione", "sea_pig", "toothfish", "salp", "antarctic_urchin", "jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
+export const TIMED_ONLY: ReadonlySet<string> = new Set(["polar_bear", "minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "walrus", "emperor_penguin", "chinstrap_penguin", "icefish", "clione", "sea_pig", "toothfish", "salp", "antarctic_urchin", "jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
 export const TIMED_FISH: readonly TimedFish[] = [
   { species: "sweetfish", spot: "seomjin", time: "dawn" },
   { species: "crucian", spot: "dumulmeori", time: "dawn" },
@@ -138,6 +138,7 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "salp", spot: "sejong", wx: "snow", side: true },
   { species: "antarctic_urchin", spot: "sejong", time: "dawn", side: true },
   { species: "sunfish", spot: "starsea", time: "day", side: true },
+  { species: "polar_bear", spot: "starsea", time: "night", side: true, rare: 0.3 },
   { species: "butterflyfish", spot: "reef", time: "dawn", side: true },
   { species: "boxfish", spot: "reef", wx: "clear", side: true },
   { species: "barracuda", spot: "reef", time: "dusk", side: true },

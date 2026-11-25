@@ -1909,6 +1909,18 @@
     "salp": {
       "sourceHash": "bdb731df9a9c054b245cff46f6ce99d283137f896783074d19b2a3abb1f2bbeb",
       "sheet": "design/aqua3d-review/polar/review-antarctic.webp"
+    },
+    "fry_polar_bear": {
+      "sourceHash": "bdbf9848818ed824eaab47d95b6df1de5bda5f5703989e9b9aa9a2388a06a8c4",
+      "sheet": "design/aqua3d-review/polarbear/review.webp"
+    },
+    "juv_polar_bear": {
+      "sourceHash": "fb91cb4bb265b1a6ff9d8cce9583c8a9123a60ecc51dd5c956ce26c183d97cbf",
+      "sheet": "design/aqua3d-review/polarbear/review.webp"
+    },
+    "polar_bear": {
+      "sourceHash": "243c38fc7e6e0041bb145c55d2530028826d68caa2a12e9f2049ef503b93c45c",
+      "sheet": "design/aqua3d-review/polarbear/review.webp"
     }
   }
 }

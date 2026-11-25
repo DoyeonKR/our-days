@@ -54338,6 +54338,255 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+    },
+    "fry_polar_bear": {
+      "kind": "fish",
+      "family": "polar_bear",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_polar_bear.glb",
+      "triangles": 7512,
+      "bytes": 63016,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "bdbf9848818ed824eaab47d95b6df1de5bda5f5703989e9b9aa9a2388a06a8c4",
+      "sha256": "63524aef4c4eed5523d2f69d943496305372762e0a404542408aa3503bc641b0",
+      "authoringProfile": {
+        "key": "polar_bear",
+        "name": "북극곰",
+        "grade": "태초",
+        "cm": 250,
+        "water": "sea",
+        "body": "polar_bear",
+        "widthRatio": 0.42,
+        "life": "수면 가까이 머리를 내밀고 앞발을 번갈아 저어 나아간다(개헤엄) · 뒷다리는 키처럼 끌린다 · 숨 쉬러 자주 오르고 모래사장 · 바위에서 쉰다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polarbear/polarbear-build.mjs) · 비율 · 털빛은 USFWS · Ltshears · Unsplash(CC0) 사진(polarbear/reference/SOURCES.md) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 새로 지음"
+    },
+    "juv_polar_bear": {
+      "kind": "fish",
+      "family": "polar_bear",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_polar_bear.glb",
+      "triangles": 7512,
+      "bytes": 64576,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "fb91cb4bb265b1a6ff9d8cce9583c8a9123a60ecc51dd5c956ce26c183d97cbf",
+      "sha256": "de3eea9c83d1538c3588e5957c31830596d42f4057f5551d43717b394f3ace5b",
+      "authoringProfile": {
+        "key": "polar_bear",
+        "name": "북극곰",
+        "grade": "태초",
+        "cm": 250,
+        "water": "sea",
+        "body": "polar_bear",
+        "widthRatio": 0.42,
+        "life": "수면 가까이 머리를 내밀고 앞발을 번갈아 저어 나아간다(개헤엄) · 뒷다리는 키처럼 끌린다 · 숨 쉬러 자주 오르고 모래사장 · 바위에서 쉰다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polarbear/polarbear-build.mjs) · 비율 · 털빛은 USFWS · Ltshears · Unsplash(CC0) 사진(polarbear/reference/SOURCES.md) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 새로 지음"
+    },
+    "polar_bear": {
+      "kind": "fish",
+      "family": "polar_bear",
+      "form": "adult",
+      "file": "public/aqua/models/fish/polar_bear.glb",
+      "triangles": 7512,
+      "bytes": 66292,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "243c38fc7e6e0041bb145c55d2530028826d68caa2a12e9f2049ef503b93c45c",
+      "sha256": "e32032893767e0ac2a2d0a32e9e0db4df28bc78f5fd5795beb9fd1f8cc7023c9",
+      "authoringProfile": {
+        "key": "polar_bear",
+        "name": "북극곰",
+        "grade": "태초",
+        "cm": 250,
+        "water": "sea",
+        "body": "polar_bear",
+        "widthRatio": 0.42,
+        "life": "수면 가까이 머리를 내밀고 앞발을 번갈아 저어 나아간다(개헤엄) · 뒷다리는 키처럼 끌린다 · 숨 쉬러 자주 오르고 모래사장 · 바위에서 쉰다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polarbear/polarbear-build.mjs) · 비율 · 털빛은 USFWS · Ltshears · Unsplash(CC0) 사진(polarbear/reference/SOURCES.md) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 새로 지음"
     }
   },
   "structuralValidation": "passed",

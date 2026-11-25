@@ -20,7 +20,7 @@ const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
 const schema = read(join(root, "supabase/schema.sql"));
 
 /** schema.sql 에 원문이 없는 옛 파일 — 늘리지 않는다(새 파일은 반드시 schema.sql 끝에 붙인다).
- *  · 날씨 7개: 다른 앱이 운영에 직접 적용한 버전의 자리표시(SQL 은 주석뿐, §7)
+ *  · 날씨 9개: 다른 앱이 운영에 직접 적용한 버전의 자리표시(SQL 은 주석뿐, §7)
  *  · release_hardening · island_stale_no_retry: schema.sql 본문에 같은 정의를 녹여 넣어 원문 그대로는 없다 */
 const LEGACY_NOT_IN_SCHEMA = new Set([
   "20260825000000_release_hardening.sql",
@@ -32,6 +32,8 @@ const LEGACY_NOT_IN_SCHEMA = new Set([
   "20261101145042_weather_push_persona_community.sql",
   "20261114010339_weather_events_add_weather_fail.sql",
   "20261122130049_weather_events_add_engagement_names.sql",
+  "20261125134346_weather_events_widget_pin.sql",
+  "20261125135623_weather_events_apk_download.sql",
 ]);
 const STRICT_FROM = "20261106";
 

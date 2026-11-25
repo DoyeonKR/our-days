@@ -1,7 +1,7 @@
 # 우리 수조 그림 목록 · 프롬프트
 
 > 이 파일은 `scripts/aqua-art-prompts.mjs` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **526장**: 치어 · 어린 물고기 294 · 최종 물고기 183 · 악세사리 40 · 수조 배경 9.
+> 모두 **529장**: 치어 · 어린 물고기 296 · 최종 물고기 184 · 악세사리 40 · 수조 배경 9.
 
 ## 넣는 법
 
@@ -41,7 +41,7 @@ Photorealistic aquarium decoration product photography, physically realistic cer
 Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280). Empty underwater interior filling the frame edge to edge: bright water upper area, physically believable caustics and soft light shafts, sandy floor in bottom 18%. NO animals, NO movable decorations in the middle; center open for compositing swimming animals and decorations. No text, UI, border, or front-glass reflections covering the center. Natural materials and realistic water, not cartoon or painted illustration; fantasy architecture only as distant realistic scenery.
 ```
 
-## 치어 · 어린 물고기 (294장)
+## 치어 · 어린 물고기 (296장)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -123,6 +123,8 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `juv_dokdo_shrimp` | 독도새우 어린 물고기 | Subject: Pandalus hypsinotus, living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster. Immature juvenile of this exact species, semi-transparent lightly pigmented shell with adult markings only beginning, relatively shorter abdomen and smaller rostrum than mature adult, NOT merely a shrunken adult. Clearly separate cephalothorax, six abdominal segments, broad telson and paired uropod tail fan, two pairs of antennae, walking legs and abdominal swimmerets. Antennae curve BACK from the head along the body and down toward the tail, contained inside the canvas, never straight forward needles. All appendages legible, belly downward. Override common wet highlights: NO white reflection stripes, glare, hard rim light, dark outline or blurred edge; even diffuse illumination. Actual transparent alpha, no painted checkerboard. |
 | `fry_orca` | 범고래 치어 | Real newborn killer whale calf (Orcinus orca): short rounded body, proportionally large head and flippers, small curved dorsal fin, the white areas tinged pale orange-peach as in real newborn calves, black elsewhere, faint fetal fold lines on the flank. Exact side view, head RIGHT. |
 | `juv_orca` | 범고래 어린 물고기 | Real juvenile killer whale (Orcinus orca), about one third grown: longer body than the calf, white patches now clean white, small upright dorsal fin not yet tall, faint grey saddle. Exact side view, head RIGHT. |
+| `fry_polar_bear` | 북극곰 치어 | Real polar bear cub (Ursus maritimus): round fluffy bright white body, big head, short muzzle, large round ears, dark eyes, black nose, short stubby legs. Exact side view, head RIGHT. Transparent background, no text. |
+| `juv_polar_bear` | 북극곰 어린 물고기 | Real juvenile polar bear: slimmer white body, head a little large, muzzle shorter than adult, rounded ears, paddling front paws. Exact side view, head RIGHT. Transparent background, no text. |
 | `fry_gentoo_penguin` | 젠투펭귄 치어 | Real gentoo penguin chick: fluffy grey down on the back, white belly, small dull orange bill. Exact side view, head RIGHT. Transparent background, no text. |
 | `juv_gentoo_penguin` | 젠투펭귄 어린 물고기 | Real juvenile gentoo penguin: sleek grey-black back, white belly, greyish chin, smaller white eye patches, dull orange bill. Exact side view, head RIGHT. Transparent background, no text. |
 | `fry_chinstrap_penguin` | 턱끈펭귄 치어 | Real chinstrap penguin chick: pale silver-grey fluffy down, slightly darker head, black bill. Exact side view, head RIGHT. Transparent background, no text. |
@@ -340,7 +342,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `fry_astral` | 별무리어 치어 | Biologically plausible newborn cosmic star fish spirit, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, translucent deep-indigo body filled with tiny stars, soft glow, little comet tail. A real newborn animal, not a baby cartoon. |
 | `juv_astral` | 별무리어 어린 물고기 | Juvenile cosmic star fish spirit: young teenage fish, body starting to take adult shape, fins half grown, indigo-violet translucent body with a small swirl of galaxy inside, wispy glowing fins. Clearly not yet fully grown, less ornate than the adult. |
 
-## 최종 물고기 (183장)
+## 최종 물고기 (184장)
 
 | key | 이름 | 등급 | 설명 |
 |---|---|---|---|
@@ -436,6 +438,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `cherry_shrimp` | 체리새우 | 흔함 | Subject: Neocaridina davidi, red ornamental cherry shrimp, compact arched carapace, short serrated rostrum, mottled rich scarlet adult shell, small black lateral eyes, no lobster claws. Adult, fully developed species anatomy. Clearly separate cephalothorax, six abdominal segments, broad telson and paired uropod tail fan, two pairs of antennae, walking legs and abdominal swimmerets. Antennae curve BACK from the head along the body and down toward the tail, contained inside the canvas, never straight forward needles. All appendages legible, belly downward. Override common wet highlights: NO white reflection stripes, glare, hard rim light, dark outline or blurred edge; even diffuse illumination. Actual transparent alpha, no painted checkerboard. |
 | `fleshy_prawn` | 대하 | 고급 | Subject: Fenneropenaeus chinensis, living Chinese white prawn of the Korean west coast, elongated slender pale grey-green translucent shell, fine olive-brown chromatophore speckles and subtle blue-grey tail margins, long modestly serrated rostrum, NOT a cooked orange shrimp. Adult, fully developed species anatomy. Clearly separate cephalothorax, six abdominal segments, broad telson and paired uropod tail fan, two pairs of antennae, walking legs and abdominal swimmerets. Antennae curve BACK from the head along the body and down toward the tail, contained inside the canvas, never straight forward needles. All appendages legible, belly downward. Override common wet highlights: NO white reflection stripes, glare, hard rim light, dark outline or blurred edge; even diffuse illumination. Actual transparent alpha, no painted checkerboard. |
 | `dokdo_shrimp` | 독도새우 | 희귀 | Subject: Pandalus hypsinotus, living coonstripe shrimp from deep East Sea waters near Dokdo, high ridged carapace, conspicuously long upward-curving serrated rostrum, peach-pink to reddish shell with darker reddish oblique abdominal bands, small natural dark eyes, NOT a lobster. Adult, fully developed species anatomy. Clearly separate cephalothorax, six abdominal segments, broad telson and paired uropod tail fan, two pairs of antennae, walking legs and abdominal swimmerets. Antennae curve BACK from the head along the body and down toward the tail, contained inside the canvas, never straight forward needles. All appendages legible, belly downward. Override common wet highlights: NO white reflection stripes, glare, hard rim light, dark outline or blurred edge; even diffuse illumination. Actual transparent alpha, no painted checkerboard. |
+| `polar_bear` | 북극곰 | 태초 | Real adult polar bear (Ursus maritimus) swimming underwater: long body, long neck and narrow head stretched forward, straight Roman-nosed muzzle, small rounded ears, small dark eyes, black nose and lips, creamy white fur with soft yellowish belly and legs, huge front paws paddling, hind legs trailing. Exact side view, head RIGHT. Transparent background, no text. |
 | `gentoo_penguin` | 젠투펭귄 | 고급 | Real gentoo penguin (Pygoscelis papua) swimming underwater: slate-black back, white belly, white triangular patch over each eye joined by a thin white band across the crown, bright orange-red bill with black ridge, orange feet. Exact side view, head RIGHT. Transparent background, no text. |
 | `chinstrap_penguin` | 턱끈펭귄 | 희귀 | Real chinstrap penguin (Pygoscelis antarcticus) swimming underwater: black cap and back, white face and throat, a thin black strap running under the chin from ear to ear, black bill, pink feet. Exact side view, head RIGHT. Transparent background, no text. |
 | `adelie_penguin` | 아델리펭귄 | 고급 | Real Adelie penguin (Pygoscelis adeliae) swimming underwater: all-black head and back, white belly, bold white eye-ring, short black bill half covered by feathers, pink feet. Exact side view, head RIGHT. Transparent background, no text. |
