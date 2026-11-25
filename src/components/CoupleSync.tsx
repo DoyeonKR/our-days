@@ -47,6 +47,7 @@ import PokeQuickSend from "@/components/PokeQuickSend";
 import styles from "./Poke.module.css";
 import { type SyncPhase, subOf } from "@/lib/synctext";
 import { claimPokeBanner, confirmPokeSend, mergePokeInsert, pickPushedPoke, reconcilePokeSnapshot } from "@/lib/pokesync";
+import GuestSignup from "@/components/GuestSignup";
 import { buildInviteUrl, inviteCodeFromHref, inviteExpiryText, normalizeInviteCode } from "@/lib/invite";
 import { showNotice } from "@/lib/notice";
 import { coupleLookupStatus, forgetCouple, keepRetrying, lastKnownCoupleCode, onCoupleLookup, rememberCouple } from "@/lib/couplelookup";
@@ -61,9 +62,14 @@ type Props = {
   onPartnerName: (name: string) => void; // 연결된 상대 애칭을 부모(히어로)로 전달
   onMembersChange: (members: Member[]) => void;
   onOpenAccount: () => void; // '다른 기기 로그인' → 설정 열기
+  /** 가입 없이 쓰는 중(lib/guest, 2026-11-25) — 커플 연결(코드 만들기 · 합류 · 초대 링크 · 이전 커플 재연결)과
+   *  초대코드 보여 주기를 가입 카드로 바꾼다. 가입하면 같은 계정이라 공간 · 기록이 그대로 이어진다. */
+  guest?: boolean;
 };
 
 type Phase = SyncPhase;
+
+const GUEST_CONNECT_MESSAGE = "커플 연결은 가입한 뒤에 할 수 있어요.";
 
 function timeAgo(iso: string): string {
   const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -107,6 +113,7 @@ export default function CoupleSync({
   onPartnerName,
   onMembersChange,
   onOpenAccount,
+  guest = false,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [uid, setUid] = useState<string | null>(null);
@@ -559,10 +566,15 @@ export default function CoupleSync({
     return null;
   }
   const handleCreate = () => void pair(() => createCouple(myName, localStart));
-  const handleJoin = () => void pair(() => joinCouple(code, myName));
+  // 가입 전엔 합류하지 않는다 — 버튼은 가입 카드로 바뀌어 있지만, 다른 길로 불려도 여기서 한 번 더 막는다
+  const handleJoin = () => {
+    if (guest) return setErr(GUEST_CONNECT_MESSAGE);
+    void pair(() => joinCouple(code, myName));
+  };
   // 저장된 이전 커플로 재연결 — 반드시 이 버튼(사용자 확인)을 거친다
   const handleReconnect = async () => {
     if (!savedCode) return;
+    if (guest) return setErr(GUEST_CONNECT_MESSAGE);
     const failMsg = await pair(() => joinCouple(savedCode, myName));
     if (!failMsg) return;
     /* 저장된 옛 코드는 7일 회전으로 시간이 지나면 항상 죽는다 — 만료·회전·정원초과는
@@ -870,7 +882,8 @@ export default function CoupleSync({
 
         {phase === "unpaired" && (
           <div className="space-y-3">
-            {mode === "menu" && (
+            {guest && <GuestSignup reason="connect" />}
+            {!guest && mode === "menu" && (
               <>
                 <p className="text-sm text-muted">연결하면 같은 D-day 와 쿡 찌르기를 함께 써요. 기록은 혼자서도 시작할 수 있어요 — 커플 만들기로 생긴 공간에 먼저 쓰고, 상대는 나중에 코드로 들어와요.</p>
                 {savedCode && (
@@ -914,7 +927,7 @@ export default function CoupleSync({
               </>
             )}
 
-            {mode === "create" && (
+            {!guest && mode === "create" && (
               <>
                 <p className="text-sm text-ink">
                   <b className="text-rose-deep">{myName || "나"}</b> 이름으로 만들면 초대코드가 나와요.
@@ -938,7 +951,7 @@ export default function CoupleSync({
               </>
             )}
 
-            {mode === "join" && (
+            {!guest && mode === "join" && (
               <>
                 <label className="block">
                   <span className="mb-1.5 block text-xs font-semibold text-muted">
@@ -980,7 +993,8 @@ export default function CoupleSync({
           <div className="space-y-3">
             {/* 상태는 별도 행 없이 병합 — waiting=코드 카드 첫 줄, 연결됨=쿡 라벨 행(3중 헤더 중복 제거) */}
             {/* 대기중: 초대코드 공유 */}
-            {waiting && (
+            {waiting && guest && <GuestSignup reason="connect" />}
+            {waiting && !guest && (
               <div className="glass rounded-xl bg-glass p-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
                 <p className="flex items-center justify-center gap-1 text-xs font-bold text-ink">
                   <Icon name="clock" size={12} />

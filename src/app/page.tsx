@@ -71,6 +71,7 @@ const AccountSection = dynamic(loadAccountSection, {
 const PetIcon = dynamic(() => import("@/components/island/PetIcon"));
 import { isPushSubscribed, resyncPushSubscription } from "@/lib/push";
 import AuthGate from "@/components/AuthGate";
+import { hadGuest } from "@/lib/guest";
 import { AuthOfflineError, getAuthInfo } from "@/lib/auth";
 import { SESSION_LOST_MESSAGE, onSessionLost } from "@/lib/session";
 import TodayTogether, { focusHomeCard } from "@/components/TodayTogether";
@@ -284,7 +285,8 @@ export default function Home() {
   const [coverPath, setCoverPath] = useState<string | null>(null); // 대표 사진 storage 경로
   const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
   const [authReady, setAuthReady] = useState(false);
-  const [authed, setAuthed] = useState(false); // 이메일 계정 로그인 여부
+  const [authed, setAuthed] = useState(false); // 로그인 여부(이메일 계정 · 가입 없이 혼자하기)
+  const [guest, setGuest] = useState(false); // 가입 없이 쓰는 중(lib/guest) — 커플 연결 전에 가입을 받는다
   const [sessionLost, setSessionLost] = useState(false); // 쓰던 중 세션이 풀려 로그인 화면으로 돌아왔는가
   const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
   const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
@@ -348,7 +350,8 @@ export default function Home() {
     };
   }, [coupleId]);
 
-  // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
+  // 로그인 게이트: Supabase 설정 시 로그인 필수 — 이메일 계정, 또는 로그인 화면의 '혼자하기'로 사용자가 직접 연 익명 계정(2026-11-25 · lib/guest).
+  // 익명 계정은 그 버튼으로만 생긴다 — 세션이 풀렸을 때 몰래 만드는 길은 여전히 없다(couple.ts ensureAnonAuth).
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setAuthed(true);
@@ -365,7 +368,8 @@ export default function Home() {
       getAuthInfo()
         .then((info) => {
           if (!bootAlive) return;
-          setAuthed(!!(info && !info.isAnonymous && info.email));
+          setAuthed(!!(info && (info.isAnonymous || info.email)));
+          setGuest(!!info?.isAnonymous);
           setMyUserId(info?.id ?? null);
           setAuthReady(true);
         })
@@ -1311,7 +1315,7 @@ export default function Home() {
 
   // 로그인 안 하면 앱 사용 불가 (Supabase 설정 시)
   if (!authed) {
-    return <AuthGate notice={sessionLost ? SESSION_LOST_MESSAGE : null} onAuthed={() => window.location.reload()} />;
+    return <AuthGate notice={sessionLost ? SESSION_LOST_MESSAGE : null} guestLost={sessionLost && hadGuest()} onAuthed={() => window.location.reload()} />;
   }
 
   if (!start) {
@@ -1467,6 +1471,7 @@ export default function Home() {
           onAdoptStart={adoptStart}
           onPartnerName={setPartnerName}
           onOpenAccount={() => setPanel("settings")}
+          guest={guest}
         />
       </section>
 

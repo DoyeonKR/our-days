@@ -5,6 +5,7 @@ import { authErrorMessage } from "@/lib/authError";
 import { BASE } from "@/lib/base";
 import { normalizeEmail, passwordResetRedirect } from "@/lib/authPolicy";
 import { NETWORK_RETRY_MESSAGE, forgetStoredSession, isAuthNetworkError, storedSessionUser } from "@/lib/session";
+import { clearGuestMark, markGuest } from "@/lib/guest";
 
 /** offline — 토큰 갱신이 네트워크로 실패해 저장소의 세션으로 대신 읽었다(연결되면 auth-js 가 다시 갱신한다). */
 export type AuthInfo = { id: string; email: string | null; isAnonymous: boolean; offline?: boolean };
@@ -45,18 +46,55 @@ export async function linkEmail(email: string, password: string): Promise<void> 
   if (error) throw new Error(authErrorMessage(error.message));
 }
 
-/** 회원가입. 익명 세션이 있으면 전환(데이터 유지), 없으면 새 계정. autoconfirm 이라 즉시 로그인. */
+/** 혼자하기 — 가입 없이 시작한다(lib/guest). **사용자가 로그인 화면의 버튼을 눌렀을 때만** 부른다.
+ *  세션이 풀렸을 때 몰래 익명 계정을 만드는 길(2026-11-05 에 걷음)과는 다르다 — couple.ts 는 여전히 익명 로그인을 하지 않는다. */
+export async function startGuest(): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const { error } = await sb.auth.signInAnonymously();
+  if (error) throw new Error(authErrorMessage(error.message));
+  markGuest();
+}
+
+/** 가입 없이 쓰던 계정에 이메일 · 비밀번호를 붙인다 — 같은 uid 라 기록 · 공간 · 섬이 그대로다.
+ *  두 번에 나눠 보낸다: 이메일이 없는 익명 계정은 비밀번호만 먼저 정할 수 없다. 비밀번호 단계에서 끊겨 다시 누르면
+ *  이메일이 이미 붙어 있으니 그 단계는 건너뛴다(여기로 다시 와야 한다 — signUp 으로 가면 새 빈 계정이 생긴다).
+ *  끝나면 세션을 새로 받아 is_anonymous 가 풀렸는지 본다. */
+export async function upgradeGuest(email: string, password: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const target = normalizeEmail(email);
+  const { data } = await sb.auth.getUser();
+  const user = data.user;
+  if (!user) throw new Error("로그인이 풀렸어요. 앱을 다시 열어 주세요.");
+  if ((user.email ?? "").toLowerCase() !== target) {
+    if (user.email && !user.is_anonymous) throw new Error("이미 다른 이메일로 가입돼 있어요.");
+    const { error } = await sb.auth.updateUser({ email: target });
+    if (error) throw new Error(authErrorMessage(error.message));
+  }
+  const { error: pwError } = await sb.auth.updateUser({ password });
+  if (pwError) throw new Error(authErrorMessage(pwError.message));
+  await sb.auth.refreshSession().catch(() => null);
+  const { data: after } = await sb.auth.getUser();
+  if (!after.user?.email || after.user.is_anonymous) {
+    // 이메일 확인을 켜 둔 서버면 확인 메일을 눌러야 이메일이 붙는다(지금 서버는 autoconfirm — 이 길은 안 탄다)
+    throw new Error("메일함에서 확인 링크를 누르면 가입이 끝나요. 누른 뒤 다시 시도해 주세요.");
+  }
+  clearGuestMark();
+}
+
+/** 회원가입. 가입 없이 쓰던 세션이 있으면 그 계정에 붙이고(데이터 유지), 없으면 새 계정. autoconfirm 이라 즉시 로그인. */
 export async function signUpEmail(email: string, password: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const { data } = await sb.auth.getUser();
   if (data.user?.is_anonymous) {
-    const { error } = await sb.auth.updateUser({ email: email.trim(), password });
-    if (error) throw new Error(authErrorMessage(error.message));
+    await upgradeGuest(email, password);
     return;
   }
   const { error } = await sb.auth.signUp({ email: normalizeEmail(email), password });
   if (error) throw new Error(authErrorMessage(error.message));
+  clearGuestMark(); // 이메일 계정으로 시작 — 뒤에 세션이 풀려도 '가입 없이 쓰던' 안내를 띄우지 않게
 }
 
 /** 다른 기기에서 저장해둔 이메일 계정으로 로그인 (같은 uid → 커플 따라옴). */
@@ -68,6 +106,7 @@ export async function signInEmail(email: string, password: string): Promise<void
     password,
   });
   if (error) throw new Error(authErrorMessage(error.message));
+  clearGuestMark();
 }
 
 /** 존재 여부를 노출하지 않는 Supabase 복구 메일 요청. */

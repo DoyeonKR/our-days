@@ -83,7 +83,7 @@ test("④ 개인정보 안내 — 자동 정리 기간 · FCM · 변경일", () 
   assert.match(p, /오류 진단 기록은 30일, 활동 알림 기록은 180일, 모험 대전 기록은 60일/);
   assert.match(p, /Google Firebase Cloud Messaging\(FCM\)/);
   assert.match(p, /Web Push/);
-  assert.match(p, /마지막 변경 2026년 11월 9일/);
+  assert.match(p, /마지막 변경 2026년 11월 25일/); // 2026-11-25 혼자하기 문단(guestmode.test)
   assert.match(code("src/lib/logretention.ts"), /LOG_VIDEO_KEEP_DAYS = 90;/, "안내의 90일과 같은 숫자");
 });
 

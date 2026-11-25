@@ -21,6 +21,7 @@ import { getMyCouple, isSupabaseConfigured } from "@/lib/couple";
 import { confirmDialog } from "@/lib/confirm";
 import { beginBusy } from "@/lib/busy";
 import { deletionImpact, isSoloSpace, type SpaceKind } from "@/lib/solospace";
+import GuestSignup from "@/components/GuestSignup";
 
 export default function AccountSection() {
   const [info, setInfo] = useState<AuthInfo | null>(null);
@@ -79,6 +80,8 @@ export default function AccountSection() {
   }
 
   const loggedIn = !!(info && !info.isAnonymous && info.email);
+  // 가입 없이 쓰는 중(lib/guest, 2026-11-25) — 가입 카드 · 내보내기 · 나가기만. 비밀번호 변경 · 계정 삭제는 비밀번호가 있어야 해서 가입 뒤에.
+  const isGuest = !!info?.isAnonymous;
 
   function resetSensitiveFields() {
     setCurrentPw("");
@@ -181,11 +184,19 @@ export default function AccountSection() {
   async function logout() {
     if (loggingOut || busy) return;
     if (
-      !(await confirmDialog({
-        message: "로그아웃할까요?",
-        detail: "이 기기에선 다시 로그인해야 연동이 보여요.",
-        confirmText: "로그아웃",
-      }))
+      !(await confirmDialog(
+        isGuest
+          ? {
+              message: "가입하지 않고 나갈까요?",
+              detail: "가입 전에는 이메일이 없어 다시 들어올 방법이 없어요. 나가면 지금까지의 기록을 다시 열 수 없어요. 먼저 가입하거나 내보내기로 받아 두세요.",
+              confirmText: "그래도 나가기",
+            }
+          : {
+              message: "로그아웃할까요?",
+              detail: "이 기기에선 다시 로그인해야 연동이 보여요.",
+              confirmText: "로그아웃",
+            },
+      ))
     )
       return;
     setLoggingOut(true);
@@ -206,6 +217,35 @@ export default function AccountSection() {
 
       {infoState === "loading" ? (
         <p role="status" className="text-xs text-muted">계정 정보를 불러오는 중…</p>
+      ) : isGuest ? (
+        <div className="space-y-2">
+          <GuestSignup reason="account" />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => void runExport("json")}
+              disabled={busy}
+              className="tap rounded-lg bg-glass py-2 text-xs font-bold text-ink ring-1 ring-line disabled:opacity-45"
+            >
+              데이터 JSON
+            </button>
+            <button
+              onClick={() => void runExport("archive")}
+              disabled={busy}
+              className="tap rounded-lg bg-glass py-2 text-xs font-bold text-ink ring-1 ring-line disabled:opacity-45"
+            >
+              미디어 포함 ZIP
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            disabled={loggingOut}
+            aria-busy={loggingOut}
+            className="tap w-full py-1 text-center text-xs font-semibold text-muted disabled:opacity-50"
+          >
+            {loggingOut ? "나가는 중…" : "가입하지 않고 이 기기에서 나가기"}
+          </button>
+        </div>
       ) : !loggedIn ? (
         <div className="flex items-center justify-between gap-2">
           <p role="alert" className="text-xs text-rose-deep">계정 정보를 불러오지 못했어요. 연결을 확인해 주세요.</p>
