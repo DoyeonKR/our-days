@@ -46,7 +46,9 @@ function build(key) {
       const roll = 1 + .045 * st.fold * band * side * Math.sin(x * 5.6 + .7 * Math.sin(th * 2) + 2.2 * noise(x * .7, th * .8, 3)) * (.6 + .4 * noise(x * 1.3, th * 1.7, 9));
       // 이마 — 눈 위가 살짝 솟는다
       const brow = Math.exp(-Math.pow((x - 3.85) / .3, 2)) * Math.exp(-Math.pow((Math.abs(th) - .7) / .35, 2)) * .05;
-      return roll * (1 + brow);
+      // 혹(어른 수컷 목 · 어깨의 우툴두툴한 돌기) — 표면이 실제로 솟는다
+      const knob = smooth(.62, .78, noise(x * 3.2, Math.cos(th) * 3.2 + 11, Math.sin(th) * 3.2)) * smooth(.6, 1.6, x) * (1 - smooth(3.2, 3.6, x)) * st.fold * .022;
+      return roll * (1 + brow + knob);
     }};
   }, {ns: 52, nt: 26, capStart: .25, capEnd: .14, capRings: 4, capSpanStart: .03, capSpanEnd: .08, island: [0, 0, 1, .56], sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < 3 ? (x - X0) / (3 - X0) * .6 : .6 + (x - 3) / (X1 - 3) * .4; }, bone: 'body',
     paint: (p, n) => {
@@ -60,11 +62,14 @@ function build(key) {
       c = mix(c, [226, 168, 152], smooth(.62, .8, fbm([x * 1.6 + 7, y * 1.6, z * 1.6])) * .3 * st.fold);
       // 가로 주름(몸을 감는 고랑) — 목 · 어깨에 깊고 촘촘, 배 · 꼬리 쪽은 얕고 성기다
       const band = smooth(-.4, .9, x) * (1 - smooth(3.4, 3.95, x)), lowBand = .35 + .65 * band;
-      const ph = x * (2.4 + 1.6 * band) + 1.3 * fbm([x * .5, y * .9, z * .9]) + .3 * Math.sin(Math.atan2(z, y - pr.cy) * 2 + x * .7);
-      const groove = Math.pow(1 - Math.abs(Math.sin(Math.PI * ph)), 9) * lowBand * (.45 + .55 * st.fold) * smooth(.25, .55, noise(x * 1.4, y * 1.4 + 5, z * 1.4));
-      const lit = Math.pow(1 - Math.abs(Math.sin(Math.PI * (ph + .2))), 6) * lowBand * st.fold;
+      // 2026-11-25 3차 — 예전 고랑은 고른 간격의 곧은 세로줄이라 나뭇결 · 바코드 같았다. 간격이 들쭉날쭉하고(굵은 잡음으로 위상을 크게 흔든다)
+      //   둘레를 따라 물결치며 중간에 끊기고 갈라지는 깊은 주름으로
+      const ang = Math.atan2(z, y - pr.cy), warp = 2.6 * fbm([x * .35, Math.cos(ang) * 1.2, Math.sin(ang) * 1.2]) + .55 * Math.sin(ang * 3 + x * 1.3) + .3 * Math.sin(ang * 7 + x * 2.1);
+      const ph = x * (1.5 + 1.3 * band) + warp;
+      const groove = Math.pow(1 - Math.abs(Math.sin(Math.PI * ph)), 12) * lowBand * (.5 + .5 * st.fold) * smooth(.3, .62, noise(x * 1.1, Math.cos(ang) * 2 + 5, Math.sin(ang) * 2));
+      const lit = Math.pow(1 - Math.abs(Math.sin(Math.PI * (ph + .14))), 8) * lowBand * st.fold * .8;
       // 잔주름(가는 그물 — 예전 '갈라진 진흙' 금보다 훨씬 얕게)
-      const fine = Math.pow(1 - Math.abs(noise(x * 9, y * 9, z * 9) * 2 - 1), 10) * .5;
+      const fine = Math.pow(1 - Math.abs(noise(x * 7, y * 7, z * 7) * 2 - 1), 12) * .6 + Math.pow(1 - Math.abs(noise(x * 16 + 3, y * 16, z * 16) * 2 - 1), 14) * .35;
       c = c.map((v) => v * (1 - .5 * groove - .12 * fine + .1 * lit));
       // 혹(목 · 가슴 · 어깨의 우툴두툴한 돌기) — 밝은 정수리 + 아래 그늘
       const wn = noise(x * 5, y * 5, z * 5), wart = smooth(.7, .8, wn) * smooth(-.6, 1.4, x) * (1 - smooth(3.4, 3.8, x)) * st.fold;
@@ -74,7 +79,7 @@ function build(key) {
       // 콧구멍 — 코끝 위 앞쪽 두 개(가는 초승달)
       for (const sz of [-1, 1]) { const d = Math.hypot((x - 4.6) / .1, (y - (pr.cy + pr.a * .55)) / .07, (z - sz * .16) / .1); c = c.map((v) => v * (1 - .85 * smooth(1.1, .5, d))); }
       // 눈가 — 붉고 어두운 테, 눈 위는 주름 고랑
-      for (const e of eyeC) { const d = Math.hypot(x - e[0], y - e[1], z - e[2]); c = mix(c, [120, 62, 54], smooth(.24, .12, d) * .7); c = c.map((v) => v * (1 - .3 * smooth(.32, .24, d) * smooth(.2, .3, d))); }
+      for (const e of eyeC) { const d = Math.hypot(x - e[0], y - e[1], z - e[2]); c = mix(c, [128, 70, 60], smooth(.17, .09, d) * .6); c = c.map((v) => v * (1 - .35 * smooth(.26, .19, d) * smooth(.14, .19, d))); }
       return c;
     }});
 
@@ -112,7 +117,7 @@ function build(key) {
     for (const sd of [-1, 1]) for (let row = 0; row < 4; row++) for (let i = 0; i < 9; i++) {
       const v = -.85 + row * .32, u = sd * (-.35 + (i + (row % 2) * .5) / 8.5 * 2.0), sp = padSurf(sd, u, v, .92);
       const nrm = norm([Math.cos(v) * Math.cos(u) / PR[0], Math.sin(v) / PR[1], Math.cos(v) * Math.sin(u) / PR[2]]);
-      const dir = norm(add(add(nrm, [0, -1, 0], .9), [.4, 0, 0])), Lb = (.17 + .05 * ((k * 7) % 3) + .03 * row) * thick;
+      const dir = norm(add(add([nrm[0], nrm[1], nrm[2] * .45], [0, -1, 0], 1.25), [.3, 0, 0])), Lb = (.17 + .05 * ((k * 7) % 3) + .03 * row) * thick;
       m.sweep('whisker' + k++, (s) => ({c: add(sp, dir, (Lb + .06) * s), u: norm(cross(dir, [0, 0, 1])), v: [0, 0, 1], a: .026 * thick * (1 - .75 * s), b: .026 * thick * (1 - .75 * s)}),
         {ns: 1, nt: 3, island: [.5, .56, .56, .62], bone: 'head', paint: (q, n, [s]) => mix([214, 196, 168], [246, 238, 220], s)});
     }

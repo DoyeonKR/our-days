@@ -25,7 +25,8 @@ function build(key) {
   const headX = st.chick ? 2.55 : 2.95, neckX = st.chick ? 1.9 : 2.35;
   const surf = (x, th, k = 1) => { const p = P(x); return [x, p.cy + Math.cos(th) * p.a * k, Math.sin(th) * p.b * k]; };
   const eyeX = st.chick ? 3.05 : 3.3, eyeC = [-1, 1].map((sd) => surf(eyeX, sd * 1.05, .96));
-  const BLACK = st.juv ? [62, 66, 76] : [22, 26, 36], BACK = st.juv ? [92, 98, 110] : [48, 56, 70], HEAD = st.juv ? [44, 46, 52] : [12, 13, 17];
+  // 2026-11-25 3차 — 머리는 새까맣고 등은 그보다 밝은 청회색(예전엔 등까지 거의 검정에 큰 얼룩)
+  const BLACK = st.juv ? [62, 66, 76] : [26, 30, 40], BACK = st.juv ? [96, 104, 118] : [74, 88, 108], HEAD = st.juv ? [40, 42, 48] : [10, 11, 14];
 
   // ── 몸통 ──
   m.sweep('body', (s) => { const x = X0 + (X1 - X0) * s, p = P(x); return {c: [x, p.cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: p.a, b: p.b}; },
@@ -63,10 +64,10 @@ function build(key) {
           //   위쪽은 진한 주황 · 노랑, 아래로 갈수록 연해져 가슴의 옅은 노랑으로 잇는다
           const A = [eyeX - .38, eyeC[0][1] - .1], Bp = [neckX - .1, P(neckX).cy - P(neckX).a * .62], ab = [Bp[0] - A[0], Bp[1] - A[1]], abL = Math.hypot(...ab);
           const tt = clamp(((x - A[0]) * ab[0] + (y - A[1]) * ab[1]) / (abL * abL)), px = A[0] + ab[0] * tt, py = A[1] + ab[1] * tt, dist = Math.hypot(x - px, y - py);
-          const wdt = .3 - .17 * tt + .05 * Math.sin(tt * Math.PI), ear = smooth(wdt, wdt * .4, dist) * smooth(.28, .55, side) * smooth(-.15, .05, ((x - A[0]) * ab[0] + (y - A[1]) * ab[1]) / (abL * abL));
-          const earCol = st.juv ? [230, 228, 220] : mix([244, 148, 30], [250, 214, 100], smooth(.1, .9, tt));
+          const wdt = .36 * (1 - tt) ** .8 + .1 + .04 * Math.sin(tt * Math.PI), ear = smooth(wdt, wdt * .15, dist) * smooth(.28, .55, side) * smooth(-.15, .05, ((x - A[0]) * ab[0] + (y - A[1]) * ab[1]) / (abL * abL));
+          const earCol = st.juv ? [230, 228, 220] : mix(mix([236, 134, 22], [250, 196, 60], smooth(0, .45, tt)), [252, 232, 150], smooth(.5, 1, tt));
           c = mix(c, earCol, ear);
-          if (!st.juv) { const chest = smooth(neckX - 1.6, neckX - .3, x) * (1 - smooth(neckX + .2, neckX + .5, x)) * smooth(-.2, -.6, yr) * smooth(1.05, .4, side); c = mix(c, [250, 224, 140], chest * .8); }
+          if (!st.juv) { const chest = smooth(neckX - 1.6, neckX - .3, x) * (1 - smooth(neckX + .2, neckX + .5, x)) * smooth(-.2, -.6, yr) * smooth(1.05, .4, side); c = mix(c, [252, 230, 150], chest * .7); }
         }
         return c.map((v) => v * grain);
       }});
