@@ -234,6 +234,17 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   // 향유고래(2026-11-23) [사용자: "급한 기울기"] — 표에 없어 기본 습성(가운데 위아래 5칸을 오르내림 · 기울기 0.36)을 써서 작은 수조에서 머리를 45° 가까이 들거나 박은 채 헤엄쳤다.
   //   큰 몸이 수평으로 느리게 돌고(기울기 0.12 · 상한 약 15° — level) 오르내리는 폭을 좁혔다. 숨 쉬러 가끔 수면으로(그때 물을 뿜는다 — scene SPOUTERS). 고개를 드는 스파이호핑(breach.ts)은 그대로
   sperm_whale: swim(-0.8, 2, 0.22, 1, 2, { breathe: 90, breathOnly: true, pace: 0.45, tilt: 0.12, level: 0.27 }),
+  // 나머지 고래(2026-11-25) [사용자: "다른 고래들도 습성 표에 넣어줘 각각 고유 습성에 따라 움직임을 가져갔으면 좋겠는데"] — 셋 다 표에 없어 기본 습성(가운데 위아래 5칸 · 기울기 0.36 · 무리)을 같이 썼다.
+  //   밍크고래: 수염고래 중 가장 작고 날렵하다 — 가운데 · 위쪽을 빠르게 돌고 방향을 자주 틀며, 짧게 자주 숨 쉬러 오른다(곧잘 뛰어오른다 — breach.ts)
+  minke_whale: swim(-0.6, 2.4, 0.3, 1, 2, { breathe: 50, breathOnly: true, dart: 0.08, pace: 0.8, tilt: 0.2, level: 0.36 }),
+  //   귀신고래: 바닥 먹이꾼 — 아래쪽을 가장 느리게 훑으며 돈다. 숨은 길게 쉬고, 머리만 내밀어 살핀다(스파이호핑).
+  //   멈췄다 옮겨 가기(rest · hop)는 뺐다 — 큰 몸이 장애물 사이로 한 번에 옮겨 가며 한 프레임에 0.5 씩 튀었다(motion.test 순간 이동 0.3)
+  gray_whale: swim(-3, -0.8, 0.12, 1, 1.8, { breathe: 80, breathOnly: true, pace: 0.45, tilt: 0.14, level: 0.3 }),
+  //   혹등고래: 긴 가슴지느러미로 느긋하게 가운데 위쪽을 돌며 자주 수면에 오른다(뛰어오르기 · 지느러미 치기의 고래) — 몸을 크게 기울여도 된다.
+  //   높이 가운데는 1 밑(fishingdepth.test — 낚시에서 사는 수심이 중층이라 습성 가운데가 표층(1 이상)으로 가면 안 된다)
+  humpback_whale: swim(-0.3, 2.2, 0.2, 1, 2, { breathe: 55, breathOnly: true, pace: 0.5, tilt: 0.22, level: 0.4 }),
+  //   대왕고래: 가장 크고 느리다 — 가운데 깊이를 일정한 빠르기로 길게 순항하고(고래상어처럼 경기장 고리 — 몸이 수조 앞뒤 폭만큼 길다), 거의 기울지 않는다. 숨은 가장 길게
+  blue_whale: swim(-1.2, 1.4, 0.16, 1, 2, { breathe: 110, breathOnly: true, pace: 0.32, tilt: 0.08, level: 0.18, lap: 0.04 }),
   otter: swim(-3.4, -0.4, 0.3, 0.9, 1.8, { haul: true, breathe: 45, breathOnly: true, dart: 0.3, pace: 1.1, tilt: 0.45 }),
   sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
   marlin: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),

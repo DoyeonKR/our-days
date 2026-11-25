@@ -9,6 +9,8 @@ export const SIDE_ON: Readonly<Record<string, number>> = {
   // 고래상어는 수조 앞뒤 폭만큼 긴 몸으로 경기장 고리(habits.lap)를 돈다 — 돌리면 반원 끝마다 옆이 넘어가며 몸이 0.3초에 홱 돌고(7.8 rad/s),
   // 넘어가는 동안 시선(앞뒤)으로 선 코끝이 앞유리를 뚫었다(2026-11-12). 둥근 몸이라 돌리지 않아도 옆모습이 판처럼 얇지 않다
   whale_shark: 0,
+  // 대왕고래도 같은 경기장 고리를 돈다(2026-11-25 — habits.lap)
+  blue_whale: 0,
 };
 export const SIDE_ON_DEFAULT = 0.3;
 export const sideOnOf = (family: string) => SIDE_ON[family] ?? SIDE_ON_DEFAULT;
