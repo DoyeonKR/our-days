@@ -50,7 +50,7 @@ export class Model {
     const capRingList = (atStart) => {
       const L = atStart ? capStart : capEnd; if (!L) return [];
       const s0 = atStart ? 0 : 1, f = frame(s0), dir = norm(add(frame(atStart ? 0.001 : .999).c, f.c, -1)), list = []; // dir: 끝에서 몸 안쪽
-      for (let k = capRings; k >= 1; k--) { const q = k / (capRings + 1), shrink = Math.sqrt(1 - q * q); list.push(ring(s0, shrink, dir.map((v) => v * -L * q), atStart ? S0 * (1 - q) : 1 - S1 * (1 - q))); }
+      for (let k = capRings; k >= 1; k--) { const q = Math.sin(k / (capRings + 1) * Math.PI / 2), shrink = Math.sqrt(1 - q * q); /* 끝으로 갈수록 고리를 촘촘히(돔 끝까지 둥글게) */ list.push(ring(s0, shrink, dir.map((v) => v * -L * q), atStart ? S0 * (1 - q) : 1 - S1 * (1 - q))); }
       return list;
     };
     const startCaps = capRingList(true); rings.push(...startCaps);
@@ -58,8 +58,11 @@ export class Model {
     const endCaps = capRingList(false).reverse(); rings.push(...endCaps);
     for (let i = 0; i < rings.length - 1; i++) for (let j = 0; j < nt; j++) { const a = rings[i][j], b = rings[i][j + 1], c = rings[i + 1][j], d = rings[i + 1][j + 1]; part.I.push(a, c, b, b, c, d); }
     // 끝 점(닫기)
+    // 2026-11-25 [사용자: "코가 너무 뭉툭해 글라인더로 자른느낌이야"] — 예전엔 마지막 고리(반지름 약 절반)의 가운데에 점을 찍어 끝이 납작한 원판이었다.
+    //   끝을 둥글게 닫는 부위는 가운데 점을 돔 꼭대기(마개 길이 L 끝)로 내민다
+    const tipOut = (atStart) => { const L = atStart ? capStart : capEnd; if (!L) return [0, 0, 0]; const f = frame(atStart ? 0 : 1).c, g = frame(atStart ? .001 : .999).c, q = Math.sin(capRings / (capRings + 1) * Math.PI / 2); return norm(add(f, g, -1)).map((v) => v * L * (1 - q)); };
     for (const [r, end] of [[rings[0], true], [rings[rings.length - 1], false]]) {
-      const ctr = r.reduce((s, v) => add(s, part.P[v], 1 / r.length), [0, 0, 0]), ci = part.P.length; part.P.push(ctr); part.ST.push([end ? (S0 ? 0 : part.ST[r[0]][0]) : (S1 ? 1 : part.ST[r[0]][0]), .5]);
+      const ctr = add(r.reduce((s, v) => add(s, part.P[v], 1 / r.length), [0, 0, 0]), tipOut(end)), ci = part.P.length; part.P.push(ctr); part.ST.push([end ? (S0 ? 0 : part.ST[r[0]][0]) : (S1 ? 1 : part.ST[r[0]][0]), .5]);
       for (let j = 0; j < nt; j++) part.I.push(...(end ? [ci, r[j + 1], r[j]] : [ci, r[j], r[j + 1]]));
     }
     this.parts.push(part); return part;

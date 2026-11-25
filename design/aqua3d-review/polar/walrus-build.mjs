@@ -15,14 +15,14 @@ const STAGES = {
 const PROF = [
   [-5.0, .52, .44, .05, 2], [-4.3, .92, .86, .02, 2], [-3.2, 1.32, 1.36, 0, 2], [-1.8, 1.6, 1.7, -.04, 2.1], [-.3, 1.72, 1.84, -.06, 2.1],
   [1.0, 1.78, 1.84, -.04, 2.15], [2.0, 1.68, 1.66, 0, 2.2], [2.8, 1.38, 1.36, .02, 2.3], [3.4, 1.06, 1.06, .04, 2.3], [3.85, .92, .9, .02, 2.3],
-  [4.15, .82, .8, -.04, 2.4], [4.35, .72, .72, -.06, 2.3],
+  [4.15, .8, .78, -.06, 2.3], [4.42, .66, .66, -.1, 2.2], [4.62, .47, .5, -.14, 2.1], [4.76, .26, .3, -.17, 2],
 ];
 function prof(x) {
   let i = 0; while (i < PROF.length - 2 && x > PROF[i + 1][0]) i++;
   const A = PROF[i], B = PROF[i + 1], t = clamp((x - A[0]) / (B[0] - A[0])), k = t * t * (3 - 2 * t);
   return {a: A[1] + (B[1] - A[1]) * k, b: A[2] + (B[2] - A[2]) * k, cy: A[3] + (B[3] - A[3]) * k, e: A[4] + (B[4] - A[4]) * k};
 }
-const X0 = -5, X1 = 4.35;
+const X0 = -5, X1 = 4.76;
 
 function build(key) {
   const st = STAGES[key], m = new Model();
@@ -48,7 +48,7 @@ function build(key) {
       const brow = Math.exp(-Math.pow((x - 3.85) / .3, 2)) * Math.exp(-Math.pow((Math.abs(th) - .7) / .35, 2)) * .05;
       return roll * (1 + brow);
     }};
-  }, {ns: 52, nt: 26, capStart: .25, capEnd: .26, capRings: 5, capSpanStart: .03, capSpanEnd: .12, island: [0, 0, 1, .56], sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < 3 ? (x - X0) / (3 - X0) * .6 : .6 + (x - 3) / (X1 - 3) * .4; }, bone: 'body',
+  }, {ns: 52, nt: 26, capStart: .25, capEnd: .14, capRings: 4, capSpanStart: .03, capSpanEnd: .08, island: [0, 0, 1, .56], sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < 3 ? (x - X0) / (3 - X0) * .6 : .6 + (x - 3) / (X1 - 3) * .4; }, bone: 'body',
     paint: (p, n) => {
       const [x, y, z] = p, pr = P(x), dorsal = smooth(-.3, .8, n[1]);
       // 등 짙은 계피 갈색 · 배 · 목 아래 분홍빛(피가 몰린 살갗)
@@ -72,7 +72,7 @@ function build(key) {
       // 짧고 성긴 털(새끼 · 어린은 짙은 솜털)
       c = c.map((v) => v * (1 + (.06 + st.fur * .16) * (noise(x * 30, y * 30, z * 30) - .5)));
       // 콧구멍 — 코끝 위 앞쪽 두 개(가는 초승달)
-      for (const sz of [-1, 1]) { const d = Math.hypot((x - 4.5) / .1, (y - (pr.cy + pr.a * .38)) / .07, (z - sz * .2) / .12); c = c.map((v) => v * (1 - .85 * smooth(1.1, .5, d))); }
+      for (const sz of [-1, 1]) { const d = Math.hypot((x - 4.6) / .1, (y - (pr.cy + pr.a * .55)) / .07, (z - sz * .16) / .1); c = c.map((v) => v * (1 - .85 * smooth(1.1, .5, d))); }
       // 눈가 — 붉고 어두운 테, 눈 위는 주름 고랑
       for (const e of eyeC) { const d = Math.hypot(x - e[0], y - e[1], z - e[2]); c = mix(c, [120, 62, 54], smooth(.24, .12, d) * .7); c = c.map((v) => v * (1 - .3 * smooth(.32, .24, d) * smooth(.2, .3, d))); }
       return c;

@@ -13,7 +13,7 @@ function box(root) { root.updateMatrixWorld(true); const b = new T.Box3(), v = n
 function shot(sc, c, dir, half) { const cam = new T.OrthographicCamera(-half, half, half, -half, .01, 100); if (dir[1] > .9) cam.up.set(0, 0, -1); cam.position.copy(c).add(new T.Vector3(...dir).normalize().multiplyScalar(10)); cam.lookAt(c); renderer.render(sc, cam); return renderer.domElement; }
 function label(ctx, x, y, t) { ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(x, y, ctx.measureText(t).width + 10, 20); ctx.fillStyle = '#fff'; ctx.fillText(t, x + 5, y + 15); }
 try {
-  const keys = (qs.get('keys') ?? 'walrus').split(','), dirs = qs.get('old') ? [['옛', '/design/aqua3d-review/polar/old-1125'], ['새', '/public/aqua/models/fish']] : [['새', '/public/aqua/models/fish']];
+  const keys = (qs.get('keys') ?? 'walrus').split(','), dirs = qs.get('old') ? [['옛', qs.get('olddir') ?? '/design/aqua3d-review/polar/old-1125'], ['새', '/public/aqua/models/fish']] : [['새', '/public/aqua/models/fish']];
   const cv = document.createElement('canvas'); cv.width = 5 * CELL; cv.height = keys.length * dirs.length * 2 * CELL; const ctx = cv.getContext('2d'); ctx.font = '13px system-ui';
   let r = 0;
   for (const key of keys) for (const [tag, dir] of dirs) {
