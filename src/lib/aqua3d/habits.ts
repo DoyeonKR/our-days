@@ -215,7 +215,8 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   barracuda: swim(-0.8, 1.6, 0.05, 0.6, 1.3, { rest: 0.6, hop: 1.2, dart: 0.3, pace: 0.8 }),
   grass_carp: swim(-1.6, 1.4, 0.11, 0.75, 1.6, { pace: 0.7 }),
   skate: floor(0.06, 0.07, 0.75, 1.6, { rest: 0.6, hop: 0.9, pace: 0.8, lane: 0.75 }),
-  electric_eel: swim(-3.6, -2, 0.05, 0.7, 1.3, { breathe: 95, breathOnly: true, pace: 0.7, tilt: 0.3 }),
+  // 전기뱀장어(2026-11-25 [사용자: "수조 다른 큰 물고기들도 습성 확인해줘"]) — 바닥 가까이 살다 숨 쉬러 수면까지 오를 때 60° 로 거의 곧게 섰다. 비스듬히 오르게(상한 0.6 ≈ 31°)
+  electric_eel: swim(-3.6, -2, 0.05, 0.7, 1.3, { breathe: 95, breathOnly: true, pace: 0.7, tilt: 0.3, level: 0.6 }),
   frilled_shark: floor(0.14, 0.05, 0.8, 1.3, { bob: 0.1, pace: 0.6, lane: 0.85 }),
   arapaima: swim(-1.6, 1.8, 0.08, 0.85, 1.5, { breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.15 }),
   // 해양 포유류(2026-11-13) — 허파로 숨 쉬어 늘 수면에 올라간다(breathe — 거북과 같은 숨쉬기 길).
