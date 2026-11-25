@@ -44,3 +44,12 @@ test("앞발은 좌우 번갈아 앞뒤로 젓는다 — 옆으로 벌어지지 
     assert.ok(span(hs, "z") < fore * 0.35, `${key} 머리 옆 흔들림 ${span(hs, "z").toFixed(3)} 작다`);
   }
 });
+
+test("북극곰은 한 번 던질 때 2% 미만으로만 문다(2026-11-26 [사용자: \"무조건 2퍼센트 미만으로 잡히게\"]) — 가장 좋은 미끼 · 행운 · 던지기, 모든 시간 · 날씨 · 낚시터", async () => {
+  const { SPOTS, BAITS, rollCatch } = await import("../fishing.ts");
+  for (const sp of SPOTS) for (const time of ["dawn", "day", "dusk", "night"] as const) for (const wx of [null, "rain", "snow", "clear"] as const) {
+    let n = 0; const N = 3000;
+    for (let i = 0; i < N; i++) if (rollCatch(sp, 50, 1, i * 41 + 7, { bait: BAITS.length - 1, when: { time, wx } }).family === "polar_bear") n++;
+    assert.ok(n / N < 0.02, `${sp.key} ${time} ${wx}: ${(n / N * 100).toFixed(2)}%`);
+  }
+});
