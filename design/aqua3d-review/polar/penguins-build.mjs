@@ -19,16 +19,21 @@ const SHAPE = {
 };
 // 몸 단면(x: 꼬리 → 머리 앞). 2026-11-25 2판 — 사진(NOAA · USAP · CC0, reference/SOURCES.md)과 견줘 머리를 줄이고(몸 굵기의 0.62) 목을 잘록하게
 const PROF = [[-3.9, .3, .28, .1], [-3.3, .74, .66, .02], [-2.2, 1.18, 1.08, -.06], [-.8, 1.46, 1.32, -.1], [.5, 1.44, 1.3, -.08], [1.55, 1.22, 1.1, 0],
-  [2.2, .84, .78, .12], [2.75, .9, .82, .2], [3.3, .72, .66, .2], [3.75, .4, .38, .2]];
+  [2.2, .94, .86, .1], [2.75, .82, .74, .18], [3.3, .6, .53, .26], [3.75, .3, .27, .3]];
 const PROF_CHICK = [[-3.0, .42, .4, .06], [-2.4, 1.02, .94, 0], [-1.2, 1.46, 1.38, -.06], [.1, 1.6, 1.5, -.06], [1.2, 1.4, 1.3, 0], [1.85, 1.16, 1.06, .1],
   [2.45, 1.0, .92, .2], [2.95, .82, .76, .22], [3.35, .42, .4, .22]];
 const profOf = (T, hk) => (x) => { let i = 0; while (i < T.length - 2 && x > T[i + 1][0]) i++; const A = T[i], B = T[i + 1], t = clamp((x - A[0]) / (B[0] - A[0])), k = t * t * (3 - 2 * t), h = smooth(T[T.length - 4][0], T[T.length - 3][0], x) * (hk - 1) + 1; return {a: (A[1] + (B[1] - A[1]) * k) * h, b: (A[2] + (B[2] - A[2]) * k) * h, cy: A[3] + (B[3] - A[3]) * k}; };
 
 function build(key) {
   const sp = SPECIES[famOf(key)], stage = STAGE(key), chick = stage === 'chick', juv = stage === 'juv', sh = SHAPE[sp], m = new Model();
-  const T = chick ? PROF_CHICK : PROF, P = profOf(T, chick ? 1 : sh.head), X0 = T[0][0], X1 = T[T.length - 1][0];
+  const T = chick ? PROF_CHICK : PROF, P0 = profOf(T, chick ? 1 : sh.head), X0 = T[0][0], X1 = T[T.length - 1][0];
   const headX = chick ? 2.45 : 2.75, neckX = chick ? 1.85 : 2.2;
-  const surf = (x, th, k = 1) => { const p = P(x); return [x, p.cy + Math.cos(th) * p.a * k, Math.sin(th) * p.b * k]; };
+  // 머리 단면 — 2026-11-25 [사용자: "펭귄 얼굴이 너무 부자연스러운 원형이야"] 예전엔 머리가 거의 둥근 원기둥 끝이라 정면에서 동그란 공이었다.
+  //   진짜 펭귄 머리: 옆으로 납작(높이보다 폭이 좁다) · 정수리는 좁고 평평하게 · 눈 아래 뺨이 조금 불룩 · 턱 밑으로 좁아지며 목에 이어진다
+  const headK = (x) => smooth(neckX - .15, headX + .1, x);
+  const hr = (x, th) => { const k = headK(x), c = Math.cos(th), s = Math.sin(th) ** 2; return 1 - k * (.17 * Math.max(0, c) * s + .12 * Math.max(0, c) ** 6 - .07 * Math.exp(-(((c + .3) / .35) ** 2)) * s + .08 * Math.max(0, -c - .55) * s); };
+  const P = (x) => { const p = P0(x); return {...p, b: p.b * (1 - .24 * headK(x))}; };
+  const surf = (x, th, k = 1) => { const p = P(x), q = k * hr(x, th); return [x, p.cy + Math.cos(th) * p.a * q, Math.sin(th) * p.b * q]; };
   const eyeX = chick ? 2.78 : 3.12, eyeTh = sp === 'adelie' ? 1.0 : 1.05, eyeC = [-1, 1].map((sd) => surf(eyeX, sd * eyeTh, .96));
   const SLATE = juv ? [58, 64, 76] : [30, 36, 48], BACK = juv ? [86, 94, 108] : [52, 62, 78], CAP = juv ? [40, 42, 50] : [14, 15, 20], WHITE = [240, 241, 238];
   const eyeY = (eyeC[0][1] - P(eyeX).cy) / P(eyeX).a;
@@ -67,7 +72,7 @@ function build(key) {
   }
 
   // ── 몸통 ──
-  m.sweep('body', (s) => { const x = X0 + (X1 - X0) * s, p = P(x); return {c: [x, p.cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: p.a, b: p.b}; },
+  m.sweep('body', (s) => { const x = X0 + (X1 - X0) * s, p = P(x); return {c: [x, p.cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: p.a, b: p.b, r: (th) => hr(x, th)}; },
     {ns: 52, nt: 28, capStart: .2, capEnd: .2, capRings: 4, capSpanStart: .03, capSpanEnd: .08, island: [0, 0, 1, .62], bone: 'body',
       sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < neckX ? (x - X0) / (neckX - X0) * .6 : .6 + (x - neckX) / (X1 - neckX) * .4; },
       paint: (p, n) => {

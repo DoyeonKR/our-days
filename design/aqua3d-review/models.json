@@ -51605,8 +51605,8 @@
       "family": "emperor_penguin",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_emperor_penguin.glb",
-      "triangles": 2784,
-      "bytes": 71784,
+      "triangles": 5796,
+      "bytes": 71668,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51627,8 +51627,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "ef2e4097b1a7b6d055e9f0b5758d44c45e17a6aa33ba55a7efd9292b99614a54",
-      "sha256": "6819acf51841f2709a3f902cc03f1fe4f7906b89991ab06365c884ed9371fd35",
+      "sourceSHA256": "51ef9522db7f347941749f6fda6be2fe78b27f04eff537382dd9ceeaca1e5d4a",
+      "sha256": "a94e8faa7eb2cc0f39a94972e4c5c4608bb1a1f16c39fb32cf75c3cddf74e451",
       "authoringProfile": {
         "key": "emperor_penguin",
         "name": "황제펭귄",
@@ -51681,15 +51681,15 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "juv_emperor_penguin": {
       "kind": "fish",
       "family": "emperor_penguin",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_emperor_penguin.glb",
-      "triangles": 2784,
-      "bytes": 54648,
+      "triangles": 5796,
+      "bytes": 62936,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51710,8 +51710,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "bedf8bdae662bf382b0284fa124b843775e6960d6f342e8be6a174ff5ca731d6",
-      "sha256": "276af566a1110f8629f460c4d3354604e23ce25d00b4fe861f8011ceaa4bde55",
+      "sourceSHA256": "6552da13fe32f9b5f9bcbba630ad7d2226b648747acd74acb3dd7409248bd0b4",
+      "sha256": "65553770c3467fed0f86aeab727746874523326ff885b852a01a26c4ad6a9dca",
       "authoringProfile": {
         "key": "emperor_penguin",
         "name": "황제펭귄",
@@ -51764,15 +51764,15 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "emperor_penguin": {
       "kind": "fish",
       "family": "emperor_penguin",
       "form": "adult",
       "file": "public/aqua/models/fish/emperor_penguin.glb",
-      "triangles": 2784,
-      "bytes": 51512,
+      "triangles": 5796,
+      "bytes": 53552,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51793,8 +51793,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "08d3f74995ae8d4652b7e35f7c1accfa4a45c9934da1d2932364df62750aabdf",
-      "sha256": "9bf12513bcb5323b713fde90a0a0a6004830802cd50f1169eb53021938b13891",
+      "sourceSHA256": "41eef7d430136e09184c0268637e019e6dc8c789d6cd6fd0b88166fb9d9d4f41",
+      "sha256": "6547c733ddc1489170e53ca3f6030467aeb73d647adce8d9a32083a98f0dae67",
       "authoringProfile": {
         "key": "emperor_penguin",
         "name": "황제펭귄",
@@ -51847,7 +51847,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "fry_gentoo_penguin": {
       "kind": "fish",
@@ -51855,7 +51855,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_gentoo_penguin.glb",
       "triangles": 5572,
-      "bytes": 76904,
+      "bytes": 76436,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51876,8 +51876,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "a4199d1125810eea29082b2aa5982284c815289aa2c1b20d3e943672c1c522cf",
-      "sha256": "0ea76c52296950dbdb0b84374a84e7c3b6284ba0d03ab9f734af5918341743cf",
+      "sourceSHA256": "18784acd641f30e4feb41d4654eedf9696923197fa31225e9f5c7a1892335f36",
+      "sha256": "f1ab4a80eaff35eca64f0cd4e48be236130a6b5e687d9bcfbbcfca4afac84913",
       "authoringProfile": {
         "key": "gentoo_penguin",
         "name": "젠투펭귄",
@@ -51930,7 +51930,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "juv_gentoo_penguin": {
       "kind": "fish",
@@ -51938,7 +51938,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_gentoo_penguin.glb",
       "triangles": 5572,
-      "bytes": 56904,
+      "bytes": 54936,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51959,8 +51959,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "8fce0dfcae7427192340d71099242f0dc36ca249b394d0bcc68a3ab4245f2fb1",
-      "sha256": "0ee591fe448b9ce643c30c524a19823fac9dadbf00918dc0cea1949865476bca",
+      "sourceSHA256": "524fc4321b1884d00ded209bced95469da0404a119ad145e5523ba079580a274",
+      "sha256": "ffb27968ddf7849afa31eb94f03ab5df17f553af7d207b52b8a90b7cc5238942",
       "authoringProfile": {
         "key": "gentoo_penguin",
         "name": "젠투펭귄",
@@ -52013,7 +52013,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "gentoo_penguin": {
       "kind": "fish",
@@ -52021,7 +52021,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/gentoo_penguin.glb",
       "triangles": 5572,
-      "bytes": 53704,
+      "bytes": 53664,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52042,8 +52042,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "5de4cfbfa53fa627bc6e53a8e50b01052398ee775dcdb66f58a4712a3990f9d4",
-      "sha256": "75d3fd0111b013156019552c6d76a7e958afc29584b513ab38ca8fd330f0098b",
+      "sourceSHA256": "4927a4acdcaa1867bcabfeab892163e25c71a145556d367637f2883eb96cebde",
+      "sha256": "8108bfd6a391a1c9689dbafa661fb52d9a45d640109eb50affe1683e4df8005a",
       "authoringProfile": {
         "key": "gentoo_penguin",
         "name": "젠투펭귄",
@@ -52096,7 +52096,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "fry_chinstrap_penguin": {
       "kind": "fish",
@@ -52104,7 +52104,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_chinstrap_penguin.glb",
       "triangles": 5572,
-      "bytes": 77184,
+      "bytes": 76720,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52125,8 +52125,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "14d67b7ccbb887898a014a1aa3fd75c5d46b62264932409272bf392c69024795",
-      "sha256": "fa07e37d37a4079fcd2a6b63296b0f1a9f21bc4c289fa94a655cd9330a5c12c2",
+      "sourceSHA256": "4107e685bf9eee870dda5ecf664d581123056ceb969e5e223d655cf841542d49",
+      "sha256": "81f579490b03f93068a6796560c84e5a7797188f6141a0d5daecf99edddfbc70",
       "authoringProfile": {
         "key": "chinstrap_penguin",
         "name": "턱끈펭귄",
@@ -52179,7 +52179,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "juv_chinstrap_penguin": {
       "kind": "fish",
@@ -52187,7 +52187,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_chinstrap_penguin.glb",
       "triangles": 5572,
-      "bytes": 55696,
+      "bytes": 55500,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52208,8 +52208,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "166b9d9bdfb114dfeaf43d2e9d2378a8edeb4a2d23ba27aef3d2531e140e135a",
-      "sha256": "5d18dcf2fbfce64b6591e002821ad2ae37c3f45db15cded29b1ab2871b91bcb1",
+      "sourceSHA256": "e9958061eb69e537aefabf628f19bda5d0f227792b7bc1a7c2682f6d6b78bb08",
+      "sha256": "a5af045c30e25bde229f5ea74a6e4d4c1185997dccce6a0f93bcf9795077fae0",
       "authoringProfile": {
         "key": "chinstrap_penguin",
         "name": "턱끈펭귄",
@@ -52262,7 +52262,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "chinstrap_penguin": {
       "kind": "fish",
@@ -52270,7 +52270,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/chinstrap_penguin.glb",
       "triangles": 5572,
-      "bytes": 55272,
+      "bytes": 55016,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52291,8 +52291,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "b424fa55eac2c0d31d9fd40b4b3cb33673b72d934a3b18c3c9d9bd876c589f4d",
-      "sha256": "563dd7609864ad92e74fc0b6042567ac1739d91f82a5757ba4ebb8ac08c66634",
+      "sourceSHA256": "5c79a9a6bcb49c7ae071fbdbf5dfbfeaf9863203ace5131335b9a865a52f7add",
+      "sha256": "832e477f0ca34ea99fe642b82ab3c5c3f927731d9c2e993b2841c9fbd5353bae",
       "authoringProfile": {
         "key": "chinstrap_penguin",
         "name": "턱끈펭귄",
@@ -52345,7 +52345,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "fry_adelie_penguin": {
       "kind": "fish",
@@ -52353,7 +52353,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_adelie_penguin.glb",
       "triangles": 5572,
-      "bytes": 63056,
+      "bytes": 62076,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52374,8 +52374,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "e06bd2d717b797104e4c44b7505cc417f5e8db17e4ff62b4d4aac3380e2a1878",
-      "sha256": "3df9123adc1e22471101ac185c42a00cc8f6c8b8503a380f63e6186665889b55",
+      "sourceSHA256": "feb6dcab7ddf7849e11cc7bda75a49a09822d4d95f028943cd7e809b3f705e6f",
+      "sha256": "72cdc0dce640b964c3ebaaedfbefb1be6439fbc273728a5aec5e4ba7d83118df",
       "authoringProfile": {
         "key": "adelie_penguin",
         "name": "아델리펭귄",
@@ -52428,7 +52428,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "juv_adelie_penguin": {
       "kind": "fish",
@@ -52436,7 +52436,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_adelie_penguin.glb",
       "triangles": 5764,
-      "bytes": 56148,
+      "bytes": 55796,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52457,8 +52457,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "3898f999a3e4e2c5aec91f05c4df108e077095d8ae40f56f9a7fce8041489137",
-      "sha256": "72863d1177c8f93b5890611ce2af4ebdca13829e3eee38b6db91b68393428657",
+      "sourceSHA256": "f9b4cf1c99a0db06a4de14b5db3892429bc46b05c6f57de28f7200421900eb91",
+      "sha256": "64faaa62c08a804e158332712bdbb55703c610e3b1b21afe8b2f0d06578c6b94",
       "authoringProfile": {
         "key": "adelie_penguin",
         "name": "아델리펭귄",
@@ -52511,7 +52511,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "adelie_penguin": {
       "kind": "fish",
@@ -52519,7 +52519,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/adelie_penguin.glb",
       "triangles": 5764,
-      "bytes": 51908,
+      "bytes": 51884,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52540,8 +52540,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "4eaf6651b6bfcb79a823bba3f7fca8a79e990219f127cb9aa31cfb64ff3fbdb8",
-      "sha256": "8ab2247e56e24b2192fbc7d84f8d7b9db99e13677fcbde02ccce977fb49b872e",
+      "sourceSHA256": "3e670f26d206cf326a9c7fd1e4a06eff859879fbda89cec0274cbe61fb3074bf",
+      "sha256": "53bfb4277da3f54122367e286f43055edb6a797596379c92c0b13bdf3c76d254",
       "authoringProfile": {
         "key": "adelie_penguin",
         "name": "아델리펭귄",
@@ -52594,7 +52594,7 @@
         "maximumDisplacement": 0.24656352168275972
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md)"
+      "remodel": "2026-11-25 2판 — 퍼블릭 도메인 기준 사진 · 도판으로 다시(polar/reference/SOURCES.md) · 2026-11-25 머리 — 옆으로 납작 · 정수리 좁고 평평 · 이마에서 부리로 이어지는 쐐기(공 같은 둥근 머리 고침)"
     },
     "fry_toothfish": {
       "kind": "fish",
