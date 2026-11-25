@@ -97,7 +97,7 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
     spots: [], habit: { lo: -4.2, hi: -1.6, speed: 0.08, reach: 0.9, depth: 1.6, pace: 0.6, tilt: 0.25, rest: 0.3 } },
   // 북극곰(2026-11-25 [사용자: "북극곰도 만들어볼 수 있어 ? 태초등급으로 … 움직임도 이미지도 정말 이게 실제인지 그래픽인지 알 수없을정도로"]) —
   //   USFWS · Ltshears · Unsplash(CC0) 사진(퍼블릭 도메인 · CC0)을 기준으로 Claude 세션이 부위로 지었다(design/aqua3d-review/polarbear/).
-  //   고성 거진항 밤의 때 손님(곁 칸 · 뽑혀도 30% 만 문다 — 범고래와 같다). 수면 가까이 머리를 내밀고 앞발을 번갈아 저어(개헤엄) 나아가고, 뒷다리는 뒤로 끌린다.
+  //   남극 세종기지 밤의 때 손님(곁 칸 · 뽑혀도 30% 만 문다 — 범고래와 같다. 2026-11-26 고성 거진항에서 옮겼다). 수면 가까이 머리를 내밀고 앞발을 번갈아 저어(개헤엄) 나아가고, 뒷다리는 뒤로 끌린다.
   //   숨 쉬러 자주 오르고 모래사장 · 바위에서 쉰다. 사냥꾼(PREDATORS)에는 넣지 않았다 — 수조 물고기를 실제로 잡아먹게 된다
   { key: "polar_bear", name: "북극곰", grade: "태초", price: 135000, hours: 550, minTank: 6, size: 46, cm: 250, fresh: false, ornamental: false,
     spots: [], habit: { lo: -0.6, hi: 3, speed: 0.2, reach: 1, depth: 2, haul: true, breathe: 40, breathOnly: true, dart: 0.15, pace: 0.7, tilt: 0.25 } },

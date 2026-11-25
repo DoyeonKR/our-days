@@ -139,7 +139,7 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 
 | key | 이름 | 등급 | 다 큰 몸길이 | 오는 곳 |
 |---|---|---|---|---|
-| `polar_bear` | 북극곰 | 태초 | 2.5m | 고성 거진항 밤(때 손님 · 뽑혀도 30%) |
+| `polar_bear` | 북극곰 | 태초 | 2.5m | 남극 세종기지 밤(때 손님 · 뽑혀도 30%) |
 
 **3D**: `polarbear/polarbear-build.mjs` — 부위로 짓는다(몸통 · 목 · 머리 한 줄 관 + 다리 넷 · 귀 · 눈 · 코 · 발톱 · 꼬리). 단면은 원이 아니다(몸통은 옆이 납작한 깊은 통, 머리는 이마가 평평하고 뺨이 넓은 쐐기 — `hr(x, θ)`). 비율은 USFWS 옆모습 사진, 헤엄 자세는 Ltshears 물속 사진, 얼굴은 Unsplash(CC0) 사진(`polarbear/reference/SOURCES.md`). 털은 흐르는 방향으로 늘인 가닥 · 다발 무늬를 계산으로 칠한다(사진 조각을 깔면 반복 무늬가 생긴다). 앞다리는 fin 뼈 — 게임이 좌우 엇갈려 앞뒤로 젓는다(`anatomy` 의 URSID · `glb` 의 개헤엄). 등록은 `polarbear/register.mjs`.
 **그림**: 모델을 찍었다(`ceph-v3/review.html?card=` → `polar/cards-to-art.mjs`). 헤엄 사진을 오려 쓰려 했지만 바닥과 붙어 깔끔하게 안 오려졌다. 검수 `polarbear/review.webp`.

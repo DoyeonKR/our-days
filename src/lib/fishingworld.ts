@@ -135,10 +135,11 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "clione", spot: "sejong", wx: "clear", side: true },
   { species: "sea_pig", spot: "sejong", time: "night", side: true },
   { species: "toothfish", spot: "sejong", time: "night", side: true },
+  // 북극곰(2026-11-26 [사용자: "북극곰은 당연히 남극에서 와야지"]) — 고성 거진항에서 세종기지 밤으로 옮겼다(실제 북극곰은 북극에 산다 — 게임의 극지 낚시터가 남극 하나라 거기로)
+  { species: "polar_bear", spot: "sejong", time: "night", side: true, rare: 0.3 },
   { species: "salp", spot: "sejong", wx: "snow", side: true },
   { species: "antarctic_urchin", spot: "sejong", time: "dawn", side: true },
   { species: "sunfish", spot: "starsea", time: "day", side: true },
-  { species: "polar_bear", spot: "starsea", time: "night", side: true, rare: 0.3 },
   { species: "butterflyfish", spot: "reef", time: "dawn", side: true },
   { species: "boxfish", spot: "reef", wx: "clear", side: true },
   { species: "barracuda", spot: "reef", time: "dusk", side: true },
