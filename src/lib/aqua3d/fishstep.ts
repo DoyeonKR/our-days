@@ -26,7 +26,7 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   den: boolean;
   /** 바위 위에서 쉰다(habits.haul — 해양 포유류) · 지금 쉬는 정도(0~1, 겹침 밀기를 그만큼 덜 받는다) */
   /** 기울기 상한(habits.level — 큰 고래). 없으면 0.7(35°) */ lvl: number;
-  haul: boolean; rest: number; /** 수면에 누워 쉰다(habits.float — 해달) — 바위 · 모래사장을 안 쓰고 물가 줄이기를 풀지 않는다 */ float: boolean;
+  haul: boolean; rest: number; /** 수면에 누워 쉰다(habits.float — 해달) — 바위 · 모래사장을 안 쓰고 물가 줄이기를 풀지 않는다 */ float: boolean; /** 땅 위에서 두 발로 걷는다(habits.walk — 펭귄) */ walk: boolean;
   /** 실제로 간 빠르기(부드럽게 거른 값, 월드/초)와 지난 자리 — 머리를 실제로 가는 쪽으로 돌린다(faceTravel) */
   fvx: number; fvy: number; fvz: number; fpx: number; fpy: number; fpz: number; fok: boolean; ceph: boolean; /** 지난 프레임에 그린 머리의 좌우(ohx) · 위아래(ohy) 각 — 큰 몸이 홱 돌지 않게 */ ohx: number; ohy: number; ohz: number; oh: boolean;
   /** 모래 위로 올린 높이(부드럽게 — 한 프레임에 확 들리지 않게) */ lift: number;
@@ -48,7 +48,7 @@ const swimStateOf = (m: StepFish): SwimState => {
     disc: m.family === "starfish",
     lap: !!h.lap,
     den: !!h.den,
-    haul: !!h.haul, rest: 0, float: !!h.float,
+    haul: !!h.haul, rest: 0, float: !!h.float, walk: !!h.walk,
     lvl: h.level ?? 0.7,
   };
 };
@@ -254,7 +254,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; opts.feed = m.visit ? null : w.feed; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts);
       // 해양 포유류 — 헤엄 길을 바위 쉼터와 섞는다(90% 는 바위 위)
       const sw = m.swim!;
-      if (sw.haul) { const a = hauls.get(id); sw.rest = haulBlend(id, elapsed, m.length, wide, WORLD.floor, { rock: a?.rock ?? null, share: a?.share ?? 0, deep, tall, float: sw.float }, c); }
+      if (sw.haul) { const a = hauls.get(id); sw.rest = haulBlend(id, elapsed, m.length, wide, WORLD.floor, { rock: a?.rock ?? null, share: a?.share ?? 0, deep, tall, float: sw.float, walk: sw.walk }, c); }
     }
     // 위로 늘리기 — 바닥에 붙은 만큼(ground)은 모래 높이만 따르고 몸 높이(hug)는 안 늘린다(2026-11-11 — 6단계에서 바닥 물고기가 몸 높이의 1.5배 떠 있었다). 헤엄치는 물고기는 그대로 tallY
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }

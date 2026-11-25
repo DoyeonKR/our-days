@@ -159,6 +159,8 @@ export const OTARIID = /^(fur_seal|steller_sea_lion|japanese_sea_lion|emperor_pe
 export const MUSTELID = /^(sea_otter|otter)$/;
 /** 북극곰(2026-11-25) — 앞발을 좌우 번갈아 앞뒤로 크게 저어(개헤엄) 나아간다. 몸은 거의 곧고 뒷다리는 키처럼 뒤로 끌린다. 머리는 수면 쪽으로 든다 */
 export const URSID = /^(polar_bear)$/;
+/** 땅 위에서 두 발로 서서 걷는 몸(2026-11-26) — 펭귄. 모래사장 · 바위에서 쉬는 동안(course.upright) 몸을 세우고 뒤뚱뒤뚱 걷는다(glb.fishMotion) */
+export const PENGUIN_WALKERS = /^(emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin)$/;
 /** 고래(2026-11-14 범고래) — 꼬리자루와 꼬리지느러미를 위아래로 쳐서 나간다. 앞지느러미는 굳은 키라 젓지 않는다 */
 export const CETACEAN = /^(orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
 export const MAMMAL = /^(polar_bear|walrus|emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin|spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
@@ -223,7 +225,9 @@ export type SwimPose = { turn?: number; amp?: number; pulse?: number; hover?: nu
   /** 길(course)의 effort — 있으면 엔진이 이미 빠르기에 맞춘 박자라(fishstep.beatEffort) stepSwim 이 빠르기로 또 고치지 않는다. 화면이 더한 몫(겁먹어 빨리 · 미끄러지듯 다가가기)은 그대로 들어온다 */
   effort?: number;
   /** 두족류(habits.ceph) — 물 뿜기 세기 · 외투막이 앞인 정도(course.jet · course.rev 를 그대로) */
-  jet?: number; rev?: number };
+  jet?: number; rev?: number;
+  /** 땅 위에 선 정도(펭귄 — course.upright) */
+  upright?: number };
 /** 물속에 떠서 멈춘 정도 — 바닥에 앉아 쉬는 물고기(course.ground)는 노 젓기 · 끄덕임을 안 한다(habits 는 바닥에서 쉬어도 hover 를 준다) */
 export const floating = (pose?: SwimPose) => Math.max(0, Math.min(1, pose?.hover ?? 0)) * (1 - Math.max(0, Math.min(1, pose?.ground ?? 0)));
 /** 넙치처럼 옆으로 누워 사는 몸(2026-11-11) — GLB(어린 · 다 큰 광어)는 xz 평면에 누워 있다(높이 ÷ 길이 0.08). 치어는 아직 서서 헤엄친다(0.29).
