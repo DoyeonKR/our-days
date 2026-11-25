@@ -9,37 +9,44 @@ import {Model, bake, spineWeight, clamp, smooth, mix, fbm, noise, norm, add, cro
 const STAGES = {
   emperor_penguin: {chick: false, juv: false, fat: 1, bill: 1.45, wing: 2.5},
   juv_emperor_penguin: {chick: false, juv: true, fat: 1, bill: 1.2, wing: 2.3},
-  fry_emperor_penguin: {chick: true, juv: false, fat: 1.3, bill: .55, wing: 1.5},
+  fry_emperor_penguin: {chick: true, juv: false, fat: 1.3, bill: .62, wing: 1.5},
 };
 // 몸 단면(x: 꼬리 -4.3 → 머리 앞 3.95). 새끼는 더 짧고 통통하다
-const PROF = [[-4.3, .32, .3, .1], [-3.7, .78, .68, .02], [-2.5, 1.22, 1.1, -.06], [-1.0, 1.5, 1.34, -.1], [.4, 1.5, 1.34, -.08], [1.6, 1.28, 1.14, 0],
-  [2.35, .98, .9, .12], [2.95, 1.0, .9, .2], [3.5, .8, .72, .22], [3.95, .42, .4, .22]];
-const PROF_CHICK = [[-3.2, .4, .38, .06], [-2.6, 1.0, .92, 0], [-1.4, 1.45, 1.36, -.06], [0, 1.6, 1.5, -.06], [1.2, 1.42, 1.32, 0], [1.9, 1.15, 1.05, .1],
-  [2.5, 1.12, 1.02, .2], [3.0, .9, .82, .22], [3.4, .44, .42, .22]];
+// 2026-11-25 — 예전엔 목(2.35)이 잘록했다가 머리(2.95)가 다시 부풀어 공을 몸에 얹은 모양이었다. 황제펭귄 헤엄 자세는 몸 → 목 → 머리가 한 줄로 가늘어지는 어뢰다
+const PROF = [[-4.3, .32, .3, .1], [-3.7, .78, .68, .02], [-2.5, 1.22, 1.1, -.06], [-1.0, 1.5, 1.34, -.1], [.4, 1.48, 1.32, -.08], [1.6, 1.26, 1.12, .02],
+  [2.35, 1.0, .9, .1], [2.95, .86, .78, .15], [3.45, .68, .6, .17], [3.95, .34, .32, .15]];
+// 새끼는 큰 둥근 머리가 몸과 나뉜다(목이 잘록)
+const PROF_CHICK = [[-3.2, .4, .38, .06], [-2.6, 1.0, .92, 0], [-1.4, 1.45, 1.36, -.06], [0, 1.6, 1.5, -.06], [1.2, 1.4, 1.3, 0], [1.85, 1.0, .94, .12],
+  [2.4, 1.08, 1.0, .24], [2.85, 1.02, .96, .26], [3.2, .88, .84, .26], [3.45, .7, .67, .25], [3.63, .47, .45, .24], [3.74, .22, .21, .23]];
 const profOf = (T) => (x) => { let i = 0; while (i < T.length - 2 && x > T[i + 1][0]) i++; const A = T[i], B = T[i + 1], t = clamp((x - A[0]) / (B[0] - A[0])), k = t * t * (3 - 2 * t); return {a: A[1] + (B[1] - A[1]) * k, b: A[2] + (B[2] - A[2]) * k, cy: A[3] + (B[3] - A[3]) * k}; };
 
 function build(key) {
   const st = STAGES[key], m = new Model(), T = st.chick ? PROF_CHICK : PROF, P = profOf(T), X0 = T[0][0], X1 = T[T.length - 1][0];
   const headX = st.chick ? 2.55 : 2.95, neckX = st.chick ? 1.9 : 2.35;
   const surf = (x, th, k = 1) => { const p = P(x); return [x, p.cy + Math.cos(th) * p.a * k, Math.sin(th) * p.b * k]; };
-  const eyeX = st.chick ? 2.85 : 3.3, eyeC = [-1, 1].map((sd) => surf(eyeX, sd * 1.05, .96));
+  const eyeX = st.chick ? 3.05 : 3.3, eyeC = [-1, 1].map((sd) => surf(eyeX, sd * 1.05, .96));
   const BLACK = st.juv ? [62, 66, 76] : [22, 26, 36], BACK = st.juv ? [92, 98, 110] : [48, 56, 70], HEAD = st.juv ? [44, 46, 52] : [12, 13, 17];
 
   // ── 몸통 ──
   m.sweep('body', (s) => { const x = X0 + (X1 - X0) * s, p = P(x); return {c: [x, p.cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: p.a, b: p.b}; },
-    {ns: 52, nt: 28, capStart: .2, capEnd: .2, capRings: 4, capSpanStart: .03, capSpanEnd: .08, island: [0, 0, 1, .62], bone: 'body',
+    {ns: 52, nt: 28, capStart: .2, capEnd: st.chick ? .08 : .26, capRings: 6, capSpanStart: .03, capSpanEnd: .1, island: [0, 0, 1, .62], bone: 'body',
       sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < neckX ? (x - X0) / (neckX - X0) * .6 : .6 + (x - neckX) / (X1 - neckX) * .4; },
       paint: (p, n) => {
         const [x, y, z] = p, pr = P(x), yr = (y - pr.cy) / pr.a, side = Math.abs(z) / pr.b;
-        const grain = .92 + .16 * fbm([x * 6, y * 6, z * 6], 3) + .06 * (noise(x * 40, y * 40, z * 40) - .5);
+        // 깃털 결 — 큰 얼룩(예전 fbm 6) 대신 촘촘한 비늘 같은 깃 + 아주 옅은 굵은 결
+        const fx = x * 26 + .6 * Math.sin(z * 9), fz = z * 30, cell = Math.hypot(fx - Math.round(fx), (fz + (Math.round(fx) % 2) * .5) - Math.round(fz + (Math.round(fx) % 2) * .5));
+        const grain = .95 + .07 * fbm([x * 3, y * 3, z * 3], 2) + .07 * smooth(.25, .5, cell) + .05 * (noise(x * 55, y * 55, z * 55) - .5);
         if (st.chick) {
           // 새끼: 은회색 솜털, 검은 머리 · 흰 얼굴 가면(눈 둘레 · 뺨 · 턱)
           let c = mix([186, 189, 194], [150, 154, 160], smooth(-.4, .6, n[1]) * .5 + smooth(.4, -.8, yr) * .5);
           const head = smooth(headX - .55, headX - .2, x);
           c = mix(c, [18, 19, 24], head);
-          const eyeY = (eyeC[0][1] - pr.cy) / pr.a, front = smooth(headX - .45, headX - .05, x);
-          const mask = head * front * smooth(eyeY + .32, eyeY + .12, yr) * smooth(-.95, -.6, yr + (1 - side) * .0); c = mix(c, [242, 242, 238], mask);
-          const throat = smooth(headX - .4, headX, x) * smooth(-.1, -.5, yr) * (1 - smooth(.6, .9, side)); c = mix(c, [238, 238, 234], throat);
+          // 얼굴 가면(2026-11-25 — 예전엔 앞면 전체가 흰 원판이라 정면에서 접시 같았다): 눈 둘레 · 뺨 · 턱은 희고, 정수리 · 뒷머리는 검다.
+          //   가장자리는 솜털이라 부드럽게, 정수리 선은 뒤로 갈수록 내려간다
+          const eyeY = (eyeC[0][1] - pr.cy) / pr.a, front = smooth(headX - .55, headX - .1, x), crown = eyeY + .3 - .35 * smooth(headX + .2, headX - .5, x);
+          const mask = head * front * smooth(crown + .1, crown - .1, yr) * (.85 + .15 * noise(x * 18, y * 18, z * 18));
+          c = mix(c, [242, 242, 238], mask);
+          const throat = smooth(headX - .5, headX - .1, x) * smooth(-.05, -.5, yr) * (1 - smooth(.65, .95, side)); c = mix(c, [236, 236, 232], throat);
           return c.map((v) => v * (.9 + .2 * noise(x * 26, y * 26, z * 26)));
         }
         // 어른 · 어린: 검은 등 · 흰 배. 옆 경계는 가슴에서 낮고(날개 자리) 뒤로 갈수록 올라간다
@@ -52,35 +59,46 @@ function build(key) {
         c = mix(c, HEAD, head * (st.juv ? 1 : smooth(-1.1, -.55, yr) + (1 - smooth(-1.1, -.55, yr)) * smooth(neckX + .3, neckX + .55, x)));
         // 노란 귀 무늬: 눈 뒤 아래 옆면에서 목을 따라 가슴으로 흘러내리는 쉼표 + 가슴 위쪽 옅은 노랑
         if (!st.juv || true) {
-          const ec = [headX - .35, P(headX - .35).cy - .42], dx = x - ec[0], dy = y - ec[1], ca = Math.cos(.85), sa = Math.sin(.85);
-          const ear = smooth(1, .6, Math.hypot((dx * ca + dy * sa) / .95, (-dx * sa + dy * ca) / .3)) * smooth(.3, .7, side);
-          const earCol = st.juv ? [232, 230, 220] : mix([246, 160, 40], [250, 210, 90], smooth(-.2, .4, dx * ca + dy * sa));
+          // 귀 무늬(2026-11-25 — 예전엔 목 아래 옆에 길쭉한 덩이로 떨어져 있었다): 눈 바로 뒤 눈높이에서 시작해 목 옆을 따라 뒤 · 아래로 흐르는 쉼표.
+          //   위쪽은 진한 주황 · 노랑, 아래로 갈수록 연해져 가슴의 옅은 노랑으로 잇는다
+          const A = [eyeX - .38, eyeC[0][1] - .1], Bp = [neckX - .1, P(neckX).cy - P(neckX).a * .62], ab = [Bp[0] - A[0], Bp[1] - A[1]], abL = Math.hypot(...ab);
+          const tt = clamp(((x - A[0]) * ab[0] + (y - A[1]) * ab[1]) / (abL * abL)), px = A[0] + ab[0] * tt, py = A[1] + ab[1] * tt, dist = Math.hypot(x - px, y - py);
+          const wdt = .3 - .17 * tt + .05 * Math.sin(tt * Math.PI), ear = smooth(wdt, wdt * .4, dist) * smooth(.28, .55, side) * smooth(-.15, .05, ((x - A[0]) * ab[0] + (y - A[1]) * ab[1]) / (abL * abL));
+          const earCol = st.juv ? [230, 228, 220] : mix([244, 148, 30], [250, 214, 100], smooth(.1, .9, tt));
           c = mix(c, earCol, ear);
           if (!st.juv) { const chest = smooth(neckX - 1.6, neckX - .3, x) * (1 - smooth(neckX + .2, neckX + .5, x)) * smooth(-.2, -.6, yr) * smooth(1.05, .4, side); c = mix(c, [250, 224, 140], chest * .8); }
         }
         return c.map((v) => v * grain);
       }});
 
-  // ── 부리(위 · 아래 두 쪽) ──
-  const bx = X1 - .12, bp = P(X1 - .3), B = st.bill;
-  for (const [nm, dy, lower] of [['billU', .03, false], ['billL', -.1, true]]) {
-    m.sweep(nm, (s) => ({c: [bx + B * s, bp.cy + dy - .12 * B * s * s - (lower ? .03 * s : 0), 0], u: [0, 1, 0], v: [0, 0, 1], a: (lower ? .15 : .19) * (1 - .86 * s ** .8) * (st.chick ? 1.2 : 1), b: .21 * (1 - .84 * s ** .8) * (st.chick ? 1.2 : 1)}),
-      {ns: 10, nt: 12, capEnd: .04, capRings: 2, island: lower ? [.15, .62, .3, .74] : [0, .62, .14, .74], bone: 'head',
-        paint: (p, n, [s, t]) => {
-          if (!lower || st.chick || st.juv) return [16, 16, 20];
-          // 아랫부리 옆면의 주황 · 분홍 줄(뿌리 쪽이 넓다)
-          const sideness = Math.abs(Math.sin(t * Math.PI * 2)); return mix([18, 18, 22], [236, 128, 92], smooth(.35, .75, sideness) * smooth(.85, .45, s));
-        }});
-  }
+  // ── 부리(2026-11-25 — 예전엔 위 · 아래 두 쪽이 따로 떠 젓가락 둘로 보였다) — 머리 속에서 시작해 한 덩어리로 가늘어지며 아래로 살짝 휜다.
+  //    단면은 위아래로 높고 옆으로 좁다. 윗부리 검정, 아랫부리 옆 뿌리 쪽 반에 주황 · 분홍 판(어린 개체는 흐린 살구색, 새끼는 검정)
+  const B = st.bill, b0 = X1 - .42, bp = P(b0);
+  m.sweep('bill', (s) => ({c: [b0 + (B + .42) * s, bp.cy - .02 - .16 * B * s * s, 0], u: norm([.12 * s, 1, 0]), v: [0, 0, 1], a: (st.chick ? .24 : .27) * (1 - .9 * s ** .7) + .012, b: (st.chick ? .2 : .19) * (1 - .88 * s ** .7) + .01, e: 2.1}),
+    {ns: 14, nt: 14, capEnd: .03, capRings: 2, island: [0, .62, .3, .74], bone: 'head',
+      paint: (p, n, [s, t]) => {
+        const low = Math.cos(t * Math.PI * 2), side = Math.abs(Math.sin(t * Math.PI * 2));
+        let c = [16, 16, 20];
+        if (!st.chick) {
+          const plate = smooth(-.45, .05, low) * smooth(.66, .36, s) * smooth(.03, .1, s);
+          c = mix(c, st.juv ? [206, 170, 150] : [238, 126, 96], plate);
+          // 부리 끝 쪽 아랫선을 따라 가는 분홍 줄
+          c = mix(c, st.juv ? [150, 130, 120] : [214, 108, 92], smooth(.55, .85, low) * smooth(.75, .45, s) * .6);
+        }
+        // 부리 결(뿌리 쪽 살짝 밝다)
+        return c.map((v) => v * (1 + .25 * smooth(.25, 0, s)));
+      }});
   // ── 눈 ──
   eyeC.forEach((c, i) => m.sphere('eye' + i, c, st.chick ? .11 : .085, {island: [.31 + i * .05, .62, .35 + i * .05, .68], bone: 'head', paint: (p) => { const d = Math.hypot(p[0] - c[0] - .04, p[1] - c[1] - .04); return d < .02 ? [220, 220, 220] : [10, 10, 14]; }}));
 
   // ── 날개(납작한 노 — 옆으로 뻗어 뒤로 젖힌다. 윗면 검정 · 아랫면 흰색 · 흰 뒷가장자리) ──
   const fins = {}, wingX = st.chick ? .8 : 1.3;
   for (const sd of [-1, 1]) {
-    const root = surf(wingX, sd * 1.5, .8), D = norm([-.6, -.22, sd * .78]), L = st.wing;
+    // 날개(2026-11-25 — 예전엔 두께 0.09 의 판이 옆으로 곧게 뻗어 정면에서 바늘 둘이었다). 앞가장자리가 두툼한 노가 어깨에서 뒤 · 아래로 젖혀지고 끝이 뒤로 휜다
+    const root = surf(wingX, sd * 1.62, .82), D = norm([-.7, -.42, sd * .58]), L = st.wing * .88;
     let Wd = [1, .1, 0]; Wd = norm(add(Wd, D, -(Wd[0] * D[0] + Wd[1] * D[1]))); const Nf = norm(cross(D, Wd));
-    m.sweep('wing' + sd, (s) => ({c: add(root, D, L * s), u: Nf, v: Wd, a: .09 - .06 * s, b: (st.chick ? .38 : .48) * (1 - .55 * s ** 1.4) + .04, e: 2.4}),
+    m.sweep('wing' + sd, (s) => ({c: add(add(root, D, L * s), Wd, -.28 * s * s), u: Nf, v: Wd, a: .13 - .085 * s, b: (st.chick ? .36 : .46) * (1 - .5 * s ** 1.5) + .04, e: 2.2,
+      r: (th) => 1 + .25 * Math.max(0, Math.sin(th)) * (1 - s)}),
       {ns: 12, nt: 14, capEnd: .12, capRings: 2, island: sd < 0 ? [.4, .62, .69, .8] : [.7, .62, .99, .8], bone: 'fin' + sd,
         paint: (p, n, [s, t]) => {
           if (st.chick) return [140, 144, 150].map((v) => v * (.9 + .2 * noise(p[0] * 20, p[1] * 20, p[2] * 20)));

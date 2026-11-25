@@ -2,12 +2,12 @@
  * Hashes are of the delivered GLB bytes, not a guessed app/deployment version.
  */
 export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({
- fry_emperor_penguin:'6819acf51841',
- juv_emperor_penguin:'276af566a111',
- emperor_penguin:'9bf12513bcb5',
- fry_walrus:'17d883edcbc4',
- juv_walrus:'326d5a1f444f',
- walrus:'fcce17321d21',
+ fry_emperor_penguin:'ca6ac2b7f84d',
+ juv_emperor_penguin:'6a03a9a61ab4',
+ emperor_penguin:'61a50c8666a5',
+ fry_walrus:'feabb337d04b',
+ juv_walrus:'ee81afa88266',
+ walrus:'7b9279900f63',
  whale_shark:'c45f42015733',
  oceanic_manta:'614cceae533e',
  // 2026-11-17 떠 있던 지느러미 · 수염 · 다리 · 촉수를 몸에 붙임(floating-repair.mjs)

@@ -7,119 +7,143 @@ import {writeFile} from 'node:fs/promises';
 import {Model, bake, spineWeight, clamp, smooth, mix, fbm, ridge, noise, norm, add, cross} from './kit.mjs';
 
 const STAGES = {
-  walrus: {tusk: 2.3, tuskR: .27, fat: 1, headK: 1, skin: [[212, 150, 132], [116, 78, 62]], fold: 1, fur: 0, len: 1},
-  juv_walrus: {tusk: 1.0, tuskR: .18, fat: .96, headK: 1.06, skin: [[196, 140, 122], [108, 74, 60]], fold: .7, fur: .15, len: .97},
+  walrus: {tusk: 2.3, tuskR: .25, fat: 1, headK: 1, skin: [[178, 120, 98], [104, 66, 50]], fold: 1, fur: 0, len: 1},
+  juv_walrus: {tusk: 1.0, tuskR: .17, fat: .96, headK: 1.06, skin: [[170, 118, 98], [100, 66, 52]], fold: .7, fur: .15, len: .97},
   fry_walrus: {tusk: 0, tuskR: 0, fat: 1.06, headK: 1.18, skin: [[128, 100, 86], [96, 74, 62]], fold: .3, fur: .8, len: .9},
 };
 // 옆 · 위에서 잰 몸 단면(x: 꼬리 -5 → 주둥이 끝 4.65). a 높이 반 · b 폭 반 · cy 중심 높이 · e 초타원(머리 · 주둥이는 네모에 가깝게)
 const PROF = [
   [-5.0, .52, .44, .05, 2], [-4.3, .92, .86, .02, 2], [-3.2, 1.32, 1.36, 0, 2], [-1.8, 1.6, 1.7, -.04, 2.1], [-.3, 1.72, 1.84, -.06, 2.1],
-  [1.0, 1.78, 1.84, -.04, 2.15], [2.0, 1.68, 1.66, 0, 2.2], [2.8, 1.38, 1.36, .02, 2.3], [3.4, 1.08, 1.1, 0, 2.5], [3.85, .98, 1.02, -.08, 2.8],
-  [4.3, .92, 1.08, -.2, 3.2], [4.65, .82, 1.02, -.26, 3.4],
+  [1.0, 1.78, 1.84, -.04, 2.15], [2.0, 1.68, 1.66, 0, 2.2], [2.8, 1.38, 1.36, .02, 2.3], [3.4, 1.06, 1.06, .04, 2.3], [3.85, .92, .9, .02, 2.3],
+  [4.15, .82, .8, -.04, 2.4], [4.35, .72, .72, -.06, 2.3],
 ];
 function prof(x) {
   let i = 0; while (i < PROF.length - 2 && x > PROF[i + 1][0]) i++;
   const A = PROF[i], B = PROF[i + 1], t = clamp((x - A[0]) / (B[0] - A[0])), k = t * t * (3 - 2 * t);
   return {a: A[1] + (B[1] - A[1]) * k, b: A[2] + (B[2] - A[2]) * k, cy: A[3] + (B[3] - A[3]) * k, e: A[4] + (B[4] - A[4]) * k};
 }
-const X0 = -5, X1 = 4.65;
+const X0 = -5, X1 = 4.35;
 
 function build(key) {
   const st = STAGES[key], m = new Model();
   const P = (x) => { const p = prof(x), head = smooth(3.0, 3.9, x); return {...p, a: p.a * (st.fat * (1 - head) + st.headK * head), b: p.b * (st.fat * (1 - head) + st.headK * head)}; };
   // 몸통 표면의 한 점(θ: 0 위 · π/2 +z 옆 · π 아래)
   const surf = (x, th, k = 1) => { const p = P(x), e = 2 / p.e, cu = Math.cos(th), sv = Math.sin(th); return [x, p.cy + Math.sign(cu) * Math.abs(cu) ** e * p.a * k, Math.sign(sv) * Math.abs(sv) ** e * p.b * k]; };
-  const eyeX = 3.72, eyeTh = 1.0;
-  const eyeC = [-1, 1].map((sd) => { const q = surf(eyeX, sd * eyeTh, .965); return q; });
+  // 눈 — 작고 높게, 주둥이 패드 바로 뒤 윗옆(2026-11-25: 정면에서 보이게 조금 앞 · 위로)
+  const eyeX = 3.95, eyeTh = .82;
+  const eyeC = [-1, 1].map((sd) => surf(eyeX, sd * eyeTh, .96));
+  // 수염 패드(2026-11-25 [사용자: "어제 추가된 모델을 디테일이 너무 떨어져 실제와 비슷하게 계속 가다듬어봐"]) — 예전엔 몸통 끝을 네모 단면으로 늘린 상자라 정면이 우편함 같았다.
+  //   실제 바다코끼리 주둥이는 좌우 두 덩이로 부푼 수염 패드(머리보다 넓고 턱 밑까지 늘어진다)라, 몸통 끝은 둥근 코로 줄이고 패드 둘을 따로 붙인다
+  const hk = st.headK * (1 - .28 * st.fur), padC = (sd) => [4.3, P(4.3).cy - .26 * hk, sd * .36 * hk], PR = [.52 * hk, .56 * hk, .52 * hk];
+  const padSurf = (sd, u, v, k = 1) => { const c = padC(sd); return [c[0] + PR[0] * k * Math.cos(v) * Math.cos(u), c[1] + PR[1] * k * Math.sin(v), c[2] + PR[2] * k * Math.cos(v) * Math.sin(u)]; };
 
   // ── 몸통 ──
   m.sweep('body', (s) => {
     const x = X0 + (X1 - X0) * s, p = P(x);
     return {c: [x, p.cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: p.a, b: p.b, e: p.e, r: (th) => {
-      // 목 · 어깨 주름(두꺼운 지방 고리) — 단면이 x 를 따라 물결친다
-      const band = smooth(.4, 1.3, x) * (1 - smooth(3.3, 3.8, x));
-      const roll = 1 + .028 * st.fold * band * Math.sin(x * 7.4 + .9 * Math.sin(th * 2) + 1.6 * noise(x * .8, th, 3));
-      // 수염 주둥이 — 앞쪽 아래 · 옆이 부풀어 넓은 패드(위에서 보면 머리보다 넓다)
-      const lower = .5 - .5 * Math.cos(th), pad = smooth(3.85, 4.4, x) * lower * .3;
-      // 두 갈래 패드 — 앞쪽 아래 가운데(θ≈π)가 살짝 들어간다
-      const cleft = smooth(4.2, 4.6, x) * Math.exp(-Math.pow((th - Math.PI) / .22, 2)) * .1;
-      return roll * (1 + pad - cleft);
+      // 목 · 어깨 주름(두꺼운 지방 고리) — 단면이 x 를 따라 물결친다. 등 쪽은 얕고 목 옆 · 아래가 깊다
+      const band = smooth(-.2, 1.0, x) * (1 - smooth(3.2, 3.7, x)), side = .55 + .45 * Math.abs(Math.sin(th)) + .3 * smooth(0, -1, Math.cos(th));
+      const roll = 1 + .045 * st.fold * band * side * Math.sin(x * 5.6 + .7 * Math.sin(th * 2) + 2.2 * noise(x * .7, th * .8, 3)) * (.6 + .4 * noise(x * 1.3, th * 1.7, 9));
+      // 이마 — 눈 위가 살짝 솟는다
+      const brow = Math.exp(-Math.pow((x - 3.85) / .3, 2)) * Math.exp(-Math.pow((Math.abs(th) - .7) / .35, 2)) * .05;
+      return roll * (1 + brow);
     }};
-  }, {ns: 56, nt: 28, capStart: .25, capEnd: .5, capRings: 6, capSpanStart: .03, capSpanEnd: .2, island: [0, 0, 1, .6], sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < 3 ? (x - X0) / (3 - X0) * .55 : .55 + (x - 3) / (X1 - 3) * .45; }, bone: 'body',
+  }, {ns: 52, nt: 26, capStart: .25, capEnd: .26, capRings: 5, capSpanStart: .03, capSpanEnd: .12, island: [0, 0, 1, .56], sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < 3 ? (x - X0) / (3 - X0) * .6 : .6 + (x - 3) / (X1 - 3) * .4; }, bone: 'body',
     paint: (p, n) => {
       const [x, y, z] = p, pr = P(x), dorsal = smooth(-.3, .8, n[1]);
+      // 등 짙은 계피 갈색 · 배 · 목 아래 분홍빛(피가 몰린 살갗)
       let c = mix(st.skin[0], st.skin[1], dorsal);
-      c = c.map((v) => v * (.78 + .44 * fbm([x * .7, y * .7, z * .7])));
-      c = mix(c, [226, 168, 150], smooth(.6, .78, fbm([x * 1.3 + 7, y * 1.3, z * 1.3])) * .35 * st.fold);
-      // 목 · 어깨의 깊은 주름(고리) + 온몸의 잔금
-      const band = smooth(.2, 1.2, x) * (1 - smooth(3.5, 4.05, x));
-      const ph = x * 2.1 + 1.7 * fbm([x * .45, y * .8, z * .8]) + .35 * Math.sin(Math.atan2(z, y - pr.cy) * 2 + x);
-      const fold = Math.pow(1 - Math.abs(Math.sin(Math.PI * ph)), 7) * band * st.fold * smooth(.3, .62, noise(x * 1.7, y * 1.7 + 5, z * 1.7));
-      const crack = Math.pow(ridge([x * 3.4, y * 3.4, z * 3.4]), 7) * (.55 + .45 * st.fold);
-      const crest = Math.pow(1 - Math.abs(Math.sin(Math.PI * (ph + .18))), 10) * band * st.fold;
-      c = c.map((v) => v * (1 - .55 * fold - .4 * crack + .08 * crest));
-      // 혹(목 · 가슴의 우툴두툴한 돌기)
-      const wart = smooth(.74, .82, noise(x * 4.2, y * 4.2, z * 4.2)) * band * st.fold;
-      c = mix(c, c.map((v) => v * 1.12), wart * .6);
-      // 털(새끼 · 어린)
-      if (st.fur) c = c.map((v) => v * (1 + st.fur * .18 * (noise(x * 22, y * 22, z * 22) - .5)));
-      // 수염 주둥이 — 밝은 살빛 패드 + 수염 뿌리 점(줄지어)
-      const padW = smooth(4.05, 4.3, x) * smooth(.25, -.15, (y - pr.cy) / pr.a);
-      if (padW > 0) {
-        c = mix(c, [222, 178, 156], padW * .75);
-        const gy = (y - pr.cy) * 17, gz = z * 17 + ((Math.floor(gy) % 2) ? .5 : 0), dy = gy - Math.floor(gy) - .5, dz = gz - Math.floor(gz) - .5, dd = Math.hypot(dy, dz);
-        c = mix(c, [112, 70, 58], smooth(.42, .3, dd) * padW * .55); c = mix(c, [246, 234, 214], smooth(.22, .1, dd) * padW * .95);
-        // 가운데 세로 고랑(두 갈래 패드)
-        c = c.map((v) => v * (1 - .45 * padW * smooth(.12, 0, Math.abs(z)) * smooth(.3, -.4, (y - pr.cy) / pr.a)));
-      }
-      // 입 — 패드 아래 어두운 줄
-      const mouth = smooth(4.0, 4.3, x) * smooth(.12, 0, Math.abs((y - pr.cy) / pr.a + .86));
-      c = c.map((v) => v * (1 - .7 * mouth));
-      // 콧구멍 — 주둥이 위 앞쪽 두 개
-      for (const sz of [-1, 1]) { const d = Math.hypot((x - 4.5) / .16, (y - (pr.cy + pr.a * .5)) / .09, (z - sz * .27) / .11); c = c.map((v) => v * (1 - .85 * smooth(1.2, .6, d))); }
-      // 눈가(어둡고 붉은 테)
-      for (const e of eyeC) { const d = Math.hypot(x - e[0], y - e[1], z - e[2]); c = mix(c, c.map((v) => v * .62), smooth(.3, .13, d)); }
+      const neckPink = smooth(.4, 1.6, x) * (1 - smooth(3.3, 3.9, x)) * smooth(.4, -.6, n[1]);
+      c = mix(c, [214, 150, 140], neckPink * .5 * st.fold);
+      c = c.map((v) => v * (.84 + .3 * fbm([x * .9, y * .9, z * .9])));
+      // 잔 얼룩(분홍 · 짙은 반점)
+      c = mix(c, [226, 168, 152], smooth(.62, .8, fbm([x * 1.6 + 7, y * 1.6, z * 1.6])) * .3 * st.fold);
+      // 가로 주름(몸을 감는 고랑) — 목 · 어깨에 깊고 촘촘, 배 · 꼬리 쪽은 얕고 성기다
+      const band = smooth(-.4, .9, x) * (1 - smooth(3.4, 3.95, x)), lowBand = .35 + .65 * band;
+      const ph = x * (2.4 + 1.6 * band) + 1.3 * fbm([x * .5, y * .9, z * .9]) + .3 * Math.sin(Math.atan2(z, y - pr.cy) * 2 + x * .7);
+      const groove = Math.pow(1 - Math.abs(Math.sin(Math.PI * ph)), 9) * lowBand * (.45 + .55 * st.fold) * smooth(.25, .55, noise(x * 1.4, y * 1.4 + 5, z * 1.4));
+      const lit = Math.pow(1 - Math.abs(Math.sin(Math.PI * (ph + .2))), 6) * lowBand * st.fold;
+      // 잔주름(가는 그물 — 예전 '갈라진 진흙' 금보다 훨씬 얕게)
+      const fine = Math.pow(1 - Math.abs(noise(x * 9, y * 9, z * 9) * 2 - 1), 10) * .5;
+      c = c.map((v) => v * (1 - .5 * groove - .12 * fine + .1 * lit));
+      // 혹(목 · 가슴 · 어깨의 우툴두툴한 돌기) — 밝은 정수리 + 아래 그늘
+      const wn = noise(x * 5, y * 5, z * 5), wart = smooth(.7, .8, wn) * smooth(-.6, 1.4, x) * (1 - smooth(3.4, 3.8, x)) * st.fold;
+      c = mix(c, c.map((v) => Math.min(255, v * 1.18 + 8)), wart * .7);
+      // 짧고 성긴 털(새끼 · 어린은 짙은 솜털)
+      c = c.map((v) => v * (1 + (.06 + st.fur * .16) * (noise(x * 30, y * 30, z * 30) - .5)));
+      // 콧구멍 — 코끝 위 앞쪽 두 개(가는 초승달)
+      for (const sz of [-1, 1]) { const d = Math.hypot((x - 4.5) / .1, (y - (pr.cy + pr.a * .38)) / .07, (z - sz * .2) / .12); c = c.map((v) => v * (1 - .85 * smooth(1.1, .5, d))); }
+      // 눈가 — 붉고 어두운 테, 눈 위는 주름 고랑
+      for (const e of eyeC) { const d = Math.hypot(x - e[0], y - e[1], z - e[2]); c = mix(c, [120, 62, 54], smooth(.24, .12, d) * .7); c = c.map((v) => v * (1 - .3 * smooth(.32, .24, d) * smooth(.2, .3, d))); }
       return c;
     }});
 
-  // ── 수염(콧수염 가시) — 주둥이 패드 아래 · 옆에서 아래 · 앞으로 뻗는 가는 크림색 가시. 뿌리는 표면 속에 묻는다 ──
-  if (st.tusk > 0 || st.fur < .5) {
-    const padR = (x, th) => { const lower = .5 - .5 * Math.cos(th); return 1 + smooth(3.85, 4.4, x) * lower * .3; };
-    let k = 0;
-    for (let row = 0; row < 3; row++) for (let i = 0; i < 13; i++) {
-      const th = 1.75 + (i + (row % 2) * .5) / 12.5 * (Math.PI * 2 - 3.5), x = 4.42 + row * .09, sp = surf(x, th, padR(x, th) - .03);
-      const outw = norm([.55, Math.cos(th) * .9 - .35, Math.sin(th) * .9]), Lb = (.2 + .05 * (k % 3)) * (st.tusk > 0 ? 1 : .6);
-      m.sweep("whisker" + k++, (s) => ({c: add(sp, outw, Lb * s), u: norm(cross(outw, [0, 0, 1])), v: [0, 0, 1], a: .016 * (1 - .8 * s), b: .016 * (1 - .8 * s)}),
-        {ns: 1, nt: 3, island: [.26, .72, .37, .8], bone: "head", paint: () => [236, 224, 200]});
+  // ── 수염 패드 둘(좌우로 부푼 덩이, 가운데가 맞닿아 골이 진다) ──
+  for (const sd of [-1, 1]) {
+    const c0 = padC(sd);
+    m.sweep('pad' + sd, (s) => { const v = -Math.PI / 2 + Math.PI * s, cv = Math.cos(v); return {c: [c0[0], c0[1] + PR[1] * Math.sin(v), c0[2]], u: [1, 0, 0], v: [0, 0, 1], a: Math.max(.01, PR[0] * cv), b: Math.max(.01, PR[2] * cv)}; },
+      {ns: 12, nt: 18, island: sd < 0 ? [0, .56, .2, .7] : [.2, .56, .4, .7], bone: 'head',
+        paint: (q, n) => {
+          const [x, y, z] = q, rel = [(x - c0[0]) / PR[0], (y - c0[1]) / PR[1], (z - c0[2]) / PR[2]];
+          // 살빛 · 위는 몸 색으로 이어진다. 앞 · 아래에 수염 뿌리(짙은 점 + 흰 가시 밑동)가 줄지어
+          let c = mix([206, 156, 136], st.skin[0].map((v) => v * .92), smooth(.1, .7, rel[1]));
+          c = c.map((v) => v * (.88 + .22 * fbm([x * 3, y * 3, z * 3])));
+          const front = smooth(-.3, .6, rel[0]) * smooth(.55, -.1, rel[1]);
+          const lat = Math.atan2(rel[2] * sd, rel[0]), row = (rel[1] + 1.2) * 6.5, col = lat * 6 + (Math.floor(row) % 2) * .5;
+          const dd = Math.hypot(row - Math.floor(row) - .5, col - Math.floor(col) - .5);
+          c = mix(c, [96, 60, 50], smooth(.4, .26, dd) * front * .75);
+          c = mix(c, [240, 228, 206], smooth(.18, .08, dd) * front * .9);
+          // 두 패드가 맞닿는 가운데 골(안쪽 면 그늘)
+          c = c.map((v) => v * (1 - .4 * smooth(.2, -.5, rel[2] * sd)));
+          return c;
+        }});
+  }
+  // ── 입 — 패드 아래 가운데, 짧은 아랫입술(분홍) ──
+  {
+    const lc = [4.42, P(4.3).cy - .78 * hk, 0];
+    m.sweep('lip', (s) => ({c: [lc[0] - .22 * s, lc[1] - .02 * s, 0], u: [0, 1, 0], v: [0, 0, 1], a: .16 * hk * (1 - .3 * s), b: .3 * hk * (1 - .2 * s)}),
+      {ns: 4, nt: 12, capStart: .08, capRings: 2, island: [.4, .56, .5, .62], bone: 'head', paint: (q, n) => mix([150, 96, 84], [196, 132, 118], smooth(-.4, .4, n[1]))});
+  }
+
+  // ── 수염(굵고 뻣뻣한 크림색 가시) — 패드 앞 · 아래에서 아래 · 앞으로. 뿌리는 패드 속에 묻는다 ──
+  {
+    // 새끼도 짧은 수염이 난다(2026-11-25 — 예전엔 새끼만 빼서 패드가 맨 공 둘이었다)
+    let k = 0; const thick = st.tusk > 0 ? 1 : .62;
+    for (const sd of [-1, 1]) for (let row = 0; row < 4; row++) for (let i = 0; i < 9; i++) {
+      const v = -.85 + row * .32, u = sd * (-.35 + (i + (row % 2) * .5) / 8.5 * 2.0), sp = padSurf(sd, u, v, .92);
+      const nrm = norm([Math.cos(v) * Math.cos(u) / PR[0], Math.sin(v) / PR[1], Math.cos(v) * Math.sin(u) / PR[2]]);
+      const dir = norm(add(add(nrm, [0, -1, 0], .9), [.4, 0, 0])), Lb = (.17 + .05 * ((k * 7) % 3) + .03 * row) * thick;
+      m.sweep('whisker' + k++, (s) => ({c: add(sp, dir, (Lb + .06) * s), u: norm(cross(dir, [0, 0, 1])), v: [0, 0, 1], a: .026 * thick * (1 - .75 * s), b: .026 * thick * (1 - .75 * s)}),
+        {ns: 1, nt: 3, island: [.5, .56, .56, .62], bone: 'head', paint: (q, n, [s]) => mix([214, 196, 168], [246, 238, 220], s)});
     }
   }
-  // ── 눈 ──
-  eyeC.forEach((c, i) => m.sphere('eye' + i, c, .11, {island: [.26 + i * .06, .62, .31 + i * .06, .7], bone: 'head', paint: (p, n) => { const d = Math.hypot(p[0] - c[0] - .06, p[1] - c[1] - .05); return d < .022 ? [210, 200, 190] : [22, 12, 10]; }}));
+  // ── 눈(작고 촉촉 — 붉은 테 안 검은 눈) ──
+  eyeC.forEach((c, i) => m.sphere('eye' + i, c, .085, {ns: 6, nt: 8, island: [.57 + i * .04, .56, .6 + i * .04, .62], bone: 'head', paint: (p, n) => { const d = Math.hypot(p[0] - c[0] - .05, p[1] - c[1] - .04); return d < .02 ? [220, 210, 200] : [26, 14, 12]; }}));
 
-  // ── 엄니 ──
+  // ── 엄니(윗턱에서 패드 밑으로 나와 아래 · 조금 뒤로 휜다. 납작한 타원 단면, 밑동은 누렇고 끝은 상아색) ──
   if (st.tusk > 0) for (const sd of [-1, 1]) {
-    const root = [4.3, P(4.3).cy - P(4.3).a * .45, sd * .4 * st.headK], L = st.tusk, R = st.tuskR;
-    m.sweep('tusk' + sd, (s) => ({c: [root[0] - .3 * L * s ** 1.25 - .25 * (1 - s), root[1] - L * s + .45 * (1 - s), root[2] + sd * .07 * L * s], u: [1, 0, 0], v: [0, 0, 1], a: R * (1 - .82 * s), b: R * .92 * (1 - .82 * s)}),
-      {ns: 16, nt: 12, capEnd: R * .4, capRings: 2, island: sd < 0 ? [0, .62, .12, .8] : [.13, .62, .25, .8], bone: 'head',
-        paint: (p, n, [s]) => { let c = mix([196, 176, 140], [242, 232, 208], smooth(0, .35, s)); c = mix(c, [226, 210, 178], smooth(.75, 1, s)); return c.map((v) => v * (.92 + .1 * noise(p[0] * 2, p[1] * 18, p[2] * 2))); }});
+    const root = [4.42, P(4.3).cy - .62 * hk, sd * .3 * hk], L = st.tusk, R = st.tuskR;
+    m.sweep('tusk' + sd, (s) => ({c: [root[0] - .1 * L * s - .16 * L * s * s, root[1] - L * s + .25 * (1 - s), root[2] + sd * (.03 * L * s - .05 * L * s * s * (1 - s))], u: norm([1, -.15 - .3 * s, 0]), v: [0, 0, 1], a: R * (1 - .8 * s ** 1.2), b: R * .78 * (1 - .8 * s ** 1.2)}),
+      {ns: 14, nt: 10, capEnd: R * .35, capRings: 2, island: sd < 0 ? [0, .7, .1, .82] : [.1, .7, .2, .82], bone: 'head',
+        paint: (p, n, [s]) => { let c = mix([190, 160, 112], [240, 230, 204], smooth(0, .4, s)); c = mix(c, [228, 214, 182], smooth(.8, 1, s)); return c.map((v) => v * (.9 + .12 * noise(p[0] * 3, p[1] * 22, p[2] * 3))); }});
   }
 
-  // ── 앞지느러미(넓은 노 · 발가락 고랑) ──
+  // ── 앞지느러미(짧고 넓은 노 — 몸 옆 아래에서 뒤 · 아래로, 손가락 다섯의 고랑 · 끝이 살짝 말린다) ──
   const fins = {};
   for (const sd of [-1, 1]) {
-    const root = surf(1.75, sd * 2.2, .78), D = norm([-.5, -.52, sd * .7]), L = 2.35 * st.len;
+    const root = surf(1.9, sd * 2.1, .8), D = norm([-.78, -.42, sd * .48]), L = 1.85 * st.len;
     let Wd = [1, 0, 0]; Wd = norm(add(Wd, D, -(Wd[0] * D[0]))); const Nf = norm(cross(D, Wd));
-    m.sweep('fore' + sd, (s) => ({c: add(root, D, L * s), u: Nf, v: Wd, a: .2 - .13 * s, b: .5 + .45 * Math.sin(Math.PI * Math.min(1, s * 1.15) * .85), e: 2.2}),
-      {ns: 14, nt: 14, capEnd: .2, capRings: 3, island: sd < 0 ? [.38, .62, .68, .82] : [.69, .62, .99, .82], bone: 'fin' + sd,
-        paint: (p, n, [s, t]) => { let c = mix([118, 82, 68], [92, 64, 54], smooth(0, .6, s)); const across = Math.sin(t * Math.PI * 2); c = c.map((v) => v * (1 - .3 * Math.pow(Math.abs(Math.sin(across * Math.PI * 2.5)), 8) * smooth(.3, .6, s))); c = c.map((v) => v * (.88 + .2 * fbm([p[0] * 2, p[1] * 2, p[2] * 2]))); return c; }});
+    m.sweep('fore' + sd, (s) => ({c: add(add(root, D, L * s), Nf, -.12 * s * s), u: Nf, v: Wd, a: .25 - .16 * s, b: .46 + .4 * Math.sin(Math.PI * Math.min(1, s * 1.1) * .8), e: 2.3}),
+      {ns: 12, nt: 14, capEnd: .18, capRings: 3, island: sd < 0 ? [.2, .7, .5, .84] : [.5, .7, .8, .84], bone: 'fin' + sd,
+        paint: (p, n, [s, t]) => { let c = mix(st.skin[1].map((v) => v * .95), st.skin[1].map((v) => v * .72), smooth(0, .7, s)); const across = Math.sin(t * Math.PI * 2); c = c.map((v) => v * (1 - .28 * Math.pow(Math.abs(Math.sin(across * Math.PI * 2.5)), 6) * smooth(.25, .55, s))); c = c.map((v) => v * (.86 + .24 * fbm([p[0] * 3, p[1] * 3, p[2] * 3]))); return c; }});
     fins[sd < 0 ? 'R' : 'L'] = {root, tip: add(root, D, L)};
   }
-  // ── 뒷지느러미(꼬리 끝에서 뒤로 펼친 세로 부채) ──
+  // ── 뒷지느러미(꼬리 끝에서 뒤로 펼친 부채 — 발가락 다섯 끝이 물결) ──
   for (const sd of [-1, 1]) {
-    const root = [-4.7, .02, sd * .2], D = norm([-1, -.02, sd * .16]), L = 1.9 * st.len, Wd = norm([0, .64, sd * .77]), Nf = norm(cross(D, Wd));
-    m.sweep('hind' + sd, (s) => ({c: add(root, D, L * s), u: Nf, v: Wd, a: .16 - .1 * s, b: .32 + .78 * s ** .8, e: 2.2, r: (th) => 1 - .1 * smooth(.75, 1, s) * Math.abs(Math.sin(Math.sin(th) * Math.PI * 2.5))}),
-      {ns: 12, nt: 14, capEnd: .14, capRings: 2, island: sd < 0 ? [0, .82, .49, 1] : [.5, .82, .99, 1], bone: 'hind',
-        paint: (p, n, [s, t]) => { let c = mix([120, 84, 70], [86, 60, 50], smooth(0, .8, s)); const across = Math.sin(t * Math.PI * 2); c = c.map((v) => v * (1 - .32 * Math.pow(Math.abs(Math.sin(across * Math.PI * 2.5)), 8) * smooth(.2, .5, s))); return c.map((v) => v * (.88 + .2 * fbm([p[0] * 2, p[1] * 2, p[2] * 2]))); }});
+    const root = [-4.7, .02, sd * .22], D = norm([-1, -.03, sd * .2]), L = 2.0 * st.len, Wd = norm([0, .62, sd * .78]), Nf = norm(cross(D, Wd));
+    m.sweep('hind' + sd, (s) => ({c: add(root, D, L * s), u: Nf, v: Wd, a: .17 - .11 * s, b: .34 + .86 * s ** .8, e: 2.2, r: (th) => 1 - .14 * smooth(.72, 1, s) * Math.abs(Math.sin(Math.sin(th) * Math.PI * 2.5))}),
+      {ns: 10, nt: 14, capEnd: .14, capRings: 2, island: sd < 0 ? [0, .84, .49, 1] : [.5, .84, .99, 1], bone: 'hind',
+        paint: (p, n, [s, t]) => { let c = mix(st.skin[1].map((v) => v * .95), st.skin[1].map((v) => v * .7), smooth(0, .8, s)); const across = Math.sin(t * Math.PI * 2); c = c.map((v) => v * (1 - .32 * Math.pow(Math.abs(Math.sin(across * Math.PI * 2.5)), 6) * smooth(.2, .5, s))); return c.map((v) => v * (.86 + .24 * fbm([p[0] * 3, p[1] * 3, p[2] * 3]))); }});
   }
   return {m, fins};
 }
