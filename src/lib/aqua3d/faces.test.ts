@@ -9,7 +9,9 @@ import {FACE_PROFILES,createFishFace,disposeFishFace,faceJaw,faceMouth,respirato
 
 test('얼굴 프로필은 기존·신규 GLB 381형태 모두의 기준 그림과 일치한다',()=>{
  const models=JSON.parse(readFileSync('design/aqua3d-review/models.json','utf8')).models;
- const fish=Object.entries(models).filter(([,m])=>{const meta=m as {kind:string;anatomyKind?:string};return meta.kind==='fish'&&meta.anatomyKind!=='mammal'&&meta.anatomyKind!=='shrimp'&&meta.anatomyKind!=='crab'&&meta.anatomyKind!=='cetacean'&&meta.anatomyKind!=='shark';});
+ const fish=Object.entries(models).filter(([,m])=>{const meta=m as {kind:string;anatomyKind?:string};return meta.kind==='fish'&&meta.anatomyKind!=='mammal'&&meta.anatomyKind!=='shrimp'&&meta.anatomyKind!=='crab'&&meta.anatomyKind!=='cetacean'&&meta.anatomyKind!=='shark'&&meta.anatomyKind!=='polar';});
+ // 남극 10종(2026-11-25 — polar/ 부위 짓기 · 눈 · 입을 모델이 직접 가진다) — 물고기 얼굴 · 턱을 붙이지 않는다
+ const polar=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='polar');assert.equal(polar.length,30);for(const [key] of polar)assert.equal(FACE_PROFILES[key],undefined,key);
  for(const [key,m] of Object.entries(models))if(/^(cetacean|shark)$/.test((m as {anatomyKind?:string}).anatomyKind??''))assert.equal(FACE_PROFILES[key],undefined,'고래 · 톱상어(2026-11-18)는 원화 그대로 — 물고기 얼굴 · 턱을 붙이지 않는다');
  const shrimps=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='shrimp');
  assert.equal(shrimps.length,9);for(const [key] of shrimps)assert.equal(FACE_PROFILES[key],undefined,'새우에 물고기 얼굴 · 턱을 붙이지 않는다');

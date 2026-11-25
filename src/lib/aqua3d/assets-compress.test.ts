@@ -38,7 +38,7 @@ const webpSize = (b: Buffer): [number, number] => {
   throw new Error(`모르는 WebP ${chunk}`);
 };
 
-test("수조 GLB 454개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
+test("수조 GLB 484개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
   await MeshoptDecoder.ready;
   const mammalKeys=JSON.parse(readFileSync('design/aqua3d-review/mammals-status.json','utf8')).keys as string[];
   assert.equal(new Set(mammalKeys).size,18);
@@ -52,7 +52,7 @@ test("수조 GLB 454개 전부 배포 형식(meshopt · 양자화 · 512px 이�
   // 고래 5종 · 톱상어(2026-11-18 — whales/build.mjs)
   const whaleKeys=['minke_whale','gray_whale','humpback_whale','sperm_whale','blue_whale','sawshark'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of whaleKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   // 바다코끼리 · 황제펭귄(2026-11-24 — mammal-tube-build.mjs)
-  const polarKeys=['walrus','emperor_penguin'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of polarKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
+  const polarKeys=['walrus','emperor_penguin','gentoo_penguin','chinstrap_penguin','adelie_penguin','toothfish','icefish','clione','sea_pig','giant_isopod','antarctic_urchin','salp'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of polarKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length+shrimpKeys.length+orcaKeys.length+crabKeys.length+whaleKeys.length+polarKeys.length);
   assert.equal(files.filter(f=>f.kind==='decor').length,37);
   for (const { key, path } of files) {

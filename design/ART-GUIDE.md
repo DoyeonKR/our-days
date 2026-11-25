@@ -117,6 +117,24 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **그림**: 바다코끼리 = `walrus/make-art.mjs`(우리 물범 그림을 부풀린 몸) → `walrus/photo-head.mjs`(사진 머리 · 목을 뒤집어 붙이고 몸 색을 사진 피부에 맞춤, 어린 개체는 엄니를 짧게 · 새끼는 지움 — 엄니 자리는 `walrus/<key>-tusk.png`). 황제펭귄 = `penguin/make-art.mjs`(SVG — 검은 등 · 흰 배 · 노란 귀 무늬 · 아랫부리 주황 줄 · 새끼는 회색 솜털과 흰 얼굴 가면) → `penguin/photo-penguin.mjs`(사진의 잔결만 얹는다). 사용자 참고 사진 · 조형물 · 시트는 비율만 봤다(저작권).
 **3D**: `mammal-tube-build.mjs` — 바다코끼리는 앞쪽 40%(머리 · 목)를 열의 위 · 아래 끝으로 재 관에 넣고, 엄니는 마스크로 몸 · 지느러미 판에서 빼 주둥이 밑에서 아래 · 조금 뒤로 뻗는 원뿔 둘로(머리 뼈). 검수 `walrus/review.webp` · `penguin/review.webp`.
 
+### D4. 남극 10종 — 그림 30장 + 3D 모델 30개 (2026-11-25, Claude 세션이 만들었다 — 다시 그릴 때의 기록)
+
+| key | 이름 | 등급 | 다 큰 몸길이 | 오는 곳 |
+|---|---|---|---|---|
+| `gentoo_penguin` | 젠투펭귄 | 고급 | 80cm | 세종기지 pool |
+| `adelie_penguin` | 아델리펭귄 | 고급 | 70cm | 세종기지 pool |
+| `giant_isopod` | 남극 대왕등각류 | 고급 | 19cm | 세종기지 pool |
+| `chinstrap_penguin` | 턱끈펭귄 | 희귀 | 72cm | 세종기지 낮(때 손님) |
+| `icefish` | 남극빙어 | 희귀 | 60cm | 세종기지 해 질 녘 |
+| `sea_pig` | 바다돼지 | 희귀 | 15cm | 세종기지 밤 |
+| `antarctic_urchin` | 남극성게 | 흔함 | 7cm | 세종기지 새벽 |
+| `clione` | 클리오네 | 영웅 | 4cm | 세종기지 맑은 날 |
+| `toothfish` | 메로(남극이빨고기) | 전설 | 1.75m | 세종기지 밤 |
+| `salp` | 살프 사슬 | 전설 | 60cm(사슬) | 세종기지 눈 오는 날 |
+
+**3D**: 그림 픽셀 없이 부위로 지었다 — `polar/penguins-build.mjs`(황제펭귄과 같은 몸 · 종마다 머리 무늬 · 부리 · 발 색 · 눈테), `polar/antfish-build.mjs`(몸통 관 + 몸에 뿌리를 묻은 지느러미 막 · 아래턱 · 큰 눈, 빙어는 납작한 긴 주둥이와 검은 돛 지느러미), `polar/inverts-build.mjs`(클리오네 · 살프는 재질 알파 BLEND 로 반투명 · 속 기관을 먼저 쌓고 껍질에 닿게, 바다돼지 관족 · 돌기, 등각류 마디 · 다리 일곱 쌍 · 더듬이, 성게 가시 130 · 얹은 조개껍데기). 도구 `polar/kit.mjs`(alpha 옵션).
+**그림**: 모델을 찍었다(`ceph-v3/review.html?card=` → `polar/cards-to-art.mjs`). 다시 그릴 때의 설명은 `design/AQUARIUM-ART.md` 의 같은 key 줄. 검수 `polar/review-antarctic.webp`(다섯 방향) · `polar/review-antarctic-cards.webp`.
+
 ### F. 범고래 새끼 · 어린 개체 — 그림 2장 + 3D 모델 2개 (2026-11-14)
 
 > **2026-11-18 끝** — 그림 세션 없이 Claude 세션이 다 큰 모델 · 그림에서 비율만 바꿔 만들었다(`design/aqua3d-review/orca-young-build.mjs` · `orca-young-art.mjs`, 검수 `orca-young/review.webp`). 진짜 새끼 그림으로 다시 그리면 이 두 스크립트 대신 아래 규칙대로.

@@ -60,6 +60,17 @@ async function card(keys) {
   }
 }
 
+// 기준 그림 없이 다섯 방향(2026-11-25 남극 10종 — 카드 그림을 찍기 전 모델만 본다)
+async function views(keys, name) {
+  const cv = document.createElement('canvas'), V = Object.entries(VIEWS); cv.width = V.length * CELL; cv.height = keys.length * CELL; const ctx = cv.getContext('2d'); ctx.font = '13px system-ui';
+  let r = 0;
+  for (const key of keys) {
+    const m = await load(`${newDir}/${key}.glb`), sc = scene(); sc.add(m); const c = skinnedBox(m).getCenter(new T.Vector3());
+    V.forEach(([v, d], i) => { ctx.drawImage(shot(sc, c, d), i * CELL, r * CELL); label(ctx, i * CELL + 4, r * CELL + 4, key + ' · ' + v); }); r++;
+  }
+  out.append(cv); if (qs.get('save')) await save(cv, name + '.webp');
+}
+
 async function motion(keys, name) {
   const {fishMotion} = await import('/src/lib/aqua3d/glb.ts');
   const {WATER_LIGHT} = await import('/src/lib/aqua3d/waterlight.ts');
@@ -86,6 +97,7 @@ async function motion(keys, name) {
 try {
   if (qs.get('sheet')) await sheet(qs.get('sheet').split(','), qs.get('name') ?? 'review');
   if (qs.get('close')) await closeup(qs.get('close').split(','), qs.get('name') ?? 'review-close');
+  if (qs.get('views')) await views(qs.get('views').split(','), qs.get('name') ?? 'review-views');
   if (qs.get('card')) await card(qs.get('card').split(','));
   if (qs.get('motion')) await motion(qs.get('motion').split(','), qs.get('name') ?? 'review-motion');
   status.textContent = 'done' + (errors.length ? '\nERRORS:\n' + errors.join('\n') : '');

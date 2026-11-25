@@ -51848,6 +51848,2496 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+    },
+    "fry_gentoo_penguin": {
+      "kind": "fish",
+      "family": "gentoo_penguin",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_gentoo_penguin.glb",
+      "triangles": 5720,
+      "bytes": 77988,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "b4298e9a69e3834a38b8bc634d0d279b8b9e44c333619cd63d555ba736878277",
+      "sha256": "d0b47b4f0c22f5bb88807e3c55c6cf4dbbb57be3a5e8fafbe679118780cd708e",
+      "authoringProfile": {
+        "key": "gentoo_penguin",
+        "name": "젠투펭귄",
+        "grade": "고급",
+        "cm": 80,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 가장 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_gentoo_penguin": {
+      "kind": "fish",
+      "family": "gentoo_penguin",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_gentoo_penguin.glb",
+      "triangles": 5720,
+      "bytes": 56784,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "6592e04b17fd0aa51eda0cc8d1e17f55c466a18089ddcc3d18b7911fb73dda3d",
+      "sha256": "1ef74283aa41ecef6b75ffd16b30f1a8ca5955253e704d7010001de9f71b79b5",
+      "authoringProfile": {
+        "key": "gentoo_penguin",
+        "name": "젠투펭귄",
+        "grade": "고급",
+        "cm": 80,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 가장 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "gentoo_penguin": {
+      "kind": "fish",
+      "family": "gentoo_penguin",
+      "form": "adult",
+      "file": "public/aqua/models/fish/gentoo_penguin.glb",
+      "triangles": 5720,
+      "bytes": 55512,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0e4dd4eb8d9921e363ea36b5fb0a9c05609221c2395b087ae6f1d5a39b096387",
+      "sha256": "d4bb4e448ebf37846ac1619d51d6f13fabead50809b93faf500f546f9040d760",
+      "authoringProfile": {
+        "key": "gentoo_penguin",
+        "name": "젠투펭귄",
+        "grade": "고급",
+        "cm": 80,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 가장 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_chinstrap_penguin": {
+      "kind": "fish",
+      "family": "chinstrap_penguin",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_chinstrap_penguin.glb",
+      "triangles": 5720,
+      "bytes": 78500,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "d92ee5cdcac6e466b89d018ed5f1a5bc34d09c460385462d132f33c6e98b4617",
+      "sha256": "9f58d7230ebf744573c805ac0875890b781c73075057cb8669b8dea422d59d92",
+      "authoringProfile": {
+        "key": "chinstrap_penguin",
+        "name": "턱끈펭귄",
+        "grade": "희귀",
+        "cm": 72,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_chinstrap_penguin": {
+      "kind": "fish",
+      "family": "chinstrap_penguin",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_chinstrap_penguin.glb",
+      "triangles": 5720,
+      "bytes": 56956,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "4cb8bd1e53234b9d57d67536ae02dd1fb843581ee08fcc0d22b3e3352c552c74",
+      "sha256": "430a27855441aad82e4411cee31c04b4471de4141b4bd9c17badfb10fe819230",
+      "authoringProfile": {
+        "key": "chinstrap_penguin",
+        "name": "턱끈펭귄",
+        "grade": "희귀",
+        "cm": 72,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "chinstrap_penguin": {
+      "kind": "fish",
+      "family": "chinstrap_penguin",
+      "form": "adult",
+      "file": "public/aqua/models/fish/chinstrap_penguin.glb",
+      "triangles": 5720,
+      "bytes": 56496,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "d3c567ad9db97763f725c6601a6d828c7701c74278e0f109a72899f8b2215b7e",
+      "sha256": "ecf8aee9c51819e36d2153d2678e95f709190455b14797e6e5767e62806cc971",
+      "authoringProfile": {
+        "key": "chinstrap_penguin",
+        "name": "턱끈펭귄",
+        "grade": "희귀",
+        "cm": 72,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_adelie_penguin": {
+      "kind": "fish",
+      "family": "adelie_penguin",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_adelie_penguin.glb",
+      "triangles": 5720,
+      "bytes": 64336,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "924f3181017405e82173ee2c1f25e2ede20565acb37c5b990009234e72f2677e",
+      "sha256": "2ceaedadc33f20560fb18f18df3173f77c88ae5d5f47a8612a6660baf492d9d0",
+      "authoringProfile": {
+        "key": "adelie_penguin",
+        "name": "아델리펭귄",
+        "grade": "고급",
+        "cm": 70,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_adelie_penguin": {
+      "kind": "fish",
+      "family": "adelie_penguin",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_adelie_penguin.glb",
+      "triangles": 5912,
+      "bytes": 57520,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "66b964eaba79c6ed11f8c32d1523596ac4f1d40b69156ddc457c0674d48c7d28",
+      "sha256": "18cfbfdb5a64ec0c862d39bdf2db1652274ff3bfcd7c8a49642b649b6b92f437",
+      "authoringProfile": {
+        "key": "adelie_penguin",
+        "name": "아델리펭귄",
+        "grade": "고급",
+        "cm": 70,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "adelie_penguin": {
+      "kind": "fish",
+      "family": "adelie_penguin",
+      "form": "adult",
+      "file": "public/aqua/models/fish/adelie_penguin.glb",
+      "triangles": 5912,
+      "bytes": 53044,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "e9dd5988dfba61eadd09b7065fef9e60df245931c031bcf29f8ac49ea04c1d35",
+      "sha256": "6c96d1dcd4468a23b142c8715e034876cc0275d5b8ff5433686524765c313d50",
+      "authoringProfile": {
+        "key": "adelie_penguin",
+        "name": "아델리펭귄",
+        "grade": "고급",
+        "cm": 70,
+        "water": "sea",
+        "body": "penguin",
+        "widthRatio": 0.3,
+        "life": "날개로 날듯이 빠르게 · 숨 쉬러 수면 · 물 밖에서 쉰다 · 무리"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/penguins-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_toothfish": {
+      "kind": "fish",
+      "family": "toothfish",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_toothfish.glb",
+      "triangles": 6028,
+      "bytes": 59276,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "bb456d5628c2bcb76cfae0916a4b6a7ee214cf0c5e88cce468969cfe7ade486b",
+      "sha256": "436157b1fef122a28f30c175d27af012d6cf55f77449be275bd7e0b87e369390",
+      "authoringProfile": {
+        "key": "toothfish",
+        "name": "메로",
+        "grade": "전설",
+        "cm": 175,
+        "water": "sea",
+        "body": "fish",
+        "widthRatio": 0.3,
+        "life": "깊은 곳을 천천히 · 큰 입으로 오징어 · 물고기를 먹는다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/antfish-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_toothfish": {
+      "kind": "fish",
+      "family": "toothfish",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_toothfish.glb",
+      "triangles": 6028,
+      "bytes": 57336,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "6a43452124269345b15a3f7b22263e9ad51c81e1abd2e02f193c48c7bb6c0c14",
+      "sha256": "878d2582d943a70fd4f0fea693939b9fc6832f3c321ac02eaf0c13b43bb4f3c1",
+      "authoringProfile": {
+        "key": "toothfish",
+        "name": "메로",
+        "grade": "전설",
+        "cm": 175,
+        "water": "sea",
+        "body": "fish",
+        "widthRatio": 0.3,
+        "life": "깊은 곳을 천천히 · 큰 입으로 오징어 · 물고기를 먹는다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/antfish-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "toothfish": {
+      "kind": "fish",
+      "family": "toothfish",
+      "form": "adult",
+      "file": "public/aqua/models/fish/toothfish.glb",
+      "triangles": 6028,
+      "bytes": 57312,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "a8bc603d8d0666d31a4146f10039458026157d73ef210b765053fa87362a4bf2",
+      "sha256": "235e11ba1f75638ce220b15fb250bddd66c62733625b9e67a8d667849c16ff13",
+      "authoringProfile": {
+        "key": "toothfish",
+        "name": "메로",
+        "grade": "전설",
+        "cm": 175,
+        "water": "sea",
+        "body": "fish",
+        "widthRatio": 0.3,
+        "life": "깊은 곳을 천천히 · 큰 입으로 오징어 · 물고기를 먹는다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/antfish-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_icefish": {
+      "kind": "fish",
+      "family": "icefish",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_icefish.glb",
+      "triangles": 6028,
+      "bytes": 62784,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "9fe4e8b36ef4d859e96b1b9c0a3e2d54bdaca8886c358689cb0386b6f1e05101",
+      "sha256": "ae769e593b8ace8eb1f72547579171c815856f4a50e22c82f69ff732785e9359",
+      "authoringProfile": {
+        "key": "icefish",
+        "name": "남극빙어",
+        "grade": "희귀",
+        "cm": 60,
+        "water": "sea",
+        "body": "fish",
+        "widthRatio": 0.3,
+        "life": "바닥에 가만히 앉아 있다가 짧게 옮겨 간다 · 피가 투명해 몸이 하얗다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/antfish-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_icefish": {
+      "kind": "fish",
+      "family": "icefish",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_icefish.glb",
+      "triangles": 6028,
+      "bytes": 62392,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "122cd751f242601e84e836b760b1006258ec6942b03d02944f661792bb8c7bd6",
+      "sha256": "7d49782b9d47d53e45a505d62c7f7a5f99cc76332d74ef1e08d60af91a3c7083",
+      "authoringProfile": {
+        "key": "icefish",
+        "name": "남극빙어",
+        "grade": "희귀",
+        "cm": 60,
+        "water": "sea",
+        "body": "fish",
+        "widthRatio": 0.3,
+        "life": "바닥에 가만히 앉아 있다가 짧게 옮겨 간다 · 피가 투명해 몸이 하얗다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/antfish-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "icefish": {
+      "kind": "fish",
+      "family": "icefish",
+      "form": "adult",
+      "file": "public/aqua/models/fish/icefish.glb",
+      "triangles": 6028,
+      "bytes": 62272,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "c210ccd928153ef4d81b677c0bdc1f865ad86f4f641125826763a88de161ac89",
+      "sha256": "d4b202b6997cf779a7bac58291253740ae3b4a217f0fe1eb749211cba600590f",
+      "authoringProfile": {
+        "key": "icefish",
+        "name": "남극빙어",
+        "grade": "희귀",
+        "cm": 60,
+        "water": "sea",
+        "body": "fish",
+        "widthRatio": 0.3,
+        "life": "바닥에 가만히 앉아 있다가 짧게 옮겨 간다 · 피가 투명해 몸이 하얗다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/antfish-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_clione": {
+      "kind": "fish",
+      "family": "clione",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_clione.glb",
+      "triangles": 3548,
+      "bytes": 43908,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "a8369c664fe710a2ddc3037ae1d1c205d37cfe4a7c2d644d06757ed43d0bcf93",
+      "sha256": "c4f0d07df9ea88855b1b05448e46f1715b76fca68585303adecfa3580d58721e",
+      "authoringProfile": {
+        "key": "clione",
+        "name": "클리오네",
+        "grade": "영웅",
+        "cm": 4,
+        "water": "sea",
+        "body": "pteropod",
+        "widthRatio": 0.3,
+        "life": "날개 둘을 파닥이며 머리를 위로 떠다닌다 · 반투명"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_clione": {
+      "kind": "fish",
+      "family": "clione",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_clione.glb",
+      "triangles": 3548,
+      "bytes": 43932,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "f74af5f130bc96b79ebf5c97595572cb4f8014d1b831e841ab1364d4c3f7fae2",
+      "sha256": "ce26360b7108dd272aac1361b23611d58f9878bcf162e3917340556c1c86c19b",
+      "authoringProfile": {
+        "key": "clione",
+        "name": "클리오네",
+        "grade": "영웅",
+        "cm": 4,
+        "water": "sea",
+        "body": "pteropod",
+        "widthRatio": 0.3,
+        "life": "날개 둘을 파닥이며 머리를 위로 떠다닌다 · 반투명"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "clione": {
+      "kind": "fish",
+      "family": "clione",
+      "form": "adult",
+      "file": "public/aqua/models/fish/clione.glb",
+      "triangles": 3548,
+      "bytes": 44032,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "21554e1d1d3a872462cf3340ee1a820800f8ed1131b888212f5b7055d5ab57d6",
+      "sha256": "403e77cf24492f2ba7befb7fa65e580fdc3a5c05124a47f568ed2064f6498920",
+      "authoringProfile": {
+        "key": "clione",
+        "name": "클리오네",
+        "grade": "영웅",
+        "cm": 4,
+        "water": "sea",
+        "body": "pteropod",
+        "widthRatio": 0.3,
+        "life": "날개 둘을 파닥이며 머리를 위로 떠다닌다 · 반투명"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_sea_pig": {
+      "kind": "fish",
+      "family": "sea_pig",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_sea_pig.glb",
+      "triangles": 5176,
+      "bytes": 57932,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "b5283fc9b43eb50ab704c707067b037ca5b22fb721844724298b997f0afb51f1",
+      "sha256": "05fe2d980c60f02bac6fb71f742a8f0e3b6547b32c4fc419519212aee5241528",
+      "authoringProfile": {
+        "key": "sea_pig",
+        "name": "바다돼지",
+        "grade": "희귀",
+        "cm": 15,
+        "water": "sea",
+        "body": "holothurian",
+        "widthRatio": 0.3,
+        "life": "관족 다리로 바닥을 천천히 걷는다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_sea_pig": {
+      "kind": "fish",
+      "family": "sea_pig",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_sea_pig.glb",
+      "triangles": 5176,
+      "bytes": 55188,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "bad080d1c4fb2fbd8a3bbb426a8373ab981a4d2072ee79226ebe3da3eb0055d7",
+      "sha256": "c39dd7d912f11d6dbd9ddd1f206977d0fb04153fa9f60af07754eaf868aa9070",
+      "authoringProfile": {
+        "key": "sea_pig",
+        "name": "바다돼지",
+        "grade": "희귀",
+        "cm": 15,
+        "water": "sea",
+        "body": "holothurian",
+        "widthRatio": 0.3,
+        "life": "관족 다리로 바닥을 천천히 걷는다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "sea_pig": {
+      "kind": "fish",
+      "family": "sea_pig",
+      "form": "adult",
+      "file": "public/aqua/models/fish/sea_pig.glb",
+      "triangles": 5176,
+      "bytes": 55196,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "1e490b882e16e46d441e9ca7665c5452d5bff96b40a79cc577562f1ebc833f81",
+      "sha256": "769c0296636f51b9009b0690ac0371f6d3ef81a6c3e2031f0d60602588724369",
+      "authoringProfile": {
+        "key": "sea_pig",
+        "name": "바다돼지",
+        "grade": "희귀",
+        "cm": 15,
+        "water": "sea",
+        "body": "holothurian",
+        "widthRatio": 0.3,
+        "life": "관족 다리로 바닥을 천천히 걷는다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_giant_isopod": {
+      "kind": "fish",
+      "family": "giant_isopod",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_giant_isopod.glb",
+      "triangles": 7244,
+      "bytes": 84292,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "6d8e281f903298107e1df9ad487750ffb527549fcea18049ffc4b06866be2612",
+      "sha256": "14e14bd82c6738995f81934547cd922b3ad88a7b1a2a83c78fc22a7a8f6bf0b6",
+      "authoringProfile": {
+        "key": "giant_isopod",
+        "name": "남극 대왕등각류",
+        "grade": "고급",
+        "cm": 19,
+        "water": "sea",
+        "body": "isopod",
+        "widthRatio": 0.3,
+        "life": "바닥을 기어 다닌다 · 놀라면 잠깐 멈춘다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_giant_isopod": {
+      "kind": "fish",
+      "family": "giant_isopod",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_giant_isopod.glb",
+      "triangles": 7244,
+      "bytes": 81800,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "64fdf53bb41a898080796e3b35468835bd4f09bd28ffcd90789da1f312fd15fa",
+      "sha256": "61430a03e760d3e75a917998e27163e49f7569f38059312c140d92edf3eae5d6",
+      "authoringProfile": {
+        "key": "giant_isopod",
+        "name": "남극 대왕등각류",
+        "grade": "고급",
+        "cm": 19,
+        "water": "sea",
+        "body": "isopod",
+        "widthRatio": 0.3,
+        "life": "바닥을 기어 다닌다 · 놀라면 잠깐 멈춘다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "giant_isopod": {
+      "kind": "fish",
+      "family": "giant_isopod",
+      "form": "adult",
+      "file": "public/aqua/models/fish/giant_isopod.glb",
+      "triangles": 7244,
+      "bytes": 81788,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "64fdf53bb41a898080796e3b35468835bd4f09bd28ffcd90789da1f312fd15fa",
+      "sha256": "f24227cc9992b6864ad1a2327307ac9979ae5924ed21eb23f6665c712845c683",
+      "authoringProfile": {
+        "key": "giant_isopod",
+        "name": "남극 대왕등각류",
+        "grade": "고급",
+        "cm": 19,
+        "water": "sea",
+        "body": "isopod",
+        "widthRatio": 0.3,
+        "life": "바닥을 기어 다닌다 · 놀라면 잠깐 멈춘다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_antarctic_urchin": {
+      "kind": "fish",
+      "family": "antarctic_urchin",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_antarctic_urchin.glb",
+      "triangles": 4796,
+      "bytes": 64608,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "af7eb627cf753a754ab9c31bc83f76d7957445d1ba1947e021dea8695483da3c",
+      "sha256": "2b99e855eca3ce2571c2a2014eef4e4804efb2624638dde0cb947036d585b5c4",
+      "authoringProfile": {
+        "key": "antarctic_urchin",
+        "name": "남극성게",
+        "grade": "흔함",
+        "cm": 7,
+        "water": "sea",
+        "body": "urchin",
+        "widthRatio": 0.3,
+        "life": "바닥에 붙어 아주 천천히 굴러간다 · 조개껍데기 · 해초 조각을 얹고 다닌다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_antarctic_urchin": {
+      "kind": "fish",
+      "family": "antarctic_urchin",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_antarctic_urchin.glb",
+      "triangles": 6852,
+      "bytes": 84720,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "4bc8bf3c0c40aa5206ecb65eefdf2311356639905a1c0418e933e72f76d44ecf",
+      "sha256": "4d922baac16623218f2c3bcb8848d57ac39448dbdae8e3eec341523469b6eb27",
+      "authoringProfile": {
+        "key": "antarctic_urchin",
+        "name": "남극성게",
+        "grade": "흔함",
+        "cm": 7,
+        "water": "sea",
+        "body": "urchin",
+        "widthRatio": 0.3,
+        "life": "바닥에 붙어 아주 천천히 굴러간다 · 조개껍데기 · 해초 조각을 얹고 다닌다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "antarctic_urchin": {
+      "kind": "fish",
+      "family": "antarctic_urchin",
+      "form": "adult",
+      "file": "public/aqua/models/fish/antarctic_urchin.glb",
+      "triangles": 6852,
+      "bytes": 84768,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "78e1d82e6c07a42842d71d12a764b3ab342d1f19b5b5901e0282b29a3d56c1a1",
+      "sha256": "6a9a630288e0278dc16ae0391f29abad02bb1370e3ae5f3997e582c68b50a3ce",
+      "authoringProfile": {
+        "key": "antarctic_urchin",
+        "name": "남극성게",
+        "grade": "흔함",
+        "cm": 7,
+        "water": "sea",
+        "body": "urchin",
+        "widthRatio": 0.3,
+        "life": "바닥에 붙어 아주 천천히 굴러간다 · 조개껍데기 · 해초 조각을 얹고 다닌다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "fry_salp": {
+      "kind": "fish",
+      "family": "salp",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_salp.glb",
+      "triangles": 3744,
+      "bytes": 47780,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "9dbbb0f4f16ebda510094e50590aafe77fd7e360374eeea76084c1d455e60bbe",
+      "sha256": "978877c4377e68058f2ed72d8c259b624f8a1bf93d544f5acf1418b41127cd43",
+      "authoringProfile": {
+        "key": "salp",
+        "name": "살프 사슬",
+        "grade": "전설",
+        "cm": 60,
+        "water": "sea",
+        "body": "salp",
+        "widthRatio": 0.3,
+        "life": "투명한 통들이 사슬로 이어져 물결치며 흘러간다 · 반투명"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "juv_salp": {
+      "kind": "fish",
+      "family": "salp",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_salp.glb",
+      "triangles": 5616,
+      "bytes": 64164,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "88f649e8fb501c3a32123c6ec917d2f7df0931378c8ec63fd687944832aecd24",
+      "sha256": "150ab1b813b167173a2d71b0b57651ab47fe6dcc68f9e8d4e0c445e2e6570695",
+      "authoringProfile": {
+        "key": "salp",
+        "name": "살프 사슬",
+        "grade": "전설",
+        "cm": 60,
+        "water": "sea",
+        "body": "salp",
+        "widthRatio": 0.3,
+        "life": "투명한 통들이 사슬로 이어져 물결치며 흘러간다 · 반투명"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
+    },
+    "salp": {
+      "kind": "fish",
+      "family": "salp",
+      "form": "adult",
+      "file": "public/aqua/models/fish/salp.glb",
+      "triangles": 7488,
+      "bytes": 78236,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "polar",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "fd1b80409f98bbd1bd1404a1195dd4f32c83e1b7d1a138f3bf096005cb988910",
+      "sha256": "0321c0be17cce2d27e243f79e158ecd489b8676788287c3b876dc0b46d567db5",
+      "authoringProfile": {
+        "key": "salp",
+        "name": "살프 사슬",
+        "grade": "전설",
+        "cm": 60,
+        "water": "sea",
+        "body": "salp",
+        "widthRatio": 0.3,
+        "life": "투명한 통들이 사슬로 이어져 물결치며 흘러간다 · 반투명"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/inverts-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-25",
+      "approval": "user_requested_2026-11-25",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "remodel": "2026-11-25 polar/kit.mjs 부위 짓기(남극 10종)"
     }
   },
   "structuralValidation": "passed",

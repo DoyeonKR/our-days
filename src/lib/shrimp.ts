@@ -74,6 +74,29 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
     spots: [], habit: { lo: -2, hi: 2.4, speed: 0.34, reach: 1, depth: 2, haul: true, breathe: 60, breathOnly: true, dart: 0.3, pace: 1, tilt: 0.45 } },
   { key: "walrus", name: "바다코끼리", grade: "전설", price: 53000, hours: 315, minTank: 5, size: 42, cm: 330, fresh: false, ornamental: false,
     spots: [], habit: { lo: -3.4, hi: 1.2, speed: 0.14, reach: 0.9, depth: 1.8, haul: true, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.3 } },
+  // 남극 10종(2026-11-25 [사용자: "남극기지 낚시터에 … 10종" → "기존에있는 것과 조금 다른 느낌없어 ? 펭귄과 메로는 유지하고" → "다 완벽하게 진행해줘"]) —
+  //   그림 · 3D 는 Claude 세션이 부위로 지었다(design/aqua3d-review/polar/ penguins · antfish · inverts-build.mjs, 카드 그림은 모델을 찍은 것).
+  //   젠투 · 아델리 · 대왕등각류는 세종기지 pool 의 흔한 몫(시작 미끼 단계 — 대구 바로 뒤), 나머지 일곱은 세종기지 때 손님(곁 칸)
+  { key: "antarctic_urchin", name: "남극성게", grade: "흔함", price: 575, hours: 31.5, minTank: 1, size: 14, cm: 7, fresh: false, ornamental: false,
+    spots: [], habit: crawl({ lane: 0.7, speed: 0.012, rest: 0.85, hop: 0.3, dart: 0, hug: 0.2, idle: 0.1, pace: 0.4 }) },
+  { key: "gentoo_penguin", name: "젠투펭귄", grade: "고급", price: 2900, hours: 83, minTank: 2, size: 22, cm: 80, fresh: false, ornamental: false,
+    spots: [["sejong", 6, "cod"]], habit: { lo: -2, hi: 2.6, speed: 0.4, reach: 1, depth: 2, haul: true, breathe: 45, breathOnly: true, dart: 0.4, pace: 1.2, tilt: 0.45, school: true } },
+  { key: "giant_isopod", name: "남극 대왕등각류", grade: "고급", price: 3150, hours: 86.2, minTank: 2, size: 18, cm: 19, fresh: false, ornamental: false,
+    spots: [["sejong", 4, "gentoo_penguin"]], habit: crawl({ lane: 0.85, speed: 0.05, rest: 0.55, dart: 0.1, hug: 0.08 }) },
+  { key: "adelie_penguin", name: "아델리펭귄", grade: "고급", price: 3450, hours: 90.5, minTank: 2, size: 21, cm: 70, fresh: false, ornamental: false,
+    spots: [["sejong", 6, "giant_isopod"]], habit: { lo: -1.8, hi: 2.6, speed: 0.38, reach: 1, depth: 2, haul: true, breathe: 45, breathOnly: true, dart: 0.45, pace: 1.25, tilt: 0.45, school: true } },
+  { key: "icefish", name: "남극빙어", grade: "희귀", price: 3550, hours: 91.5, minTank: 2, size: 22, cm: 60, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -5, hi: -3.8, speed: 0.05, reach: 0.8, depth: 1.3, hug: 0.14, rest: 0.6, hop: 0.5, pace: 0.6, tilt: 0, lane: 0.8 } },
+  { key: "sea_pig", name: "바다돼지", grade: "희귀", price: 6650, hours: 108.5, minTank: 2, size: 16, cm: 15, fresh: false, ornamental: false,
+    spots: [], habit: crawl({ lane: 0.9, speed: 0.03, rest: 0.7, hop: 0.5, dart: 0, hug: 0.14, pace: 0.6 }) },
+  { key: "chinstrap_penguin", name: "턱끈펭귄", grade: "희귀", price: 7750, hours: 113.5, minTank: 3, size: 22, cm: 72, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -2, hi: 2.6, speed: 0.38, reach: 1, depth: 2, haul: true, breathe: 45, breathOnly: true, dart: 0.4, pace: 1.2, tilt: 0.45, school: true } },
+  { key: "clione", name: "클리오네", grade: "영웅", price: 21250, hours: 196.2, minTank: 4, size: 12, cm: 4, fresh: false, ornamental: false,
+    spots: [], habit: { lo: 0.8, hi: 3.2, speed: 0.1, reach: 0.7, depth: 1.4, bob: 0.25, pace: 1.6, tilt: 0.1, school: true } },
+  { key: "toothfish", name: "메로", grade: "전설", price: 29500, hours: 227.5, minTank: 4, size: 34, cm: 175, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -4.2, hi: -1.6, speed: 0.08, reach: 0.9, depth: 1.6, pace: 0.6, tilt: 0.25, rest: 0.3 } },
+  { key: "salp", name: "살프 사슬", grade: "전설", price: 46500, hours: 294, minTank: 5, size: 30, cm: 60, fresh: false, ornamental: false,
+    spots: [], habit: { lo: 0.5, hi: 3, speed: 0.05, reach: 1, depth: 2, pace: 0.5, tilt: 0.15, bob: 0.2, feeds: false } },
 ];
 
 /** 켜졌을 때만 — 다른 표가 펼쳐 넣는다 */

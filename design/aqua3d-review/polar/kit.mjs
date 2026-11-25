@@ -116,7 +116,7 @@ async function paintAtlas(model, SIZE) {
  * 뼈: spine_0..5(BX) · fin_L · fin_L_tip · fin_R · fin_R_tip
  */
 export const BX = [.75, .45, .15, -.15, -.45, -.8];
-export async function bake(key, model, {fins, weight, source, atlas = 1024, roughness = .7}) {
+export async function bake(key, model, {fins, weight, source, atlas = 1024, roughness = .7, alpha = 1}) {
   for (const p of model.parts) orient(p);
   // 법선(부위마다 — 칠하기에 쓴다)
   for (const part of model.parts) {
@@ -146,7 +146,7 @@ export async function bake(key, model, {fins, weight, source, atlas = 1024, roug
   bones[0].updateMatrixWorld(true);
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   g.setAttribute('skinIndex', new T.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(W, 4)); g.setIndex(idx); g.computeVertexNormals();
-  const glb = await compressGLB(material(packAsset(key, [{name: key, geometry: g, extras: {aquaGeometry: 'part-built (design/aqua3d-review/polar)', source}}], png, bones), (m) => { m.name = 'painted_PBR_atlas'; m.doubleSided = true; m.pbrMetallicRoughness.metallicFactor = .05; m.pbrMetallicRoughness.roughnessFactor = roughness; }), {webpQuality: 92});
+  const glb = await compressGLB(material(packAsset(key, [{name: key, geometry: g, extras: {aquaGeometry: 'part-built (design/aqua3d-review/polar)', source}}], png, bones), (m) => { m.name = 'painted_PBR_atlas'; m.doubleSided = true; m.pbrMetallicRoughness.metallicFactor = .05; m.pbrMetallicRoughness.roughnessFactor = roughness; if (alpha < 1) { m.alphaMode = 'BLEND'; m.pbrMetallicRoughness.baseColorFactor = [1, 1, 1, alpha]; } }), {webpQuality: 92});
   return {glb, tris: idx.length / 3, scale: S, center: M};
 }
 /** 정규화 x 로 몸통 뼈 두 개 사이 */
