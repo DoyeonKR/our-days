@@ -177,7 +177,8 @@ test("귀할수록 어렵다 — 초록 칸이 좁고 창이 짧다 · 절벽 �
 
 /* ── 밤 · 바다 막기 ── */
 
-const KST = (h: number) => Date.UTC(2026, 10, 12, h - 9, 30); // KST h:30
+// 섬 시간(2026-11-26) — 섬의 h:30 (섬의 하루 = 실제 2시간, KST 0시 = 섬 0시)
+const KST = (h: number) => Date.UTC(2026, 10, 11, 15) + (h + 0.5) * 5 * 60_000;
 test("밤 — KST 19시 ~ 새벽 5시만 · 바다 낚시터만 · 이유가 분명하다", () => {
   for (const h of [19, 20, 23, 0, 3, 4]) assert.equal(lightNight(KST(h)), true, `${h}시`);
   for (const h of [5, 6, 12, 17, 18]) assert.equal(lightNight(KST(h)), false, `${h}시`);

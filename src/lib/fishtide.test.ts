@@ -192,16 +192,17 @@ test("손님이 없으면 뽑기 순서가 그대로 · 산갈치 · 해파리�
   assert.ok(finalAllowed("jellyfish", "harbor", { time: "night", wx: null, moon: { tide: 7, full: true } }));
 });
 
-test("보름달 밤 — 밝기 95% 넘는 KST 밤(20시~5시)만 · 한 달에 밤 넷쯤", () => {
+// 2026-11-26 섬 시간 — 밤은 섬의 밤(2시간마다 45분). 보름달 날은 여전히 실제 달(밝기 95% 넘는 날 — 한 달에 엿새쯤)
+test("보름달 밤 — 밝기 95% 넘는 날의 섬 밤만 · 한 달에 엿새쯤", async () => {
+  const { fishTimeOf } = await import("./fishingworld.ts");
   const full = nextFullMoon(kst(2026, 11, 12));
-  assert.ok(moonMomentOf(full).full === (new Date(full + 9 * H).getUTCHours() >= 20 || new Date(full + 9 * H).getUTCHours() < 5));
+  assert.ok(moonMomentOf(full).full === (fishTimeOf(full) === "night"));
   assert.equal(moonMomentOf(kst(2026, 11, 24, 22)).full, true, "2026-11-24 밤 보름달");
   assert.equal(moonMomentOf(kst(2026, 11, 24, 13)).full, false, "낮은 아니다");
   assert.equal(moonMomentOf(kst(2026, 11, 12, 22)).full, false, "초승 무렵");
-  let hours = 0;
-  for (let ms = kst(2026, 1, 1); ms < kst(2027, 1, 1); ms += H) if (moonMomentOf(ms).full) hours++;
-  const nights = hours / 9;
-  assert.ok(nights > 40 && nights < 65, `한 해 보름달 밤 ${nights}`);
+  const days = new Set<string>();
+  for (let ms = kst(2026, 1, 1); ms < kst(2027, 1, 1); ms += 10 * 60_000) if (moonMomentOf(ms).full) days.add(new Date(ms + 9 * H).toISOString().slice(0, 10));
+  assert.ok(days.size > 55 && days.size < 80, `한 해 보름달 날(달마다 엿새쯤 — 밝기 95% 가 이어지는 날) ${days.size}`);
   for (let ms = kst(2026, 1, 1); ms < kst(2027, 1, 1); ms += 7 * H) {
     const m = moonPhase(ms);
     assert.equal(m.name === "보름", m.illum > FULL_ILLUM, "칩의 '보름'과 손님 판정이 같은 기준");

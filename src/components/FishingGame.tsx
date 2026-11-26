@@ -213,9 +213,10 @@ const COACH: Record<MethodKey, readonly string[]> = {
 export default function FishingGame({ coupleId, myUserId = null, myName = "", onClose, onOpenIsland }: { coupleId: string | null; myUserId?: string | null; myName?: string; onClose: () => void; onOpenIsland: () => void }) {
   const who = myUserId ?? "me";
   const by = useMemo(() => ({ who, couple: !!coupleId }), [who, coupleId]);
-  // 섬 날씨(2026-11-26) — 실제 도시 날씨 대신 게임 안의 날씨(20분마다 바뀐다, fishingworld gameWxAt). 15초마다 다시 본다
+  // 섬 날씨 · 섬 시간(2026-11-26) — 실제 도시 날씨 · 시각 대신 게임 안의 날씨(20분마다) · 하루(실제 2시간, fishingworld). 15초마다 다시 본다
   const [gameWx, setGameWx] = useState(() => gameWxAt(clock()));
-  useEffect(() => { const id = window.setInterval(() => setGameWx(gameWxAt(clock())), 15_000); return () => window.clearInterval(id); }, []);
+  const [, setGameTime] = useState(() => fishTimeOf(clock()));
+  useEffect(() => { const id = window.setInterval(() => { setGameWx(gameWxAt(clock())); setGameTime(fishTimeOf(clock())); }, 15_000); return () => window.clearInterval(id); }, []);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>("fish");

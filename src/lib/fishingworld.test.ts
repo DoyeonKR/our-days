@@ -59,10 +59,13 @@ test("크기 기록 — 끌어올린 판이 사람별로 남는다", () => {
 });
 
 test("때 — KST 로 나누고, 날씨 그림을 낚시 날씨로 옮긴다", () => {
-  assert.equal(fishTimeOf(Date.UTC(2026, 10, 3, 22)), "dawn"); // KST 07시
-  assert.equal(fishTimeOf(Date.UTC(2026, 10, 3, 3)), "day"); // KST 12시
-  assert.equal(fishTimeOf(Date.UTC(2026, 10, 3, 9)), "dusk"); // KST 18시
-  assert.equal(fishTimeOf(Date.UTC(2026, 10, 3, 14)), "night"); // KST 23시
+  // 섬 시간(2026-11-26) — 섬의 하루 = 실제 2시간. KST 0시(= 섬 0시)에서 섬의 h 시는 h × 5분 뒤
+  const g = (h: number) => Date.UTC(2026, 10, 2, 15) + h * 5 * 60_000;
+  assert.equal(fishTimeOf(g(7)), "dawn");
+  assert.equal(fishTimeOf(g(12)), "day");
+  assert.equal(fishTimeOf(g(18)), "dusk");
+  assert.equal(fishTimeOf(g(23)), "night");
+  assert.equal(fishTimeOf(g(7) + 2 * 3_600_000), "dawn", "2시간 뒤 같은 때");
   assert.equal(fishWxOf("thunder"), "rain");
   assert.equal(fishWxOf("snow"), "snow");
   assert.equal(fishWxOf("sun"), "clear");
@@ -529,4 +532,21 @@ test("섬 날씨 — 20분마다 바뀌고 같은 시각이면 같다 · 비 · 
   assert.ok(Math.abs(cnt.snow / 20000 - 0.15) < 0.02 && Math.abs(cnt.rain / 20000 - 0.2) < 0.02, JSON.stringify(cnt));
   const nx = gameWxNext(t0);
   assert.ok(nx.at > t0 && nx.wx !== gameWxAt(t0) && gameWxAt(nx.at - 1) === gameWxAt(t0));
+});
+test("섬 시간 — 2시간마다 하루가 돌고 해질녘 · 밤이 매번 온다 · 다음 때를 알려준다", async () => {
+  const { GAME_DAY_MS, gameTimeNext, lightNight } = await import("./fishingworld.ts");
+  assert.equal(GAME_DAY_MS, 2 * 3_600_000);
+  const t0 = Date.UTC(2026, 10, 26, 3, 7);
+  const seen: Record<string, number> = {};
+  for (let m = 0; m < 120; m++) { const k = fishTimeOf(t0 + m * 60_000); seen[k] = (seen[k] ?? 0) + 1; }
+  assert.deepEqual(seen, { dawn: 15, day: 45, dusk: 15, night: 45 });
+  for (let m = 0; m < 240; m += 7) {
+    const now = t0 + m * 60_000, nx = gameTimeNext(now);
+    assert.ok(nx.at > now && nx.at - now <= 45 * 60_000 + 1, `${m}분`);
+    assert.notEqual(nx.time, fishTimeOf(now));
+    assert.equal(fishTimeOf(nx.at + 1000), nx.time);
+    assert.equal(fishTimeOf(nx.at - 1000), fishTimeOf(now));
+  }
+  let lit = 0; for (let m = 0; m < 120; m++) if (lightNight(t0 + m * 60_000)) lit++;
+  assert.equal(lit, 50, "집어등 밤은 섬의 19 ~ 5시 = 2시간에 50분");
 });

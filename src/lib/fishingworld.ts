@@ -49,17 +49,40 @@ export const WX_NAME: Readonly<Record<NonNullable<FishWx>, string>> = { rain: "�
 /** 낚시 화면 위 칩은 글자 대신 그림으로 [사용자: "밤이면 텍스트로 쓰지말고 이모지로"] */
 export const TIME_ICON: Readonly<Record<FishTime, string>> = { dawn: "🌅", day: "☀️", dusk: "🌇", night: "🌙" };
 export const WX_ICON: Readonly<Record<NonNullable<FishWx>, string>> = { rain: "🌧️", snow: "❄️", clear: "☀️" };
-/** KST 시각으로 나눈다 — 기기 시간대와 상관없이 둘이 같은 때를 본다 */
+/** 섬 시간(2026-11-26 [사용자: "시간도 앱 안에서 빨리 돌게 바꿔줘"]) — 낚시의 때는 실제 시각이 아니라 섬의 하루를 따른다.
+ *  섬의 하루 = 실제 2시간(GAME_DAY_MS — 하루에 12번 돈다). 시각은 서버 시각(gameNow)만 보는 나눗셈이라 두 폰 · 모든 사람이 같은 때를 본다.
+ *  때의 경계는 예전 실제 시각 그대로(새벽 5 ~ 8 · 낮 8 ~ 17 · 해질녘 17 ~ 20 · 밤 20 ~ 5) — 실제로는 새벽 · 해질녘 15분, 낮 · 밤 45분씩.
+ *  해질녘 · 밤 손님을 2시간마다 만난다(예전엔 하루 한 번 · 해질녘은 3시간뿐이었다). */
+export const GAME_DAY_MS = 2 * 3_600_000;
+/** 섬 시각(0 ~ 24 시, 소수) — 실제 KST 0시에 섬도 0시가 되게 맞췄다 */
+export function gameHourOf(now: number): number {
+  const t = (now + 9 * 3_600_000) % GAME_DAY_MS;
+  return ((t + GAME_DAY_MS) % GAME_DAY_MS) / GAME_DAY_MS * 24;
+}
+/** 섬의 h 시(0 ~ 24)에 해당하는 실제 시각 — 지금 이후 가장 가까운 것 */
+export function gameHourAt(now: number, h: number): number {
+  const start = now - gameHourOf(now) / 24 * GAME_DAY_MS;
+  const at = start + h / 24 * GAME_DAY_MS;
+  return at > now ? at : at + GAME_DAY_MS;
+}
+const timeOfHour = (h: number): FishTime => h >= 5 && h < 8 ? "dawn" : h >= 8 && h < 17 ? "day" : h >= 17 && h < 20 ? "dusk" : "night";
 export function fishTimeOf(now: number): FishTime {
-  const h = new Date(now + 9 * 3_600_000).getUTCHours();
-  return h >= 5 && h < 8 ? "dawn" : h >= 8 && h < 17 ? "day" : h >= 17 && h < 20 ? "dusk" : "night";
+  return timeOfHour(gameHourOf(now));
+}
+/** 다음에 때가 바뀌는 실제 시각과 그 때 — 때 손님 시트의 '몇 분 뒤 밤' */
+export function gameTimeNext(now: number): { at: number; time: FishTime } {
+  const h = gameHourOf(now), cur = timeOfHour(h);
+  const edge = cur === "dawn" ? 8 : cur === "day" ? 17 : cur === "dusk" ? 20 : 5;
+  const at = gameHourAt(now, edge);
+  return { at, time: timeOfHour(edge) };
 }
 /** 집어등이 켜지는 밤(KST 19시 ~ 새벽 5시) — fishTimeOf 의 '밤'(20시~)보다 한 시간 넓다. 해질녘 마지막 한 시간도 불을 켜는 때라
  *  [사용자 승인: "밤에만 열리는 다섯 번째 방식"]. 때 손님과 같은 시각(호출자가 gameNow 를 넘긴다)을 봐서 둘이 같은 밤을 본다.
  *  여기(fishingworld)에 두는 이유 — fishing.ts 의 castBlock 이 부르는데 fishinglight.ts 는 fishing.ts 를 부르므로 거기 두면 고리가 생긴다. */
 export const LIGHT_NIGHT = { from: 19, to: 5 } as const;
 export function lightNight(now: number): boolean {
-  const h = new Date(now + 9 * 3_600_000).getUTCHours();
+  // 섬 시간(2026-11-26) — 집어등 밤도 섬의 19시 ~ 5시
+  const h = gameHourOf(now);
   return h >= LIGHT_NIGHT.from || h < LIGHT_NIGHT.to;
 }
 /** 섬 날씨(2026-11-26 [사용자: "날씨도 너무 제한적이라 … 어플 안의 별도의 시간이나 날씨가 있어야"]) — 낚시는 실제 도시 날씨 대신 게임 안의 날씨를 쓴다.
