@@ -92,7 +92,7 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   //   카드 그림은 모델을 찍은 것. 비 오는 날 단양 남한강의 때 손님(이벤트)으로만 온다. 강에 사는 물가 요괴: 바닥 · 가운데를 개구리처럼 차며 헤엄치고
   //   (팔로 젓고 다리로 찬다 — OTARIID), 방향을 홱홱 틀며(dart), 숨 쉬러 오르고 바위 · 모래사장에 올라가 쉰다. 누르면 물속에서 빙글 돈다(twirl)
   { key: "kappa", name: "갓파", grade: "신화", price: 59900, hours: 335.8, minTank: 5, size: 24, cm: 100, fresh: true, ornamental: false,
-    spots: [], habit: { lo: -3, hi: 1.2, speed: 0.26, reach: 0.9, depth: 1.8, haul: true, breathe: 70, breathOnly: true, dart: 0.22, pace: 1.1, tilt: 0.35 } },
+    spots: [], habit: { lo: -3, hi: 1.2, speed: 0.26, reach: 0.9, depth: 1.8, haul: true, walk: true, breathe: 70, breathOnly: true, dart: 0.22, pace: 1.1, tilt: 0.35 } }, // walk — 땅 위에선 사람처럼 두 발로(2026-11-26)
   // 남극 10종(2026-11-25 [사용자: "남극기지 낚시터에 … 10종" → "기존에있는 것과 조금 다른 느낌없어 ? 펭귄과 메로는 유지하고" → "다 완벽하게 진행해줘"]) —
   //   그림 · 3D 는 Claude 세션이 부위로 지었다(design/aqua3d-review/polar/ penguins · antfish · inverts-build.mjs, 카드 그림은 모델을 찍은 것).
   //   젠투 · 아델리 · 대왕등각류는 세종기지 pool 의 흔한 몫(시작 미끼 단계 — 대구 바로 뒤), 나머지 일곱은 세종기지 때 손님(곁 칸)

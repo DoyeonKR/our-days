@@ -111,7 +111,7 @@ test("수조 GLB 496개 전부 배포 형식(meshopt · 양자화 · 512px 이�
 const stub = { name: "EXT_texture_webp", loadTexture: () => Promise.resolve(new T.Texture()) };
 const open = (b: Buffer) => new Promise<GLTF>((res, rej) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(() => stub).parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, "", res, rej));
 
-test("게임과 같은 길(GLTFLoader + MeshoptDecoder)로 모두 열리고 · 물고기는 뼈 10개(불가사리 25)로 휘며 · 크기는 원본과 같은 단위다", async () => {
+test("게임과 같은 길(GLTFLoader + MeshoptDecoder)로 모두 열리고 · 물고기는 뼈 10개(불가사리 25 · 갓파 12)로 휘며 · 크기는 원본과 같은 단위다", async () => {
   for (const { kind, key, path } of files) {
     const g = await open(readFileSync(path));
     g.scene.updateMatrixWorld(true);
@@ -124,7 +124,7 @@ test("게임과 같은 길(GLTFLoader + MeshoptDecoder)로 모두 열리고 · �
       assert.equal(meshes.length, 1, key);
       const m = meshes[0] as T.SkinnedMesh;
       assert.ok(m.isSkinnedMesh, key);
-      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : 10, key);
+      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : key.endsWith("kappa") ? 12 : 10, key); // 갓파는 다리 뼈 둘(leg_L · leg_R)을 더 — 땅 위에서 번갈아 걷는다(2026-11-26)
       assert.ok(m.geometry.attributes.skinWeight.normalized && m.geometry.attributes.normal.normalized && m.geometry.attributes.uv.normalized, key);
       assert.equal(m.material instanceof T.MeshStandardMaterial && !!m.material.map, true, key);
     }

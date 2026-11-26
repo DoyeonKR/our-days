@@ -128,7 +128,7 @@ function build(key) {
   }
 
   // ── 팔(가늘고 길다 — 어깨에서 앞옆으로 뻗어 젓는다) · 손(세 갈래 물갈퀴, 끝에 작은 발톱) ──
-  const fins = {};
+  const fins = {}, legs = {};
   for (const sd of [-1, 1]) {
     const sh = [1.3, .08, sd * .46], D = norm([.55, -.35, sd * .76]), L = 1.25 * Lm;
     limb(m, 'arm' + sd, sh, D, L, .15, .1, {ns: 6, nt: 8, cap: 0, island: sd < 0 ? [0, .62, .25, .74] : [.25, .62, .5, .74], bone: 'fin' + sd,
@@ -145,26 +145,30 @@ function build(key) {
   }
   // ── 다리(뒤로 뻗어 개구리처럼 찬다 — 허벅지 · 정강이, 발은 세 갈래 물갈퀴) ──
   for (const sd of [-1, 1]) {
-    const hip = [-1.45, -.1, sd * .3], D1 = norm([-.8, -.15, sd * .45]), L1 = .95 * Lm, knee = add(hip, D1, L1), D2 = norm([-.95, .05, -sd * .12]), L2 = 1.0 * Lm, ankle = add(knee, D2, L2);
-    limb(m, 'thigh' + sd, hip, D1, L1, .2, .13, {ns: 6, nt: 10, cap: .12, island: sd < 0 ? [0, .74, .25, .86] : [.25, .74, .5, .86], bone: 'tail', paint: (p, n, [s]) => skin(p, n, s * 2.4, st)});
-    limb(m, 'shin' + sd, knee, D2, L2, .13, .08, {ns: 6, nt: 10, cap: 0, island: sd < 0 ? [.5, .74, .75, .86] : [.75, .74, 1, .86], bone: 'tail', paint: (p, n, [s]) => skin(p, n, s * 2.6 + .5, st)});
+    const hip = [-1.45, -.1, sd * .3];
+    legs[sd < 0 ? 'R' : 'L'] = {root: hip};
+    const D1 = norm([-.8, -.15, sd * .45]), L1 = .95 * Lm, knee = add(hip, D1, L1), D2 = norm([-.95, .05, -sd * .12]), L2 = 1.0 * Lm, ankle = add(knee, D2, L2);
+    limb(m, 'thigh' + sd, hip, D1, L1, .2, .13, {ns: 6, nt: 10, cap: .12, island: sd < 0 ? [0, .74, .25, .86] : [.25, .74, .5, .86], bone: 'leg' + sd, paint: (p, n, [s]) => skin(p, n, s * 2.4, st)});
+    limb(m, 'shin' + sd, knee, D2, L2, .13, .08, {ns: 6, nt: 10, cap: 0, island: sd < 0 ? [.5, .74, .75, .86] : [.75, .74, 1, .86], bone: 'leg' + sd, paint: (p, n, [s]) => skin(p, n, s * 2.6 + .5, st)});
     for (let f = -1; f <= 1; f++) {
       const fd = norm(add(D2, [0, -.05, f * .45], 1));
-      limb(m, `toe${sd}_${f}`, ankle, fd, .42 * Lm, .055, .03, {ns: 3, nt: 6, flat: .7, island: [.5 + (f + 1) * .08 + (sd > 0 ? .25 : 0), .86, .56 + (f + 1) * .08 + (sd > 0 ? .25 : 0), .94], bone: 'tail',
+      limb(m, `toe${sd}_${f}`, ankle, fd, .42 * Lm, .055, .03, {ns: 3, nt: 6, flat: .7, island: [.5 + (f + 1) * .08 + (sd > 0 ? .25 : 0), .86, .56 + (f + 1) * .08 + (sd > 0 ? .25 : 0), .94], bone: 'foot' + sd,
         paint: (p, n, [s]) => mix(skin(p, n, 0, st, .2), [236, 236, 220], smooth(.84, .96, s))});
     }
     // 물갈퀴(발가락 사이 얇은 막)
-    ell(m, 'web' + sd, add(ankle, D2, .2 * Lm), .2 * Lm, .025, .2 * Lm, {ns: 6, nt: 8, island: sd < 0 ? [0, .86, .12, .94] : [.12, .86, .24, .94], bone: 'tail', paint: (p, n) => skin(p, n, 0, st, .4).map((v) => v * .95)});
+    ell(m, 'web' + sd, add(ankle, D2, .2 * Lm), .2 * Lm, .025, .2 * Lm, {ns: 6, nt: 8, island: sd < 0 ? [0, .86, .12, .94] : [.12, .86, .24, .94], bone: 'foot' + sd, paint: (p, n) => skin(p, n, 0, st, .4).map((v) => v * .95)});
   }
-  return {m, fins};
+  return {m, fins, legs};
 }
 
 const keys = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(STAGES);
 for (const key of keys) {
-  const {m, fins} = build(key);
-  const {glb, tris} = await bake(key, m, {fins, source: 'design/aqua3d-review/polar/kappa-build.mjs', roughness: .5, weight: (part, g, [s]) => {
+  const {m, fins, legs} = build(key);
+  const {glb, tris} = await bake(key, m, {fins, legs, source: 'design/aqua3d-review/polar/kappa-build.mjs', roughness: .5, weight: (part, g, [s]) => {
     if (part.bone === 'head') return [[0, 1]];
     if (part.bone === 'tail') return [[5, 1]];
+    // 다리(2026-11-26 — 두 발로 걷게): 다리마다 제 뼈. 허벅지 뿌리는 엉덩이(spine_5)와 섞어 이음매가 벌어지지 않게
+    if (/^(leg|foot)/.test(part.bone)) { const li = /1$/.test(part.bone) && !/-1$/.test(part.bone) ? 10 : 11; if (part.bone.startsWith('leg') && /thigh/.test(part.name ?? '')) { const f = Math.min(1, s / .3); return [[li, .35 + .65 * f], [5, .65 * (1 - f) + .001]]; } return [[li, 1]]; }
     if (part.bone === 'fin1' || part.bone === 'fin-1') { const root = part.bone === 'fin1' ? 6 : 8; return [[root, 1 - s * .7], [root + 1, s * .7 + .001]]; }
     return spineWeight(g[0]);
   }});

@@ -11,7 +11,7 @@ import { asset } from "../base.ts";
 import { breathOf, cephArmData, cephGlsl, octopusLike } from "./cephalopod.ts";
 import { CEPH_V3, cephArmData as cephArmData3d, cephGlsl as cephGlsl3d } from "./cephalopod3d.ts";
 import { crabFamilyOf, crabGlsl, crabLegData, walkOf } from "./crabwalk.ts";
-import { MAMMAL, PENGUIN_WALKERS, URSID, RIBBON_FIN, RIGID, SHARKS, anatomy, verticalWave, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
+import { HUMAN_WALKERS, MAMMAL, PENGUIN_WALKERS, URSID, RIBBON_FIN, RIGID, SHARKS, anatomy, verticalWave, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
 import { topViewWidths } from "./topview.ts";
@@ -525,13 +525,17 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   // 펭귄 땅 위(2026-11-26 [사용자: "펭귄은 해변에서도 헤엄치는 모션이야 해변에서는 이족보행으로 다녀야해"]) — 모래사장 · 바위에서 쉬는 동안(course.upright)
   //   몸을 세워(모델 Z 축 +90° — 머리 위 · 배 앞) 두 발로 선다. 헤엄 물결 · 날개 젓기는 거두고, 머리는 앞으로 숙여 부리가 앞을 보게(spine_0 을 숙이고 spine_1 로 되돌린다 — 뿌리 뼈가 머리라 머리만 숙는다),
   //   날개는 몸 옆에 조금 벌려 들고, 움직이는 동안은 뒤뚱뒤뚱 좌우로 기울며(걸음마다 한 번) 걸음에 맞춰 조금 오르내린다. 발 높이는 모델 아래 · 뒤 끝으로 맞춘다
-  const walker = PENGUIN_WALKERS.test(family);
+  const human = HUMAN_WALKERS.test(family), walker = human || PENGUIN_WALKERS.test(family);
+  // 사람처럼 걷는 몸 — 팔 · 다리를 '곧게 내린' 자세로 돌리는 회전(짓는 자세의 뼈 방향 → 아래). 다리 뼈가 없는 옛 모델이면 팔만
+  const legs = human ? [rig("leg_L"), rig("leg_R")] : [];
+  const hang = human ? [0, 1].map((s) => { const root = fins[s * 2], tip = fins[s * 2 + 1], side = s ? -1 : 1; return root && tip ? new T.Quaternion().setFromUnitVectors(tip.pos.clone().normalize(), new T.Vector3(-1, -0.12, side * 0.3).normalize()) : null; }) : [];
+  const legHang = new T.Quaternion().setFromUnitVectors(new T.Vector3(-0.88, -0.05, 0.17).normalize(), new T.Vector3(-1, 0, 0.06).normalize()), legHangR = new T.Quaternion().setFromUnitVectors(new T.Vector3(-0.88, -0.05, -0.17).normalize(), new T.Vector3(-1, 0, -0.06).normalize());
   let walkBase: { q: T.Quaternion; pos: T.Vector3; lift: number } | null = null, walkY = NaN, uprightS = 0, stepPh = 0;
   if (walker && body) {
     // 모델 좌표(inner 안)의 아래 끝 · 뒤 끝 — 세우면 뒤 끝(발 · 꼬리)이 바닥이 되므로 그 차이만큼 올린다
     inner.updateMatrixWorld(true);
     const box = new T.Box3().setFromObject(body, true), lo = inner.worldToLocal(box.min.clone());
-    walkBase = { q: inner.quaternion.clone(), pos: inner.position.clone(), lift: Math.max(0, lo.y - lo.x * 0.9) }; // 꼬리 끝은 발보다 조금 뒤 · 아래 — 모래에 살짝 닿게(0.9)
+    walkBase = { q: inner.quaternion.clone(), pos: inner.position.clone(), lift: Math.max(0, lo.y - lo.x * (human ? 1.04 : 0.9)) }; // 갓파는 다리를 곧게 내려 조금 더 길다 // 꼬리 끝은 발보다 조금 뒤 · 아래 — 모래에 살짝 닿게(0.9)
   }
   const qa = new T.Quaternion(), qb = new T.Quaternion();
   return (time, effort, pose) => {
@@ -678,13 +682,18 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       // 걸음 — 실제 빠르기(몸길이/초)로 박자를 쌓는다. 멈추면 기울기도 0 으로 돌아온다
       const walkAmp = u * Math.min(1, (speed ?? 0) / 0.12);
       if (dt > 0) stepPh += dt * (3.2 + 4 * Math.min(1, (speed ?? 0) / 0.3)) * (walkAmp > 0.02 ? 1 : 0);
-      const lean = Math.sin(stepPh) * 0.17 * walkAmp, bob = Math.abs(Math.sin(stepPh)) * 0.035 * walkAmp;
+      const lean = Math.sin(stepPh) * (human ? 0.05 : 0.17) * walkAmp, bob = Math.abs(Math.sin(stepPh)) * (human ? 0.02 : 0.035) * walkAmp;
       if (u > 0) {
         for (const r of [...spine, ...fins]) if (r) r.bone.quaternion.slerp(r.base, u);
-        const tilt = -1.15 * u;
+        const tilt = (human ? -1.45 : -1.15) * u; // 갓파는 고개를 들어 앞을 본다(펭귄은 부리를 조금 숙인다)
         if (spine[0] && spine[1]) { spine[0].bone.quaternion.multiply(qa.setFromAxisAngle(Z, tilt)); spine[1].bone.quaternion.premultiply(qb.setFromAxisAngle(Z, -tilt)); }
         // 날개 — 몸 옆에 조금 벌려 들고 걸음마다 살짝 흔든다(좌우 반대 — 균형 잡기)
-        for (let s = 0; s < 2; s++) { const r = fins[s * 2]; if (r) r.bone.quaternion.multiply(qa.setFromAxisAngle(X, (s ? 1 : -1) * (0.3 * u + 0.12 * Math.sin(stepPh) * walkAmp))); }
+        if (human) {
+          // 사람처럼 — 팔은 내려 다리와 반대로 앞뒤로 흔들고(왼팔 ↔ 오른다리), 다리는 곧게 내려 번갈아 내딛는다. 앞뒤 흔들기는 옆 축(Z) — 서 있을 때 배(모델 -Y)가 앞이다
+          const sw = Math.sin(stepPh) * walkAmp;
+          for (let s = 0; s < 2; s++) { const r = fins[s * 2], h = hang[s]; if (r && h) r.bone.quaternion.multiply(qa.identity().slerp(h, u)).multiply(qb.setFromAxisAngle(Z, (s ? -1 : 1) * 0.42 * sw)); }
+          for (let s = 0; s < 2; s++) { const r = legs[s]; if (r) { r.bone.quaternion.copy(r.base).multiply(qa.identity().slerp(s ? legHangR : legHang, u)).multiply(qb.setFromAxisAngle(Z, (s ? 1 : -1) * 0.5 * sw)); } }
+        } else for (let s = 0; s < 2; s++) { const r = fins[s * 2]; if (r) r.bone.quaternion.multiply(qa.setFromAxisAngle(X, (s ? 1 : -1) * (0.3 * u + 0.12 * Math.sin(stepPh) * walkAmp))); }
       }
       inner.quaternion.copy(walkBase.q).premultiply(qa.setFromAxisAngle(X, lean)).multiply(qb.setFromAxisAngle(Z, u * Math.PI / 2));
       inner.position.set(walkBase.pos.x, walkBase.pos.y + (walkBase.lift + bob) * u, walkBase.pos.z);

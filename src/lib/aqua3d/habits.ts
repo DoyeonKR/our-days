@@ -324,6 +324,8 @@ export type Course = {
   belly?: number;
   /** 0~1 — 땅 위에 두 발로 선 정도(펭귄, 2026-11-26). 엔진(glb.fishMotion)이 몸을 그만큼 세우고 뒤뚱 걷는다 */
   upright?: number;
+  /** 0~1 — 모래사장 쉼터로 오르는 길에서 물을 나와 모래 위를 기는 몫(2026-11-26). 이 몫만큼은 물가 줄이기 · 물가 막기를 풀어 준다 */
+  land?: number;
   /** 0~1 — 주둥이를 모래에 박은 정도(habit.forage). 엔진이 머리를 아래로 돌린다(1 이면 약 29°) */
   nose?: number;
   /** 0~1 — 질주하는 정도(habit.burst). 엔진이 꼬리 쪽에 거품 줄을 남긴다 */
@@ -1449,8 +1451,9 @@ export function haulRest(id: number, seconds: number): number {
 const smooth01 = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
 /** 해변 모래 턱(root 안 x — 넓히기 전) · 앞뒤 물러남 — habitat.ts 의 BEACH_X0 + BEACH_BANK · BEACH_Z0 · BEACH_ZK 와 같은 값(beach.test 가 맞춰 본다). three 를 안 불러오려고 따로 둔다 */
 export const BEACH_DRY_X = 3.8, BEACH_Z0 = -0.3, BEACH_ZK = 1.35;
-export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean; walk?: boolean; thick?: number }, out: Course): number {
+export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean; walk?: boolean; thick?: number; sand?: (x: number, z: number) => number }, out: Course): number {
   let R = haulRest(id, seconds);
+  out.land = 0;
   // 먹이를 주면 쉬다가도 먹으러 간다
   R *= 1 - clamp01((out.feed ?? 0) * 1.5);
   if (R <= 0) { out.upright = 0; return 0; }
@@ -1496,15 +1499,55 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
   // 펭귄(2026-11-26 [사용자: "펭귄은 … 해변에서는 이족보행으로 다녀야해"]) — 땅 위에선 누워 쉬지 않고 두 발로 서서 쉼터 둘레를 천천히 오간다.
   //   쉼터 자리가 좌우로 왔다 갔다 하고(끝에서 잠깐 멈춘다) 몸은 가는 쪽을 본다. 세우는 몫(upright)은 거의 다 올라왔을 때부터 — 엔진(glb)이 몸을 세우고 뒤뚱 걷는다
   let walkUp = 0;
+  // 모래사장 길(opts.sand — 아래)은 물을 나와 모래를 걷는 동안(R 0.55 ~ 1) 내내 서서 걷는다
+  const beachWalk = !!(opts.sand && o?.kind === "beach");
   if (opts.walk && !opts.float) {
-    walkUp = smooth01((R - 0.82) / 0.18);
+    walkUp = beachWalk ? smooth01((R - 0.56) / 0.12) : smooth01((R - 0.82) / 0.18);
     const ph = seconds * 0.2 + unit(h, 151) * TAU, span = Math.min(length * 0.8, o && o.kind !== "beach" ? o.r * 0.3 : length * 0.8), lim = 5 * scale - length * 0.42;
     rx = Math.max(-lim, Math.min(lim, rx + Math.sin(ph) * span * walkUp));
     const mv = Math.cos(ph), w = walkUp * smooth01((Math.abs(mv) - 0.15) / 0.3);
     fx = fx * (1 - w) + Math.sign(mv) * w; fz *= 1 - w * 0.7;
   }
   const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
-  {
+  if (beachWalk) {
+    // 모래사장으로 오르내리는 길(2026-11-26 [사용자: "해변으로올떄 날아서 오는 것 같은 애니메이션이야 … 해변과 물가를 실제와 동일한 움직임으로 거쳐가야해 …
+    //   해변 모래에 너무 박혀있거나 떨어져있거나"]) — 예전엔 헤엄 자리 → 물속 한 점 → 쉼터를 한 곡선으로 이어, 물가를 넘는 동안 몸이 모래 위 허공을 날아가거나
+    //   모래 속을 지나갔고, 쉬는 높이도 쉼터 기록의 높이(모래 굴곡과 무관)라 박히거나 떴다. 이제 두 토막이다:
+    //   ① 물속(R 0 ~ 0.55) — 헤엄 자리에서 물가 앞 물속을 지나 물가(모래가 수면에 닿는 곳 바로 앞 얕은 물)까지 헤엄친다
+    //   ② 땅 위(R 0.55 ~ 1) — 물가에서 쉼터까지 모래 높이(opts.sand) + 몸 두께를 따라 기어오른다. 기각류는 배로 통통 튀며(galumph), 펭귄 · 갓파는 두 발로 선다
+    //   나갈 땐 같은 길을 거꾸로 — 모래를 기어 내려와 물가에서 물로 들어간다. 쉬는 높이도 그 자리 모래 높이 + 몸 두께
+    const deep = opts.deep || 1, tall = opts.tall || 1, sand = opts.sand!, half = (length * 0.12 * (opts.thick ?? 1)) / tall;
+    const sy = (x: number) => sand(x, rz);
+    let xe = rx; const step = 0.04 * scale; for (let i = 0; i < 200 && xe > rx - 5 * scale; i++) { if (sy(xe) < FLOAT_Y - 0.02) break; xe -= step; }
+    const xs = Math.min(rx, xe - length * 0.15), span = rx - xs;
+    const hops = Math.max(2, Math.round(span / (length * 0.45))), hump = (opts.walk ? 0.012 : 0.07) * length / tall;
+    const landAt = (v: number, p: number[]) => { const x = xs + span * v; p[0] = x; p[1] = Math.max(sy(x), floorY) + half + hump * Math.abs(Math.sin(v * hops * Math.PI)); p[2] = rz; };
+    const E = [0, 0, 0]; landAt(0, E);
+    const lim = 5 * scale - length * 0.6, wx = Math.max(-lim, xs - length * 1.6), wy = Math.max(floorY + (length * 0.5) / tall, E[1] - (length * 0.55) / tall);
+    const sx = out.x, sy0 = out.y, sz = out.z, SPLIT = 0.55;
+    const at = (r: number, p: number[]) => {
+      r = Math.max(0, Math.min(1, r));
+      if (r >= SPLIT) { landAt((r - SPLIT) / (1 - SPLIT), p); return; }
+      const u = r / SPLIT, a0 = (1 - u) * (1 - u), a1 = 2 * u * (1 - u), a2 = u * u;
+      p[0] = a0 * sx + a1 * wx + a2 * E[0]; p[1] = a0 * sy0 + a1 * wy + a2 * E[1]; p[2] = a0 * sz + a1 * rz + a2 * E[2];
+    };
+    const P = [0, 0, 0], A = [0, 0, 0], B = [0, 0, 0];
+    at(R, P); at(R + 0.006, A); at(R - 0.006, B);
+    out.x = P[0]; out.y = P[1]; out.z = P[2];
+    const into = haulRest(id, seconds + 0.2) >= R, sg = into ? 1 : -1;
+    let tx = sg * (A[0] - B[0]), ty = sg * (A[1] - B[1]) * (R >= SPLIT ? 0.5 : 1), tz = sg * (A[2] - B[2]);
+    const th = hyp2(tx, tz * deep); if (Math.abs(ty * tall) > 1.0 * th) ty = Math.sign(ty) * 1.0 * th / tall;
+    const tl = hyp3(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+    const travel = Math.min(1, R / 0.08) * (1 - smooth01((R - 0.94) / 0.06));
+    const dl = hyp3(out.dx, out.dy, out.dz) || 1;
+    let hx = out.dx / dl * (1 - R) + fx * R, hy = out.dy / dl * (1 - R), hz = out.dz / dl * (1 - R) + fz * R;
+    hx += (tx - hx) * travel; hy += (ty - hy) * travel; hz += (tz - hz) * travel;
+    out.dx = hx; out.dy = hy; out.dz = hz;
+    // 물속에선 힘껏 젓고, 땅 위에선 덜(지느러미로 모래를 짚으며 기어간다)
+    const onLand = smooth01((R - SPLIT + 0.04) / 0.08);
+    out.effort = Math.max(out.effort * (1 - R) + 0.12 * R, (1.1 - 0.6 * onLand) * travel); out.amp = Math.max(out.amp * (1 - R) + 0.12 * R, (0.95 - 0.55 * onLand) * travel); out.turn *= 1 - R;
+    out.land = smooth01((R - 0.3) / 0.25);
+  } else {
     // 쉼터로 오갈 때(2026-11-20) [사용자: "포유류 움직임이 너무 이상해"] — 예전엔 헤엄 길과 쉼터를 곧장 섞었다(높이는 일찍 √R, 가로는 늦게 R²).
     //   그래서 몸은 눕힌 채 승강기처럼 곧게 떠오르거나 가라앉고(오가는 동안의 60 ~ 75%), 머리 방향은 따로 섞여 뒤로 · 옆으로 미끄러졌고(움직이는 프레임의 8 ~ 17%),
     //   꼬리 젓기는 쉬는 값으로 줄어 젓지 않고 떠갔다. 이제 쉼터 앞 물속 한 점(W — 바위면 바깥쪽 · 모래사장이면 물 쪽, 몸길이만큼 떨어지고 조금 아래)을 지나는

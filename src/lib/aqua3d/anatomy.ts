@@ -161,6 +161,9 @@ export const MUSTELID = /^(sea_otter|otter)$/;
 export const URSID = /^(polar_bear)$/;
 /** 땅 위에서 두 발로 서서 걷는 몸(2026-11-26) — 펭귄. 모래사장 · 바위에서 쉬는 동안(course.upright) 몸을 세우고 뒤뚱뒤뚱 걷는다(glb.fishMotion) */
 export const PENGUIN_WALKERS = /^(emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin)$/;
+/** 땅 위에서 사람처럼 두 발로 걷는 몸(2026-11-26 [사용자: "갓파 는 해변에서 이족보행 해야해 사람처럼"]) — 갓파. 몸을 곧게 세우고 고개는 앞을 보고,
+ *  팔은 내려 걸음과 반대로 흔들고 다리(leg_L · leg_R 뼈)는 곧게 내려 번갈아 내딛는다(glb.fishMotion) */
+export const HUMAN_WALKERS = /^kappa$/;
 /** 고래(2026-11-14 범고래) — 꼬리자루와 꼬리지느러미를 위아래로 쳐서 나간다. 앞지느러미는 굳은 키라 젓지 않는다 */
 export const CETACEAN = /^(bottlenose_dolphin|beluga|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
 export const MAMMAL = /^(bottlenose_dolphin|kappa|beluga|polar_bear|walrus|emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin|spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;

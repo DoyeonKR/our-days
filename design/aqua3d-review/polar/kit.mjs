@@ -126,11 +126,11 @@ async function paintAtlas(model, SIZE) {
 
 /**
  * GLB 로 굽는다. weight(part, p정규화, st) → [[뼈 번호, 가중치], ...]. fins: {L:{root,tip}, R:{root,tip}} 짓는 좌표.
- * 뼈: spine_0..5(BX) · fin_L · fin_L_tip · fin_R · fin_R_tip
+ * 뼈: spine_0..5(BX) · fin_L · fin_L_tip · fin_R · fin_R_tip (+ legs 를 주면 leg_L · leg_R — 10 · 11, spine_5 의 자식. 두 발로 걷는 몸이 다리를 번갈아 내딛게, 2026-11-26)
  * weight 의 넷째 인자는 부위 안 꼭짓점 번호. part.weld 가 같은 부위끼리는 같은 자리 꼭짓점의 법선을 함께 평균한다(한 그물을 여러 텍스처 칸으로 나눈 경우)
  */
 export const BX = [.75, .45, .15, -.15, -.45, -.8];
-export async function bake(key, model, {fins, weight, source, atlas = 1024, roughness = .7, alpha = 1}) {
+export async function bake(key, model, {fins, legs, weight, source, atlas = 1024, roughness = .7, alpha = 1}) {
   // keepWinding: 바깥에서 가져온 그물(Tripo 등)은 감김이 이미 맞다 — 반쪽 · 한 면만 있는 칸은 무게중심 시험이 틀리게 뒤집는다
   for (const p of model.parts) if (!p.keepWinding) orient(p);
   // 법선(부위마다 — 칠하기에 쓴다)
@@ -151,13 +151,14 @@ export async function bake(key, model, {fins, weight, source, atlas = 1024, roug
     for (const i of part.I) idx.push(base + i);
   }
   if (pos.length / 3 > 65535) throw Error('vertices ' + pos.length / 3);
-  const names = ['spine_0', 'spine_1', 'spine_2', 'spine_3', 'spine_4', 'spine_5', 'fin_L', 'fin_L_tip', 'fin_R', 'fin_R_tip'], bones = names.map((m) => { const b = new T.Bone(); b.name = m; return b; });
+  const names = ['spine_0', 'spine_1', 'spine_2', 'spine_3', 'spine_4', 'spine_5', 'fin_L', 'fin_L_tip', 'fin_R', 'fin_R_tip', ...(legs ? ['leg_L', 'leg_R'] : [])], bones = names.map((m) => { const b = new T.Bone(); b.name = m; return b; });
   for (let i = 0; i < 6; i++) { bones[i].position.set(i ? BX[i] - BX[i - 1] : BX[0], 0, 0); if (i) bones[i - 1].add(bones[i]); }
   bones[1].add(bones[6]); bones[6].add(bones[7]); bones[1].add(bones[8]); bones[8].add(bones[9]);
   // 지느러미 뼈 자리는 짓는 좌표로 받아 정규화한다
   const fl = {root: G(fins.L.root), tip: G(fins.L.tip)}, fr = {root: G(fins.R.root), tip: G(fins.R.tip)};
   bones[6].position.set(fl.root[0] - BX[1], fl.root[1], fl.root[2]); bones[7].position.set(fl.tip[0] - fl.root[0], fl.tip[1] - fl.root[1], fl.tip[2] - fl.root[2]);
   bones[8].position.set(fr.root[0] - BX[1], fr.root[1], fr.root[2]); bones[9].position.set(fr.tip[0] - fr.root[0], fr.tip[1] - fr.root[1], fr.tip[2] - fr.root[2]);
+  if (legs) for (const [i, l] of [[10, legs.L], [11, legs.R]]) { const p = G(l.root); bones[5].add(bones[i]); bones[i].position.set(p[0] - BX[5], p[1], p[2]); }
   bones[0].updateMatrixWorld(true);
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   g.setAttribute('skinIndex', new T.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(W, 4)); g.setIndex(idx); g.computeVertexNormals();
