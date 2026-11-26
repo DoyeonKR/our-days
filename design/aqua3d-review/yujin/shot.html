@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0"><canvas id="c"></canvas>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+// 정사영 한 장 + 월드 좌표 격자 → /save/<name>(ceph-v3 폴더)
+import * as T from 'three'; import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js'; import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+const qs=new URLSearchParams(location.search), S=+(qs.get('px')??800), [cx,cy,cz,half]=qs.get('zoom').split(',').map(Number), view=qs.get('view')??'front', step=+(qs.get('step')??.01);
+const V={front:[0,0,1],back:[0,0,-1],side:[1,0,0],side2:[-1,0,0],top:[0,1,.001]};
+const r=new T.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,preserveDrawingBuffer:true,alpha:qs.has('clear')}); r.setSize(S,S); r.outputColorSpace=T.SRGBColorSpace; if(qs.has('clear'))r.setClearColor(0,0);
+const s=new T.Scene(); if(!qs.has('clear'))s.background=new T.Color(0x8899aa); s.add(new T.HemisphereLight(0xffffff,0x444433,1.2)); const d=new T.DirectionalLight(0xffffff,2.6); d.position.set(-1,2,3); s.add(d);
+const g=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(qs.get('src')); s.add(g.scene); if(qs.has('game')){g.scene.matrixAutoUpdate=false; g.scene.matrix.set(0,0,-1,0, 1,0,0,0, 0,-1,0,0, 0,0,0,1);}
+if(!qs.has('tex')) g.scene.traverse(o=>{if(o.isMesh)o.material=new T.MeshStandardMaterial({color:0xd8cfc2,roughness:.6});});
+const views=(qs.get('views')??view).split(','); const c2=document.createElement('canvas'); c2.width=S*views.length; c2.height=S; const x=c2.getContext('2d');
+V.oblique=[1,.4,1.3]; V.obl2=[-1,.3,1.2]; V.card=[.45,.12,1];
+views.forEach((vw,i)=>{const cam=new T.OrthographicCamera(-half,half,half,-half,.01,100); const dd=new T.Vector3(...V[vw]).normalize(); if(vw==='top')cam.up.set(0,0,-1); const ctr=new T.Vector3(cx,cy,cz); cam.position.copy(ctr).addScaledVector(dd,10); cam.lookAt(ctr); r.render(s,cam); x.drawImage(r.domElement,i*S,0);});
+if(!qs.has('nogrid')){x.font='11px sans-serif'; const hx=view==='front'?[cx,1]:view==='side'?[cz,-1]:[cx,-1];
+for(let k=Math.ceil((hx[0]-half)/step)*step;k<=hx[0]+half;k+=step){const p=((k-hx[0])*hx[1]/half+1)/2*S; const big=Math.abs(Math.round(k/step)%5)===0; x.strokeStyle=big?'rgba(255,0,0,.7)':'rgba(0,255,0,.3)'; x.beginPath();x.moveTo(p,0);x.lineTo(p,S);x.stroke(); if(big){x.fillStyle='#ff0';x.fillText(k.toFixed(3),p+2,12);}}
+for(let k=Math.ceil((cy-half)/step)*step;k<=cy+half;k+=step){const p=(1-((k-cy)/half+1)/2)*S; const big=Math.abs(Math.round(k/step)%5)===0; x.strokeStyle=big?'rgba(255,0,0,.7)':'rgba(0,255,0,.3)'; x.beginPath();x.moveTo(0,p);x.lineTo(S,p);x.stroke(); if(big){x.fillStyle='#ff0';x.fillText(k.toFixed(3),2,p-2);}}}
+const blob=await new Promise(res=>c2.toBlob(res,'image/png')); await fetch('/save/'+qs.get('name'),{method:'PUT',body:blob}); document.title='saved';
+</script>

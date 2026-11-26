@@ -6,7 +6,8 @@
  *  값만 둔다(다른 모듈을 부르지 않는다) — aquarium · fishing 둘 다 부르므로 순환 import 를 피한다.
  *  "가장 인기 없는 낚시터"는 서버 기록에 낚시터 칸이 없어 데이터로 못 골라 사용자가 봉화 계곡으로 정했다. */
 export type EventFish = { species: string; spot: string; chance: number };
-export const EVENT_FISH: readonly EventFish[] = [{ species: "kappa", spot: "bonghwa", chance: 0.01 }];
+// 유진(2026-11-26 [사용자: "가장 낮은 곳에서 잡히고 확률은 0.1%"]) — 가장 낮은 레벨 낚시터(청계천 brook, Lv.1)에서 던질 때마다 0.1%
+export const EVENT_FISH: readonly EventFish[] = [{ species: "kappa", spot: "bonghwa", chance: 0.01 }, { species: "yujin", spot: "brook", chance: 0.001 }];
 export const EVENT_SEED = 0x6b617070; // 'kapp' — 다른 뽑기와 겹치지 않는 주사위
 export const isEventFamily = (family: string | undefined): boolean => !!family && EVENT_FISH.some((e) => e.species === family);
 export const eventOf = (family: string | undefined): EventFish | undefined => EVENT_FISH.find((e) => e.species === family);

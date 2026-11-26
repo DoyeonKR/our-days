@@ -17,7 +17,7 @@ export const STARTLE_S = 3.6;
  *  · glide(물범 · 물개 · 바다사자 · 수달 · 해달 — 물속) — 반 바퀴 몸을 틀며 미끄러지듯 천천히 비켜 간다(예전 roll 은 1초에 몸길이 1.6배 · 한 바퀴)
  *  · dive(고래) — 큰 몸은 놀라도 천천히 · 조금만 아래로 비켜 잠수한다
  *  · galumph(물범류가 모래사장에서 쉬는 중) — 땅에서 배를 튕기며 통통 몇 걸음 옮겨 갔다가 돌아와 다시 눕는다(물에 빠지지 않는다) */
-const PINNIPEDS = new Set(["kappa", "polar_bear", "spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "sea_otter", "otter", "walrus", "emperor_penguin", "gentoo_penguin", "chinstrap_penguin", "adelie_penguin"]);
+const PINNIPEDS = new Set(["yujin", "kappa", "polar_bear", "spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "sea_otter", "otter", "walrus", "emperor_penguin", "gentoo_penguin", "chinstrap_penguin", "adelie_penguin"]);
 const WHALES = new Set(["bottlenose_dolphin", "beluga", "orca", "minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale"]);
 const MAMMALS = new Set([...PINNIPEDS, ...WHALES]);
 export const isMammal = (family: string) => MAMMALS.has(family);

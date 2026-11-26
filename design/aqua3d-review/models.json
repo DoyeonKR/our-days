@@ -55334,6 +55334,267 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "added": "2026-11-26 [사용자: \"만들었고 여기에 움직임과 색상 입혀서 배포해\"]"
+    },
+    "fry_yujin": {
+      "kind": "fish",
+      "family": "yujin",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_yujin.glb",
+      "triangles": 11350,
+      "bytes": 184980,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "leg_L",
+        "leg_R"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        1024,
+        1024
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0415190ef885d7600a33cc5f854231789584a8a36e9e7ddd5f4eb58d7256c869",
+      "sha256": "2387f2dcbf78aa447011b626a207baf23009574a17b79079b662292f315c5b80",
+      "authoringProfile": {
+        "key": "yujin",
+        "name": "유진",
+        "grade": "태초",
+        "cm": 165,
+        "water": "fresh",
+        "body": "human",
+        "widthRatio": 0.28,
+        "life": "수면 가까이 자유형 · 숨 쉬러 수면 · 모래사장 · 바위에선 두 발로 걷는다"
+      },
+      "geometryAuthoring": "head = user Tripo scan + front photo projection; body part-built from standing photo proportions (design/aqua3d-review/yujin/yujin-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 12000,
+        "bytes": 900000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 1024,
+          "webpQuality": 92,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 14
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "leg_L",
+        "leg_R",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26"
+    },
+    "juv_yujin": {
+      "kind": "fish",
+      "family": "yujin",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_yujin.glb",
+      "triangles": 11350,
+      "bytes": 184980,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "leg_L",
+        "leg_R"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        1024,
+        1024
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0415190ef885d7600a33cc5f854231789584a8a36e9e7ddd5f4eb58d7256c869",
+      "sha256": "2387f2dcbf78aa447011b626a207baf23009574a17b79079b662292f315c5b80",
+      "authoringProfile": {
+        "key": "yujin",
+        "name": "유진",
+        "grade": "태초",
+        "cm": 165,
+        "water": "fresh",
+        "body": "human",
+        "widthRatio": 0.28,
+        "life": "수면 가까이 자유형 · 숨 쉬러 수면 · 모래사장 · 바위에선 두 발로 걷는다"
+      },
+      "geometryAuthoring": "head = user Tripo scan + front photo projection; body part-built from standing photo proportions (design/aqua3d-review/yujin/yujin-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 12000,
+        "bytes": 900000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 1024,
+          "webpQuality": 92,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 14
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "leg_L",
+        "leg_R",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26"
+    },
+    "yujin": {
+      "kind": "fish",
+      "family": "yujin",
+      "form": "adult",
+      "file": "public/aqua/models/fish/yujin.glb",
+      "triangles": 11350,
+      "bytes": 184980,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "leg_L",
+        "leg_R"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        1024,
+        1024
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0415190ef885d7600a33cc5f854231789584a8a36e9e7ddd5f4eb58d7256c869",
+      "sha256": "2387f2dcbf78aa447011b626a207baf23009574a17b79079b662292f315c5b80",
+      "authoringProfile": {
+        "key": "yujin",
+        "name": "유진",
+        "grade": "태초",
+        "cm": 165,
+        "water": "fresh",
+        "body": "human",
+        "widthRatio": 0.28,
+        "life": "수면 가까이 자유형 · 숨 쉬러 수면 · 모래사장 · 바위에선 두 발로 걷는다"
+      },
+      "geometryAuthoring": "head = user Tripo scan + front photo projection; body part-built from standing photo proportions (design/aqua3d-review/yujin/yujin-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 12000,
+        "bytes": 900000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 1024,
+          "webpQuality": 92,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 14
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "leg_L",
+        "leg_R",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26"
     }
   },
   "structuralValidation": "passed",

@@ -1,7 +1,7 @@
 # 우리 수조 그림 목록 · 프롬프트
 
 > 이 파일은 `scripts/aqua-art-prompts.mjs` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **538장**: 치어 · 어린 물고기 302 · 최종 물고기 187 · 악세사리 40 · 수조 배경 9.
+> 모두 **541장**: 치어 · 어린 물고기 304 · 최종 물고기 188 · 악세사리 40 · 수조 배경 9.
 
 ## 넣는 법
 
@@ -41,7 +41,7 @@ Photorealistic aquarium decoration product photography, physically realistic cer
 Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280). Empty underwater interior filling the frame edge to edge: bright water upper area, physically believable caustics and soft light shafts, sandy floor in bottom 18%. NO animals, NO movable decorations in the middle; center open for compositing swimming animals and decorations. No text, UI, border, or front-glass reflections covering the center. Natural materials and realistic water, not cartoon or painted illustration; fantasy architecture only as distant realistic scenery.
 ```
 
-## 치어 · 어린 물고기 (302장)
+## 치어 · 어린 물고기 (304장)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -161,6 +161,8 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `juv_emperor_penguin` | 황제펭귄 어린 물고기 | Real juvenile emperor penguin: sleek grey-black back, white belly, whitish chin, pale ear patch without yellow, shorter bill without orange. Exact side view swimming, head RIGHT. Transparent background, no text. |
 | `fry_kappa` | 갓파 치어 | Baby kappa: bigger head, shorter limbs, same face, hair and dish. Transparent background, no text. |
 | `juv_kappa` | 갓파 어린 물고기 | Young kappa: same look as the adult, slightly smaller limbs. Transparent background, no text. |
+| `fry_yujin` | 유진 치어 | Same person (identical card — the model has one look). |
+| `juv_yujin` | 유진 어린 물고기 | Same person (identical card — the model has one look). |
 | `fry_bottlenose_dolphin` | 큰돌고래 치어 | Real newborn bottlenose dolphin calf: lighter grey, slightly plump, faint pale vertical fetal fold stripes on the flank. Transparent background, no text. |
 | `juv_bottlenose_dolphin` | 큰돌고래 어린 물고기 | Real juvenile bottlenose dolphin: same pattern as the adult, slightly lighter and smaller. Transparent background, no text. |
 | `fry_beluga` | 벨루가 치어 | Real newborn beluga calf: plump dark slate-grey body, smaller melon, short beak. Transparent background, no text. |
@@ -348,7 +350,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `fry_astral` | 별무리어 치어 | Biologically plausible newborn cosmic star fish spirit, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, translucent deep-indigo body filled with tiny stars, soft glow, little comet tail. A real newborn animal, not a baby cartoon. |
 | `juv_astral` | 별무리어 어린 물고기 | Juvenile cosmic star fish spirit: young teenage fish, body starting to take adult shape, fins half grown, indigo-violet translucent body with a small swirl of galaxy inside, wispy glowing fins. Clearly not yet fully grown, less ornate than the adult. |
 
-## 최종 물고기 (187장)
+## 최종 물고기 (188장)
 
 | key | 이름 | 등급 | 설명 |
 |---|---|---|---|
@@ -463,6 +465,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `walrus` | 바다코끼리 | 전설 | Real Pacific walrus (Odobenus rosmarus) swimming side view, head RIGHT: huge wrinkled cinnamon-pink body, small head with broad bristly whisker pad, two long ivory tusks hanging down from the upper jaw, small eyes, fore and hind flippers. Natural colors. Transparent background, no text. |
 | `emperor_penguin` | 황제펭귄 | 영웅 | Real emperor penguin (Aptenodytes forsteri) swimming underwater side view, head RIGHT: streamlined torpedo body, blue-black back and head, white belly, golden-yellow ear patch fading to pale yellow chest, long slim bill with orange stripe on lower mandible, narrow black flippers. Transparent background, no text. |
 | `kappa` | 갓파 | 신화 | Kappa river spirit swimming, head RIGHT: big round head with large white eyes and big black pupils, wide flat yellow-green beak, shaggy brown hair covering the head with a pale green dish on top, green skin with dark green stripes, thin limbs with webbed three-fingered hands and feet. Transparent background, no text. |
+| `yujin` | 유진 | 태초 | A young Korean woman standing, full body, three-quarter front view: long straight black hair, natural face, black fleece high-neck zip jacket, light-wash wide straight jeans, cream quilted crossbody bag with small black dots, dark sneakers. Made from the 3D model (design/aqua3d-review/yujin) — do not redraw. Transparent background, no text. |
 | `bottlenose_dolphin` | 큰돌고래 | 전설 | Real common bottlenose dolphin (Tursiops truncatus) swimming side view, head RIGHT: sleek streamlined body, dark blue-grey back cape, lighter grey flanks, pale white belly and lower jaw, short stubby beak under a rounded melon, small dark eye, tall curved dorsal fin, pointed pectoral flippers, wide horizontal flukes. Transparent background, no text. |
 | `beluga` | 벨루가 | 태초 | Real beluga whale (Delphinapterus leucas) swimming side view, head RIGHT: stout creamy-white body, large rounded bulbous melon forehead over a short beak, upturned smiling mouth line, small dark eye, no dorsal fin (low dorsal ridge), broad rounded paddle flippers, wide flukes. Transparent background, no text. |
 | `sawshark` | 톱상어 | 영웅 | Real Japanese sawshark (Pristiophorus japonicus) side view, head RIGHT: slim brownish shark body, long flat saw-like snout lined with teeth, a pair of long barbels under the saw, two dorsal fins, no anal fin. Natural-history illustration, transparent background. |

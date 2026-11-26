@@ -1,5 +1,5 @@
 // 2026-11-03 낚시 네 기능 — 크기 기록 · 때 손님 · 주인 · 주간 원정. 그리고 같이 고친 버그 잠금.
-import { EVENT_FISH } from "./eventfish.ts";
+import { EVENT_FISH, isEventFamily } from "./eventfish.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -386,8 +386,8 @@ test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 
   assert.match(panel, /모든 물고기/);
 });
 
-test("모든 어종 — 187종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
-  assert.equal(ALL_SPECIES.length, 187);
+test("모든 어종 — 188종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
+  assert.equal(ALL_SPECIES.length, 188);
   for (const k of ["nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"]) {
     assert.ok(speciesOf(k), k);
     assert.ok(SPOTS.some((s) => s.pool.some(([f]) => f === k)), k);
@@ -398,9 +398,9 @@ test("모든 어종 — 187종이 도감에 있고, 낚시터에서 실제로 �
   assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
 });
 
-test("모델 하나 = 물고기 하나 — 489폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
-  assert.equal(ALL_FORMS.length, 489);
-  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 489);
+test("모델 하나 = 물고기 하나 — 492폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
+  assert.equal(ALL_FORMS.length, 492);
+  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 492);
   for (const f of ALL_FORMS) if (f.family !== "sea_turtle") assert.ok(FISH_GLB.has(f.key), f.key);
   const seen = new Set<string>();
   const times = ["dawn", "day", "dusk", "night"] as const, wxs = ["rain", "snow", "clear", null] as const;
@@ -419,7 +419,7 @@ test("다 큰 모습이 예전보다 자주 온다 · 첫 낚시터부터 네 �
   const fams = new Set<string>();
   for (let i = 0; i < 6000; i++) {
     const c = rollCatch(SPOTS.find((x) => x.key === "brook")!, 1, 0.4, i * 89 + 3, { bait: 0 });
-    fams.add(c.family);
+    if (!isEventFamily(c.family)) fams.add(c.family); // 이벤트 물고기(유진 — 청계천 0.1%)는 따로 센다
     if (c.stage === 2) adult++;
     if (c.stage === 0) fry++;
   }

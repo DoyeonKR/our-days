@@ -111,7 +111,9 @@ async function paintAtlas(model, SIZE) {
         const P = [0, 1, 2].map((k) => part.P[ids[0]][k] * w0 + part.P[ids[1]][k] * w1 + part.P[ids[2]][k] * w2);
         const n = norm([0, 1, 2].map((k) => N[ids[0]][k] * w0 + N[ids[1]][k] * w1 + N[ids[2]][k] * w2));
         const st = [0, 1].map((k) => part.ST[ids[0]][k] * w0 + part.ST[ids[1]][k] * w1 + part.ST[ids[2]][k] * w2);
-        const col = part.paint(P, n, st);
+        // part.Q(꼭짓점마다 다른 좌표 — 예: 자세를 바꾸기 전 원본 자리)가 있으면 같은 식으로 섞어 넷째 인자로(2026-11-26, 유진 — 사진 투영)
+        const Qp = part.Q ? [0, 1, 2].map((k) => part.Q[ids[0]][k] * w0 + part.Q[ids[1]][k] * w1 + part.Q[ids[2]][k] * w2) : null;
+        const col = part.paint(P, n, st, Qp);
         img[o * 3] = col[0]; img[o * 3 + 1] = col[1]; img[o * 3 + 2] = col[2]; has[o] = (w0 > 0 && w1 > 0 && w2 > 0) ? 2 : 1;
       }
     }
@@ -130,7 +132,7 @@ async function paintAtlas(model, SIZE) {
  * weight 의 넷째 인자는 부위 안 꼭짓점 번호. part.weld 가 같은 부위끼리는 같은 자리 꼭짓점의 법선을 함께 평균한다(한 그물을 여러 텍스처 칸으로 나눈 경우)
  */
 export const BX = [.75, .45, .15, -.15, -.45, -.8];
-export async function bake(key, model, {fins, legs, weight, source, atlas = 1024, roughness = .7, alpha = 1}) {
+export async function bake(key, model, {fins, legs, weight, source, atlas = 1024, roughness = .7, alpha = 1, compress = {}}) {
   // keepWinding: 바깥에서 가져온 그물(Tripo 등)은 감김이 이미 맞다 — 반쪽 · 한 면만 있는 칸은 무게중심 시험이 틀리게 뒤집는다
   for (const p of model.parts) if (!p.keepWinding) orient(p);
   // 법선(부위마다 — 칠하기에 쓴다)
@@ -158,7 +160,8 @@ export async function bake(key, model, {fins, legs, weight, source, atlas = 1024
   const fl = {root: G(fins.L.root), tip: G(fins.L.tip)}, fr = {root: G(fins.R.root), tip: G(fins.R.tip)};
   bones[6].position.set(fl.root[0] - BX[1], fl.root[1], fl.root[2]); bones[7].position.set(fl.tip[0] - fl.root[0], fl.tip[1] - fl.root[1], fl.tip[2] - fl.root[2]);
   bones[8].position.set(fr.root[0] - BX[1], fr.root[1], fr.root[2]); bones[9].position.set(fr.tip[0] - fr.root[0], fr.tip[1] - fr.root[1], fr.tip[2] - fr.root[2]);
-  if (legs) for (const [i, l] of [[10, legs.L], [11, legs.R]]) { const p = G(l.root); bones[5].add(bones[i]); bones[i].position.set(p[0] - BX[5], p[1], p[2]); }
+  // legs.parent — 다리 뼈를 매달 척추 뼈(기본 spine_5). 사람은 엉덩이 높이의 뼈에 단다(헤엄칠 때 엉덩이에서 찬다)
+  if (legs) { const pi = legs.parent ?? 5; for (const [i, l] of [[10, legs.L], [11, legs.R]]) { const p = G(l.root); bones[pi].add(bones[i]); bones[i].position.set(p[0] - BX[pi], p[1], p[2]); } }
   bones[0].updateMatrixWorld(true);
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   g.setAttribute('skinIndex', new T.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(W, 4)); g.setIndex(idx); g.computeVertexNormals();
@@ -170,7 +173,7 @@ export async function bake(key, model, {fins, legs, weight, source, atlas = 1024
     for (const {n, ids} of acc.values()) if (ids.length > 1) { const u = norm(n); for (const i of ids) na.setXYZ(i, u[0], u[1], u[2]); }
     na.needsUpdate = true;
   }
-  const glb = await compressGLB(material(packAsset(key, [{name: key, geometry: g, extras: {aquaGeometry: 'part-built (design/aqua3d-review/polar)', source}}], png, bones), (m) => { m.name = 'painted_PBR_atlas'; m.doubleSided = true; m.pbrMetallicRoughness.metallicFactor = .05; m.pbrMetallicRoughness.roughnessFactor = roughness; if (alpha < 1) { m.alphaMode = 'BLEND'; m.pbrMetallicRoughness.baseColorFactor = [1, 1, 1, alpha]; } }), {webpQuality: 92});
+  const glb = await compressGLB(material(packAsset(key, [{name: key, geometry: g, extras: {aquaGeometry: 'part-built (design/aqua3d-review/polar)', source}}], png, bones), (m) => { m.name = 'painted_PBR_atlas'; m.doubleSided = true; m.pbrMetallicRoughness.metallicFactor = .05; m.pbrMetallicRoughness.roughnessFactor = roughness; if (alpha < 1) { m.alphaMode = 'BLEND'; m.pbrMetallicRoughness.baseColorFactor = [1, 1, 1, alpha]; } }), {webpQuality: 92, ...compress});
   return {glb, tris: idx.length / 3, scale: S, center: M};
 }
 /** 정규화 x 로 몸통 뼈 두 개 사이 */

@@ -38,7 +38,7 @@ const webpSize = (b: Buffer): [number, number] => {
   throw new Error(`모르는 WebP ${chunk}`);
 };
 
-test("수조 GLB 496개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
+test("수조 GLB 499개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
   await MeshoptDecoder.ready;
   const mammalKeys=JSON.parse(readFileSync('design/aqua3d-review/mammals-status.json','utf8')).keys as string[];
   assert.equal(new Set(mammalKeys).size,18);
@@ -54,7 +54,7 @@ test("수조 GLB 496개 전부 배포 형식(meshopt · 양자화 · 512px 이�
   // 바다코끼리 · 황제펭귄(2026-11-24 — mammal-tube-build.mjs)
   // 벨루가(2026-11-26 — polar/beluga-build.mjs)
   // 갓파(2026-11-26 — polar/kappa-build.mjs)
-  const polarKeys=['polar_bear','walrus','emperor_penguin','beluga','kappa','gentoo_penguin','chinstrap_penguin','adelie_penguin','toothfish','icefish','clione','sea_pig','giant_isopod','antarctic_urchin','salp','bottlenose_dolphin'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of polarKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
+  const polarKeys=['polar_bear','walrus','emperor_penguin','beluga','kappa','yujin','gentoo_penguin','chinstrap_penguin','adelie_penguin','toothfish','icefish','clione','sea_pig','giant_isopod','antarctic_urchin','salp','bottlenose_dolphin'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of polarKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length+shrimpKeys.length+orcaKeys.length+crabKeys.length+whaleKeys.length+polarKeys.length);
   assert.equal(files.filter(f=>f.kind==='decor').length,37);
   for (const { key, path } of files) {
@@ -68,7 +68,8 @@ test("수조 GLB 496개 전부 배포 형식(meshopt · 양자화 · 512px 이�
     assert.equal(j.images.length, 1, key); assert.equal(j.images[0].uri, undefined, key); assert.equal(j.images[0].mimeType, "image/webp", key);
     for (const t of j.textures) { assert.equal(t.source, undefined, key); assert.equal(t.extensions?.EXT_texture_webp?.source, 0, key); }
     const iv = j.bufferViews[j.images[0].bufferView!], img = bin.subarray((iv as { byteOffset?: number }).byteOffset ?? 0, ((iv as { byteOffset?: number }).byteOffset ?? 0) + iv.byteLength);
-    const [w, h] = webpSize(Buffer.from(img)); assert.ok(w <= 512 && h <= 512 && w >= 256 && h >= 256, `${key} ${w}x${h}`);
+    const [w, h] = webpSize(Buffer.from(img)); // 유진(사람 — 2026-11-26 [사용자: "해상도 높히고"])만 1024 — 얼굴이 512 에선 뭉개졌다
+    const tmax = /yujin$/.test(key) ? 1024 : 512; assert.ok(w <= tmax && h <= tmax && w >= 256 && h >= 256, `${key} ${w}x${h}`);
     const decode = (accessor: number) => {
       const a = j.accessors[accessor], ext = j.bufferViews[a.bufferView].extensions?.EXT_meshopt_compression;
       assert.ok(ext, `${key}: 형상 bufferView ${a.bufferView} 가 압축되지 않았다`);
@@ -124,7 +125,7 @@ test("게임과 같은 길(GLTFLoader + MeshoptDecoder)로 모두 열리고 · �
       assert.equal(meshes.length, 1, key);
       const m = meshes[0] as T.SkinnedMesh;
       assert.ok(m.isSkinnedMesh, key);
-      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : key.endsWith("kappa") ? 12 : 10, key); // 갓파는 다리 뼈 둘(leg_L · leg_R)을 더 — 땅 위에서 번갈아 걷는다(2026-11-26)
+      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : /(kappa|yujin)$/.test(key) ? 12 : 10, key); // 갓파는 다리 뼈 둘(leg_L · leg_R)을 더 — 땅 위에서 번갈아 걷는다(2026-11-26)
       assert.ok(m.geometry.attributes.skinWeight.normalized && m.geometry.attributes.normal.normalized && m.geometry.attributes.uv.normalized, key);
       assert.equal(m.material instanceof T.MeshStandardMaterial && !!m.material.map, true, key);
     }

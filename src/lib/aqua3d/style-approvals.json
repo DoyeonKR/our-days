@@ -1957,6 +1957,18 @@
     "fry_bottlenose_dolphin": {
       "sourceHash": "bc4b4bb383ceb39fdd1b6f0b8d4cde0997aabd4dbb7ac9256c249659582f61ae",
       "sheet": "design/aqua3d-review/dolphin/review-dolphin.webp"
+    },
+    "yujin": {
+      "sourceHash": "72cd2c6905e1bb27f78e6126c9d47732983f1e5d275a7b452771c728a27bb6d9",
+      "sheet": "design/aqua3d-review/yujin/review-yujin.webp"
+    },
+    "juv_yujin": {
+      "sourceHash": "72cd2c6905e1bb27f78e6126c9d47732983f1e5d275a7b452771c728a27bb6d9",
+      "sheet": "design/aqua3d-review/yujin/review-yujin.webp"
+    },
+    "fry_yujin": {
+      "sourceHash": "72cd2c6905e1bb27f78e6126c9d47732983f1e5d275a7b452771c728a27bb6d9",
+      "sheet": "design/aqua3d-review/yujin/review-yujin.webp"
     }
   }
 }

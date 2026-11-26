@@ -93,6 +93,12 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   //   (팔로 젓고 다리로 찬다 — OTARIID), 방향을 홱홱 틀며(dart), 숨 쉬러 오르고 바위 · 모래사장에 올라가 쉰다. 누르면 물속에서 빙글 돈다(twirl)
   { key: "kappa", name: "갓파", grade: "신화", price: 59900, hours: 335.8, minTank: 5, size: 24, cm: 100, fresh: true, ornamental: false,
     spots: [], habit: { lo: -3, hi: 1.2, speed: 0.26, reach: 0.9, depth: 1.8, haul: true, walk: true, breathe: 70, breathOnly: true, dart: 0.22, pace: 1.1, tilt: 0.35 } }, // walk — 땅 위에선 사람처럼 두 발로(2026-11-26)
+  // 유진(2026-11-26 [사용자: "이걸 기준으로 너가 해당 여자의 전신 모습을 3d 모델링해줘 … 가장 낮은 곳에서 잡히고 확률은 0.1%"] — 본인 요청 · 공개 배포 동의) — 사람.
+  //   머리는 사용자가 Tripo 로 만든 스캔 + 정면 사진, 몸은 서 있는 사진의 비율 · 옷 색으로 지었다(design/aqua3d-review/yujin/yujin-build.mjs). 카드 그림은 모델을 찍은 것.
+  //   이벤트 물고기(lib/eventfish) — 청계천에서 던질 때마다 0.1%, 수조에 한 번 넣으면 끝. 물속에선 자유형(glb 의 HUMAN_SWIMMERS — 팔을 번갈아 돌리고 발차기 · 몸 돌리기 · 숨쉬기),
+  //   모래사장 · 바위에선 두 발로 걷는다(walk). 숨 쉬러 자주 오르고 수면 가까이 헤엄친다. 누르면 물속에서 빙글 돈다(twirl)
+  { key: "yujin", name: "유진", grade: "태초", price: 130000, hours: 537, minTank: 6, size: 30, cm: 165, fresh: true, ornamental: false,
+    spots: [], habit: { lo: .4, hi: 3.4, speed: 0.22, reach: 1, depth: 1.6, haul: true, walk: true, breathe: 28, breathOnly: true, dart: 0.08, pace: 1, tilt: 0.15, level: 0.3 } },
   // 남극 10종(2026-11-25 [사용자: "남극기지 낚시터에 … 10종" → "기존에있는 것과 조금 다른 느낌없어 ? 펭귄과 메로는 유지하고" → "다 완벽하게 진행해줘"]) —
   //   그림 · 3D 는 Claude 세션이 부위로 지었다(design/aqua3d-review/polar/ penguins · antfish · inverts-build.mjs, 카드 그림은 모델을 찍은 것).
   //   젠투 · 아델리 · 대왕등각류는 세종기지 pool 의 흔한 몫(시작 미끼 단계 — 대구 바로 뒤), 나머지 일곱은 세종기지 때 손님(곁 칸)

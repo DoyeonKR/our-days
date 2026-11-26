@@ -17,7 +17,7 @@ const rate = (spotKey: string, opts: Parameters<typeof rollCatch>[4]) => {
 };
 
 test("갓파는 봉화 계곡 이벤트 — 던질 때마다 1%(미끼 · 시간 · 날씨 · 방식 무관), 다른 낚시터 0, 때 손님 표엔 없다", () => {
-  assert.deepEqual(EVENT_FISH.map((e) => [e.species, e.spot, e.chance]), [["kappa", "bonghwa", 0.01]]);
+  assert.deepEqual(EVENT_FISH.map((e) => [e.species, e.spot, e.chance]), [["kappa", "bonghwa", 0.01], ["yujin", "brook", 0.001]]);
   assert.ok(!TIMED_FISH.some((t) => t.species === "kappa"));
   for (const opts of [{}, { bait: 0 }, { bait: BAITS.length - 1, when: { time: "night" as const, wx: "rain" as const } }, { bait: 2, method: "scoop" as const, when: { time: "day" as const, wx: null } }]) {
     const r = rate("bonghwa", opts);
@@ -44,4 +44,12 @@ test("수조에 한 번 넣는 데 성공하면 다시 안 낚인다 — 보내 
   assert.equal(rate("bonghwa", { eventDone: eventDone(gone) }), 0);
   // 다른 물고기는 기록하지 않는다
   assert.equal((addFish(base, "guppy", 0, undefined, 1000) as IslandState).eventKept, undefined);
+});
+
+test("유진은 청계천(가장 낮은 낚시터) 이벤트 — 던질 때마다 0.1%(미끼 · 시간 · 날씨 무관), 다른 낚시터 0, 때 손님 표엔 없다", () => {
+  const M = 300000, count = (spotKey: string, opts: Parameters<typeof rollCatch>[4]) => { const sp = SPOTS.find((s) => s.key === spotKey)!; let n = 0; for (let i = 0; i < M; i++) if (rollCatch(sp, 50, 1, (Math.imul(i + 7, 2654435761) + 11) >>> 0, opts).family === "yujin") n++; return n / M; };
+  assert.equal(SPOTS[0].key, "brook", "가장 낮은 레벨 낚시터");
+  assert.ok(!TIMED_FISH.some((t) => t.species === "yujin"));
+  for (const opts of [{}, { bait: BAITS.length - 1, when: { time: "night" as const, wx: "rain" as const } }]) { const r = count("brook", opts); assert.ok(r > 0.0008 && r < 0.0012, `청계천 ${JSON.stringify(opts)}: ${(r * 100).toFixed(3)}%`); }
+  for (const s of SPOTS) if (s.key !== "brook") { const sp = s; let n = 0; for (let i = 0; i < 20000; i++) if (rollCatch(sp, 50, 1, i * 977 + 5, {}).family === "yujin") n++; assert.equal(n, 0, s.key); }
 });

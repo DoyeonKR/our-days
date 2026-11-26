@@ -162,6 +162,16 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **모델**: `polar/kappa-build.mjs` — 큰 머리 · 큰 흰 눈과 검은 눈동자(반짝이 점) · 넓은 연둣빛 부리 · 머리를 덮는 갈색 머리칼 덩이(가장자리 톱니 + 굵은 가닥) · 정수리 접시 · 초록 살갗의 짙은 줄무늬 · 세 갈래 물갈퀴 손발. 엎드려 헤엄치는 자세.
 **그림**: 모델을 찍은 카드 → `polar/cards-to-art.mjs` → `scripts/aqua-model-profiles.mjs` → `polar/sync-hashes.mjs`. 검수 `polar/review-kappa.webp`.
 
+### D8. 유진 — 그림 3장 + 3D 모델 3개 (2026-11-26, 본인 요청 · 공개 배포 동의 — Claude 세션이 만들었다 · 다시 그리지 않는다)
+
+| key | 이름 | 등급 | 키 | 기준 |
+|---|---|---|---|---|
+| `yujin` | 유진 | 태초 | 165cm | 본인이 보낸 사진 셋(앉은 전신 · 정면 증명사진 · 서 있는 전신)과 Tripo 스캔(머리) — 원본 · 사진은 레포에 없다(yujin/source · ref, .gitignore) |
+
+**모델**: `yujin/yujin-build.mjs` — 머리는 스캔(얼굴 형상 · 머리칼, 등에 늘어진 긴 머리까지)에 정면 사진을 같은 배율로 비추고, 몸은 서 있는 사진의 비율(7.5등신)과 옷 색으로 부위마다 짓는다
+(검은 하이넥 플리스 · 소매 · 손 · 연청 와이드 청바지 · 신발 · 크림색 도트 크로스백). 뼈 12개(팔 fin · 다리 leg_L/R). 세 모습은 같은 파일. 텍스처 1024 · 삼각형 11,350(사람이라 예외).
+**그림**: 모델을 세워 찍은 카드(`yujin/shot.html?…views=card`) → `polar/cards-to-art.mjs` → `scripts/aqua-model-profiles.mjs` → `polar/sync-hashes.mjs`. 검수 `yujin/review-yujin.webp`.
+
 ### D7. 큰돌고래 — 그림 3장 + 3D 모델 3개 (2026-11-26, 사용자가 Tripo 로 만든 모델을 Claude 세션이 게임 형식으로 구웠다 — 다시 그릴 때의 기록)
 
 | key | 이름 | 등급 | 다 큰 몸길이 | 기준 |

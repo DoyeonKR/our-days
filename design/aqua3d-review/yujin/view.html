@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#222"><canvas id="c"></canvas>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as T from 'three'; import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js'; import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+const qs=new URLSearchParams(location.search), src=qs.get('src'), C=+(qs.get('cell')??300);
+const views=(qs.get('views')??'front,side,back,top,oblique').split(',');
+const V={front:[0,0,1],back:[0,0,-1],side:[1,0,0],side2:[-1,0,0],top:[0,1,.001],oblique:[1,.5,1.2],face:[0,0,1]};
+const r=new T.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,preserveDrawingBuffer:true}); r.setSize(C*views.length,C); r.outputColorSpace=T.SRGBColorSpace; r.toneMapping=T.NeutralToneMapping; r.setScissorTest(true);
+const s=new T.Scene(); s.background=new T.Color(0x9aa8b0); s.add(new T.HemisphereLight(0xffffff,0x666655,1.8)); const d=new T.DirectionalLight(0xfff2e0,2.2); d.position.set(2,4,5); s.add(d);
+const g=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(src); const root=g.scene; s.add(root); if(qs.has('game')){root.matrixAutoUpdate=false; root.matrix.set(0,0,-1,0, 1,0,0,0, 0,-1,0,0, 0,0,0,1);}
+root.traverse(o=>{if(o.isMesh&&!o.material.map&&!o.geometry.attributes.color){o.material=new T.MeshStandardMaterial({color:0xd8d0c4,roughness:.7});}});
+root.updateMatrixWorld(true); const box=new T.Box3().setFromObject(root), c=box.getCenter(new T.Vector3()), sz=box.getSize(new T.Vector3());
+let half=Math.max(sz.x,sz.y,sz.z)*.55; let ctr=c.clone();
+if(qs.get('zoom')){const z=qs.get('zoom').split(',').map(Number); ctr.set(z[0],z[1],z[2]); half=z[3];}
+views.forEach((v,i)=>{const cam=new T.OrthographicCamera(-half,half,half,-half,.01,100); const dd=new T.Vector3(...V[v]).normalize(); if(v==='top')cam.up.set(0,0,-1); cam.position.copy(ctr).addScaledVector(dd,10); cam.lookAt(ctr); r.setViewport(i*C,0,C,C); r.setScissor(i*C,0,C,C); r.render(s,cam);});
+document.title='done '+JSON.stringify({min:box.min.toArray().map(v=>+v.toFixed(3)),max:box.max.toArray().map(v=>+v.toFixed(3))});
+</script>
