@@ -18,34 +18,42 @@ const STAGES = {
 };
 // 몸 단면(x: 꼬리자루 -4.6 → 4.0). 머리 앞은 이마 · 주둥이 부위가 덮는다 — 몸통은 그 안에서 끝난다
 const PROF = [[-4.6, .24, .11, .04], [-4.0, .44, .26, .04], [-3.0, .7, .58, .02], [-1.8, .98, .94, 0], [-.5, 1.12, 1.1, -.02], [.8, 1.12, 1.1, -.03],
-  [1.8, .98, .96, -.01], [2.4, .84, .82, 0], [2.95, .9, .82, .07], [3.4, .86, .74, .11], [3.75, .6, .56, .02], [4.0, .3, .32, -.1]];
+  [1.8, .98, .96, -.01], [2.4, .84, .82, 0], [2.95, .9, .82, .07], [3.4, .95, .78, .14], [3.85, .9, .77, .18], [4.2, .76, .68, .2], [4.4, .56, .52, .2]];
+// 앞은 반지름 0.5 남짓에서 돔 마개(0.26)로 닫는다 — 끝 단면을 0.2 까지 줄였다가 닫았더니 이마 앞에 꼭지가 돋았다
+// 2026-11-26 — 이마(멜론)는 몸통이 그대로 솟아 앞을 둥글게 닫는 돔이다. 따로 붙인 공(타원체)은 몸과 만나는 곳마다 고리 자국이 났다[사용자: "더 고쳐줘"]
 const profOf = (fat) => (x) => {
   let i = 0; while (i < PROF.length - 2 && x > PROF[i + 1][0]) i++;
   const A = PROF[i], B = PROF[i + 1], t = clamp((x - A[0]) / (B[0] - A[0])), k = t * t * (3 - 2 * t), body = 1 - smooth(2.2, 2.9, x);
   const f = fat * body + (1 - body);
   return {a: (A[1] + (B[1] - A[1]) * k) * f, b: (A[2] + (B[2] - A[2]) * k) * f, cy: A[3] + (B[3] - A[3]) * k};
 };
-const X0 = -4.6, X1 = 4.0;
+const X0 = -4.6, X1 = 4.4;
 // 입선 — 입끝(4.55, -0.42)에서 뒤로 거의 곧게 가다 입꼬리(3.42)에서 -0.1 까지 말려 올라간다
 // 2026-11-26 [사용자: "입선은 눈 아래로 가야해"] — 입꼬리는 눈 바로 아래(x 3.2, 눈 아래 가장자리 조금 밑)까지 뒤로 간다
 const MOUTH_END = 3.2;
 const mouthY = (x) => -.47 + .37 * Math.pow(smooth(4.25, MOUTH_END, x), 1.5);
+// 이마 · 윗입술 사이 골 — 앞(주둥이 위)에서 뒤로 조금 내려가며 눈 앞까지(사진: 이마 아래 테두리가 눈 쪽으로 흐른다)
+const creaseY = (x) => -.02 + .1 * smooth(3.3, 4.25, x);
+const creaseLine = (x, y, n) => x < 3.28 || x > 4.3 ? 0 : smooth(.12, .02, Math.abs(y - creaseY(x))) * smooth(3.28, 3.45, x) * smooth(.35, .7, Math.abs(n[2]));
 const mouthLine = (x, y, n) => x < MOUTH_END - .02 || x > 4.62 ? 0 : smooth(.032, .01, Math.abs(y - mouthY(x))) * smooth(MOUTH_END - .02, MOUTH_END + .06, x) * smooth(.3, .65, Math.abs(n[2]) + (x > 4.3 ? 1 : 0));
 // 타원체 둘레 — x 를 각도로 매겨야 끝이 둥글다(x 를 고르게 · 반지름을 sin 으로 매기면 양 끝이 원뿔처럼 뾰족했다)
 
 function build(key) {
-  const st = STAGES[key], m = new Model(), P = profOf(st.fat), mk = st.melon;
+  const st = STAGES[key], m = new Model(), mk = st.melon;
+  var P = profOf(st.fat);
   const R = (x, th) => 1
     + .05 * Math.exp(-Math.pow(th / .14, 2)) * smooth(-2.6, -1.4, x) * (1 - smooth(.2, .9, x))   // 등 능선
-    - .03 * Math.exp(-Math.pow((x - 2.4) / .3, 2)) * Math.abs(Math.sin(th));                       // 목
+    - .03 * Math.exp(-Math.pow((x - 2.4) / .3, 2)) * Math.abs(Math.sin(th))                       // 목
+    - .2 * Math.max(0, -Math.cos(th)) * smooth(3.4, 4.1, x)                                        // 이마 아래 반은 안으로 — 주둥이가 옆 · 아래에서 보인다
+    - .025 * Math.exp(-Math.pow((P(x).cy + Math.cos(th) * P(x).a - creaseY(x)) / .045, 2)) * Math.abs(Math.sin(th)) * smooth(3.3, 3.5, x) * (1 - smooth(4.1, 4.25, x)); // 이마 · 입술 골
   const surf = (x, th, k = 1) => { const p = P(x), r = R(x, th) * k; return [x, p.cy + Math.cos(th) * p.a * r, Math.sin(th) * p.b * r]; };
   // 눈 — 입꼬리(3.42, -0.1) 바로 뒤 위, 몸통 옆면
   const eyeX = 3.22, eyeY = .02, eyeC = [-1, 1].map((sd) => { const p = P(eyeX), th = Math.acos(clamp((eyeY - p.cy) / (p.a * .99), -1, 1)); return surf(eyeX, sd * th, .99); });
 
   // ── 몸통 ──
   m.sweep('body', (s) => { const x = X0 + (X1 - X0) * s, p = P(x); return {c: [x, p.cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: p.a, b: p.b, r: (th) => R(x, th)}; },
-    {ns: 50, nt: 28, capStart: .12, capEnd: .1, capRings: 4, capSpanStart: .02, capSpanEnd: .05, island: [0, 0, 1, .56], bone: 'body',
-      sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < 2.2 ? (x - X0) / (2.2 - X0) * .66 : .66 + (x - 2.2) / (X1 - 2.2) * .34; },
+    {ns: 52, nt: 28, capStart: .12, capEnd: .26, capRings: 6, capSpanStart: .02, capSpanEnd: .14, island: [0, 0, 1, .56], bone: 'body',
+      sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < 2.2 ? (x - X0) / (2.2 - X0) * .6 : .6 + (x - 2.2) / (X1 - 2.2) * .4; },
       paint: (p, n) => {
         const [x, y, z] = p, pr = P(x), yr = (y - pr.cy) / pr.a;
         let c = mix(st.belly, st.skin, smooth(-.7, .1, yr));
@@ -61,35 +69,25 @@ function build(key) {
         for (const e of eyeC) { const d = Math.hypot(x - e[0], y - e[1], z - e[2]); c = mix(c, st.crease, smooth(.12, .07, d) * .5); }
         // 입선 — 주둥이 뒤 뺨 위로 이어져 눈 아래에서 끝난다(이 자리는 몸통 겉이 가장 바깥이다)
         c = mix(c, st.crease, mouthLine(x, y, n) * .85);
+        c = mix(c, st.crease, creaseLine(x, y, n) * .14);
         return c;
       }});
 
-  // ── 이마(멜론) — 머리 위를 덮는 큰 돔. 앞으로 부풀고, 아래쪽 반은 안으로 들어가 입술 · 턱이 옆에서 보인다. 윗입술과 맞닿는 곳은 그늘(골) ──
-  const MC = [3.64, .2, 0], MR = [1.0 * mk, .86 * mk, .8 * mk], tuck = (th) => 1 - .24 * Math.max(0, -Math.cos(th));
-  m.sweep('melon', (s) => { const ang = Math.PI * s, e = Math.max(.015, Math.sin(ang)); return {c: [MC[0] - MR[0] * Math.cos(ang), MC[1], 0], u: [0, 1, 0], v: [0, 0, 1], a: MR[1] * e, b: MR[2] * e, r: tuck}; },
-    {ns: 22, nt: 24, island: [0, .56, .3, .74], bone: 'head',
-      paint: (p, n) => {
-        const rel = [(p[0] - MC[0]) / MR[0], (p[1] - MC[1]) / MR[1], p[2] / MR[2]];
-        let c = mix(st.skin, st.back, smooth(.2, .9, rel[1]) * .5);
-        c = mix(c, st.crease, smooth(-.45, -.8, rel[1]) * smooth(.1, .6, rel[0]) * .6);
-        c = mix(c, st.crease, mouthLine(p[0], p[1], n) * .85);
-        return c.map((v) => v * (.97 + .04 * fbm([p[0] * 2, p[1] * 2, p[2] * 2], 3)));
-      }});
   // ── 주둥이 — 이마 아래 짧고 넓고 뭉툭한 한 덩어리(2026-11-26 [사용자: "얼굴 부분 디테일이 실제 기준 이미지와 너무 달라 오리입 같아"]) ──
   //   윗입술 · 아래턱을 따로 내밀었더니 오리 부리처럼 보였다. 사진의 주둥이는 머리 아래 폭 그대로 넓은 둥근 덩어리이고 앞이 뭉툭하다.
   //   입선은 그 겉에 판 가는 고랑(입끝에서 뒤로 가다 입꼬리에서 위로 말린다), 아래턱 쪽이 아주 조금 더 앞으로 둥글다. 이마와의 사이는 부드러운 골
   // 입선은 주둥이 가운데보다 아래(앞에서 보면 아래쪽 40% 높이를 가로지르는 미소) — 가운데로 지나게 두면 앞 꼭짓점 둘레에 고리가 패였다
-  const SN = {xb: 3.2, xf: 4.66, cy: -.3, a: .42 * (mk * .2 + .8), b: .66 * (mk * .2 + .8)};
+  const SN = {xb: 3.2, xf: 4.72, cy: -.3, a: .42 * (mk * .2 + .8), b: .66 * (mk * .2 + .8)};
   m.sweep('snout', (s) => {
     const ph = s * Math.PI / 2, x = SN.xb + (SN.xf - SN.xb) * Math.sin(ph), env = Math.max(.0005, Math.cos(ph)) /* 끝 고리를 점까지 — .03 이면 반지름 0.07 의 납작한 원판이 앞에 'o' 로 보였다 */, w = 1 - .12 * smooth(.3, 1, s);
     const a = SN.a * Math.pow(env, .55), b = SN.b * w * Math.pow(env, .5), cy = SN.cy;
     return {c: [x, cy, 0], u: [0, 1, 0], v: [0, 0, 1], a, b, e: 2.15, r: (th) => {
       const yy = Math.cos(th) * a + cy, side = Math.abs(Math.sin(th));
       // 입선 고랑 — 앞에서는 둘레를 따라, 옆에서는 입꼬리 쪽으로 올라간다
-      const g = Math.exp(-Math.pow((yy - mouthY(Math.min(4.6, x))) / .03, 2)) * (.5 + .5 * side) * smooth(.3, .5, env);
-      // 아래턱 — 아래 앞쪽이 아주 조금 더 나온다
-      const chin = .05 * Math.max(0, -Math.cos(th)) * smooth(.55, .95, s);
-      return 1 - .05 * g + chin;
+      const my = mouthY(Math.min(4.6, x)), g = Math.exp(-Math.pow((yy - my) / .035, 2)) * (.5 + .5 * side) * smooth(.3, .5, env);
+      // 아래턱 — 입선 아래가 두툼한 한 덩이로 조금 부풀고(입술 테두리), 아래 앞쪽(턱 끝)이 윗입술보다 조금 더 나온다
+      const jaw = .05 * smooth(-.02, -.14, yy - my) * smooth(.25, .5, env), chin = .11 * Math.max(0, -Math.cos(th)) * smooth(.45, .95, s);
+      return 1 - .09 * g + jaw + chin;
     }};
   }, {ns: 22, nt: 30, island: [.3, .56, .8, .74], bone: 'head',
     paint: (p, n) => {

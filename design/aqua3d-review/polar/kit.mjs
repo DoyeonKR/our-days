@@ -61,9 +61,21 @@ export class Model {
     // 2026-11-25 [사용자: "코가 너무 뭉툭해 글라인더로 자른느낌이야"] — 예전엔 마지막 고리(반지름 약 절반)의 가운데에 점을 찍어 끝이 납작한 원판이었다.
     //   끝을 둥글게 닫는 부위는 가운데 점을 돔 꼭대기(마개 길이 L 끝)로 내민다
     const tipOut = (atStart) => { const L = atStart ? capStart : capEnd; if (!L) return [0, 0, 0]; const f = frame(atStart ? 0 : 1).c, g = frame(atStart ? .001 : .999).c, q = Math.sin(capRings / (capRings + 1) * Math.PI / 2); return norm(add(f, g, -1)).map((v) => v * L * (1 - q)); };
+    // 2026-11-26 [사용자: "이마에 총알이라도 나갈 것 같은 구멍은 왜 뚫어놓은거야"] — 닫는 부채꼴의 감김 방향이 옆 띠와 반대인 경우가 있었다.
+    //   부위 전체를 한 번에 뒤집는 orient() 뒤에도 부채꼴만 안쪽을 보아, 끝(이마 · 주둥이 앞)에 검은 구멍처럼 보였다. 옆 띠와 같은 쪽을 보게 맞춘다
+    const avg = (r) => r.reduce((s, v) => add(s, part.P[v], 1 / r.length), [0, 0, 0]);
+    const triN = (a, b, c) => cross(add(part.P[b], part.P[a], -1), add(part.P[c], part.P[a], -1));
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     for (const [r, end] of [[rings[0], true], [rings[rings.length - 1], false]]) {
-      const ctr = add(r.reduce((s, v) => add(s, part.P[v], 1 / r.length), [0, 0, 0]), tipOut(end)), ci = part.P.length; part.P.push(ctr); part.ST.push([end ? (S0 ? 0 : part.ST[r[0]][0]) : (S1 ? 1 : part.ST[r[0]][0]), .5]);
-      for (let j = 0; j < nt; j++) part.I.push(...(end ? [ci, r[j + 1], r[j]] : [ci, r[j], r[j + 1]]));
+      const nb = end ? rings[1] : rings[rings.length - 2], rc = avg(r), nc = avg(nb);
+      const ctr = add(rc, tipOut(end)), ci = part.P.length; part.P.push(ctr); part.ST.push([end ? (S0 ? 0 : part.ST[r[0]][0]) : (S1 ? 1 : part.ST[r[0]][0]), .5]);
+      // 옆 띠 삼각형(띠를 지을 때와 같은 순서)이 바깥(축에서 멀어지는 쪽)을 보는지
+      const [ra, rb] = end ? [rings[0], rings[1]] : [rings[rings.length - 2], rings[rings.length - 1]], jj = Math.floor(nt / 4);
+      const bn = triN(ra[jj], rb[jj], ra[jj + 1]), bm = add(add(part.P[ra[jj]], part.P[rb[jj]]), part.P[ra[jj + 1]]).map((v) => v / 3), sb = Math.sign(dot(bn, add(bm, add(rc, nc).map((v) => v / 2), -1)));
+      let fan = (j) => (end ? [ci, r[j + 1], r[j]] : [ci, r[j], r[j + 1]]);
+      const fn = triN(...fan(jj)), sf = Math.sign(dot(fn, add(rc, nc, -1)));
+      if (sb && sf && sb !== sf) { const f0 = fan; fan = (j) => { const t = f0(j); return [t[0], t[2], t[1]]; }; }
+      for (let j = 0; j < nt; j++) part.I.push(...fan(j));
     }
     this.parts.push(part); return part;
   }
