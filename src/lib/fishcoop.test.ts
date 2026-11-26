@@ -183,7 +183,7 @@ test("단일 작성자 — 보너스(저장에 쓰이는 값)는 낚는 사람�
   // 보너스는 담기 판정의 확률에만 — 피버 · 주인은 1 그대로
   assert.match(g, /const coopHelpedNow = coopBonus\(coop\.coop, coopRound\) \|\| coopHelped;/, "저장 실패 뒤 다시 눌러도 이 판의 보너스가 남는다");
   assert.match(g, /const soloChance = fish \? \(feverWon \|\| fish\.boss \? 1 : captureChance\(/);
-  assert.match(g, /const chance = fish \? coopChance\(soloChance, coopHelpedNow\) : 0;/);
+  assert.match(g, /const chance = fish \? pinCapture\(fish\.family, coopChance\(soloChance, coopHelpedNow\)\) : 0;/);
   // 누르는 순간의 확률로 판정하고 그때 접는다(늦게 온 결과가 끼어들지 않게)
   const store = g.slice(g.indexOf("async function store("), g.indexOf("async function sell("));
   assert.ok(store.indexOf("p = chance") < store.indexOf('coop.close("done")'), "담기 확률을 잡은 뒤 협동을 접는다");
