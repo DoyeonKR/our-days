@@ -53,3 +53,19 @@ test("유진은 청계천(가장 낮은 낚시터) 이벤트 — 던질 때마�
   for (const opts of [{}, { bait: BAITS.length - 1, when: { time: "night" as const, wx: "rain" as const } }]) { const r = count("brook", opts); assert.ok(r > 0.0008 && r < 0.0012, `청계천 ${JSON.stringify(opts)}: ${(r * 100).toFixed(3)}%`); }
   for (const s of SPOTS) if (s.key !== "brook") { const sp = s; let n = 0; for (let i = 0; i < 20000; i++) if (rollCatch(sp, 50, 1, i * 977 + 5, {}).family === "yujin") n++; assert.equal(n, 0, s.key); }
 });
+
+// 2026-11-27 [사용자: "유진이도 이벤트성 수조에 있으면 잡을 수 없고 포획 확률도 10퍼 미만으로 고정"]
+test("유진 — 수조에 있거나 한 번 넣었으면 청계천에서도 0 · 담기 확률은 무엇을 해도 9%(10% 미만 고정)", async () => {
+  const { captureChance, pinCapture, FIXED_CAPTURE } = await import("./fishing.ts");
+  const base = { aquarium: { tank: 6, hunger: 100, water: 100, at: 0, nextId: 1, fish: [], placed: [], wide: 0, bag: {}, dex: [] }, coins: 0 } as unknown as IslandState;
+  const after = addFish(base, "yujin", 2, "yujin", 1000) as IslandState;
+  assert.deepEqual(eventDone(after), ["yujin"]);
+  const sp = SPOTS.find((s) => s.key === "brook")!;
+  let n = 0; for (let i = 0; i < 300000; i++) if (rollCatch(sp, 50, 1, (Math.imul(i + 7, 2654435761) + 11) >>> 0, { eventDone: eventDone(after) }).family === "yujin") n++;
+  assert.equal(n, 0, "수조에 넣은 뒤엔 안 온다");
+  const gone = { ...after, aquarium: { ...aquaOf(after), fish: [] } } as unknown as IslandState;
+  assert.deepEqual(eventDone(gone), ["yujin"], "보내 줘도 기록은 남는다");
+  assert.ok(FIXED_CAPTURE.yujin < 0.1);
+  for (const raw of [0.05, captureChance(99, 1, 1, true, "float", 0.3, "yujin"), 0.95, 1]) assert.equal(pinCapture("yujin", raw), FIXED_CAPTURE.yujin, `${raw}`);
+  assert.equal(pinCapture("kappa", 0.6), 0.6, "다른 물고기는 그대로");
+});

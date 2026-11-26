@@ -60,7 +60,7 @@ import {
   type Deep, type DeepTune, type Lure, type LureTune, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
-import { spotArtKey, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, NETS, PERFECT_HOOK, RODS, SPOTS, baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, currentBait, formsSeen, currentSpot, expedFor, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, rankLine, revealMs, rollCatch, buySinker, buyReel, reelOf, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, storeBlock, eventDone, traceMove, traceRelease, tryStore, waitPlan, xpNeed, xpValue, type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey } from "@/lib/fishing";
+import { spotArtKey, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, NETS, PERFECT_HOOK, RODS, SPOTS, baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, currentBait, formsSeen, currentSpot, expedFor, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, rankLine, revealMs, rollCatch, buySinker, buyReel, reelOf, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, storeBlock, eventDone, traceMove, traceRelease, tryStore, pinCapture, waitPlan, xpNeed, xpValue, type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
 import { josa } from "@/lib/josa";
 import { kstDate } from "@/lib/kst";
@@ -941,7 +941,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const gentle = !!fish && method === "deep" && !fish.boss && quality >= DEEP_GENTLE;
   const soloChance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method, craftEffects(roundCraft, { spot, method }).capture + (gentle ? DEEP_GENTLE_BONUS : 0), fish.family)) : 0;
   // coopChance 는 1(피버 · 주인)을 낮추지 않는다
-  const chance = fish ? coopChance(soloChance, coopHelpedNow) : 0;
+  const chance = fish ? pinCapture(fish.family, coopChance(soloChance, coopHelpedNow)) : 0; // 유진 — 무엇을 해도 9%(fishing.FIXED_CAPTURE)
   /** 상대를 돕는 중(받기 창 · 들어올리기 · 결과) — 그동안 내 낚시터 누르기는 던지기가 아니다 */
   const coopHelping = coop.coop.k === "prompt" || ((coop.coop.k === "helping" || coop.coop.k === "result") && coop.coop.role === "helper");
   const block = fish ? storeBlock(st, fish) : null;
