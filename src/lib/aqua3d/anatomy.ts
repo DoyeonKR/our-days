@@ -76,7 +76,7 @@ const families: Record<string, Partial<Anatomy>> = {
   orca: { frequency: 1.2, flex: .08 },
   // 고래 5종(2026-11-18) — 몸이 클수록 꼬리 박자가 느리다 · 톱상어는 가늘고 긴 몸
   minke_whale: { frequency: 1.1, flex: .08 }, gray_whale: { frequency: .9, flex: .08 }, humpback_whale: { frequency: .85, flex: .08 },
-  sperm_whale: { frequency: .8, flex: .07 }, blue_whale: { frequency: .7, flex: .07 }, sawshark: { frequency: 2.6, flex: .1 }, walrus: { frequency: 1.4, flex: .1 }, emperor_penguin: { frequency: 2.4, flex: .08 },
+  sperm_whale: { frequency: .8, flex: .07 }, blue_whale: { frequency: .7, flex: .07 }, sawshark: { frequency: 2.6, flex: .1 }, walrus: { frequency: 1.4, flex: .1 }, beluga: { frequency: 1.15, flex: .09 }, emperor_penguin: { frequency: 2.4, flex: .08 },
   skate: { kind: "ray", cx: .66, cy: .52, rx: .30, ry: .30, depth: .12, frequency: 2.0, flex: .12 },
   ray: { kind: "ray", cx: .69, cy: .57, rx: .30, ry: .31, depth: .20, frequency: 2.3, flex: .12 },
   manta: { kind: "ray", cx: .69, cy: .49, rx: .27, ry: .18, depth: .22, frequency: 2.1, flex: .12 },
@@ -153,8 +153,8 @@ export const PHOCID = /^(spotted_seal|walrus)$/;
 export const OTARIID = /^(fur_seal|steller_sea_lion|japanese_sea_lion|emperor_penguin)$/;
 export const MUSTELID = /^(sea_otter|otter)$/;
 /** 고래(2026-11-14 범고래) — 꼬리자루와 꼬리지느러미를 위아래로 쳐서 나간다. 앞지느러미는 굳은 키라 젓지 않는다 */
-export const CETACEAN = /^(orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
-export const MAMMAL = /^(walrus|emperor_penguin|spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
+export const CETACEAN = /^(beluga|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
+export const MAMMAL = /^(beluga|walrus|emperor_penguin|spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
 /** 몸 물결이 위아래(Z 축)인 몸 — 수달 · 해달. 누운 광어와 같은 축으로 물결치지만 몸을 눕히지는 않는다 */
 export const verticalWave = (family: string) => MUSTELID.test(family) || CETACEAN.test(family);
 /** 다리로 걷는 갑각류(2026-11-18) — 게 · 바닷가재. 몸 물결 · 지느러미 대신 다리 걸음(crabwalk.ts) */

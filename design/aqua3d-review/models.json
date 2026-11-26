@@ -51848,6 +51848,255 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+    },
+    "fry_beluga": {
+      "kind": "fish",
+      "family": "beluga",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_beluga.glb",
+      "triangles": 2784,
+      "bytes": 44348,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "2ae29b654a2c134614f3c80da30d9353143436ac82b15df956a6efd37c032492",
+      "sha256": "f591173457fad48e3a5d5bf473457d6a3b1a4353594f8eac09908a232def833f",
+      "authoringProfile": {
+        "key": "beluga",
+        "name": "흰고래",
+        "grade": "영웅",
+        "cm": 450,
+        "water": "sea",
+        "body": "whale",
+        "widthRatio": 0.26,
+        "life": "가운데 물을 느긋하게 · 고개를 돌려 두리번 · 숨 쉬러 자주 수면"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/beluga-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"개체 추가해줘 자신있는 개체로\"]"
+    },
+    "juv_beluga": {
+      "kind": "fish",
+      "family": "beluga",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_beluga.glb",
+      "triangles": 2784,
+      "bytes": 47216,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "f10275837c0e6e0e9bd904ebd99f0611d3d370823abbfaca79538fbabcbc3f61",
+      "sha256": "c48e8604cf3ff048ab313430b088c39fd645441465f9b11e912656425eb7ef68",
+      "authoringProfile": {
+        "key": "beluga",
+        "name": "흰고래",
+        "grade": "영웅",
+        "cm": 450,
+        "water": "sea",
+        "body": "whale",
+        "widthRatio": 0.26,
+        "life": "가운데 물을 느긋하게 · 고개를 돌려 두리번 · 숨 쉬러 자주 수면"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/beluga-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"개체 추가해줘 자신있는 개체로\"]"
+    },
+    "beluga": {
+      "kind": "fish",
+      "family": "beluga",
+      "form": "adult",
+      "file": "public/aqua/models/fish/beluga.glb",
+      "triangles": 2784,
+      "bytes": 49184,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "fe38e5b1cc836a8d275982ad1a61ef05a6fcac6c63736ac0d0c2668e3dcf4fc3",
+      "sha256": "82744e87a9d606ebcca152e643421bf72822fe0830e7398af54187fc5758d6a9",
+      "authoringProfile": {
+        "key": "beluga",
+        "name": "흰고래",
+        "grade": "영웅",
+        "cm": 450,
+        "water": "sea",
+        "body": "whale",
+        "widthRatio": 0.26,
+        "life": "가운데 물을 느긋하게 · 고개를 돌려 두리번 · 숨 쉬러 자주 수면"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/beluga-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-24",
+      "approval": "user_requested_2026-11-24",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"개체 추가해줘 자신있는 개체로\"]"
     }
   },
   "structuralValidation": "passed",

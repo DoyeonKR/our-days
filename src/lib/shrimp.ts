@@ -76,6 +76,11 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
     spots: [], habit: { lo: -2, hi: 2.4, speed: 0.34, reach: 1, depth: 2, haul: true, breathe: 60, breathOnly: true, dart: 0.3, pace: 1, tilt: 0.45, burst: 11 } },
   { key: "walrus", name: "바다코끼리", grade: "전설", price: 53000, hours: 315, minTank: 5, size: 42, cm: 330, fresh: false, ornamental: false,
     spots: [], habit: { lo: -3.4, hi: 1.2, speed: 0.14, reach: 0.9, depth: 1.8, haul: true, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.3, level: 0.7, forage: true } },
+  // 흰고래(벨루가, 2026-11-26 [사용자: "개체 추가해줘 자신있는 개체로"]) — 부위로 지은 모델(design/aqua3d-review/polar/beluga-build.mjs), 카드 그림은 모델을 찍은 것. 때 손님(곁 칸)으로만.
+  //   북쪽 찬 바다의 작은 이빨고래: 무리 짓지 않고 가운데 물을 느긋하게 돌며 목이 있어 고개를 자주 돌려 두리번거린다(방향을 조금씩 튼다 — dart),
+  //   숨 쉬러 자주 오르고(55초) 몸을 크게 기울이지 않는다(level 0.42 ≈ 23°). 누르면 머리를 내밀어 살핀다(breach.ts spyhop)
+  { key: "beluga", name: "흰고래", grade: "영웅", price: 41500, hours: 275, minTank: 5, size: 36, cm: 450, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -1.2, hi: 2.2, speed: 0.22, reach: 1, depth: 2, breathe: 55, breathOnly: true, dart: 0.1, pace: 0.6, tilt: 0.24, level: 0.42 } },
 ];
 
 /** 켜졌을 때만 — 다른 표가 펼쳐 넣는다 */

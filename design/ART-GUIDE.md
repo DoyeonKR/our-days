@@ -117,6 +117,15 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **그림**: 바다코끼리 = `walrus/make-art.mjs`(우리 물범 그림을 부풀린 몸) → `walrus/photo-head.mjs`(사진 머리 · 목을 뒤집어 붙이고 몸 색을 사진 피부에 맞춤, 어린 개체는 엄니를 짧게 · 새끼는 지움 — 엄니 자리는 `walrus/<key>-tusk.png`). 황제펭귄 = `penguin/make-art.mjs`(SVG — 검은 등 · 흰 배 · 노란 귀 무늬 · 아랫부리 주황 줄 · 새끼는 회색 솜털과 흰 얼굴 가면) → `penguin/photo-penguin.mjs`(사진의 잔결만 얹는다). 사용자 참고 사진 · 조형물 · 시트는 비율만 봤다(저작권).
 **3D**: `mammal-tube-build.mjs` — 바다코끼리는 앞쪽 40%(머리 · 목)를 열의 위 · 아래 끝으로 재 관에 넣고, 엄니는 마스크로 몸 · 지느러미 판에서 빼 주둥이 밑에서 아래 · 조금 뒤로 뻗는 원뿔 둘로(머리 뼈). 검수 `walrus/review.webp` · `penguin/review.webp`.
 
+### D4. 흰고래(벨루가) — 그림 3장 + 3D 모델 3개 (2026-11-26, Claude 세션이 만들었다 — 다시 그릴 때의 기록)
+
+| key | 이름 | 등급 | 다 큰 몸길이 | 기준 |
+|---|---|---|---|---|
+| `beluga` | 흰고래 | 영웅 | 4.5m | 사진 · 그림을 쓰지 않았다 — 널리 알려진 해부 비율(둥근 멜론 · 짧은 주둥이 · 등 능선 · 노 모양 가슴지느러미)을 눈으로 옮겼다 |
+
+**모델**: `polar/beluga-build.mjs`(부위로 짓는다 — 몸통 · 눈 · 가슴지느러미 · 꼬리지느러미, 무늬는 3D 위치로 칠함). 새끼 짙은 청회색 · 어린 옅은 회색 · 어른 크림빛 흰색.
+**그림**: 모델을 찍은 카드(`ceph-v3/review.html?card=…` → `polar/cards/`) → `polar/cards-to-art.mjs` → `scripts/aqua-model-profiles.mjs` → `polar/sync-hashes.mjs`. 검수 `polar/review-beluga.webp`.
+
 ### F. 범고래 새끼 · 어린 개체 — 그림 2장 + 3D 모델 2개 (2026-11-14)
 
 > **2026-11-18 끝** — 그림 세션 없이 Claude 세션이 다 큰 모델 · 그림에서 비율만 바꿔 만들었다(`design/aqua3d-review/orca-young-build.mjs` · `orca-young-art.mjs`, 검수 `orca-young/review.webp`). 진짜 새끼 그림으로 다시 그리면 이 두 스크립트 대신 아래 규칙대로.

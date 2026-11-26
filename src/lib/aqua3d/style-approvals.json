@@ -1789,6 +1789,18 @@
     "emperor_penguin": {
       "sourceHash": "16768e2b254e38fb6745479dc9aefc31169276e52ef8a1c47f683296155d9ede",
       "sheet": "design/aqua3d-review/polar/review-1126.webp"
+    },
+    "beluga": {
+      "sourceHash": "fe38e5b1cc836a8d275982ad1a61ef05a6fcac6c63736ac0d0c2668e3dcf4fc3",
+      "sheet": "design/aqua3d-review/polar/review-beluga.webp"
+    },
+    "juv_beluga": {
+      "sourceHash": "f10275837c0e6e0e9bd904ebd99f0611d3d370823abbfaca79538fbabcbc3f61",
+      "sheet": "design/aqua3d-review/polar/review-beluga.webp"
+    },
+    "fry_beluga": {
+      "sourceHash": "2ae29b654a2c134614f3c80da30d9353143436ac82b15df956a6efd37c032492",
+      "sheet": "design/aqua3d-review/polar/review-beluga.webp"
     }
   }
 }
