@@ -365,11 +365,11 @@ export function herdTune(netTier: number, eff: Eff): HerdTune {
   return { netSpeed: 0.3 * (1 + eff.power * 0.012), netR: netRadius(netTier) * 1.05 + eff.line * 0.0006 };
 }
 /** 판을 연다 — 물고기 4~5마리, 그물은 아래 가운데 물가 */
-export function startHerd(spot: FishSpot, luck: number, bait: number, seed: number, when?: FishMoment): Herd {
+export function startHerd(spot: FishSpot, luck: number, bait: number, seed: number, when?: FishMoment, eventDone?: readonly string[]): Herd {
   const r = rng(seed);
   const n = 4 + (luck >= 20 ? 1 : 0);
   const fish = Array.from({ length: n }, (_, id): HerdFish => {
-    const haul = rollCatch(spot, luck, 0.5, (seed + (id + 1) * 7919) >>> 0, { bait, method: "scoop", junk: true, when });
+    const haul = rollCatch(spot, luck, 0.5, (seed + (id + 1) * 7919) >>> 0, { bait, method: "scoop", junk: true, when, eventDone });
     const d = haul.difficulty;
     const junk = !!haul.junk;
     return {

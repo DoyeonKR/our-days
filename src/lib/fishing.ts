@@ -17,6 +17,7 @@
  *  · 꽝 [사용자: "일정 확률로 바다 쓰레기(꽝)도 낚을 수 있는 재미 포인트 … 쓰레기의 종류는 여러개"] — 끌어올리기 전까진 물고기와 똑같다. 낚시터마다 다른 쓰레기가 있고 수집함에 남는다.
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
 import { ACTIVE_SHRIMP, withShrimp } from "./shrimp.ts";
+import { EVENT_FISH, EVENT_SEED, isEventFamily } from "./eventfish.ts";
 import type { IslandState } from "./island.ts";
 import type { SpecialCard } from "./fishplus.ts";
 import { josa } from "./josa.ts";
@@ -368,7 +369,7 @@ export const junksAt = (spotKey: string) => JUNKS.filter((x) => !x.spot || x.spo
 
 /** avoid — 방금 같은 계열이 연달아 나왔으면 그 계열을 흔한 물고기 뽑기에서 한 번 뺀다(50번에 같은 물고기만 이어지지 않게) */
 /** size — 대물 뽑기 문턱에 더하는 값(만든 '빛 미끼' — fishcraft.ts). 길이 뽑기는 별도 주사위라 계열 · 등급 · 단계 뽑기는 그대로다. 없으면 0 */
-export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number; /** 수심(0 표층 · 1 중층 · 2 바닥) — 그 수심에 사는 계열 쪽으로 같은 미끼 단계 안에서만 다시 고른다 */ depth?: FishDepth; /** 어군에 맞혔다 — 맞춘 수심 쪽으로 더 세게 */ school?: boolean; /** 미끼가 멈춘 깊이(m) — 그보다 깊은 곳에만 있는 쓰레기(minDepth)는 안 걸린다 */ depthM?: number };
+export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number; /** 수조에 한 번 넣어 더는 안 오는 이벤트 물고기(eventDone) */ eventDone?: readonly string[]; /** 수심(0 표층 · 1 중층 · 2 바닥) — 그 수심에 사는 계열 쪽으로 같은 미끼 단계 안에서만 다시 고른다 */ depth?: FishDepth; /** 어군에 맞혔다 — 맞춘 수심 쪽으로 더 세게 */ school?: boolean; /** 미끼가 멈춘 깊이(m) — 그보다 깊은 곳에만 있는 쓰레기(minDepth)는 안 걸린다 */ depthM?: number };
 /** 수심 맞추기(2026-11-13) [사용자: "거리말고 수심도 조절할 수 있는 기믹"] — 찌가 내려앉으면 미끼가 표층 → 중층 → 바닥으로 가라앉고, 눌러서 멈춘 수심에 사는 물고기가 더 잘 문다.
  *  사는 수심은 수조의 습성(aqua3d/habits — 바닥에 붙는 종 · 높이)과 같은 갈래다(fishingdepth.test 가 견준다). 목록에 없는 계열은 중층 */
 export type FishDepth = 0 | 1 | 2;
@@ -428,6 +429,18 @@ function rollCatchCore(spot: FishSpot, luck: number, cast: number, seed: number,
   const how = methodOf(opts.method ?? "float");
   // 물때(2026-11-12) — 바다에서 사리면 대물이 조금 더. 길이 뽑기에만 닿는다(등급 · 계열 · 미끼 1% 규칙은 그대로 — luck 으로 넘기지 않는 이유)
   const trophy = tideEffect(spot.water, opts.when?.moon).trophy;
+  // 이벤트 물고기(lib/eventfish — 갓파) — 그 낚시터에서 던질 때마다 정확히 chance. 미끼 · 행운 · 방식 · 시간 · 날씨와 무관한 따로 된 주사위라
+  //   다른 뽑기 순서는 그대로다(걸린 1% 만 바뀐다). 수조에 한 번 넣었으면(eventDone) 안 온다. 미끼 상한도 보지 않는다(무조건 1%)
+  for (const ev of EVENT_FISH) {
+    if (ev.spot !== spot.key || opts.eventDone?.includes(ev.species)) continue;
+    const er = rng((seed ^ EVENT_SEED) >>> 0);
+    if (er() >= ev.chance) continue;
+    const fam = familyOf(ev.species);
+    if (!fam) continue;
+    // 모습 — 치어 4분의 1 · 어린 4분의 1 · 다 큰 절반(뜰채는 치어 · 어린 반반)
+    const v = er(), stage: 0 | 1 | 2 = how.adult <= 0 ? (v < 0.5 ? 0 : 1) : v < 0.25 ? 0 : v < 0.5 ? 1 : 2;
+    return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: ev.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? ev.species : undefined), push: spotPush(spot), at: spot.key }, luck, cast, seed, trophy + (opts.size ?? 0));
+  }
   // 때 손님 — 이 시간 · 이 날씨에 이 낚시터에만 다 큰 모습으로 문다. 별도 뽑기라 다른 뽑기 순서는 그대로다.
   if (opts.when) {
     const capNow = opts.bait === undefined ? GRADES.length - 1 : BAITS[Math.min(BAITS.length - 1, opts.bait)].maxGrade;
@@ -1335,3 +1348,10 @@ function buyTier(st: IslandState, kind: "rod" | "net"): GearResult {
 }
 export const buyRod = (st: IslandState) => buyTier(st, "rod");
 export const buyNet = (st: IslandState) => buyTier(st, "net");
+
+/** 수조에 한 번 넣어 더는 안 오는 이벤트 물고기 — 섬 기록(eventKept) + 지금 수조에 있는 것(기록 칸이 생기기 전에 넣었어도) */
+export function eventDone(st: IslandState): string[] {
+  const kept = new Set((st.eventKept ?? []).filter(isEventFamily));
+  for (const f of aquaOf(st).fish) if (isEventFamily(f.family)) kept.add(f.family);
+  return [...kept];
+}

@@ -1,4 +1,5 @@
 // 낚시 lock. [사용자 2026-11-02 "낚시에 성공한 물고기들만 수조에 보관 … 포획 능력치에 따라 확률로 보관 … 낚시 게임을 메인으로"]
+import { EVENT_FISH, isEventFamily } from "./eventfish.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -93,7 +94,7 @@ test("같은 입력이면 같은 결과 · 뽑기도 seed 로만", () => {
 
 test("낚시터 — 모든 계열이 어딘가에서 잡힌다 · 표에 있는 계열만 · 레벨이 오를수록 열린다", () => {
   const pooled = new Set(SPOTS.flatMap((x) => x.pool.map(([k]) => k)));
-  const guests = new Set(TIMED_FISH.map((t) => FAMILIES.find((f) => f.finals.some((x) => x.key === t.species))?.key));
+  const guests = new Set([...TIMED_FISH, ...EVENT_FISH].map((t) => FAMILIES.find((f) => f.finals.some((x) => x.key === t.species))?.key));
   for (const f of FAMILIES) assert.ok(pooled.has(f.key) || guests.has(f.key), `${f.key} 는 잡을 곳이 없다`);
   for (const k of pooled) assert.ok(FAMILIES.some((f) => f.key === k), k);
   for (let i = 1; i < SPOTS.length; i++) assert.ok(SPOTS[i].minLevel > SPOTS[i - 1].minLevel);
@@ -239,7 +240,8 @@ test("미끼 — 높을수록 횟수 · 값 · 상한이 모두 오른다 · 상
     if (!poolFor(spot, BAITS[b].maxGrade).length) continue;
     for (let i = 0; i < 400; i++) {
       const c = rollCatch(spot, 40, 1, i * 37 + 1, { bait: b, method: "lure" });
-      assert.ok(GRADES.indexOf(c.grade) <= BAITS[b].maxGrade, `${spot.key} ${BAITS[b].key} → ${c.grade}`);
+      // 이벤트 물고기(lib/eventfish — 갓파)는 미끼 상한과 무관하게 정확히 1% 다(사용자: "무조건 확률 1%")
+      if (!isEventFamily(c.family)) assert.ok(GRADES.indexOf(c.grade) <= BAITS[b].maxGrade, `${spot.key} ${BAITS[b].key} → ${c.grade}`);
     }
   }
 });

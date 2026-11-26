@@ -3,6 +3,7 @@
 /* 우리 수조의 카드들(2026-11-21 리뷰 ⑪ — AquariumGame.tsx 에서 옮겼다): 행사 카드 · 막대 · 물고기 카드(이름 · 이야기) · 조명 가게 ·
  * 가득 찼을 때 견주기 · 추모 칸 · 변이 도감. 규칙은 lib(순수), 여기는 그리기뿐이다. 저장은 부모(AquariumGame 의 act)가 한다. */
 import { ActionButton } from "@/components/AppButtons";
+import { isEventFamily } from "@/lib/eventfish";
 import { SPOTS, releaseBossPlan, releaseSpot } from "@/lib/fishing";
 import { MASTERY_RELEASE_N } from "@/lib/fishmastery";
 import { fmtCm } from "@/lib/fishingworld";
@@ -100,6 +101,7 @@ export function FishCard({ f, a, seen, now, who, couple, busy, onRelease, onName
             {age && <small className="aqua-note">우리 수조 {age.days}일째{age.approx ? " 넘게" : ""}</small>}
           </span>
           {f.stage === 2 ? (sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small className="aqua-note">다 컸어요</small>) : <small className="aqua-note">성장 {pct}% · {duration(hoursLeft(a, f))} 남음 · 정성 {cq}</small>}
+          {isEventFamily(f.family) && <span className="aqua-grade is-event">이벤트</span>}
         </span>
         <ActionButton onClick={onRelease}>보내 주기 <span className="aqua-price"><Coin /> {reward.toLocaleString()}</span></ActionButton>
       </div>

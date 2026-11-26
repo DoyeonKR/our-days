@@ -309,7 +309,7 @@ test("화면 — 낚시 준비가 만든 미끼를 고르고, 쓸 때는 spendCr
   assert.match(src, /ck \? spendCraft\(s, sp, m, ck, kstDate\(t\), castM, night\) : spendBait\(s, sp, m, key, kstDate\(t\), castM, night\);[\s\S]{0,160}?\}, true\)/, '만든 미끼도 집어등 밤 판정을 같이 받는다');
   assert.match(src, /const \{ shown, bait \} = craft \? craftAsBait\(craft\) : currentBait\(fs, spot, baitPick/);
   assert.match(src, /waitPlan\(seed, tideEffect\(spot\.water, moment\.moon\)\.wait \* craftFx\.wait\)/, '물때 배율에 향 미끼 배율을 곱한다');
-  assert.match(src, /size: craftFx\.size \}\)/);
+  assert.match(src, /size: craftFx\.size, eventDone: eventDone\(st\) \}\)/);
   assert.match(src, /lure: craftFx\.special/);
   assert.match(src, /captureChance\(eff\.catch, fish\.difficulty, quality, perfectHook, method, craftEffects\(roundCraft/);
   assert.match(src, /function clearRound\(\) \{\s+setRoundCraft\(null\);/);

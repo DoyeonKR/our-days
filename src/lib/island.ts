@@ -1560,6 +1560,8 @@ export type Barn = Record<string, { qty: number; star: number }>; // cropKey →
 export type Placed = { id: string; key: string; x: number; y: number; at?: number };
 export type DailyQuest = { id: string; label: string; goal: number; prog: number; reward: number; xp: number; claimed: boolean };
 export type IslandState = {
+  /** 이벤트 물고기를 수조에 한 번 넣은 적이 있는 계열(lib/eventfish) — 그 뒤로는 낚이지 않는다. 맨 위 칸이라 옛 앱 · 다른 화면이 그대로 흘린다 */
+  eventKept?: string[];
   v: number;
   seed: number;
   rng: number; // 결정적 RNG 카운터

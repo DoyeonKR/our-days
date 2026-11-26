@@ -50,6 +50,7 @@ import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, typ
 import { islandSnapshot, refreshIsland, watchIslandStore } from "@/lib/islandstore";
 import { fishLogKey, noteFishLog } from "@/lib/fishlog";
 import { sendPokePush } from "@/lib/push";
+import { isEventFamily } from "@/lib/eventfish";
 import { BOSS_DUO, bossArt, bossChunk, bossDealt, bossDuo, familyName } from "@/lib/fishingworld";
 import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { lightBand, lightTune, startLight, type Light, type LightTune } from "@/lib/fishinglight";
@@ -62,7 +63,7 @@ import {
   type Deep, type DeepTune, type Lure, type LureTune, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
-import { spotArtKey, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, NETS, PERFECT_HOOK, RODS, SPOTS, baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, currentBait, formsSeen, currentSpot, expedFor, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, rankLine, revealMs, rollCatch, buySinker, buyReel, reelOf, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, storeBlock, traceMove, traceRelease, tryStore, waitPlan, xpNeed, xpValue, type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey } from "@/lib/fishing";
+import { spotArtKey, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, NETS, PERFECT_HOOK, RODS, SPOTS, baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, currentBait, formsSeen, currentSpot, expedFor, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, rankLine, revealMs, rollCatch, buySinker, buyReel, reelOf, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, storeBlock, eventDone, traceMove, traceRelease, tryStore, waitPlan, xpNeed, xpValue, type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
 import { josa } from "@/lib/josa";
 import { kstDate } from "@/lib/kst";
@@ -1139,7 +1140,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   function beginScoop() {
     const seed = Math.floor(dice() * 2 ** 31);
     payBait();
-    const h = startHerd(spot, eff.luck, baitIndex(bait.key), seed, moment);
+    const h = startHerd(spot, eff.luck, baitIndex(bait.key), seed, moment, eventDone(st));
     const tune = herdTune(fs.net, eff);
     herdRef.current = h;
     herdTuneRef.current = tune;
@@ -1323,9 +1324,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const seed = Math.floor(dice() * 2 ** 31);
       castScoreRef.current = score;
       const avoid = streak.current.n >= STREAK_MAX ? streak.current.family : undefined;
-      const base = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size });
+      const base = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size, eventDone: eventDone(st) });
       // 특별한 것(유리병 편지 · 보물)은 물고기 뽑기와 따로 뽑는다 — 물고기 뽑기 순서는 그대로다. 주인전엔 없다
-      const c = activeBoss ? base : rollSpecial(st, specialCtx(seed, clock())) ?? base;
+      const c = activeBoss || isEventFamily(base.family) ? base : rollSpecial(st, specialCtx(seed, clock())) ?? base; // 이벤트 물고기는 유리병 · 보물이 덮지 않는다(정확히 1%)
       if (!c.junk && !c.boss && !c.special) streak.current = c.family === streak.current.family ? { family: c.family, n: streak.current.n + 1 } : { family: c.family, n: 1 };
       // 물때 — 바다에서 사리면 입질이 빠르고 조금이면 느리다(강 · 호수는 1배). 만든 '향 미끼'의 배율을 곱한다
       const plan = waitPlan(seed, tideEffect(spot.water, moment.moon).wait * craftFx.wait);
@@ -1403,7 +1404,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         band: bandAt,
         redo: (meters, school) => {
           const d = zoneAt(meters, spot);
-          const again = rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size + (school ? 0.04 : 0), depth: d, school, depthM: meters });
+          const again = rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size + (school ? 0.04 : 0), depth: d, school, depthM: meters, eventDone: eventDone(st) });
           if (again.family !== c.family || again.stage !== c.stage || again.cm !== c.cm || again.junk !== c.junk) {
             gradeRef.current = GRADES.indexOf(again.grade);
             fishRef.current = again;
@@ -1943,6 +1944,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   ) : <>
                   <strong className="fish-name">{fish.junk ? junkOf(fish.junk)?.name : catchName(fish)}</strong>
                   {fish.junk ? <span className="aqua-grade fish-junk-tag">꽝</span> : <span className={gradeClass(fish.grade)}>{fish.grade}</span>}
+                  {!fish.junk && isEventFamily(fish.family) && <span className="aqua-grade is-event">이벤트</span>}
                   {sizeLine && <p className={`fish-size ${result?.sizeNote ? "is-record" : ""}`}>{sizeLine}</p>}
                   {phase === "result" && result?.sizeNote && fish.cm && !fish.boss && <ActionButton className="fish-trophy-make" onClick={() => setTrophy(trophyCard({ key: catchArt(fish), cm: fish.cm ?? 0, spot: spot.key, day: kstDate(clock()), by: myName.trim() || readFishNick() }, false))}>어탁 만들기</ActionButton>}
                   {fish.junk ? (

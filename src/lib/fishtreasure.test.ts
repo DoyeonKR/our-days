@@ -55,7 +55,7 @@ test("확률 — 민물 찌 약 1.2% · 상자 약 0.4% · 바다 · 심해 · �
 
 test("주인전엔 없다 — 화면이 rollSpecial 을 부르지 않는다 · 던지기 점수는 ref 로 넘긴다", () => {
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
-  assert.match(src, /const c = activeBoss \? base : rollSpecial\(st, specialCtx\(seed, clock\(\)\)\) \?\? base;/);
+  assert.match(src, /const c = activeBoss \|\| isEventFamily\(base\.family\) \? base : rollSpecial\(st, specialCtx\(seed, clock\(\)\)\) \?\? base;/);
   assert.match(src, /castScoreRef\.current = score;[\s\S]{0,600}rollSpecial\(st, specialCtx/, "뽑기 전에 이번 판 점수를 넣는다");
   assert.match(src, /cast: castScoreRef\.current/);
 });

@@ -13,6 +13,7 @@
  *    새 칸은 섬의 맨 위 칸 s.aquaPlus 에 저장한다(옛 앱이 s.aquarium 을 다시 만들며 모르는 칸을 버리기 때문 — stow 참고).
  *  · 결과가 양쪽 기기에서 같아야 하므로 뽑기는 물고기 id 로만 정한다(Math.random 금지).
  * ⚠ 섬 엔진은 타입만 부른다 — 값으로 부르면 이 파일을 쓰는 화면이 섬 엔진까지 싣는다. */
+import { isEventFamily } from "./eventfish.ts";
 import { ACTIVE_SHRIMP } from "./shrimp.ts";
 import { mealPairs, nextMealTime, pickMeal } from "./predation.ts";
 import { adoptMorphs, morphOf as bookMorph, noteMorph, readMorphBook, rollMorph, type Morph, type MorphBook } from "./aquamorph.ts";
@@ -1052,7 +1053,7 @@ export function addFish(st: IslandState, key: string, stage: 0 | 1 | 2, species:
   const value = catchV ?? saleValue(GRADES.indexOf((sp ?? fam.finals[0]).grade) + stage * 0.5);
   const form = stage === 2 && species ? species : `${stage === 0 ? "fry" : "juv"}_${key}`;
   const caught: LifeEntry = { k: "caught", t: Number.isFinite(origin.at) ? Math.min(now, origin.at!) : now, key: form, ...(origin.spot ? { spot: origin.spot } : {}), ...(origin.by ? { by: origin.by } : {}), ...(origin.net ? { net: 1 as const } : {}) };
-  return stow(s, {
+  const out = stow(s, {
     ...a,
     ...(a.life ? { life: lifeLog(a.life, a.nextId, caught) } : {}),
     // 빈 수조에 첫 물고기가 들어오면 새 물로 시작한다(비어 있던 동안 더러워진 물로 벌받지 않게)
@@ -1061,6 +1062,8 @@ export function addFish(st: IslandState, key: string, stage: 0 | 1 | 2, species:
     dex: addDex(a.dex, form),
     fish: [...a.fish, { id: a.nextId, family: key, stage, ...(stage === 2 && species ? { species } : {}), ...(crown ? { crown } : {}), ...(cm ? { adultCm: Math.round((cm / FISH_STAGE_SIZE[stage]) * 10) / 10 } : {}), growH, goodH: 0, totalH: 0, caughtStage: stage, catchV: Math.max(0, Math.round(value)) }],
   });
+  // 이벤트 물고기 — 수조에 넣는 데 성공한 순간 기록한다(그 뒤로는 낚이지 않는다, lib/eventfish)
+  return isEventFamily(key) && !(s.eventKept ?? []).includes(key) ? { ...out, eventKept: [...(s.eventKept ?? []), key] } : out;
 }
 
 /* ── 돌보기 ─────────────────────────────────────────── */

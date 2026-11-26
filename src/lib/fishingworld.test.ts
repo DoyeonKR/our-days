@@ -1,4 +1,5 @@
 // 2026-11-03 낚시 네 기능 — 크기 기록 · 때 손님 · 주인 · 주간 원정. 그리고 같이 고친 버그 잠금.
+import { EVENT_FISH } from "./eventfish.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -376,7 +377,7 @@ test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 
   assert.match(src, /setWorldSheet\("fish"\)/);
   assert.match(src, /<FishListSheet/);
   const panel = code("src/components/FishingPanels.tsx");
-  for (const f of FAMILIES) assert.ok(SPOTS.some((s) => s.pool.some(([k]) => k === f.key)) || TIMED_FISH.some((t) => t.species === f.key), f.key);
+  for (const f of FAMILIES) assert.ok(SPOTS.some((s) => s.pool.some(([k]) => k === f.key)) || TIMED_FISH.some((t) => t.species === f.key) || EVENT_FISH.some((e) => e.species === f.key), f.key);
   assert.match(panel, /모든 물고기/);
 });
 

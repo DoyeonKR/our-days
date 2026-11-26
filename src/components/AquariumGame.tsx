@@ -9,6 +9,7 @@ import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { SPOTS, formsSeen, releaseBossPlan, releaseSpot, releaseToSea, releaseXp } from "@/lib/fishing";
 import { MASTERY_RELEASE_N } from "@/lib/fishmastery";
 import { BOSSES, MOON_FISH, TIMED_FISH, fmtCm, timedLabel } from "@/lib/fishingworld";
+import { eventOf, isEventFamily } from "@/lib/eventfish";
 import { useBackClose } from "@/lib/useBackClose";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { getAuthInfo } from "@/lib/auth";
@@ -66,6 +67,9 @@ function dexHint(family: string, stage: 0 | 1 | 2, index: number): string {
   const spots = SPOTS.filter((s) => s.pool.some(([k]) => k === family)).map((s) => s.name);
   if (spots.length) return `${spots[0]}${spots.length > 1 ? ` 외 ${spots.length - 1}곳` : ""}에서 잡혀요`;
   // 때 손님 · 보름달 손님 · 주인 — 어느 낚시터 · 언제인지까지(2026-11-26 [사용자: "어디서 잡을 수 있어 ? 잡을 수 있는 조건이 안 보여"] — 예전엔 "때 손님 · 주인으로 와요"뿐이었다)
+  // 이벤트 물고기 — 어느 낚시터 · 몇 % · 한 번만(lib/eventfish)
+  const ev = eventOf(family);
+  if (ev) { const sp = SPOTS.find((x) => x.key === ev.spot); return `이벤트 · ${sp?.name ?? ev.spot}(Lv.${sp?.minLevel ?? 1})에서 던질 때마다 ${Math.round(ev.chance * 100)}% · 수조에 한 번 넣으면 더는 안 와요`; }
   const t = TIMED_FISH.find((x) => x.species === family) ?? MOON_FISH.find((x) => x.species === family);
   if (t) { const sp = SPOTS.find((x) => x.key === t.spot); return `${sp?.name ?? t.spot}(Lv.${sp?.minLevel ?? 1}) · ${timedLabel(t)}에만 오는 손님${t.rare ? ` · 와도 ${Math.round(t.rare * 100)}%만 물어요` : ""}`; }
   const boss = BOSSES.find((b) => b.family === family);
@@ -577,6 +581,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                         {/* 변이 표는 이름 칸 안에 — 오른쪽 등급 · 남은 시간 칸을 375px 밖으로 밀어내지 않게(넘치면 길이 글이 먼저 잘린다) */}
                         <span className="min-w-0 flex-1 truncate font-bold">{fishNick(a, f.id) ? <>{fishNick(a, f.id)} <small className="font-normal">{fishName(f)}</small></> : fishName(f)}<MorphTag morph={fishMorph(a, f)} /> <small className="font-normal">{fmtCm(fishCm(f))}{f.bred ? " · 수조에서 태어남" : ""}</small></span>
                         {f.stage === 2 ? (sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>다 컸어요</small>) : <small>{duration(hoursLeft(a, f))} 남음</small>}
+                        {isEventFamily(f.family) && <span className="aqua-grade is-event">이벤트</span>}
                       </button>
                     </li>
                   );
@@ -747,6 +752,7 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                         <span className="aqua-dex-pic">{seen ? <FishArt artKey={form.key} /> : <b aria-hidden>?</b>}</span>
                         <small>{seen ? fishName(form) : "???"}</small>
                         <span className={gradeClass(form.grade)}>{form.grade}</span>
+                        {isEventFamily(fam.key) && <span className="aqua-grade is-event">이벤트</span>}
                         {!seen && <small className="aqua-dex-hint">{dexHint(fam.key, form.stage, idx)}</small>}
                       </div>
                     );
@@ -817,6 +823,7 @@ function GrownCardInner({ g, morph, onNext }: { g: AquaNews; morph: Morph | null
         <strong>{fishName(look)}</strong>
         {morph && <small className="aqua-note">{MORPH_INFO[morph].desc} · 변이 도감에 남아요</small>}
         {sp && <span className={gradeClass(sp.grade)}>{sp.grade}</span>}
+        {isEventFamily(g.family) && <span className="aqua-grade is-event">이벤트</span>}
         <ActionButton main wide data-dialog-initial onClick={onNext}>확인</ActionButton>
       </div>
     </div>

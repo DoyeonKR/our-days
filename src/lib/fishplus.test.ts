@@ -29,7 +29,7 @@ test("특별한 것은 꽝 · 피버 · 순위판과 따로 · 화면이 갈래�
   const s = createIsland("펫", null, 0);
   assert.equal(landSpecial(s, { ...c, special: undefined }, {} as never).ok, false);
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
-  assert.match(src, /const c = activeBoss \? base : rollSpecial\(st, specialCtx\(seed, clock\(\)\)\) \?\? base;/, "물고기 뽑기와 따로 · 주인전엔 없다");
+  assert.match(src, /const c = activeBoss \|\| isEventFamily\(base\.family\) \? base : rollSpecial\(st, specialCtx\(seed, clock\(\)\)\) \?\? base;/, "물고기 뽑기와 따로 · 주인전엔 없다");
   assert.match(src, /if \(c\.special\) \{[\s\S]{0,400}landSpecial\(s, c, sctx\)/, "끌어올리면 landSpecial — 꽝 · 순위판 길을 안 탄다");
   assert.doesNotMatch(src.slice(src.indexOf("if (c.special) {"), src.indexOf("if (c.special) {") + 600), /reportCatch|haulJunk/, "순위판 · 꽝 수집함에 안 간다");
 });
