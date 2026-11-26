@@ -52,7 +52,7 @@ test("수조 GLB 457개 전부 배포 형식(meshopt · 양자화 · 512px 이�
   // 고래 5종 · 톱상어(2026-11-18 — whales/build.mjs)
   const whaleKeys=['minke_whale','gray_whale','humpback_whale','sperm_whale','blue_whale','sawshark'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of whaleKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   // 바다코끼리 · 황제펭귄(2026-11-24 — mammal-tube-build.mjs)
-  // 흰고래(2026-11-26 — polar/beluga-build.mjs)
+  // 벨루가(2026-11-26 — polar/beluga-build.mjs)
   const polarKeys=['walrus','emperor_penguin','beluga'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of polarKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
   assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length+shrimpKeys.length+orcaKeys.length+crabKeys.length+whaleKeys.length+polarKeys.length);
   assert.equal(files.filter(f=>f.kind==='decor').length,37);

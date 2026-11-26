@@ -1791,15 +1791,15 @@
       "sheet": "design/aqua3d-review/polar/review-1126.webp"
     },
     "beluga": {
-      "sourceHash": "df87e68533e248db4c5dd1d5f4674fdc2fbf17ba4d4a1ec04e567925042ea258",
+      "sourceHash": "b5391139ce6a488cf44fc80bb8d7dcf111decf095be2a4b9b6032ccf1800748e",
       "sheet": "design/aqua3d-review/polar/review-beluga.webp"
     },
     "juv_beluga": {
-      "sourceHash": "2ef0f08e022dadccb5f6bcb92d571520abdaf3969418bdbaa91905afaa3be610",
+      "sourceHash": "7d8da959972a8edaf2c4aedbc61abafe6fcf2ca0c5d15d4b5dbd917b229889ac",
       "sheet": "design/aqua3d-review/polar/review-beluga.webp"
     },
     "fry_beluga": {
-      "sourceHash": "a61eb005d51676b9add19562bf8d7b2a0f0eb57249c775fa0f051f85ff78ede4",
+      "sourceHash": "72c23090107295e3d86094f91b7723a0420064834a55aa00090d76d3b8d24fb2",
       "sheet": "design/aqua3d-review/polar/review-beluga.webp"
     }
   }

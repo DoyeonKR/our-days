@@ -7897,10 +7897,10 @@ notify pgrst, 'reload schema';
 commit;
 
 -- ── migrations/20261122150000_fish_families_beluga.sql ──
--- 흰고래(벨루가, 2026-11-26) 를 낚시 순위 · 크기 순위가 아는 계열 목록에 더한다.
+-- 벨루가(2026-11-26) 를 낚시 순위 · 크기 순위가 아는 계열 목록에 더한다.
 -- 20261122140000_fish_families_walrus_penguin 의 private.fish_family_ok 와 같은 정의에 계열만 늘렸다(목록은 src/lib/aquarium.ts 의 FAMILIES 순서 — serverguard.test 가 견준다).
 -- 함수 하나를 다시 정의할 뿐이다 — 표 · 행 · 다른 함수 · 권한은 그대로. 몇 번 다시 돌려도 같다.
--- 롤백: 20261122140000_fish_families_walrus_penguin.sql 의 함수 정의를 그대로 다시 실행한다(흰고래 순위 행은 계열 없이 남는다).
+-- 롤백: 20261122140000_fish_families_walrus_penguin.sql 의 함수 정의를 그대로 다시 실행한다(벨루가 순위 행은 계열 없이 남는다).
 begin;
 
 create or replace function private.fish_family_ok(p_family text)

@@ -129,7 +129,7 @@ export const TIMED_FISH: readonly TimedFish[] = [
   // 바다코끼리 · 황제펭귄(2026-11-24) — 바다코끼리는 북쪽 찬 바다(고성 거진항)의 눈 오는 날, 황제펭귄은 남극 세종기지 앞바다의 새벽
   { species: "walrus", spot: "starsea", wx: "snow", side: true },
   { species: "emperor_penguin", spot: "sejong", time: "dawn", side: true },
-  // 흰고래(2026-11-26) — 북쪽 찬 바다(고성 거진항)의 해 질 녘
+  // 벨루가(2026-11-26) — 북쪽 찬 바다(고성 거진항)의 해 질 녘
   { species: "beluga", spot: "starsea", time: "dusk", side: true },
   { species: "sunfish", spot: "starsea", time: "day", side: true },
   { species: "butterflyfish", spot: "reef", time: "dawn", side: true },
