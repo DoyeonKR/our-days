@@ -98,7 +98,7 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   //   이벤트 물고기(lib/eventfish) — 청계천에서 던질 때마다 0.1%, 수조에 한 번 넣으면 끝. 물속에선 자유형(glb 의 HUMAN_SWIMMERS — 팔을 번갈아 돌리고 발차기 · 몸 돌리기 · 숨쉬기),
   //   모래사장 · 바위에선 두 발로 걷는다(walk). 숨 쉬러 자주 오르고 수면 가까이 헤엄친다. 누르면 물속에서 빙글 돈다(twirl)
   { key: "yujin", name: "유진", grade: "태초", price: 130000, hours: 537, minTank: 6, size: 30, cm: 165, fresh: true, ornamental: false,
-    spots: [], habit: { lo: .4, hi: 3.4, speed: 0.22, reach: 1, depth: 1.6, haul: true, walk: true, breathe: 28, breathOnly: true, dart: 0.08, pace: 1, tilt: 0.15, level: 0.3 } },
+    spots: [], habit: { lo: .4, hi: 3.4, speed: 0.22, reach: 1, depth: 1.6, haul: true, walk: true, landStand: 0.45, breathe: 28, breathOnly: true, dart: 0.08, pace: 1, tilt: 0.15, level: 0.3 } },
   // 남극 10종(2026-11-25 [사용자: "남극기지 낚시터에 … 10종" → "기존에있는 것과 조금 다른 느낌없어 ? 펭귄과 메로는 유지하고" → "다 완벽하게 진행해줘"]) —
   //   그림 · 3D 는 Claude 세션이 부위로 지었다(design/aqua3d-review/polar/ penguins · antfish · inverts-build.mjs, 카드 그림은 모델을 찍은 것).
   //   젠투 · 아델리 · 대왕등각류는 세종기지 pool 의 흔한 몫(시작 미끼 단계 — 대구 바로 뒤), 나머지 일곱은 세종기지 때 손님(곁 칸)

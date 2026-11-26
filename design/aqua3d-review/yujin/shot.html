@@ -8,7 +8,7 @@ const V={front:[0,0,1],back:[0,0,-1],side:[1,0,0],side2:[-1,0,0],top:[0,1,.001]}
 const r=new T.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,preserveDrawingBuffer:true,alpha:qs.has('clear')}); r.setSize(S,S); r.outputColorSpace=T.SRGBColorSpace; if(qs.has('clear'))r.setClearColor(0,0);
 const s=new T.Scene(); if(!qs.has('clear'))s.background=new T.Color(0x8899aa); s.add(new T.HemisphereLight(0xffffff,0x444433,1.2)); const d=new T.DirectionalLight(0xffffff,2.6); d.position.set(-1,2,3); s.add(d);
 const g=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(qs.get('src')); s.add(g.scene); if(qs.has('game')){g.scene.matrixAutoUpdate=false; g.scene.matrix.set(0,0,-1,0, 1,0,0,0, 0,-1,0,0, 0,0,0,1);}
-if(!qs.has('tex')) g.scene.traverse(o=>{if(o.isMesh)o.material=new T.MeshStandardMaterial({color:0xd8cfc2,roughness:.6});});
+if(qs.has('unlit')) g.scene.traverse(o=>{if(o.isMesh)o.material=new T.MeshBasicMaterial({map:o.material.map});}); else if(!qs.has('tex')) g.scene.traverse(o=>{if(o.isMesh)o.material=new T.MeshStandardMaterial({color:0xd8cfc2,roughness:.6});});
 const views=(qs.get('views')??view).split(','); const c2=document.createElement('canvas'); c2.width=S*views.length; c2.height=S; const x=c2.getContext('2d');
 V.oblique=[1,.4,1.3]; V.obl2=[-1,.3,1.2]; V.card=[.45,.12,1];
 views.forEach((vw,i)=>{const cam=new T.OrthographicCamera(-half,half,half,-half,.01,100); const dd=new T.Vector3(...V[vw]).normalize(); if(vw==='top')cam.up.set(0,0,-1); const ctr=new T.Vector3(cx,cy,cz); cam.position.copy(ctr).addScaledVector(dd,10); cam.lookAt(ctr); r.render(s,cam); x.drawImage(r.domElement,i*S,0);});

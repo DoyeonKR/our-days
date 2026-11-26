@@ -64,6 +64,8 @@ export type FishHabit = {
   float?: boolean;
   /** 땅 위에선 두 발로 서서 걷는다(펭귄, 2026-11-26) — haulBlend 가 course.upright 와 쉼터 둘레 오가기를 준다 */
   walk?: boolean;
+  /** 땅 위에서 오가다 양 끝에서 서 있는 몫(0 ~ 0.8, 유진 2026-11-27 — 서서 하트 · 손 흔들기 · 둘러보기를 할 틈). 걷는 빠르기는 그대로(한 바퀴가 길어진다) */
+  landStand?: number;
   /** 바위 · 모래사장에서 쉬는 몸 두께 배율(기본 1 — 몸길이 0.12). 다리가 몸 아래로 늘어진 북극곰은 크게(모래에 묻혔다), 납작하게 엎드리는 바다코끼리는 작게(2026-11-26) */
   restThick?: number;
   /** 바닥에서 먹이 찾기(바다코끼리, 2026-11-26) [사용자: "신규 개체들 움직임과 디테일 업그레이드 해줘 충분히"] — 숨쉬기 주기의 반 바퀴 뒤마다 26초 동안 모래로 비스듬히 내려가
@@ -1450,8 +1452,14 @@ export function haulRest(id: number, seconds: number): number {
 /** 헤엄 길(out — 이미 계산한 schoolCourse)을 쉼터와 섞는다. 돌려주는 값 = 쉬는 정도(0~1) */
 const smooth01 = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
 /** 해변 모래 턱(root 안 x — 넓히기 전) · 앞뒤 물러남 — habitat.ts 의 BEACH_X0 + BEACH_BANK · BEACH_Z0 · BEACH_ZK 와 같은 값(beach.test 가 맞춰 본다). three 를 안 불러오려고 따로 둔다 */
+/** 땅 위 오가기 위상 — 반 바퀴(π)마다 끝(sin = ±1)에서 st 몫만큼 멈춘다. cos 가 0 인 자리라 빠르기가 이어진다(habits.landStand) */
+export function standPhase(base: number, st: number): number {
+  if (!st) return base;
+  const k = Math.floor(base / Math.PI), x = base / Math.PI - k, a = 0.5 - st / 2, y = x < a ? 0.5 * x / a : x < 1 - a ? 0.5 : 0.5 + 0.5 * (x - (1 - a)) / a;
+  return (k + y) * Math.PI;
+}
 export const BEACH_DRY_X = 3.8, BEACH_Z0 = -0.3, BEACH_ZK = 1.35;
-export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean; walk?: boolean; thick?: number; sand?: (x: number, z: number) => number }, out: Course): number {
+export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean; walk?: boolean; landStand?: number; thick?: number; sand?: (x: number, z: number) => number }, out: Course): number {
   let R = haulRest(id, seconds);
   out.land = 0;
   // 먹이를 주면 쉬다가도 먹으러 간다
@@ -1503,7 +1511,9 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
   const beachWalk = !!(opts.sand && o?.kind === "beach");
   if (opts.walk && !opts.float) {
     walkUp = beachWalk ? smooth01((R - 0.56) / 0.12) : smooth01((R - 0.82) / 0.18);
-    const ph = seconds * 0.2 + unit(h, 151) * TAU, span = Math.min(length * 0.8, o && o.kind !== "beach" ? o.r * 0.3 : length * 0.8), lim = 5 * scale - length * 0.42;
+    const st = Math.max(0, Math.min(0.8, opts.landStand ?? 0)), base = seconds * 0.2 * (1 - st) + unit(h, 151) * TAU;
+    // 반 바퀴(π)마다 끝(sin = ±1 — cos 가 0 이라 빠르기가 이어진다)에서 st 몫만큼 멈춰 선다
+    const ph = standPhase(base, st), span = Math.min(length * 0.8, o && o.kind !== "beach" ? o.r * 0.3 : length * 0.8), lim = 5 * scale - length * 0.42;
     rx = Math.max(-lim, Math.min(lim, rx + Math.sin(ph) * span * walkUp));
     const mv = Math.cos(ph), w = walkUp * smooth01((Math.abs(mv) - 0.15) / 0.3);
     fx = fx * (1 - w) + Math.sign(mv) * w; fz *= 1 - w * 0.7;

@@ -26,8 +26,8 @@ const FACE_MODEL = [[-.046, .884], [.031, .883], [-.012, .829], [-.011, .792], [
 const FACE_PHOTO = [[447, 535], [643, 533], [543, 668], [543, 752], [543, 878]];
 const faceMap = () => { const em = [(FACE_MODEL[0][0] + FACE_MODEL[1][0]) / 2, (FACE_MODEL[0][1] + FACE_MODEL[1][1]) / 2], ep = [(FACE_PHOTO[0][0] + FACE_PHOTO[1][0]) / 2, (FACE_PHOTO[0][1] + FACE_PHOTO[1][1]) / 2], sc = (FACE_PHOTO[4][1] - ep[1]) / (em[1] - FACE_MODEL[4][1]); return (x, y) => [ep[0] + (x - em[0]) * sc, ep[1] - (y - em[1]) * sc]; };
 // 얼굴 면 타원(사진의 얼굴 윤곽 — 이마 위 머리선 아래 · 턱 · 양 뺨)
-const FE = {x: -.009, y: .846, rx: .058, ry: .082, ryUp: .112}; // 위로는 머리선까지(이마)
-const feOf = (x, y) => Math.hypot((x - FE.x) / FE.rx, (y - FE.y) / (y > FE.y ? FE.ryUp : FE.ry));
+const FE = {x: -.009, y: .846, rx: .058, rxR: .066, ry: .082, ryUp: .112} // 오른뺨(사진 오른쪽 · 모델 +x)은 사진의 뺨 끝이 더 바깥; // 위로는 머리선까지(이마)
+const feOf = (x, y) => Math.hypot((x - FE.x) / (x > FE.x ? FE.rxR : FE.rx), (y - FE.y) / (y > FE.y ? FE.ryUp : FE.ry));
 const noseW = (x, y) => Math.exp(-(((x + .012) / .016) ** 2 + ((y - .832) / .03) ** 2));
 
 // ── 머리(스캔) + 얼굴 면 ──
@@ -35,7 +35,7 @@ const CUT_Y = .7;
 function head() {
   const {P, I} = loadSource();
   // ① 앞 깊이 격자 — 칸마다 가장 앞 z, 가운데값으로 가는 머리 가닥(얇다)을 지우고 고르게. 코 둘레는 덜 고른다
-  const G = .0025, nx = Math.ceil(2 * FE.rx * 1.15 / G) + 1, ny = Math.ceil((FE.ry + FE.ryUp) * 1.15 / G) + 1, x0 = FE.x - FE.rx * 1.15, y0 = FE.y - FE.ry * 1.15;
+  const G = .0025, nx = Math.ceil((FE.rx + FE.rxR) * 1.15 / G) + 1, ny = Math.ceil((FE.ry + FE.ryUp) * 1.15 / G) + 1, x0 = FE.x - FE.rx * 1.15, y0 = FE.y - FE.ry * 1.15;
   const zmax = new Float32Array(nx * ny).fill(-9);
   for (const p of P) { if (p[2] < -.2) continue; const i = Math.round((p[0] - x0) / G), j = Math.round((p[1] - y0) / G); if (i >= 0 && j >= 0 && i < nx && j < ny) zmax[j * nx + i] = Math.max(zmax[j * nx + i], p[2]); }
   const med = (src, r, keep) => { const out = new Float32Array(src.length); for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const R = keep(i, j) ? 1 : r, vs = []; for (let b = -R; b <= R; b++) for (let a = -R; a <= R; a++) { const ii = i + a, jj = j + b; if (ii >= 0 && jj >= 0 && ii < nx && jj < ny && src[jj * nx + ii] > -9) vs.push(src[jj * nx + ii]); } vs.sort((a, b) => a - b); out[j * nx + i] = vs.length ? vs[vs.length >> 1] : -9; } return out; };
@@ -49,8 +49,10 @@ function head() {
   for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = idx[j * nx + i], b = idx[j * nx + i + 1], c = idx[(j + 1) * nx + i], d = idx[(j + 1) * nx + i + 1]; if (a >= 0 && b >= 0 && c >= 0 && d >= 0) FI.push(a, b, d, a, d, c); }
   // ③ 스캔 — 얼굴 타원 안 앞쪽(얼굴 · 얹힌 머리 가닥)을 떼고, 목 아래를 뗀다(몸은 새로 짓는다), 가장 큰 덩어리
   const inFace = (p) => feOf(p[0], p[1]) < .97 && p[2] > -.2;
+  // 얼굴 면과 겹치는 띠(.97 ~ 1.06)에서 세 꼭짓점이 모두 면 아래인 스캔 삼각형 — 면 위로 튀어나와 회색 조각으로 보였다
+  const underPatch = (p) => feOf(p[0], p[1]) < 1.0 && p[2] > -.2 && p[1] > B.chin;
   const inHead = (p) => (p[1] > CUT_Y || (p[1] > .46 && p[2] < -.34 && Math.abs(p[0] + .01) < .17)) && !inFace(p);
-  const keep = []; for (let t = 0; t < I.length; t += 3) if (inHead(P[I[t]]) && inHead(P[I[t + 1]]) && inHead(P[I[t + 2]])) keep.push(I[t], I[t + 1], I[t + 2]);
+  const keep = []; for (let t = 0; t < I.length; t += 3) if (inHead(P[I[t]]) && inHead(P[I[t + 1]]) && inHead(P[I[t + 2]]) && !(underPatch(P[I[t]]) && underPatch(P[I[t + 1]]) && underPatch(P[I[t + 2]]))) keep.push(I[t], I[t + 1], I[t + 2]);
   const par = Int32Array.from({length: P.length}, (_, i) => i), f = (x) => { while (par[x] !== x) x = par[x] = par[par[x]]; return x; };
   for (let t = 0; t < keep.length; t += 3) { const a = f(keep[t]); par[f(keep[t + 1])] = a; par[f(keep[t + 2])] = a; }
   const cnt = new Map(); for (let t = 0; t < keep.length; t += 3) cnt.set(f(keep[t]), (cnt.get(f(keep[t])) ?? 0) + 1);

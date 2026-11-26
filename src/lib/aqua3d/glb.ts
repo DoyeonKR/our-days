@@ -547,7 +547,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
     };
   })() : null;
   const yjAll = yj ? [yj.head, yj.bag, ...yj.knee, ...yj.ankle, ...yj.wrist, ...yj.fing.flat(2), ...yj.hair.flat()].filter((r): r is Rig => !!r) : [];
-  let idleT = 0, hairT = (inner.id % 7) * 1.3;
+  let idleT = 0, idleW = 0, hairT = (inner.id % 7) * 1.3;
   if (walker && body) {
     // 모델 좌표(inner 안)의 아래 끝 · 뒤 끝 — 세우면 뒤 끝(발 · 꼬리)이 바닥이 되므로 그 차이만큼 올린다
     inner.updateMatrixWorld(true);
@@ -733,13 +733,14 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       }
       if (yj) {
         for (const r of yjAll) r.bone.quaternion.copy(r.base);
-        const w = 1 - u, wa = Math.min(1, (speed ?? 0) / 0.12), still = u > 0.9 && (speed ?? 0) < 0.05;
+        const w = 1 - u, wa = Math.min(1, (speed ?? 0) / 0.12), still = u > 0.9 && (speed ?? 0) < 0.08;
         if (dt > 0) hairT += dt * (reducedMotion() ? 0.35 : 1);
-        idleT = still && dt > 0 ? idleT + dt : still ? idleT : 0;
+        // 서 있는 몫(idleW)은 천천히 오르내린다 — 동작 중에 걷기 시작하면 팔을 툭 떨어뜨리지 않고 0.35초에 걸쳐 내린다(그동안 동작 시계는 멈춘다)
+        if (dt > 0) { if (still) idleT += dt; idleW += ((still ? 1 : 0) - idleW) * (1 - Math.exp(-dt / 0.35)); if (!still && idleW < 0.01) idleT = 0; }
         let curl = 0.24 * u + 0.04 * w, arm = [0, 0], elbow = [0, 0], wrist = [0, 0], tilt = 0, yaw = 0;
-        // 서 있을 때 — 2초 가만히 있으면 6초마다 한 동작(둘러보기 · 머리 위 하트 · 손 흔들기, 사람마다 순서가 다르다)
-        if (idleT > 2 && !reducedMotion()) {
-          const cyc = (idleT - 2) / 6, act = (Math.floor(cyc) + (inner.id % 3)) % 3, f = (cyc % 1) * 6, e0 = Math.max(0, Math.min(1, f / 0.8, (4.6 - f) / 0.8)), e = e0 * e0 * (3 - 2 * e0);
+        // 서 있을 때 — 0.8초 가만히 있으면 6초마다 한 동작(둘러보기 · 머리 위 하트 · 손 흔들기, 사람마다 순서가 다르다)
+        if (idleT > 0.8 && !reducedMotion()) {
+          const cyc = (idleT - 0.8) / 6, act = (Math.floor(cyc) + (inner.id % 3)) % 3, f = (cyc % 1) * 6, e0 = Math.max(0, Math.min(1, f / 0.8, (4.6 - f) / 0.8)), e = e0 * e0 * (3 - 2 * e0) * idleW;
           if (act === 0) { yaw = 0.62 * Math.sin((f / 4.6) * Math.PI * 2) * e; tilt = 0.08 * e; }
           else if (act === 1) { arm = [2.3 * e, -2.3 * e]; elbow = [1.45 * e, -1.45 * e]; curl += 0.35 * e; tilt = 0.16 * e; }
           else { const wv = Math.sin(f * 7); arm = [2.5 * e, 0]; elbow = [(0.55 + 0.45 * wv) * e, 0]; wrist = [0.3 * Math.sin(f * 7 + 1) * e, 0]; curl -= 0.2 * e; yaw = 0.18 * e; }

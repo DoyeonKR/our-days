@@ -55340,8 +55340,8 @@
       "family": "yujin",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_yujin.glb",
-      "triangles": 38297,
-      "bytes": 592940,
+      "triangles": 38726,
+      "bytes": 596132,
       "bones": [
         "spine_0",
         "spine_1",
@@ -55479,7 +55479,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0415190ef885d7600a33cc5f854231789584a8a36e9e7ddd5f4eb58d7256c869",
-      "sha256": "5159098ec87c7a87353aaf7240c05ccc52aa0664c2c243bca97520e93882ff71",
+      "sha256": "860f6e32f1f07043937d2c0c9f0ebd52162ccfcdc310f65af5ffb06098798ac1",
       "authoringProfile": {
         "key": "yujin",
         "name": "유진",
@@ -55650,8 +55650,8 @@
       "family": "yujin",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_yujin.glb",
-      "triangles": 38297,
-      "bytes": 592940,
+      "triangles": 38726,
+      "bytes": 596132,
       "bones": [
         "spine_0",
         "spine_1",
@@ -55789,7 +55789,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0415190ef885d7600a33cc5f854231789584a8a36e9e7ddd5f4eb58d7256c869",
-      "sha256": "5159098ec87c7a87353aaf7240c05ccc52aa0664c2c243bca97520e93882ff71",
+      "sha256": "860f6e32f1f07043937d2c0c9f0ebd52162ccfcdc310f65af5ffb06098798ac1",
       "authoringProfile": {
         "key": "yujin",
         "name": "유진",
@@ -55960,8 +55960,8 @@
       "family": "yujin",
       "form": "adult",
       "file": "public/aqua/models/fish/yujin.glb",
-      "triangles": 38297,
-      "bytes": 592940,
+      "triangles": 38726,
+      "bytes": 596132,
       "bones": [
         "spine_0",
         "spine_1",
@@ -56099,7 +56099,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0415190ef885d7600a33cc5f854231789584a8a36e9e7ddd5f4eb58d7256c869",
-      "sha256": "5159098ec87c7a87353aaf7240c05ccc52aa0664c2c243bca97520e93882ff71",
+      "sha256": "860f6e32f1f07043937d2c0c9f0ebd52162ccfcdc310f65af5ffb06098798ac1",
       "authoringProfile": {
         "key": "yujin",
         "name": "유진",

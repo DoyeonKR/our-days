@@ -78,3 +78,26 @@ test("서 있을 때 — 가만히 있으면 하트 · 손 흔들기 · 둘러�
   assert.ok(armMax > 2, `팔을 머리 위로 (${armMax.toFixed(2)})`);
   assert.ok(headMax > .4, `고개를 돌린다 (${headMax.toFixed(2)})`);
 });
+
+test("하트 · 손 흔들기 도중에 걷기 시작해도 팔이 한 프레임에 툭 떨어지지 않는다", async () => {
+  const { anim, get } = await rig();
+  const arms = [get("fin_L"), get("fin_R")], prev = arms.map((a) => a.quaternion.clone());
+  let k = 0, raised = false;
+  for (; k < 30 * 14 && !raised; k++) { anim(k / 30, 1, { dt: 1 / 30, amp: .8, effort: 1, speed: 0, upright: 1, hover: 0, ground: 0 } as never); raised = k > 60 && arms.some((a) => angle(a) > 1.6); }
+  assert.ok(raised, "팔을 든 동작이 나온다");
+  arms.forEach((a, i) => prev[i].copy(a.quaternion));
+  let jump = 0;
+  for (let j = 0; j < 45; j++, k++) { anim(k / 30, 1, { dt: 1 / 30, amp: .8, effort: 1, speed: Math.min(.3, j * .02) /* 실제 빠르기는 점점 오른다 */, upright: 1, hover: 0, ground: 0 } as never); arms.forEach((a, i) => { jump = Math.max(jump, a.quaternion.angleTo(prev[i])); prev[i].copy(a.quaternion); }); }
+  assert.ok(jump < .25 /* 예전엔 팔을 든 각(약 2.3 rad)이 한 프레임에 0 으로 */, `한 프레임 팔 변화 ${jump.toFixed(2)} rad`);
+  assert.ok(arms.every((a) => angle(a) < 1), "걷는 동안엔 팔을 내린다");
+});
+
+test("땅 위에선 오가다 양 끝에서 서 있는다(habits.landStand) — 서서 하는 동작을 할 틈", async () => {
+  const { standPhase } = await import("./habits.ts");
+  const xs: number[] = [];
+  for (let t = 0; t < 120; t += .1) xs.push(Math.sin(standPhase(t * 0.2 * (1 - .45) + 1, .45)));
+  assert.equal(standPhase(2.5, 0), 2.5);
+  assert.equal((habitOf("yujin") as { landStand?: number }).landStand, .45);
+  let stillRuns = 0, run = 0; for (let i = 1; i < xs.length; i++) { if (Math.abs(xs[i] - xs[i - 1]) < 1e-4) run++; else { if (run >= 25) stillRuns++; run = 0; } }
+  assert.ok(stillRuns >= 2, `2.5초 넘게 선 구간 ${stillRuns}`);
+});
