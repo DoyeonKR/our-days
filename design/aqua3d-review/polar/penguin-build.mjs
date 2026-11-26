@@ -56,7 +56,8 @@ function build(key) {
         let c = mix(mix(BLACK, BACK, smooth(.2, .9, n[1])), [240, 240, 236], white);
         c = mix(c, c.map((v) => v * .9), smooth(.3, -.9, yr) * white);           // 배 아래 그늘
         // 머리 · 목: 검정(어린 개체는 턱 · 목 앞이 희다)
-        const head = smooth(neckX - .2, neckX + .25, x) * (st.juv ? smooth(-.35, .1, yr) : 1);
+        // 2026-11-26 — 머리 검정과 등 청회색 사이가 0.45 폭에서 끊겨 위에서 보면 목에 띠가 둘렸다. 목덜미를 따라 길게(1.1 폭) 번지고, 등 가운데 줄은 더 뒤까지 짙다
+        const head = smooth(neckX - .7 - .35 * smooth(.3, .9, yr), neckX + .4, x) * (st.juv ? smooth(-.35, .1, yr) : 1);
         c = mix(c, HEAD, head * (st.juv ? 1 : smooth(-1.1, -.55, yr) + (1 - smooth(-1.1, -.55, yr)) * smooth(neckX + .3, neckX + .55, x)));
         // 노란 귀 무늬: 눈 뒤 아래 옆면에서 목을 따라 가슴으로 흘러내리는 쉼표 + 가슴 위쪽 옅은 노랑
         if (!st.juv || true) {

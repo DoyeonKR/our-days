@@ -57,9 +57,9 @@ function build(key) {
       let c = mix(st.skin[0], st.skin[1], dorsal);
       const neckPink = smooth(.4, 1.6, x) * (1 - smooth(3.3, 3.9, x)) * smooth(.4, -.6, n[1]);
       c = mix(c, [214, 150, 140], neckPink * .5 * st.fold);
-      c = c.map((v) => v * (.84 + .3 * fbm([x * .9, y * .9, z * .9])));
-      // 잔 얼룩(분홍 · 짙은 반점)
-      c = mix(c, [226, 168, 152], smooth(.62, .8, fbm([x * 1.6 + 7, y * 1.6, z * 1.6])) * .3 * st.fold);
+      // 2026-11-26 — 밝은 분홍 반점이 크고 진해 곰팡이 · 얼룩무늬처럼 보였다. 실제 살갗은 고른 계피색에 피가 몰린 곳만 은은히 붉다 — 반점은 옅고 작게, 밝기 흔들림도 줄였다
+      c = c.map((v) => v * (.9 + .16 * fbm([x * .9, y * .9, z * .9])));
+      c = mix(c, [206, 140, 124], smooth(.66, .82, fbm([x * 2.4 + 7, y * 2.4, z * 2.4])) * .1 * st.fold);
       // 가로 주름(몸을 감는 고랑) — 목 · 어깨에 깊고 촘촘, 배 · 꼬리 쪽은 얕고 성기다
       const band = smooth(-.4, .9, x) * (1 - smooth(3.4, 3.95, x)), lowBand = .35 + .65 * band;
       // 2026-11-25 3차 — 예전 고랑은 고른 간격의 곧은 세로줄이라 나뭇결 · 바코드 같았다. 간격이 들쭉날쭉하고(굵은 잡음으로 위상을 크게 흔든다)
@@ -133,22 +133,42 @@ function build(key) {
         paint: (p, n, [s]) => { let c = mix([190, 160, 112], [240, 230, 204], smooth(0, .4, s)); c = mix(c, [228, 214, 182], smooth(.8, 1, s)); return c.map((v) => v * (.9 + .12 * noise(p[0] * 3, p[1] * 22, p[2] * 3))); }});
   }
 
-  // ── 앞지느러미(짧고 넓은 노 — 몸 옆 아래에서 뒤 · 아래로, 손가락 다섯의 고랑 · 끝이 살짝 말린다) ──
-  const fins = {};
+  // ── 앞지느러미(짧고 넓은 노 — 몸 옆 아래에서 뒤 · 아래로) ──
+  // 2026-11-26 [사용자: "신규 개체들 움직임과 디테일 업그레이드 해줘 충분히"] — 예전엔 짙은 갈색 판이라 물고기 지느러미처럼 보였다.
+  //   실제 앞지느러미는 몸과 같은 살빛 피부에 바닥(손바닥)만 짙고 거칠며, 끝이 네모지게 넓고 발가락 다섯이 도드라지며 끝에 작은 발톱이 있다
+  const fins = {}, sole = (n, Nf) => smooth(.15, -.35, n[0] * Nf[0] + n[1] * Nf[1] + n[2] * Nf[2]);
   for (const sd of [-1, 1]) {
     const root = surf(1.9, sd * 2.1, .8), D = norm([-.78, -.42, sd * .48]), L = 1.85 * st.len;
-    let Wd = [1, 0, 0]; Wd = norm(add(Wd, D, -(Wd[0] * D[0]))); const Nf = norm(cross(D, Wd));
-    m.sweep('fore' + sd, (s) => ({c: add(add(root, D, L * s), Nf, -.12 * s * s), u: Nf, v: Wd, a: .25 - .16 * s, b: .46 + .4 * Math.sin(Math.PI * Math.min(1, s * 1.1) * .8), e: 2.3}),
-      {ns: 12, nt: 14, capEnd: .18, capRings: 3, island: sd < 0 ? [.2, .7, .5, .84] : [.5, .7, .8, .84], bone: 'fin' + sd,
-        paint: (p, n, [s, t]) => { let c = mix(st.skin[1].map((v) => v * .95), st.skin[1].map((v) => v * .72), smooth(0, .7, s)); const across = Math.sin(t * Math.PI * 2); c = c.map((v) => v * (1 - .28 * Math.pow(Math.abs(Math.sin(across * Math.PI * 2.5)), 6) * smooth(.25, .55, s))); c = c.map((v) => v * (.86 + .24 * fbm([p[0] * 3, p[1] * 3, p[2] * 3]))); return c; }});
+    let Wd = [1, 0, 0]; Wd = norm(add(Wd, D, -(Wd[0] * D[0]))); let Nf = norm(cross(D, Wd)); if (Nf[1] < 0) Nf = Nf.map((v) => -v);
+    m.sweep('fore' + sd, (s) => ({c: add(add(root, D, L * s), Nf, -.12 * s * s), u: Nf, v: Wd, a: .25 - .15 * s, b: .46 + .44 * Math.sin(Math.PI * Math.min(1, s * 1.1) * .8) + .08 * smooth(.6, 1, s), e: 2.6,
+      // 발가락 다섯 — 끝 쪽 앞뒤 가장자리를 따라 두툼한 마디가 다섯 번 솟는다
+      r: (th) => 1 + .09 * smooth(.45, .9, s) * Math.pow(Math.abs(Math.cos(Math.sin(th) * Math.PI * 2.5)), 3)}),
+      {ns: 12, nt: 16, capEnd: .2, capRings: 3, island: sd < 0 ? [.2, .7, .5, .84] : [.5, .7, .8, .84], bone: 'fin' + sd,
+        paint: (p, n, [s, t]) => {
+          let c = mix(st.skin[0].map((v) => v * .9), st.skin[1].map((v) => v * .92), smooth(.1, .9, s) * .6);
+          c = mix(c, [64, 48, 44], sole(n, Nf) * .85);                                   // 짙고 거친 손바닥
+          const across = Math.sin(t * Math.PI * 2), toe = Math.pow(Math.abs(Math.sin(across * Math.PI * 2.5)), 6) * smooth(.3, .6, s);
+          c = c.map((v) => v * (1 - .3 * toe));                                          // 발가락 사이 고랑
+          c = mix(c, [210, 196, 170], smooth(.93, .99, s) * Math.pow(Math.abs(Math.cos(across * Math.PI * 2.5)), 8) * .8); // 발톱
+          return c.map((v) => v * (.88 + .2 * fbm([p[0] * 4, p[1] * 4, p[2] * 4]) + .06 * (noise(p[0] * 40, p[1] * 40, p[2] * 40) - .5)));
+        }});
     fins[sd < 0 ? 'R' : 'L'] = {root, tip: add(root, D, L)};
   }
-  // ── 뒷지느러미(꼬리 끝에서 뒤로 펼친 부채 — 발가락 다섯 끝이 물결) ──
+  // ── 뒷지느러미(꼬리 끝 양옆에서 뒤로 — 두 발이 따로 벌어진 넓은 물갈퀴, 발가락 다섯 끝이 물결) ──
+  // 2026-11-26 — 예전엔 짙은 두 장이 꼬리 끝에 붙어 위에서 보면 갈라진 물고기 꼬리였다. 두 발을 더 벌리고(바깥 11° → 20°) 살빛 발등 · 짙은 발바닥으로,
+  //   발가락 끝은 둥근 마디 다섯(가운데가 짧고 바깥이 긴 부채)
   for (const sd of [-1, 1]) {
-    const root = [-4.7, .02, sd * .22], D = norm([-1, -.03, sd * .2]), L = 2.0 * st.len, Wd = norm([0, .62, sd * .78]), Nf = norm(cross(D, Wd));
-    m.sweep('hind' + sd, (s) => ({c: add(root, D, L * s), u: Nf, v: Wd, a: .17 - .11 * s, b: .34 + .86 * s ** .8, e: 2.2, r: (th) => 1 - .14 * smooth(.72, 1, s) * Math.abs(Math.sin(Math.sin(th) * Math.PI * 2.5))}),
-      {ns: 10, nt: 14, capEnd: .14, capRings: 2, island: sd < 0 ? [0, .84, .49, 1] : [.5, .84, .99, 1], bone: 'hind',
-        paint: (p, n, [s, t]) => { let c = mix(st.skin[1].map((v) => v * .95), st.skin[1].map((v) => v * .7), smooth(0, .8, s)); const across = Math.sin(t * Math.PI * 2); c = c.map((v) => v * (1 - .32 * Math.pow(Math.abs(Math.sin(across * Math.PI * 2.5)), 6) * smooth(.2, .5, s))); return c.map((v) => v * (.86 + .24 * fbm([p[0] * 3, p[1] * 3, p[2] * 3]))); }});
+    const root = [-4.6, .0, sd * .26], D = norm([-1, -.06, sd * .36]), L = 1.9 * st.len, Wd = norm([0, .78, sd * .62]); let Nf = norm(cross(D, Wd)); if (Nf[1] < 0) Nf = Nf.map((v) => -v);
+    m.sweep('hind' + sd, (s) => ({c: add(root, D, L * s), u: Nf, v: Wd, a: .18 - .11 * s, b: .34 + .9 * s ** .8, e: 2.3,
+      r: (th) => { const w = Math.sin(th); return (1 - .16 * smooth(.7, 1, s) * Math.abs(Math.sin(w * Math.PI * 2.5))) * (1 + .1 * smooth(.5, 1, s) * w * w); }}),
+      {ns: 10, nt: 16, capEnd: .16, capRings: 2, island: sd < 0 ? [0, .84, .49, 1] : [.5, .84, .99, 1], bone: 'hind',
+        paint: (p, n, [s, t]) => {
+          let c = mix(st.skin[0].map((v) => v * .88), st.skin[1].map((v) => v * .9), smooth(0, 1, s) * .55);
+          c = mix(c, [60, 46, 42], sole(n, Nf) * .85);
+          const across = Math.sin(t * Math.PI * 2);
+          c = c.map((v) => v * (1 - .32 * Math.pow(Math.abs(Math.sin(across * Math.PI * 2.5)), 6) * smooth(.2, .5, s)));
+          return c.map((v) => v * (.88 + .2 * fbm([p[0] * 4, p[1] * 4, p[2] * 4]) + .06 * (noise(p[0] * 40, p[1] * 40, p[2] * 40) - .5)));
+        }});
   }
   return {m, fins};
 }

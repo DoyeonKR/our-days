@@ -82,7 +82,8 @@ function orient(part) {
 async function paintAtlas(model, SIZE) {
   const img = new Float32Array(SIZE * SIZE * 3), has = new Uint8Array(SIZE * SIZE);
   for (const part of model.parts) {
-    const [u0, v0, u1, v1] = part.island, uv = part.ST.map(([s, t]) => [u0 + (u1 - u0) * s, v0 + (v1 - v0) * t]); part.UV = uv;
+    // 2026-11-26 — 칸 가장자리 텍셀이 옆 칸(예: 몸통 아래 이음매 ↔ 부리 칸)과 섞여 배 가운데에 짙은 금이 졌다(배포 때 512 로 줄이며 더 번진다). 칸마다 안쪽으로 6px 띄운다
+    const pad = 6 / SIZE, [U0, V0, U1, V1] = part.island, u0 = U0 + pad, v0 = V0 + pad, u1 = U1 - pad, v1 = V1 - pad, uv = part.ST.map(([s, t]) => [u0 + (u1 - u0) * s, v0 + (v1 - v0) * t]); part.UV = uv;
     const N = part.N;
     for (let i = 0; i < part.I.length; i += 3) {
       const ids = [part.I[i], part.I[i + 1], part.I[i + 2]], q = ids.map((k) => [uv[k][0] * SIZE, uv[k][1] * SIZE]);
@@ -146,6 +147,14 @@ export async function bake(key, model, {fins, weight, source, atlas = 1024, roug
   bones[0].updateMatrixWorld(true);
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   g.setAttribute('skinIndex', new T.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(W, 4)); g.setIndex(idx); g.computeVertexNormals();
+  // 2026-11-26 — 둘레 이음매(아래쪽)는 같은 자리에 꼭짓점이 둘이라 법선이 갈려, 배 가운데 · 지느러미 아래로 빛의 금이 한 줄 보였다.
+  //   같은 부위 안에서 같은 자리의 꼭짓점은 법선을 평균한다(부위끼리는 섞지 않는다 — 수염 뿌리 · 패드는 따로 둔다)
+  {
+    const na = g.attributes.normal, acc = new Map(); let base = 0;
+    model.parts.forEach((part, pi) => { part.P.forEach((_, k) => { const i = base + k, key = pi + ':' + [0, 1, 2].map((c) => Math.round(pos[i * 3 + c] * 1e4)).join(','); let e = acc.get(key); if (!e) acc.set(key, e = {n: [0, 0, 0], ids: []}); e.n = add(e.n, [na.getX(i), na.getY(i), na.getZ(i)]); e.ids.push(i); }); base += part.P.length; });
+    for (const {n, ids} of acc.values()) if (ids.length > 1) { const u = norm(n); for (const i of ids) na.setXYZ(i, u[0], u[1], u[2]); }
+    na.needsUpdate = true;
+  }
   const glb = await compressGLB(material(packAsset(key, [{name: key, geometry: g, extras: {aquaGeometry: 'part-built (design/aqua3d-review/polar)', source}}], png, bones), (m) => { m.name = 'painted_PBR_atlas'; m.doubleSided = true; m.pbrMetallicRoughness.metallicFactor = .05; m.pbrMetallicRoughness.roughnessFactor = roughness; }), {webpQuality: 92});
   return {glb, tris: idx.length / 3, scale: S, center: M};
 }

@@ -1767,28 +1767,28 @@
       "sheet": "design/aqua3d-review/whales/review.webp"
     },
     "fry_walrus": {
-      "sourceHash": "aa53531b5e5a38fdd519dd05cdea9f688545027b855429c3b910a91b6517d733",
-      "sheet": "design/aqua3d-review/polar/review-1125.webp"
+      "sourceHash": "e12860f6d457703506cf684ea018026e530a67d4c14e1d02760245e1e17de37f",
+      "sheet": "design/aqua3d-review/polar/review-1126.webp"
     },
     "juv_walrus": {
-      "sourceHash": "a2c65f673704e5ac9fb78605e7b92ddea612c42329099a2f9f5bcaf68d5df598",
-      "sheet": "design/aqua3d-review/polar/review-1125.webp"
+      "sourceHash": "24f0520027751790dd4095f80f2e3aa8326613410a8d7c4c268f721a7e1f0835",
+      "sheet": "design/aqua3d-review/polar/review-1126.webp"
     },
     "walrus": {
-      "sourceHash": "c305ebffb2e64bc94ca679860dbf38513fd2e35800b9ab317c033a6d80e197f9",
-      "sheet": "design/aqua3d-review/polar/review-1125.webp"
+      "sourceHash": "1e2b916ca5961a9965c7049ce00883a8cc6c8ee5e740e3205fc23c3592501c3e",
+      "sheet": "design/aqua3d-review/polar/review-1126.webp"
     },
     "fry_emperor_penguin": {
-      "sourceHash": "250fb7a6e47571433257e24dcf71d8deb4a0a7387fc518d49eea2b2c349bc2fd",
-      "sheet": "design/aqua3d-review/polar/review-1125.webp"
+      "sourceHash": "bbdc1c438f15874618db410dbef5bec54be7c378307e9920ac440c591bb55585",
+      "sheet": "design/aqua3d-review/polar/review-1126.webp"
     },
     "juv_emperor_penguin": {
-      "sourceHash": "fec57c8f5ce363f13c17d38971533b6c40550967146e1232150738ecfa0c3415",
-      "sheet": "design/aqua3d-review/polar/review-1125.webp"
+      "sourceHash": "de9487f352a633fcdfa53bfb735ae55b301964cf0d35e01dc594d5d775d35594",
+      "sheet": "design/aqua3d-review/polar/review-1126.webp"
     },
     "emperor_penguin": {
-      "sourceHash": "1e4e274fd7a9c4233723a97a8674605711ab431a81c0383f021cba2167ca2a32",
-      "sheet": "design/aqua3d-review/polar/review-1125.webp"
+      "sourceHash": "16768e2b254e38fb6745479dc9aefc31169276e52ef8a1c47f683296155d9ede",
+      "sheet": "design/aqua3d-review/polar/review-1126.webp"
     }
   }
 }

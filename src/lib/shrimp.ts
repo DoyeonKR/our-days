@@ -70,10 +70,12 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   // 바다코끼리 · 황제펭귄(2026-11-24 [사용자: "바다코끼리도 이미지 찾아서 모델 만들어줘" · "황제펭귄도 추가해"]) — 그림은 USFWS 바다코끼리 사진 ·
   //   헤엄치는 펭귄 사진(둘 다 퍼블릭 도메인)을 바탕으로 Claude 세션이 지었다(design/aqua3d-review/walrus/ · penguin/). 때 손님(곁 칸)으로만 온다.
   //   바다코끼리: 바닥 가까이 천천히 — 수염 주둥이로 조개를 찾고 숨 쉬러 오른다, 바위 · 모래사장에서 쉰다. 황제펭귄: 날개로 날듯이 빠르게, 숨 쉬러 오르고 물 밖에서 쉰다
+  //   2026-11-26 [사용자: "신규 개체들 움직임과 디테일 업그레이드 해줘 충분히"] — 바다코끼리는 숨 사이마다 모래로 내려가 주둥이를 박고 기며 조개를 찾고(forage — 모래 먼지 · 머리를 드는 기울기는 35° 안 — level),
+  //   펭귄은 11초 남짓마다 날개를 세차게 저어 1.7배로 내달린다(burst — 거품 줄). 습성은 이 표 한 곳(habits.ts 의 FISH_HABITS 가 펼쳐 넣는다)
   { key: "emperor_penguin", name: "황제펭귄", grade: "영웅", price: 24500, hours: 207.5, minTank: 4, size: 26, cm: 115, fresh: false, ornamental: false,
-    spots: [], habit: { lo: -2, hi: 2.4, speed: 0.34, reach: 1, depth: 2, haul: true, breathe: 60, breathOnly: true, dart: 0.3, pace: 1, tilt: 0.45 } },
+    spots: [], habit: { lo: -2, hi: 2.4, speed: 0.34, reach: 1, depth: 2, haul: true, breathe: 60, breathOnly: true, dart: 0.3, pace: 1, tilt: 0.45, burst: 11 } },
   { key: "walrus", name: "바다코끼리", grade: "전설", price: 53000, hours: 315, minTank: 5, size: 42, cm: 330, fresh: false, ornamental: false,
-    spots: [], habit: { lo: -3.4, hi: 1.2, speed: 0.14, reach: 0.9, depth: 1.8, haul: true, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.3 } },
+    spots: [], habit: { lo: -3.4, hi: 1.2, speed: 0.14, reach: 0.9, depth: 1.8, haul: true, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.3, level: 0.7, forage: true } },
 ];
 
 /** 켜졌을 때만 — 다른 표가 펼쳐 넣는다 */
