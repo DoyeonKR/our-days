@@ -69,7 +69,7 @@ export const viewport: Viewport = {
 
 /** iOS 에서만 maximum-scale=1 — 15px 이하 입력칸에 초점이 가면 iOS 가 화면을 키워 fixed 층이 어긋난다.
  *  안드로이드 크롬은 그 값이 핀치까지 막으므로 붙이지 않는다. -webkit-touch-callout 은 iOS WebKit 에만 있다(iosfixed 와 같은 표식). */
-const IOS_NO_FOCUS_ZOOM = `try{if(CSS.supports('-webkit-touch-callout','none')){var m=document.querySelector('meta[name=viewport]');if(m&&m.content.indexOf('maximum-scale')<0)m.content+=', maximum-scale=1';}}catch(e){}`;
+const IOS_NO_FOCUS_ZOOM = `try{if(CSS.supports('-webkit-touch-callout','none')){var m=document.querySelector('meta[name=viewport]');if(m&&m.content.indexOf('maximum-scale')<0)m.content+=', maximum-scale=1, user-scalable=no';}}catch(e){}`;
 
 /* 서체(2026-11-05) — @font-face 를 globals.css 의 상대 경로로 두면 번들러가 _next/static/media 에 해시 사본을 하나 더 만들고
    (public/fonts 와 두 벌 배포), 해시 이름을 몰라 preload 도 못 했다. public 사본 하나를 basePath 를 붙여 직접 가리키고

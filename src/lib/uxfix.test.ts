@@ -54,6 +54,19 @@ test("★★ 확대는 막지 않되 키보드 · 게임에선 막는다 — 메
   for (const sel of /SHELL = "([^"]+)"/.exec(guard)![1].split(",").map((x) => x.trim())) assert.ok(z.includes(sel), `${sel} 가 ZoomLock 에 없다`);
 });
 
+// 2026-11-26 [사용자: "아이폰 사파리 홈화면에 추가 후 사용할때 가끔씩 줌이 가능한 경우가 있어 그렇게 되면 모든 화면이 깨지게 돼"]
+test("★★ 아이폰은 늘 확대를 막고, 그래도 확대되면 1배로 되돌린다", () => {
+  const z = strip("components/ZoomLock.tsx");
+  for (const [needle, why] of [
+    ["return isIOSWebKit() || editing()", "아이폰이면 늘 잠긴다"],
+    ['CSS.supports("-webkit-touch-callout", "none")', "iOS 표식"],
+    ["vv.scale <= 1.01", "확대됐을 때만 되돌린다"],
+    ['visualViewport?.addEventListener("resize", settle)', "손을 뗀 뒤 다시 본다"],
+    ["maximum-scale=1.0", "메타를 다른 글자로 다시 써야 iOS 가 다시 적용한다"],
+  ] as const) assert.ok(z.includes(needle), why);
+  assert.ok(strip("app/layout.tsx").includes("maximum-scale=1, user-scalable=no"));
+});
+
 test("★ ZoomLock 이 iOS 경로(gesture·멀티터치·더블탭)를 모두 막는다", () => {
   const z = strip("components/ZoomLock.tsx");
   for (const ev of ["gesturestart", "gesturechange", "gestureend", "touchmove", "touchend"]) {

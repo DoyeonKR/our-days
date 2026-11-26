@@ -65,6 +65,12 @@ export function gameHourAt(now: number, h: number): number {
   const at = start + h / 24 * GAME_DAY_MS;
   return at > now ? at : at + GAME_DAY_MS;
 }
+/** 섬 시계 글자 'HH:MM'(2026-11-26 [사용자: "섬 시간을 화면 위에 시계로 보여줘"]) — 섬의 1분 = 실제 5초 */
+export function gameClockText(now: number): string {
+  const m = Math.floor(gameHourOf(now) * 60);
+  if (!Number.isFinite(m)) return "--:--";
+  return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
 const timeOfHour = (h: number): FishTime => h >= 5 && h < 8 ? "dawn" : h >= 8 && h < 17 ? "day" : h >= 17 && h < 20 ? "dusk" : "night";
 export function fishTimeOf(now: number): FishTime {
   return timeOfHour(gameHourOf(now));

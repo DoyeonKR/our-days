@@ -52,7 +52,7 @@ import { fishLogKey, noteFishLog } from "@/lib/fishlog";
 import { sendPokePush } from "@/lib/push";
 import { isEventFamily } from "@/lib/eventfish";
 import { BOSS_DUO, bossArt, bossChunk, bossDealt, bossDuo, familyName } from "@/lib/fishingworld";
-import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fmtCm, gameWxAt, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
+import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fmtCm, gameClockText, gameWxAt, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { lightBand, lightTune, startLight, type Light, type LightTune } from "@/lib/fishinglight";
 import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
@@ -82,6 +82,12 @@ export type StampTone = "hit" | "gold" | "miss";
  *  gameNow 는 저장 응답마다 다시 맞춰져 한 판 도중에 뛸 수 있고, 예보는 기기 시계로 찍힌다(useforecast). */
 const clock = () => gameNow();
 const deviceClock = () => Date.now();
+/** 섬 시계(2026-11-26) — 섬의 1분(실제 5초)마다 이 칸만 다시 그린다(낚시 화면 전체를 5초마다 다시 그리지 않게) */
+function IslandClock() {
+  const [t, setT] = useState(() => gameClockText(clock()));
+  useEffect(() => { const id = window.setInterval(() => setT(gameClockText(clock())), 1_000); return () => window.clearInterval(id); }, []);
+  return <b className="fish-clock" aria-hidden>{t}</b>;
+}
 /** 집어등 밤인가 — 때 손님과 같은 시각(clock = gameNow)으로 KST 19시 ~ 새벽 5시.
  *  개발 빌드에서만: 콘솔에서 window.__fishNight = true 면 밤, false 면 낮으로 친다(프리뷰에서 낮에도 집어등을 시험하려고). 배포 빌드엔 이 분기가 없다(NODE_ENV 가 빌드 때 박힌다) */
 const nightNow = (): boolean => {
@@ -1741,10 +1747,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   <button type="button" className="tap fish-chip" aria-label={`잡을 수 있는 물고기 ${catchable}종 보기`} onClick={() => setWorldSheet("fish")}>
                     <span aria-hidden>🐟</span><b>{catchable}</b>
                   </button>
-                  <button type="button" className={`tap fish-chip ${guests.length ? "is-hot" : ""}`} aria-label={`지금 ${TIME_NAME[moment.time]}${moment.wx ? ` · ${WX_NAME[moment.wx]}` : ""}${guests.length ? " · 때 손님이 왔어요" : ""}`} onClick={() => setWorldSheet("timed")}>
+                  <button type="button" className={`tap fish-chip fish-time-chip ${guests.length ? "is-hot" : ""}`} aria-label={`섬 시각 ${gameClockText(clock())} · 지금 ${TIME_NAME[moment.time]}${moment.wx ? ` · ${WX_NAME[moment.wx]}` : ""}${guests.length ? " · 때 손님이 왔어요" : ""}`} onClick={() => setWorldSheet("timed")}>
                     {/* 낮에 비 · 눈이 오면 해와 비구름을 나란히 두지 않는다 */}
                     {!(moment.time === "day" && (moment.wx === "rain" || moment.wx === "snow")) && <span aria-hidden>{TIME_ICON[moment.time]}</span>}
                     {moment.wx && moment.wx !== "clear" && <span aria-hidden>{WX_ICON[moment.wx]}</span>}
+                    <IslandClock />
                     {guests.length > 0 && <span aria-hidden>✨</span>}
                   </button>
                   {/* 물때 · 달 — 바다에서만 물때 글자(강 · 호수엔 물때가 없다), 달 모양은 어디서나. 테두리는 이 낚시터에 보름달 손님이 왔을 때만 */}

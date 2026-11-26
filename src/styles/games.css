@@ -1143,6 +1143,9 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-sky.w-rain::after { background: radial-gradient(130% 13% at 50% 29%, rgba(205,218,230,.5), transparent 72%), linear-gradient(180deg, rgba(46,58,74,.66), rgba(58,72,90,.46) 30%, rgba(20,34,52,.34)); }
 .fish-sky.w-snow::after { background: radial-gradient(130% 14% at 50% 29%, rgba(244,248,252,.6), transparent 72%), linear-gradient(180deg, rgba(208,220,234,.52), rgba(216,226,238,.26) 32%, rgba(170,190,214,.16)); }
 .fish-chips { position: absolute; z-index: 13; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; gap: 6px; }
+/* 섬 시계(2026-11-26) — 때 칩 안의 HH:MM. 폭이 바뀌어도 칩이 흔들리지 않게 숫자 폭 고정 */
+.fish-chip.fish-time-chip { width: auto; padding: 0 9px; }
+.fish-clock { font-variant-numeric: tabular-nums; letter-spacing: 0; }
 /* 위 칩 셋은 한 규격이다 — 높이 · 모서리 · 글자 · 바탕이 같고 내용만 다르다. 이모지가 픽셀 서체에 없어 시스템 글꼴을 쓴다 */
 .fish-chip { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 72px; height: 32px; border-radius: 10px; border: 1px solid rgba(255,255,255,.22); background: rgba(6,24,38,.68); color: #fff; font: 700 13px/1 system-ui, -apple-system, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; white-space: nowrap; letter-spacing: 0; text-rendering: auto; -webkit-font-smoothing: antialiased; }
 .fish-chip b { font-weight: 700; }
