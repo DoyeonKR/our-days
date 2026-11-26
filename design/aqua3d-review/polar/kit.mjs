@@ -127,10 +127,12 @@ async function paintAtlas(model, SIZE) {
 /**
  * GLB 로 굽는다. weight(part, p정규화, st) → [[뼈 번호, 가중치], ...]. fins: {L:{root,tip}, R:{root,tip}} 짓는 좌표.
  * 뼈: spine_0..5(BX) · fin_L · fin_L_tip · fin_R · fin_R_tip
+ * weight 의 넷째 인자는 부위 안 꼭짓점 번호. part.weld 가 같은 부위끼리는 같은 자리 꼭짓점의 법선을 함께 평균한다(한 그물을 여러 텍스처 칸으로 나눈 경우)
  */
 export const BX = [.75, .45, .15, -.15, -.45, -.8];
 export async function bake(key, model, {fins, weight, source, atlas = 1024, roughness = .7, alpha = 1}) {
-  for (const p of model.parts) orient(p);
+  // keepWinding: 바깥에서 가져온 그물(Tripo 등)은 감김이 이미 맞다 — 반쪽 · 한 면만 있는 칸은 무게중심 시험이 틀리게 뒤집는다
+  for (const p of model.parts) if (!p.keepWinding) orient(p);
   // 법선(부위마다 — 칠하기에 쓴다)
   for (const part of model.parts) {
     const N = part.P.map(() => [0, 0, 0]);
@@ -145,7 +147,7 @@ export async function bake(key, model, {fins, weight, source, atlas = 1024, roug
   const pos = [], uvs = [], idx = [], J = [], W = [];
   for (const part of model.parts) {
     const base = pos.length / 3;
-    part.P.forEach((v, k) => { const g = G(v); pos.push(...g); uvs.push(...part.UV[k]); const w = weight(part, g, part.ST[k]).slice(0, 4); const j4 = [0, 0, 0, 0], w4 = [0, 0, 0, 0]; let s = 0; w.forEach(([b, x], i) => { j4[i] = b; w4[i] = x; s += x; }); for (let i = 0; i < 4; i++) w4[i] /= s || 1; J.push(...j4); W.push(...w4); });
+    part.P.forEach((v, k) => { const g = G(v); pos.push(...g); uvs.push(...part.UV[k]); const w = weight(part, g, part.ST[k], k).slice(0, 4); const j4 = [0, 0, 0, 0], w4 = [0, 0, 0, 0]; let s = 0; w.forEach(([b, x], i) => { j4[i] = b; w4[i] = x; s += x; }); for (let i = 0; i < 4; i++) w4[i] /= s || 1; J.push(...j4); W.push(...w4); });
     for (const i of part.I) idx.push(base + i);
   }
   if (pos.length / 3 > 65535) throw Error('vertices ' + pos.length / 3);
@@ -163,7 +165,7 @@ export async function bake(key, model, {fins, weight, source, atlas = 1024, roug
   //   같은 부위 안에서 같은 자리의 꼭짓점은 법선을 평균한다(부위끼리는 섞지 않는다 — 수염 뿌리 · 패드는 따로 둔다)
   {
     const na = g.attributes.normal, acc = new Map(); let base = 0;
-    model.parts.forEach((part, pi) => { part.P.forEach((_, k) => { const i = base + k, key = pi + ':' + [0, 1, 2].map((c) => Math.round(pos[i * 3 + c] * 1e4)).join(','); let e = acc.get(key); if (!e) acc.set(key, e = {n: [0, 0, 0], ids: []}); e.n = add(e.n, [na.getX(i), na.getY(i), na.getZ(i)]); e.ids.push(i); }); base += part.P.length; });
+    model.parts.forEach((part, pi) => { part.P.forEach((_, k) => { const i = base + k, key = (part.weld ?? pi) + ':' + [0, 1, 2].map((c) => Math.round(pos[i * 3 + c] * 1e4)).join(','); let e = acc.get(key); if (!e) acc.set(key, e = {n: [0, 0, 0], ids: []}); e.n = add(e.n, [na.getX(i), na.getY(i), na.getZ(i)]); e.ids.push(i); }); base += part.P.length; });
     for (const {n, ids} of acc.values()) if (ids.length > 1) { const u = norm(n); for (const i of ids) na.setXYZ(i, u[0], u[1], u[2]); }
     na.needsUpdate = true;
   }

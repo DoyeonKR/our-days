@@ -1945,6 +1945,18 @@
     "fry_kappa": {
       "sourceHash": "2d3ad5786ed3d5be199419fd1c65d11b206bf426a816936b464a2098f8bdaac9",
       "sheet": "design/aqua3d-review/polar/review-kappa.webp"
+    },
+    "bottlenose_dolphin": {
+      "sourceHash": "36da21268d48026c7e0cb724ddfd9b510723ef32689450a1976ff2362d9a221e",
+      "sheet": "design/aqua3d-review/dolphin/review-dolphin.webp"
+    },
+    "juv_bottlenose_dolphin": {
+      "sourceHash": "e9a93cd42b78243bab28a4649609702c45e6a72414800671adf306ec2f225223",
+      "sheet": "design/aqua3d-review/dolphin/review-dolphin.webp"
+    },
+    "fry_bottlenose_dolphin": {
+      "sourceHash": "bc4b4bb383ceb39fdd1b6f0b8d4cde0997aabd4dbb7ac9256c249659582f61ae",
+      "sheet": "design/aqua3d-review/dolphin/review-dolphin.webp"
     }
   }
 }

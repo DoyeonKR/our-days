@@ -2,6 +2,9 @@
  * Hashes are of the delivered GLB bytes, not a guessed app/deployment version.
  */
 export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({
+ fry_bottlenose_dolphin:'7b64fa0b4d20',
+ juv_bottlenose_dolphin:'eab4e7d9cb00',
+ bottlenose_dolphin:'1df0e149d1dd',
  fry_kappa:'5816043826a0',
  juv_kappa:'50d9f6172142',
  kappa:'3b0c0f206a7d',

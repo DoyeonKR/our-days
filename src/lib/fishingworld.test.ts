@@ -381,8 +381,8 @@ test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 
   assert.match(panel, /모든 물고기/);
 });
 
-test("모든 어종 — 186종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
-  assert.equal(ALL_SPECIES.length, 186);
+test("모든 어종 — 187종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
+  assert.equal(ALL_SPECIES.length, 187);
   for (const k of ["nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"]) {
     assert.ok(speciesOf(k), k);
     assert.ok(SPOTS.some((s) => s.pool.some(([f]) => f === k)), k);
@@ -393,9 +393,9 @@ test("모든 어종 — 186종이 도감에 있고, 낚시터에서 실제로 �
   assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
 });
 
-test("모델 하나 = 물고기 하나 — 486폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
-  assert.equal(ALL_FORMS.length, 486);
-  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 486);
+test("모델 하나 = 물고기 하나 — 489폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
+  assert.equal(ALL_FORMS.length, 489);
+  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 489);
   for (const f of ALL_FORMS) if (f.family !== "sea_turtle") assert.ok(FISH_GLB.has(f.key), f.key);
   const seen = new Set<string>();
   const times = ["dawn", "day", "dusk", "night"] as const, wxs = ["rain", "snow", "clear", null] as const;

@@ -82,6 +82,12 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   //   2026-11-26 [사용자: "북극곰 벨루가 모두 태초 등급으로 설정하고 획득 확률 2% 미만으로해"] — 영웅 → 태초(값 · 시간은 별무리어와 북극곰 사이, 수조 6단계), 때 손님은 와도 15% 만 문다(rare — 한 번 던질 때 많아야 0.83%)
   { key: "beluga", name: "벨루가", grade: "태초", price: 125000, hours: 525, minTank: 6, size: 36, cm: 450, fresh: false, ornamental: false,
     spots: [], habit: { lo: -1.2, hi: 2.2, speed: 0.22, reach: 1, depth: 2, breathe: 55, breathOnly: true, dart: 0.1, pace: 0.6, tilt: 0.24, level: 0.42 } },
+  // 큰돌고래(2026-11-26 [사용자: "만들었고 여기에 움직임과 색상 입혀서 배포해"]) — 사용자가 Tripo 로 만든 모델을 게임 형식으로 구웠다
+  //   (design/aqua3d-review/dolphin/dolphin-build.mjs — 꼬리를 펴고 줄이고 꼬리지느러미를 붙여 색을 입혔다), 카드 그림은 모델을 찍은 것. 서귀포 문섬 낮의 때 손님(곁 칸)으로만.
+  //   빠르고 장난스러운 이빨고래: 무리 지어(school) 가운데 · 위 물을 빠르게 돌고, 9초 남짓마다 꼬리를 세차게 쳐 내달리며(burst),
+  //   방향을 자주 홱 틀고(dart) 숨 쉬러 자주 오른다(40초). 꼬리는 위아래로 친다(anatomy 의 CETACEAN). 누르면 물 위로 뛰어오른다(breach.ts breach)
+  { key: "bottlenose_dolphin", name: "큰돌고래", grade: "전설", price: 48500, hours: 302, minTank: 5, size: 34, cm: 300, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -1.4, hi: 2.6, speed: 0.4, reach: 1, depth: 2, breathe: 40, breathOnly: true, dart: 0.28, pace: 1.1, tilt: 0.35, level: 0.5, burst: 9, school: true } },
   // 갓파(2026-11-26 [사용자: "이벤트로 갓파쿠도 잡히게 해줘 기준이미지 줄게" → "최대한 유사하게 만들어 허락받았어"]) — 부위로 지은 모델(design/aqua3d-review/polar/kappa-build.mjs),
   //   카드 그림은 모델을 찍은 것. 비 오는 날 단양 남한강의 때 손님(이벤트)으로만 온다. 강에 사는 물가 요괴: 바닥 · 가운데를 개구리처럼 차며 헤엄치고
   //   (팔로 젓고 다리로 찬다 — OTARIID), 방향을 홱홱 틀며(dart), 숨 쉬러 오르고 바위 · 모래사장에 올라가 쉰다. 누르면 물속에서 빙글 돈다(twirl)

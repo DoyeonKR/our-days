@@ -55085,6 +55085,255 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "added": "2026-11-26 [사용자: \"이벤트로 갓파쿠도 잡히게 해줘\" → \"최대한 유사하게 만들어 허락받았어\"]"
+    },
+    "bottlenose_dolphin": {
+      "kind": "fish",
+      "family": "bottlenose_dolphin",
+      "form": "adult",
+      "file": "public/aqua/models/fish/bottlenose_dolphin.glb",
+      "triangles": 7124,
+      "bytes": 83680,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "36da21268d48026c7e0cb724ddfd9b510723ef32689450a1976ff2362d9a221e",
+      "sha256": "1df0e149d1dd1e89ad8231790737513825b2706d74764c825505766caa1b1eb9",
+      "authoringProfile": {
+        "key": "bottlenose_dolphin",
+        "name": "큰돌고래",
+        "grade": "전설",
+        "cm": 300,
+        "water": "sea",
+        "body": "dolphin",
+        "widthRatio": 0.22,
+        "life": "무리 지어 빠르게 · 9초마다 꼬리를 세차게 쳐 내달림 · 숨 쉬러 자주 수면"
+      },
+      "geometryAuthoring": "Tripo 모델(사용자 제공, design/aqua3d-review/dolphin/source) → design/aqua3d-review/dolphin/dolphin-build.mjs 로 꼬리 펴기 · 줄이기 · 꼬리지느러미 · 색 · 뼈 — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"만들었고 여기에 움직임과 색상 입혀서 배포해\"]"
+    },
+    "juv_bottlenose_dolphin": {
+      "kind": "fish",
+      "family": "bottlenose_dolphin",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_bottlenose_dolphin.glb",
+      "triangles": 7124,
+      "bytes": 83512,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "e9a93cd42b78243bab28a4649609702c45e6a72414800671adf306ec2f225223",
+      "sha256": "eab4e7d9cb0008f91a15b22248c4347dca2ede1a47b27a4ab31a9bb656109d19",
+      "authoringProfile": {
+        "key": "juv_bottlenose_dolphin",
+        "name": "큰돌고래",
+        "grade": "전설",
+        "cm": 300,
+        "water": "sea",
+        "body": "dolphin",
+        "widthRatio": 0.22,
+        "life": "무리 지어 빠르게 · 9초마다 꼬리를 세차게 쳐 내달림 · 숨 쉬러 자주 수면"
+      },
+      "geometryAuthoring": "Tripo 모델(사용자 제공, design/aqua3d-review/dolphin/source) → design/aqua3d-review/dolphin/dolphin-build.mjs 로 꼬리 펴기 · 줄이기 · 꼬리지느러미 · 색 · 뼈 — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"만들었고 여기에 움직임과 색상 입혀서 배포해\"]"
+    },
+    "fry_bottlenose_dolphin": {
+      "kind": "fish",
+      "family": "bottlenose_dolphin",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_bottlenose_dolphin.glb",
+      "triangles": 7124,
+      "bytes": 84244,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "bc4b4bb383ceb39fdd1b6f0b8d4cde0997aabd4dbb7ac9256c249659582f61ae",
+      "sha256": "7b64fa0b4d20e7ecf49e5c0d3bdf1b0d9bcbad94968d2dcb9e55e40a82efa45d",
+      "authoringProfile": {
+        "key": "fry_bottlenose_dolphin",
+        "name": "큰돌고래",
+        "grade": "전설",
+        "cm": 300,
+        "water": "sea",
+        "body": "dolphin",
+        "widthRatio": 0.22,
+        "life": "무리 지어 빠르게 · 9초마다 꼬리를 세차게 쳐 내달림 · 숨 쉬러 자주 수면"
+      },
+      "geometryAuthoring": "Tripo 모델(사용자 제공, design/aqua3d-review/dolphin/source) → design/aqua3d-review/dolphin/dolphin-build.mjs 로 꼬리 펴기 · 줄이기 · 꼬리지느러미 · 색 · 뼈 — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"만들었고 여기에 움직임과 색상 입혀서 배포해\"]"
     }
   },
   "structuralValidation": "passed",
