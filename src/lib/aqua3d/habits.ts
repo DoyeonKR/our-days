@@ -318,7 +318,7 @@ export type Course = {
   stand?: number;
   /** 0~1 — 배를 위로 돌린 정도(수면에 누워 쉬는 해달). 엔진이 몸을 그만큼(π 배) 굴린다 */
   belly?: number;
-  /** 0~1 — 주둥이를 모래에 박은 정도(habit.forage). 엔진이 머리를 아래로 돌린다(1 이면 약 34°) */
+  /** 0~1 — 주둥이를 모래에 박은 정도(habit.forage). 엔진이 머리를 아래로 돌린다(1 이면 약 29°) */
   nose?: number;
   /** 0~1 — 질주하는 정도(habit.burst). 엔진이 꼬리 쪽에 거품 줄을 남긴다 */
   burst?: number;
@@ -658,7 +658,7 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
 }
 
 // 길 위치 u(시간 → 길) 계산에 쓰는 값
-const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0, bstretch: 1, mam: false, forage: false, burst: 0, burstO: 0, burstW: 0 };
+const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0, bstretch: 1, mam: false, forage: false, ftall: 1, burst: 0, burstO: 0, burstW: 0 };
 /** 두족류 — n 번째로 옮겨 가는 것이 물 뿜기인가(물고기마다 · 몇 번째인지로만 정해진다) */
 const jetHop = (n: number) => U.jetShare > 0 && unit(U.hash, 911 + (((n % 4999) + 4999) % 4999)) < U.jetShare;
 /** n 번째 옮겨 가기 전까지의 물 뿜기 수 — 물 뿜기는 길을 거꾸로 한 칸 가므로 그만큼(두 칸) 뒤에서 다음 걸음을 이어 간다. 물고기마다 앞에서부터 쌓아 둔다 */
@@ -732,15 +732,25 @@ function turtleAt(t: number, hash: number, period: number) {
   // 숨 쉬러 오르내리는 동안 길을 멈추는 몫 — 거북은 수면에서 쉬므로 75% 멈춘다. 공기 호흡만 하는 몸(피라루쿠 · 가물치 등, breathOnly)과 포유류(haul — 모래에 쉬는 물범 포함)는
   //   2026-11-20 [사용자: "숨 쉬러 올라갈 때 가파른 것도 고쳐"] 길을 멈추면 옆으로는 안 가고 곧게 솟았다(승강기처럼) — 헤엄치며 비스듬히 오르게 멈추지 않는다
   B.loss = (U.noSand || U.mam ? 0 : 0.75) * l1 + (U.noSand ? 0 : 0.95 * l2);
-  // 바닥에서 먹이 찾기(habit.forage) — 숨 쉬는 주기의 1/3 · 2/3 자리에 26초 창 둘(9초 내려가 9초 기고 8초 오른다). 숨 창(22초 × 늘림)은 주기의 0 ~ 0.3 이라 겹치지 않는다
-  //   (주기 = 숨 주기 × 늘림 ≥ 72초 × 늘림, 첫 창은 주기의 1/3 ≥ 24초 × 늘림 뒤). 그동안 길을 65% 늦춰 천천히 긴다
+  // 바닥에서 먹이 찾기(habit.forage) — 숨 쉬는 주기의 1/3 · 2/3 자리에 창 둘. 숨 창(22초 × 늘림)은 주기의 0 ~ 0.3 이라 겹치지 않는다
+  //   (주기 = 숨 주기 × 늘림 ≥ 72초 × 늘림, 첫 창은 주기의 1/3 ≥ 24초 × 늘림 뒤 · 창 길이는 아래 FORAGE_RAMP 로 늘림 안에 든다)
   if (U.forage) {
-    const a = windows(t, period, (start + (period * 2) / 3) % period, FORAGE_S, 9 / FORAGE_S, 8 / FORAGE_S), wa = winWeight;
-    const b = windows(t, period, (start + period / 3) % period, FORAGE_S, 9 / FORAGE_S, 8 / FORAGE_S);
-    B.forage = Math.min(1, wa + winWeight); B.loss += 0.65 * (a + b);
+    forageWin(t, period, (start + (period * 2) / 3) % period); const wa = F.w, la = F.loss;
+    forageWin(t, period, (start + period / 3) % period);
+    B.forage = Math.min(1, wa + F.w); B.loss += la + F.loss;
   } else B.forage = 0;
 }
-const FORAGE_S = 26;
+/** 바다코끼리 먹이 찾기 창 하나 — 내려가기(FORAGE_RAMP 초 × 수조 높이) · 모래에서 기기(FORAGE_PLATEAU 초) · 오르기(내려가기와 같은 길이).
+ *  2026-11-26 — 처음엔 9초에 내려가며 그동안도 길을 65% 늦춰, 옆으로는 거의 안 가고 61 ~ 82° 로 곧게 가라앉았다(승강기 — 2026-11-20 사용자가 짚은 것과 같다).
+ *  이제 길은 모래 위에서만 늦추고(65%) 내려가고 오르는 동안은 2.2배로 헤엄쳐 비스듬히(바다코끼리는 평소 몸길이 0.1배/초로 느리다), 내려가는 시간은 수조 높이만큼 늘린다(닫힌 식 — 같은 시각 = 같은 자리) */
+const F = { w: 0, loss: 0 };
+const FORAGE_RAMP = 14, FORAGE_PLATEAU = 10;
+function forageWin(t: number, period: number, start: number) {
+  const R = FORAGE_RAMP * Math.min(3, U.ftall), dur = 2 * R + FORAGE_PLATEAU;
+  const outer = windows(t, period, start, dur, R / dur, R / dur); F.w = winWeight;
+  const pl = FORAGE_PLATEAU + 2, inner = windows(t, period, (start - (R - 1) + period) % period, pl, 1 / pl, 1 / pl);
+  F.loss = 0.65 * inner - 1.2 * Math.max(0, outer - inner);
+}
 
 /** 해파리 — 짧게 오므리며(앞 30%) 솟고, 길게 펴면서 천천히 가라앉는다. 갓 모양(1 펴짐 · -1 오므림)과 높이 변화 */
 const J = { pulse: 0, rise: 0 };
@@ -829,7 +839,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   // 거북 숨 쉬는 주기 — 길(pathU)이 쉬는 몫을 빼려면 길보다 먼저 정한다
   U.bstretch = habit.breathe ? Math.min(6, Math.max(1, tall * (habit.haul || habit.breathOnly ? 3 : 1))) : 1;
   U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) * U.bstretch : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.mam = !!habit.haul; U.jetShare = habit.ceph === "crawl" ? 0.14 : habit.ceph === "hover" ? 0.5 : 0;
-  U.forage = !!habit.forage && !!habit.breathe; U.burst = habit.burst ? habit.burst * (0.85 + 0.3 * unit(hash, 101)) : 0; U.burstO = unit(hash, 103) * U.burst; U.burstW = 0;
+  U.forage = !!habit.forage && !!habit.breathe; U.ftall = tall; U.burst = habit.burst ? habit.burst * (0.85 + 0.3 * unit(hash, 101)) : 0; U.burstO = unit(hash, 103) * U.burst; U.burstW = 0;
 
   // 어항 밖으로 몸이 나가지 않게 몸길이만큼 안쪽에서 돈다 — 가로 · 앞뒤 모두(옛 길은 앞뒤 폭이 몸길이를 안 봐서 고래상어가 앞 유리를 21% 뚫었다)
   const roomXs = roomX(half, 1), roomZs = roomZ(half);
@@ -957,8 +967,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
     const sandY = floorY + length * 0.2;
     // 숨 쉬는 높이는 월드의 수면에서 잰다 — 위로 늘린 수조에서 수면보다 1.3 넘게 아래에서 멈췄다(2026-11-11). 1단계는 그대로(5 - 몸길이 × 0.12)
     const breathY = nearTop(SURFACE_Y - Math.max(0, length * 0.12), tall);
-    // 바닥에서 먹이 찾기 — 몸 중심을 모래 위 몸길이 0.24 로(주둥이를 숙여도 몸이 모래에 안 묻힌다)
-    const forageY = floorY + length * 0.24;
+    // 바닥에서 먹이 찾기 — 몸 중심을 모래 위 몸길이 0.3 으로(주둥이를 29° 숙이면 코끝이 모래에 닿고 엄니 끝만 모래를 판다)
+    const forageY = floorY + length * 0.3;
     for (let i = 1; i < 9; i += 3) { const v = breathMix(Q[i], B.breath, B.sand, breathY, sandY); Q[i] = v + (forageY - v) * B.forage; }
     const mixP = breathMix(Q[4], bp, sp, breathY, sandY), mixM = breathMix(Q[4], bm, sm, breathY, sandY);
     vyT = (mixP + (forageY - mixP) * fp - (mixM + (forageY - mixM) * fm)) / (2 * h);

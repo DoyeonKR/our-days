@@ -51854,8 +51854,8 @@
       "family": "beluga",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_beluga.glb",
-      "triangles": 2784,
-      "bytes": 44348,
+      "triangles": 7532,
+      "bytes": 52820,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51876,8 +51876,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "2ae29b654a2c134614f3c80da30d9353143436ac82b15df956a6efd37c032492",
-      "sha256": "f591173457fad48e3a5d5bf473457d6a3b1a4353594f8eac09908a232def833f",
+      "sourceSHA256": "f9b1cc0dcb2931e0e896dc25591c424bdd69b2ecdf9ad1f945dcd4ba0dbf1d47",
+      "sha256": "78c348c1fa72c61ebf1318554f9c1e3fd31838d20e931a341087238c581b4a25",
       "authoringProfile": {
         "key": "beluga",
         "name": "흰고래",
@@ -51894,8 +51894,8 @@
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "user_requested_2026-11-24",
-      "approval": "user_requested_2026-11-24",
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
       "activation": "not enabled",
       "limits": {
         "triangles": 8000,
@@ -51937,8 +51937,8 @@
       "family": "beluga",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_beluga.glb",
-      "triangles": 2784,
-      "bytes": 47216,
+      "triangles": 7532,
+      "bytes": 54236,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51959,8 +51959,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "f10275837c0e6e0e9bd904ebd99f0611d3d370823abbfaca79538fbabcbc3f61",
-      "sha256": "c48e8604cf3ff048ab313430b088c39fd645441465f9b11e912656425eb7ef68",
+      "sourceSHA256": "05761fb901cf083daa78ac71eb40413d7e0f988b8f5b00651bc94ea7b65466ba",
+      "sha256": "ef0a40b6182c148113d42c2d6959457cc917d55dbcc7cc1815f4e702f64cc398",
       "authoringProfile": {
         "key": "beluga",
         "name": "흰고래",
@@ -51977,8 +51977,8 @@
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "user_requested_2026-11-24",
-      "approval": "user_requested_2026-11-24",
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
       "activation": "not enabled",
       "limits": {
         "triangles": 8000,
@@ -52020,8 +52020,8 @@
       "family": "beluga",
       "form": "adult",
       "file": "public/aqua/models/fish/beluga.glb",
-      "triangles": 2784,
-      "bytes": 49184,
+      "triangles": 7532,
+      "bytes": 54400,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52042,8 +52042,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "fe38e5b1cc836a8d275982ad1a61ef05a6fcac6c63736ac0d0c2668e3dcf4fc3",
-      "sha256": "82744e87a9d606ebcca152e643421bf72822fe0830e7398af54187fc5758d6a9",
+      "sourceSHA256": "a88de68f28a7c5015abb237aaac7b3e8500176f83fbe29117957f249bd067b14",
+      "sha256": "b3190b1bc202554710275c5b192437cc875891cc7a4a393240e76ab2890ab347",
       "authoringProfile": {
         "key": "beluga",
         "name": "흰고래",
@@ -52060,8 +52060,8 @@
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "user_requested_2026-11-24",
-      "approval": "user_requested_2026-11-24",
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
       "activation": "not enabled",
       "limits": {
         "triangles": 8000,

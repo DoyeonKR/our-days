@@ -1005,7 +1005,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       const hx=p.x+spoutFwd.x*L*.32,hy=p.y+spoutFwd.y*L*.32+L*.08,hz=p.z+spoutFwd.z*L*.32;
       if(hy>top-L*.12&&hy<top+L*.6&&elapsed-(spouted.get(id)??-99)>10){spouted.set(id,elapsed);splash.spout(hx,hz,top,L,elapsed,m.family==="sperm_whale"?-.35:0,m.family==="humpback_whale"||m.family==="gray_whale");}}}
     // 펭귄 질주(2026-11-26 habits 의 burst) — 날개를 세차게 저어 내달리는 동안 깃털 사이 공기가 꼬리 쪽으로 거품 줄을 남긴다. 움직임 줄이기면 안 한다
-    if(dt>0&&!reduced.matches){let top=0;for(const[id,m]of swimmers){if((m.course.burst??0)<.4||elapsed<(burstAt.get(id)??0))continue;if(!top)top=waterTop();burstAt.set(id,elapsed+.08);const L=shownLength(m),p=m.root.position;spoutFwd.set(1,0,0).applyQuaternion(m.root.quaternion);splash.trail(p.x-spoutFwd.x*L*.42,p.y-spoutFwd.y*L*.42,p.z-spoutFwd.z*L*.42,L*.7,elapsed,top);}}
+    if(dt>0&&!reduced.matches){let top=0;for(const[id,m]of swimmers){if((m.course.burst??0)<.4||elapsed<(burstAt.get(id)??0))continue;if(!top)top=waterTop();burstAt.set(id,elapsed+.06);const L=shownLength(m),p=m.root.position;spoutFwd.set(1,0,0).applyQuaternion(m.root.quaternion);splash.trail(p.x-spoutFwd.x*L*.42,p.y-spoutFwd.y*L*.42,p.z-spoutFwd.z*L*.42,L*1.1,elapsed,top);}}
     if(splash.active)splash.step(elapsed,renderer.domElement.height*.9);
     // 먹이 알갱이 — 새 먹이면 물고기가 모이는 자리에 뿌리고, 먹이 쪽으로 온 물고기 입에 닿은 알은 먹힌다(food.ts). 움직임 줄이기면 한 장면
     if(motion.feed&&motion.feed!==foodFeed){foodFeed=motion.feed;food.drop(motion.feed.t,motion.feed.x,{top:tallY(4.75,tall),deep,floorAt:foodFloor});}
@@ -1111,8 +1111,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       // 돌 때 안쪽으로 살짝 기운다(최대 10°) · 바닥 물고기는 비탈만큼 옆으로
       // 산갈치가 쉬는 동안 몸을 세운다(habits 의 stand — 머리가 위, 약 80°)
       if(m.course.stand)targetQuat.multiply(standQ.setFromAxisAngle(SIDE_AXIS,m.course.stand*1.4));
-      // 바다코끼리가 모래에서 먹이를 찾는 동안 주둥이를 박는다(habits 의 nose — 머리가 아래로, 약 34°)
-      if(m.course.nose)targetQuat.multiply(standQ.setFromAxisAngle(SIDE_AXIS,-m.course.nose*.6));
+      // 바다코끼리가 모래에서 먹이를 찾는 동안 주둥이를 박는다(habits 의 nose — 머리가 아래로, 약 29°)
+      if(m.course.nose)targetQuat.multiply(standQ.setFromAxisAngle(SIDE_AXIS,-m.course.nose*.5));
       targetQuat.multiply(bankQ.setFromAxisAngle(FORWARD,bankAngle(m.course.turn)+(motion.rolls[i]??0)));
       // 사냥 장면의 둘은 계산한 몸 방향 그대로 — 옆모습 돌리기(sideon)와 느린 따라 돌기(초당 2.8)가 머리 흔들기를 10% 로 죽이고 입 자리를 옮겨, 먹이가 입 옆에 떠 있었다
       const qk=m===mealGhost||m===mealPredS?(mealLock?1:dt*10):dt*2.8;

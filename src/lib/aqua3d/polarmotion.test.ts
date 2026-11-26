@@ -18,7 +18,7 @@ const run = (key: string, scale: number, secs = 300) => {
       maxStep = Math.max(maxStep, Math.hypot(c.x - prev.x, c.y - prev.y, c.z - prev.z));
       maxTilt = Math.max(maxTilt, (Math.abs(Math.atan2(c.dy, Math.hypot(c.dx, c.dz))) * 180) / Math.PI);
       if ((c.nose ?? 0) > 0.9) nose++;
-      if ((c.nose ?? 0) > 0.995) { full++; if (c.y < -5.3 + L * 0.3 && c.ground > 0.99) noseFloor++; if (c.puff >= 0) puff++; }
+      if ((c.nose ?? 0) > 0.995) { full++; if (c.y < -5.3 + L * 0.36 && c.ground > 0.99) noseFloor++; if (c.puff >= 0) puff++; }
       if ((c.burst ?? 0) > 0.5) burst++;
       prev = { ...c };
     }
@@ -34,6 +34,28 @@ test("바다코끼리 — 숨 사이마다 모래로 내려가 주둥이를 박�
   assert.ok(r.puff > 0.5, `먼지 ${r.puff}`);
   assert.ok(r.maxTilt <= 36, `기울기 ${r.maxTilt}`);
   assert.ok(r.maxStep < 0.3, `한 프레임 ${r.maxStep}`);
+});
+
+test("바다코끼리 — 모래로 내려가고 오르는 길은 비스듬하다(승강기처럼 곧게 가라앉지 않는다) · 높은 수조에서도", () => {
+  // 2026-11-26 처음 판은 9초에 내려가며 길도 늦춰 61 ~ 82° 로 곧게 가라앉았다. 내려가기 한 번의 평균 각(위아래 거리 ÷ 옆 거리, 월드)을 잰다
+  const L = fishLength(FISH_BASE_CM.walrus, "walrus");
+  for (const tall of [1, 3]) {
+    const ramps: number[] = [];
+    for (const id of [1, 2, 3, 4, 5, 6]) {
+      const pts: number[][] = [];
+      for (let t = 0; t < 1100; t += 0.25) { const c = fishCourse(id, t, L, "walrus", 1.6, { tall }); pts.push([c.x, c.y * tall, c.z, c.nose ?? 0]); }
+      for (let i = 0; i < pts.length - 1; i++) {
+        if (!(pts[i][3] > 0.03 && pts[i][3] < 0.97)) continue;
+        let j = i, v = 0, h = 0;
+        while (j < pts.length - 1 && pts[j + 1][3] > 0.03 && pts[j + 1][3] < 0.97) { j++; v += Math.abs(pts[j][1] - pts[j - 1][1]); h += Math.hypot(pts[j][0] - pts[j - 1][0], pts[j][2] - pts[j - 1][2]); }
+        if (v > 0.5) ramps.push((Math.atan2(v, h) * 180) / Math.PI);
+        i = j;
+      }
+    }
+    ramps.sort((a, b) => a - b);
+    assert.ok(ramps.length > 20, `내려가기 수 ${ramps.length}`);
+    assert.ok(ramps[ramps.length >> 1] < 35, `tall ${tall} 가운데 각 ${ramps[ramps.length >> 1]}`);
+  }
 });
 
 test("황제펭귄 — 주기마다 내달린다(1.7배), 넓은 수조에서도 한 프레임 0.3 안", () => {
