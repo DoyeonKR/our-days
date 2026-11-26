@@ -60,11 +60,24 @@ async function card(keys) {
   }
 }
 
+// 기준 그림 없이 다섯 방향(2026-11-25 남극 10종 — 카드 그림을 찍기 전 모델만 본다)
+async function views(keys, name) {
+  const cv = document.createElement('canvas'), V = Object.entries(VIEWS); cv.width = V.length * CELL; cv.height = keys.length * CELL; const ctx = cv.getContext('2d'); ctx.font = '13px system-ui';
+  let r = 0;
+  for (const key of keys) {
+    const m = await load(`${newDir}/${key}.glb`), sc = scene(); sc.add(m); const c = skinnedBox(m).getCenter(new T.Vector3());
+    V.forEach(([v, d], i) => { ctx.drawImage(shot(sc, c, d), i * CELL, r * CELL); label(ctx, i * CELL + 4, r * CELL + 4, key + ' · ' + v); }); r++;
+  }
+  out.append(cv); if (qs.get('save')) await save(cv, name + '.webp');
+}
+
 async function motion(keys, name) {
   const {fishMotion} = await import('/src/lib/aqua3d/glb.ts');
   const {WATER_LIGHT} = await import('/src/lib/aqua3d/waterlight.ts');
-  const poses = [['쉼 t=0', 0, {}], ['기어감 t=1.7', 1.7, {amp: 1}], ['기어감 t=3.1', 3.1, {amp: 1}], ['물 뿜기', 5.2, {rev: 1, jet: 1, amp: 1}], ['미끄러진 끝(펴기)', 6.4, {rev: 1, jet: 0, amp: .3}]];
-  const views = [['비스듬히', [1, .6, 1.3]], ['위', [0, 1, .001]], ['수조', [.35, .42, 1]]];
+  // ?paddle=1 — 헤엄(북극곰 개헤엄 등) 한 바퀴를 고르게 나눈 칸(2026-11-25)
+  // ?land=1 — 펭귄이 땅 위에 서서(upright) 걷는 칸(2026-11-26)
+  const poses = qs.get('land') ? [['서 있기', 4, {upright: 1, speed: 0, amp: .12, effort: .12, hover: 1, ground: 1}], ...[0, .12, .24, .36, .48].map((t) => [`걷기 t=${t}`, 6 + t, {upright: 1, speed: .3, amp: .12, effort: .12, hover: 1, ground: 1}])] : qs.get('paddle') ? [0, .15, .3, .45, .6, .75].map((t) => [`헤엄 t=${t}`, 4 + t, {amp: 1, speed: .4, effort: 1}]) : [['쉼 t=0', 0, {}], ['기어감 t=1.7', 1.7, {amp: 1}], ['기어감 t=3.1', 3.1, {amp: 1}], ['물 뿜기', 5.2, {rev: 1, jet: 1, amp: 1}], ['미끄러진 끝(펴기)', 6.4, {rev: 1, jet: 0, amp: .3}]];
+  const views = qs.get('land') ? [['옆', [0, .05, 1]], ['앞', [1, .1, .001]], ['비스듬히', [1, .3, 1.3]]] : qs.get('paddle') ? [['옆', [0, .05, 1]], ['비스듬히', [1, .3, 1.3]], ['아래', [.2, -1, .4]]] : [['비스듬히', [1, .6, 1.3]], ['위', [0, 1, .001]], ['수조', [.35, .42, 1]]];
   const cv = document.createElement('canvas'); cv.width = poses.length * CELL; cv.height = keys.length * views.length * CELL; const ctx = cv.getContext('2d'); ctx.font = '13px system-ui';
   let row = 0;
   for (const key of keys) {
@@ -73,8 +86,8 @@ async function motion(keys, name) {
     for (const [vn, vd] of views) {
       poses.forEach(([pn, t, pose], i) => {
         // 박자는 물속 시계(aquaTime)로 — 프레임 사이 dt 를 위해 앞에서 몇 번 돌린다
-        for (let k = 8; k >= 0; k--) { WATER_LIGHT.aquaTime.value = t - k / 30; anim(t - k / 30, 1, pose); }
-        m.updateMatrixWorld(true); ctx.drawImage(shot(sc, c0, vd, 1.25), i * CELL, row * CELL);
+        for (let k = qs.get('land') ? 90 : 8; k >= 0; k--) { WATER_LIGHT.aquaTime.value = t - k / 30; anim(t - k / 30, 1, {...pose, dt: 1 / 30}); }
+        m.updateMatrixWorld(true); ctx.drawImage(shot(sc, qs.get('land') ? skinnedBox(m).getCenter(new T.Vector3()) : c0, vd, 1.25), i * CELL, row * CELL);
         label(ctx, i * CELL + 4, row * CELL + 4, `${key} · ${vn} · ${pn}`);
       });
       row++;
@@ -86,6 +99,7 @@ async function motion(keys, name) {
 try {
   if (qs.get('sheet')) await sheet(qs.get('sheet').split(','), qs.get('name') ?? 'review');
   if (qs.get('close')) await closeup(qs.get('close').split(','), qs.get('name') ?? 'review-close');
+  if (qs.get('views')) await views(qs.get('views').split(','), qs.get('name') ?? 'review-views');
   if (qs.get('card')) await card(qs.get('card').split(','));
   if (qs.get('motion')) await motion(qs.get('motion').split(','), qs.get('name') ?? 'review-motion');
   status.textContent = 'done' + (errors.length ? '\nERRORS:\n' + errors.join('\n') : '');

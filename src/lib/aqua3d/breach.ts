@@ -127,7 +127,7 @@ export function breachAt(p: BreachPlan, t: number): BreachState {
  *  모두 같은 틀(TrickPlan)이다: 시각 → 자리 · 몸 방향 · 원래 길과 섞는 몫, 그리고 물보라를 터뜨릴 때 목록. 순수 · 같은 입력 = 같은 길. */
 export type TrickKind = "breach" | "hop" | "spyhop" | "float" | "twirl";
 const TRICK_OF: Record<string, TrickKind> = {
-  orca: "breach", humpback_whale: "breach", minke_whale: "breach", gray_whale: "spyhop", sperm_whale: "spyhop", fur_seal: "hop", emperor_penguin: "hop", walrus: "spyhop", beluga: "spyhop", steller_sea_lion: "hop", japanese_sea_lion: "hop", spotted_seal: "spyhop", sea_otter: "float", otter: "twirl",
+  orca: "breach", polar_bear: "spyhop", humpback_whale: "breach", minke_whale: "breach", gray_whale: "spyhop", sperm_whale: "spyhop", fur_seal: "hop", emperor_penguin: "hop", gentoo_penguin: "hop", chinstrap_penguin: "hop", adelie_penguin: "hop", walrus: "spyhop", beluga: "spyhop", steller_sea_lion: "hop", japanese_sea_lion: "hop", spotted_seal: "spyhop", sea_otter: "float", otter: "twirl",
 };
 export const trickOf = (family: string): TrickKind | null => TRICK_OF[family] ?? null;
 export type TrickSplash = { t: number; x: number; z: number; enter: boolean; scale: number; amount: number };

@@ -8,7 +8,7 @@ import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { SPOTS, formsSeen, releaseBossPlan, releaseSpot, releaseToSea, releaseXp } from "@/lib/fishing";
 import { MASTERY_RELEASE_N } from "@/lib/fishmastery";
-import { fmtCm } from "@/lib/fishingworld";
+import { BOSSES, MOON_FISH, TIMED_FISH, fmtCm, timedLabel } from "@/lib/fishingworld";
 import { useBackClose } from "@/lib/useBackClose";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { getAuthInfo } from "@/lib/auth";
@@ -64,7 +64,13 @@ const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 function dexHint(family: string, stage: 0 | 1 | 2, index: number): string {
   if (stage === 2) return index <= 0 ? "다 키우면 만나요" : `정성 ${careToOpen(index)} 넘게 키우면`;
   const spots = SPOTS.filter((s) => s.pool.some(([k]) => k === family)).map((s) => s.name);
-  return spots.length ? `${spots[0]}${spots.length > 1 ? ` 외 ${spots.length - 1}곳` : ""}에서 잡혀요` : "때 손님 · 주인으로 와요";
+  if (spots.length) return `${spots[0]}${spots.length > 1 ? ` 외 ${spots.length - 1}곳` : ""}에서 잡혀요`;
+  // 때 손님 · 보름달 손님 · 주인 — 어느 낚시터 · 언제인지까지(2026-11-26 [사용자: "어디서 잡을 수 있어 ? 잡을 수 있는 조건이 안 보여"] — 예전엔 "때 손님 · 주인으로 와요"뿐이었다)
+  const t = TIMED_FISH.find((x) => x.species === family) ?? MOON_FISH.find((x) => x.species === family);
+  if (t) { const sp = SPOTS.find((x) => x.key === t.spot); return `${sp?.name ?? t.spot}(Lv.${sp?.minLevel ?? 1}) · ${timedLabel(t)}에만 오는 손님${t.rare ? ` · 와도 ${Math.round(t.rare * 100)}%만 물어요` : ""}`; }
+  const boss = BOSSES.find((b) => b.family === family);
+  if (boss) return `${SPOTS.find((x) => x.key === boss.spot)?.name ?? boss.spot}의 주인(Lv.${boss.level})`;
+  return "때 손님 · 주인으로 와요";
 }
 
 export default function AquariumGame({ coupleId, myUserId, myName = "", partnerName = "", onClose, onOpenIsland, onFish, onFeedFx }: {

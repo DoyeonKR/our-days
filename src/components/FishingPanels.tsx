@@ -396,7 +396,7 @@ export function TimedSheet({ spot, moment, baitGrade, onClose }: { spot: FishSpo
           return (
             <li key={`${t.spot}-${t.species}${t.moon ? "-moon" : ""}`} className={now ? "is-now" : ""}>
               <span className="fish-boss-pic"><FishArt artKey={t.species} /></span>
-              <span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{timedLabel(t)} · {grade}{now ? (lowBait ? " · 지금 왔지만 더 좋은 미끼가 필요해요" : " · 지금 와요!") : ""}</small></span>
+              <span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{timedLabel(t)} · {grade}{t.rare ? ` · 와도 ${Math.round(t.rare * 100)}%만 물어요` : ""}{now ? (lowBait ? " · 지금 왔지만 더 좋은 미끼가 필요해요" : " · 지금 와요!") : ""}</small></span>
             </li>
           );
         })}
@@ -404,7 +404,7 @@ export function TimedSheet({ spot, moment, baitGrade, onClose }: { spot: FishSpo
       <h3 className="fish-sheet-title">다른 낚시터</h3>
       <ul className="fish-timed">
         {[...TIMED_FISH, ...MOON_FISH].filter((t) => t.spot !== spot.key).map((t) => (
-          <li key={`${t.spot}-${t.species}${t.moon ? "-moon" : ""}`}><span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{SPOTS.find((x) => x.key === t.spot)?.name} · {timedLabel(t)}</small></span></li>
+          <li key={`${t.spot}-${t.species}${t.moon ? "-moon" : ""}`}><span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{SPOTS.find((x) => x.key === t.spot)?.name}(Lv.{SPOTS.find((x) => x.key === t.spot)?.minLevel ?? 1}) · {timedLabel(t)}{t.rare ? ` · 와도 ${Math.round(t.rare * 100)}%만 물어요` : ""}</small></span></li>
         ))}
       </ul>
     </SheetShell>
@@ -493,7 +493,7 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
                       <span className="fish-boss-pic"><FishArt artKey={famArt(k, seen)} /></span>
                       <span className="min-w-0 flex-1">
                         <strong>{familyName(k)}</strong>
-                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}에만` : ""}</small>
+                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}에만${TIMED_FISH.find((t) => t.species === k)!.rare ? ` · 와도 ${Math.round(TIMED_FISH.find((t) => t.species === k)!.rare! * 100)}%만` : ""}` : ""}</small>
                       </span>
                     </li>
                   ))}

@@ -16,7 +16,7 @@ import {packAsset} from './shrimp-pack.mjs';
 import {material,distance} from './relief-build.mjs';
 import {CRAB_ART,crabFamilyOf,crabLabeler,lineProject} from '../../src/lib/aqua3d/crabwalk.ts';
 
-export async function crabGLB(key,ref,{dome=.42,droop=.55,tint=null,targetTris=7000}={}){
+export async function crabGLB(key,ref,{dome=.42,droop=.55,tint=null,targetTris=7000,alpha=1,source='NOAA Fisheries dorsal illustration (public domain)',belly=.45,zmul=null}={}){
  const {data,info}=await sharp(ref).ensureAlpha().raw().toBuffer({resolveWithObject:true}),W=info.width,H=info.height;
  if(tint)for(let i=0;i<W*H;i++)for(let c=0;c<3;c++)data[i*4+c]=Math.round(data[i*4+c]*(1-tint.k)+tint.rgb[c]*tint.k);
  const mask=new Uint8Array(W*H);for(let i=0;i<W*H;i++)mask[i]=data[i*4+3]>60?1:0;
@@ -26,7 +26,7 @@ export async function crabGLB(key,ref,{dome=.42,droop=.55,tint=null,targetTris=7
  // 가장 굵은 곳 = 등딱지 가운데
  let cx=0,cy=0,rmax=0;for(let i=0;i<W*H;i++)if(D[i]>rmax){rmax=D[i];cx=i%W;cy=Math.floor(i/W);}
  const rc=rmax; // 등딱지 반지름(대충)
- const zOf=(x,y)=>{const i=y*W+x,d=D[i],r=Math.max(d,R[i]),z=Math.sqrt(Math.max(0,d*(2*r-d)));return r>rc*.45?z*dome:z;};
+ const zOf=(x,y)=>{const i=y*W+x,d=D[i],r=Math.max(d,R[i]),z=Math.sqrt(Math.max(0,d*(2*r-d)));const zz=r>rc*.45?z*dome:z;return zmul?zz*zmul(x,y):zz;};
  const sag=(x,y)=>{const r=Math.hypot(x-cx,y-cy);return -droop*Math.max(0,r-rc*1.05)*.42;};// 등딱지 밖은 멀어질수록 처진다
  // 격자(2px) 앞 · 뒤면 + 가장자리 띠
  const step=2,cols=Math.floor(W/step),rows=Math.floor(H/step),id=new Int32Array(cols*rows).fill(-1),P=[],UV=[],SIDE=[];
@@ -87,9 +87,9 @@ const PART=[];for(let i=0;i<P.length/3;i++)PART.push(-1);for(let g=0;g<cols*rows
  if(art){const A=new Uint8Array(n2*4);for(let i=0;i<n2;i++)A[i*4]=K2[i]>=0?K2[i]+1:0;g.setAttribute('aquaPart',new T.BufferAttribute(A,4));}g.setIndex(I2);g.computeVertexNormals();
  // 텍스처: 위 반 = 그림(등), 아래 반 = 같은 그림을 옅게(배)
  const near=new Int32Array(W*H).fill(-1),q=new Int32Array(W*H);let qa=0,qb=0;for(let i=0;i<W*H;i++)if(data[i*4+3]>160){near[i]=i;q[qb++]=i;}while(qa<qb){const i=q[qa++],x=i%W;for(const j of[i-W,i+W,...(x?[i-1]:[]),...(x<W-1?[i+1]:[])])if(j>=0&&j<W*H&&near[j]<0){near[j]=near[i];q[qb++]=j;}}
- const top=Buffer.alloc(W*H*3),bot=Buffer.alloc(W*H*3);for(let i=0;i<W*H;i++)for(let c=0;c<3;c++){const v=data[near[i]*4+c];top[i*3+c]=v;bot[i*3+c]=Math.round(v*.55+232*.45);}
+ const top=Buffer.alloc(W*H*3),bot=Buffer.alloc(W*H*3);for(let i=0;i<W*H;i++)for(let c=0;c<3;c++){const v=data[near[i]*4+c];top[i*3+c]=v;bot[i*3+c]=Math.round(v*(1-belly)+232*belly);}
  const half=async b=>sharp(b,{raw:{width:W,height:H,channels:3}}).resize(512,256,{fit:'fill'}).raw().toBuffer();
  const atlas=Buffer.concat([await half(top),await half(bot)]),png=await sharp(atlas,{raw:{width:512,height:512,channels:3}}).png().toBuffer();
- const glb=await compressGLB(material(packAsset(key,[{name:key,geometry:g,extras:{aquaGeometry:'reference-rounded-crustacean',source:'NOAA Fisheries dorsal illustration (public domain)',bodyCrossSection:'round inflation'}}],png,bones),m=>{m.name='painted_PBR_atlas';m.doubleSided=true;m.pbrMetallicRoughness.metallicFactor=.05;m.pbrMetallicRoughness.roughnessFactor=.6;}),{webpQuality:92});
+ const glb=await compressGLB(material(packAsset(key,[{name:key,geometry:g,extras:{aquaGeometry:'reference-rounded-crustacean',source,bodyCrossSection:'round inflation'}}],png,bones),m=>{m.name='painted_PBR_atlas';m.doubleSided=true;m.pbrMetallicRoughness.metallicFactor=.05;m.pbrMetallicRoughness.roughnessFactor=alpha<1?.25:.6;if(alpha<1){m.alphaMode='BLEND';m.pbrMetallicRoughness.baseColorFactor=[1,1,1,alpha];}}),{webpQuality:92});
  return {glb,tris:I2.length/3};}
 if(process.argv[1]&&import.meta.url.endsWith(process.argv[1].replace(/\\/g,'/').split('/').pop())){const [key,ref,dm,dr]=process.argv.slice(2);const {glb,tris}=await crabGLB(key,ref,{dome:dm?+dm:.42,droop:dr?+dr:.55});await writeFile(`design/aqua3d-review/crabs/${key}.glb`,glb);console.log(key,tris,'tris',glb.length,'bytes');}

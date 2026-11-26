@@ -59,8 +59,10 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  const P=[],UV=[],I=[];const vtx=(x,y,z,u,v)=>{P.push(x,y,z);UV.push(u,v);return P.length/3-1;};const refUV=(x,y)=>[x/W,(256+y/H*255)/511];
  // 몸통 관
  // 톱상어(2026-11-20) — 머리는 위아래로 납작하고 옆으로 넓다(앞 18% 에서 옆 폭을 1.45 배까지)
+ // 남극 물고기(2026-11-25) — 단면은 둥근 타원(지수 1). 고래 기본값 2 는 위아래 · 옆이 뾰족한 마름모 단면이다
+ const fishKey=/toothfish|icefish/.test(key);
  const sawKey=/sawshark/.test(key),headK=x=>sawKey?1+.45*Math.max(0,Math.min(1,(x-(bx1-(bx1-bx0)*.18))/((bx1-bx0)*.18)))**1.5:1;
- const N=16,step=4,rings=[];for(let x=bx0;x<=bx1;x+=step){const r=Rr[x],c=C[x],ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2;const g=spermGeo?.(x),ex=g?g.ex:2,cs=Math.cos(phi),sn=Math.sin(phi),ys=Math.sign(cs)*Math.abs(cs)**ex,zs=Math.sign(sn)*Math.abs(sn)**ex;ring.push(vtx(x,g?g.cy-ys*g.ry:c-ys*r,g?zs*g.rz:zs*r**.95*headK(x),(x-bx0)/(bx1-bx0),(j/N*254+.5)/511));}rings.push(ring);}
+ const N=16,step=4,rings=[];for(let x=bx0;x<=bx1;x+=step){const r=Rr[x],c=C[x],ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2;const g=spermGeo?.(x),ex=g?g.ex:fishKey?1:2,cs=Math.cos(phi),sn=Math.sin(phi),ys=Math.sign(cs)*Math.abs(cs)**ex,zs=Math.sign(sn)*Math.abs(sn)**ex;ring.push(vtx(x,g?g.cy-ys*g.ry:c-ys*r,g?zs*g.rz:zs*r**.95*headK(x),(x-bx0)/(bx1-bx0),(j/N*254+.5)/511));}rings.push(ring);}
  if(sperm){const xl=bx0+(rings.length-1)*step,gl=spermGeo(Math.min(bx1,xl));for(const [dx,k]of[.25,.42,.56,.68,.78,.86,.92,.96,.985,.997].map(t=>[t*gl.ry*.32,(1-t**2.4)**(1/2.4)])){spermCapX=xl+dx;const ring=[];for(let j=0;j<=N;j++){const phi=j/N*Math.PI*2,cs=Math.cos(phi),sn=Math.sin(phi),ex=gl.ex;ring.push(vtx(xl+dx,gl.cy-Math.sign(cs)*Math.abs(cs)**ex*gl.ry*k,Math.sign(sn)*Math.abs(sn)**ex*gl.rz*k,.95,(j/N*254+.5)/511));}rings.push(ring);}
   // 아래턱 — 머리 밑에 가늘고 긴 막대(앞끝은 머리 앞면보다 조금 뒤), 위쪽 절반은 머리 속에 묻혀 떠 있지 않다. 색은 그림의 입가(머리 아래 밝은 줄)
   {const hl=bx1-headX0,j0=headX0+hl*.12,j1=bx1-hl*.07,NJ=10,jr=[],mUV=refUV(bx1-hl*.25,C[Math.round(bx1-hl*.25)]+Rr[Math.round(bx1-hl*.25)]*.85);
@@ -73,7 +75,8 @@ async function build(key){const art=await loadArt(`public/aqua/fish/${key}.webp`
  // 몸 밖의 얇은 부분(다리 · 더듬이 · 꼬리부채) — 몸통 타원 안쪽 조금(뿌리)부터
  const rAt=x=>{const xi=Math.max(bx0,Math.min(bx1,Math.round(x)));return Rr[xi];},cAt=x=>C[Math.max(bx0,Math.min(bx1,Math.round(x)))];
  // 고래는 꼬리지느러미가 수평이다 — 원화(옆모습)의 꼬리 판은 빼고 아래에서 수평 꼬리를 따로 짓는다. 톱상어(상어)는 세로 꼬리 그대로
- const whale=!/sawshark/.test(key);
+ // 남극 물고기 둘(2026-11-25 — 메로 · 남극빙어, polar/ref-art.mjs 의 퍼블릭 도메인 기준 그림)도 톱상어처럼 세로 꼬리지느러미 그대로
+ const whale=!/sawshark|toothfish|icefish/.test(key);
  // 톱 주둥이(톱상어) — 몸통 앞(bx1)부터 원화 끝까지, 열마다 가장 굵은 줄기(거리 변환의 능선 ± 반두께 1.6)는 납작한 칼날로 따로 짓는다. 수염 · 이빨 선은 판 그대로
  let sawTip=bx1;if(sawKey)for(let x=bx1;x<W;x++)if(rr[x]>.8)sawTip=x;
  const SC=new Float32Array(W),SR=new Float32Array(W);if(sawKey){for(let x=bx1;x<=sawTip;x++){let a=0,b=0,n=0;for(let k=-4;k<=4;k++){const j=Math.max(bx1,Math.min(sawTip,x+k));if(rr[j]>0){a+=cy[j];b+=rr[j];n++;}}SC[x]=n?a/n:cAt(bx1);SR[x]=n?b/n:1;}}

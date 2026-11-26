@@ -116,7 +116,7 @@ type Swimmer = AnimalModel & { key: string; family: string; length: number; /** 
 /** 자란 물고기의 크기 · 자리를 잇는 시간(초) · 새 몸을 기다리는 상한(초, 수조 시계) */
 const GROW_S = 1, GROW_WAIT = 8, HANDOFF_S = 1;
 /** 고른 몸을 가리는 장식의 불투명도 · 모래사장 쉼터를 앞유리 쪽으로 미는 몫(앞뒤 반폭 대비) — 2026-11-17 */
-export const OCCLUDE_ALPHA = 0.22, BEACH_REST_FRONT = -0.5, ABOVE_ELEV = 0.42;
+export const OCCLUDE_ALPHA = 0.22, BEACH_REST_FRONT = -0.5, ABOVE_ELEV = 0.42, BEACH_OVER_EL = 0.4;
 /** 해변 보기의 내려다보는 각(rad) — 수면 위 모래사장을 위에서 비스듬히 본다 */
 export const BEACH_VIEW_ELEV = 0.5, BEACH_VIEW_YAW = 0.5;
 /** 지금 보이는 몸길이 — 자라는 동안은 옛 몸 · 키우는 중의 크기(그림자 · 고른 표시 · 따라가기 거리가 한 프레임에 뛰지 않게) */
@@ -823,7 +823,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 멀리 물러나도 수조 뒤까지 그린다(예전 끝면 110 은 큰 수조 전체 보기에서 뒷벽을 잘랐다)
     // 전체 보기의 내려다보기 — 가로로 긴 수조는 세로 화면에서 가는 띠가 되고 위아래가 빈다. 그만큼 위에서 비스듬히 내려다봐 바닥(앞뒤 깊이)까지 보이게(디오라마처럼).
     //   수조가 화면보다 가로로 길수록 더 높이(0.08 ~ 0.55 rad). 작은 수조는 거의 정면 그대로. 터널 · 돔 안 · 가까이 보기는 안 함
-    const overEl=over&&!inTunnel&&!inDome?clamp(.5*(1-camera.aspect*(11.8*tall)/(10*wide)),.08,.55):0;
+    const overEl=over&&!inTunnel&&!inDome?clamp(.5*(1-camera.aspect*(11.8*tall)/(10*wide)),habitat?.beachRest?BEACH_OVER_EL:.08,.55):0; // 모래사장이 있으면 해변 윗면(물 위)이 보이게 조금 더 내려다본다 — 수평에 가까우면 앞 절벽이 쉬는 펭귄 · 물범을 가린다
     overK=dt>0?overK+((over?1:0)-overK)*Math.min(1,dt*2):(over?1:0);
     // 수조 칸의 모양 — 화면 비율과 상관없이 정한다(화면이 이 값으로 칸을 바꾸면 위의 내려다보기 각이 바뀌니 둘이 서로를 흔들지 않게). 0.3 rad 내려다볼 때의 앞모습 + 여유
     if(over&&!inTunnel&&!inDome){const r=(10*wide*1.04)/((11.8*tall*Math.cos(.3)+6*deep*Math.sin(.3))*1.08);if(Math.abs(r-shapeSent)>.02){shapeSent=r;events.shape?.(r);}}
@@ -842,7 +842,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
     const selBreach=sel?breaches.get(sel.root.userData.id):undefined;
     // 2026-11-17 — 바위 · 모래사장(수면 위)에서 쉬는 포유류를 고르면 예전엔 4.6 까지만 봐서 그 아래 물속을 봤다
-    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,selBreach?(selBreach.plan.surface+selBreach.plan.peak)/2:Math.max(tallY(4.6,tall),Math.min(sel.root.position.y+.15,tallY(4.6,tall)+2.4)));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
+    if(sel){focusGoal.copy(sel.root.position);const standUp=(sel.course.upright??0)*shownLength(sel)*.38;focusGoal.x=clamp(focusGoal.x,-4.7*wide,4.7*wide);focusGoal.y=clamp(focusGoal.y+standUp,WORLD.floor+.8,selBreach?(selBreach.plan.surface+selBreach.plan.peak)/2:Math.max(tallY(4.6,tall),Math.min(sel.root.position.y+.15+standUp,tallY(5.56,tall)+1.6*tall)));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
     if(beachOn&&habitat?.beachRest){const bz=3*deep*BEACH_REST_FRONT*.75,sx=habitat.shoreX?habitat.shoreX(tallY(5.56,tall),bz):4*wide,rx=habitat.beachRest.x*wide;focusGoal.set(Math.min(4.6*wide,(sx+rx)/2),tallY(5.8,tall),bz);focusLen=closeD*.55/3.4;}
     beachK=dt>0?beachK+((beachOn?1:0)-beachK)*Math.min(1,dt*1.8):beachOn?1:0;
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);

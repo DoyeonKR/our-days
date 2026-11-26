@@ -117,7 +117,34 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **그림**: 바다코끼리 = `walrus/make-art.mjs`(우리 물범 그림을 부풀린 몸) → `walrus/photo-head.mjs`(사진 머리 · 목을 뒤집어 붙이고 몸 색을 사진 피부에 맞춤, 어린 개체는 엄니를 짧게 · 새끼는 지움 — 엄니 자리는 `walrus/<key>-tusk.png`). 황제펭귄 = `penguin/make-art.mjs`(SVG — 검은 등 · 흰 배 · 노란 귀 무늬 · 아랫부리 주황 줄 · 새끼는 회색 솜털과 흰 얼굴 가면) → `penguin/photo-penguin.mjs`(사진의 잔결만 얹는다). 사용자 참고 사진 · 조형물 · 시트는 비율만 봤다(저작권).
 **3D**: `mammal-tube-build.mjs` — 바다코끼리는 앞쪽 40%(머리 · 목)를 열의 위 · 아래 끝으로 재 관에 넣고, 엄니는 마스크로 몸 · 지느러미 판에서 빼 주둥이 밑에서 아래 · 조금 뒤로 뻗는 원뿔 둘로(머리 뼈). 검수 `walrus/review.webp` · `penguin/review.webp`.
 
-### D4. 벨루가 — 그림 3장 + 3D 모델 3개 (2026-11-26, Claude 세션이 만들었다 — 다시 그릴 때의 기록)
+### D4. 남극 10종 — 그림 30장 + 3D 모델 30개 (2026-11-25, Claude 세션이 만들었다 — 다시 그릴 때의 기록)
+
+| key | 이름 | 등급 | 다 큰 몸길이 | 오는 곳 |
+|---|---|---|---|---|
+| `gentoo_penguin` | 젠투펭귄 | 고급 | 80cm | 세종기지 pool |
+| `adelie_penguin` | 아델리펭귄 | 고급 | 70cm | 세종기지 pool |
+| `giant_isopod` | 남극 대왕등각류 | 고급 | 19cm | 세종기지 pool |
+| `chinstrap_penguin` | 턱끈펭귄 | 희귀 | 72cm | 세종기지 낮(때 손님) |
+| `icefish` | 남극빙어 | 희귀 | 60cm | 세종기지 해 질 녘 |
+| `sea_pig` | 바다돼지 | 희귀 | 15cm | 세종기지 밤 |
+| `antarctic_urchin` | 남극성게 | 흔함 | 7cm | 세종기지 새벽 |
+| `clione` | 클리오네 | 영웅 | 4cm | 세종기지 맑은 날 |
+| `toothfish` | 메로(남극이빨고기) | 전설 | 1.75m | 세종기지 밤 |
+| `salp` | 살프 사슬 | 전설 | 60cm(사슬) | 세종기지 눈 오는 날 |
+
+**3D(2판 — 2026-11-25 [사용자: "기준이미지 없이 모델을 만드니 그렇게 허접하게 만들지 너무 다르잖아 실제 어종과"])**: 기준은 퍼블릭 도메인 · CC0 사진과 도판(`polar/reference/SOURCES.md`). `polar/ref-art.mjs` 가 바탕을 오려 카드 그림과 3D 용 그림(`polar/model-art/`)을 만든다. 메로 · 빙어 = `whales/build.mjs`(사진에서 잰 중심선 · 두께의 둥근 몸통 + 사진을 몸에 입힘, 단면 타원) — 빙어 도판은 꼬리가 휘어 있어 곧게 편 그림(`icefishModelArt`)으로. 클리오네 · 등각류 = 위에서 본 사진을 `crab-build.mjs` 로 부풀림(`polar/top-build.mjs` — 클리오네 날개는 얇게 · 반투명). 성게 = 사진 윤곽의 회전체 + 사진 무늬 + 가시 520(`polar/urchin-build.mjs`). 바다돼지 = 도판 윤곽대로 몸통 + 도판 자리의 돌기 · 다리 · 입 촉수, 도판 무늬(`polar/seapig-build.mjs`). 살프 = 낱개 도판 무늬를 입힌 통 여덟 사슬(`polar/salp-build.mjs`, 사슬 사진은 퍼블릭 도메인으로 찾지 못했다). 펭귄 셋 = 부위로 짓고(`polar/penguins-build.mjs`) 사진과 견줘 머리 · 목 · 닫힌 부리 · 턱끈을 맞췄다. 1판(그림 없이 지은 `antfish-build` · `inverts-build`)은 지웠다.
+**그림**: 메로 · 빙어 · 클리오네 · 등각류 · 성게 · 바다돼지는 기준 사진 · 도판을 오린 것(바다돼지는 흑백 도판을 살아 있는 분홍으로, 빙어는 흰 몸빛으로 칠했다). 펭귄 셋 · 살프는 모델을 찍었다(`ceph-v3/review.html?card=` → `polar/cards-to-art.mjs`). 검수 `polar/review-antarctic.webp`(기준 | 카드 | 다섯 방향).
+
+### D5. 북극곰 — 그림 3장 + 3D 모델 3개 (2026-11-25, Claude 세션이 만들었다 — 다시 그릴 때의 기록)
+
+| key | 이름 | 등급 | 다 큰 몸길이 | 오는 곳 |
+|---|---|---|---|---|
+| `polar_bear` | 북극곰 | 태초 | 2.5m | 남극 세종기지 밤(때 손님 · 뽑혀도 30%) |
+
+**3D**: `polarbear/polarbear-build.mjs` — 부위로 짓는다(몸통 · 목 · 머리 한 줄 관 + 다리 넷 · 귀 · 눈 · 코 · 발톱 · 꼬리). 단면은 원이 아니다(몸통은 옆이 납작한 깊은 통, 머리는 이마가 평평하고 뺨이 넓은 쐐기 — `hr(x, θ)`). 비율은 USFWS 옆모습 사진, 헤엄 자세는 Ltshears 물속 사진, 얼굴은 Unsplash(CC0) 사진(`polarbear/reference/SOURCES.md`). 털은 흐르는 방향으로 늘인 가닥 · 다발 무늬를 계산으로 칠한다(사진 조각을 깔면 반복 무늬가 생긴다). 앞다리는 fin 뼈 — 게임이 좌우 엇갈려 앞뒤로 젓는다(`anatomy` 의 URSID · `glb` 의 개헤엄). 등록은 `polarbear/register.mjs`.
+**그림**: 모델을 찍었다(`ceph-v3/review.html?card=` → `polar/cards-to-art.mjs`). 헤엄 사진을 오려 쓰려 했지만 바닥과 붙어 깔끔하게 안 오려졌다. 검수 `polarbear/review.webp`.
+
+### D5. 벨루가 — 그림 3장 + 3D 모델 3개 (2026-11-26, Claude 세션이 만들었다 — 다시 그릴 때의 기록)
 
 | key | 이름 | 등급 | 다 큰 몸길이 | 기준 |
 |---|---|---|---|---|

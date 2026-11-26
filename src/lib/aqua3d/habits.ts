@@ -62,6 +62,10 @@ export type FishHabit = {
   haul?: boolean;
   /** 쉴 때 바위 · 모래사장 대신 수면에 배를 위로 하고 누워 떠 있는다(해달, 2026-11-20) — haulBlend 의 쉼터가 수면의 한 점이 된다 */
   float?: boolean;
+  /** 땅 위에선 두 발로 서서 걷는다(펭귄, 2026-11-26) — haulBlend 가 course.upright 와 쉼터 둘레 오가기를 준다 */
+  walk?: boolean;
+  /** 바위 · 모래사장에서 쉬는 몸 두께 배율(기본 1 — 몸길이 0.12). 다리가 몸 아래로 늘어진 북극곰은 크게(모래에 묻혔다), 납작하게 엎드리는 바다코끼리는 작게(2026-11-26) */
+  restThick?: number;
   /** 바닥에서 먹이 찾기(바다코끼리, 2026-11-26) [사용자: "신규 개체들 움직임과 디테일 업그레이드 해줘 충분히"] — 숨쉬기 주기의 반 바퀴 뒤마다 26초 동안 모래로 비스듬히 내려가
    *  주둥이를 박고(course.nose) 천천히 기며(길 빠르기 35%) 수염으로 조개를 찾는다 — 물을 뿜어 모래를 파헤쳐 먼지가 1.8초마다 피어오른다(course.puff). breathe 와 같이 쓴다 */
   forage?: boolean;
@@ -318,6 +322,8 @@ export type Course = {
   stand?: number;
   /** 0~1 — 배를 위로 돌린 정도(수면에 누워 쉬는 해달). 엔진이 몸을 그만큼(π 배) 굴린다 */
   belly?: number;
+  /** 0~1 — 땅 위에 두 발로 선 정도(펭귄, 2026-11-26). 엔진(glb.fishMotion)이 몸을 그만큼 세우고 뒤뚱 걷는다 */
+  upright?: number;
   /** 0~1 — 주둥이를 모래에 박은 정도(habit.forage). 엔진이 머리를 아래로 돌린다(1 이면 약 29°) */
   nose?: number;
   /** 0~1 — 질주하는 정도(habit.burst). 엔진이 꼬리 쪽에 거품 줄을 남긴다 */
@@ -1441,11 +1447,13 @@ export function haulRest(id: number, seconds: number): number {
 }
 /** 헤엄 길(out — 이미 계산한 schoolCourse)을 쉼터와 섞는다. 돌려주는 값 = 쉬는 정도(0~1) */
 const smooth01 = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
-export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean }, out: Course): number {
+/** 해변 모래 턱(root 안 x — 넓히기 전) · 앞뒤 물러남 — habitat.ts 의 BEACH_X0 + BEACH_BANK · BEACH_Z0 · BEACH_ZK 와 같은 값(beach.test 가 맞춰 본다). three 를 안 불러오려고 따로 둔다 */
+export const BEACH_DRY_X = 3.8, BEACH_Z0 = -0.3, BEACH_ZK = 1.35;
+export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean; walk?: boolean; thick?: number }, out: Course): number {
   let R = haulRest(id, seconds);
   // 먹이를 주면 쉬다가도 먹으러 간다
   R *= 1 - clamp01((out.feed ?? 0) * 1.5);
-  if (R <= 0) return 0;
+  if (R <= 0) { out.upright = 0; return 0; }
   const h = denHash(id + 7), o = opts.rock;
   let rx: number, ry: number, rz: number, ground = 0;
   // 몸이 보는 쪽 — 앞유리 쪽으로 비스듬히, 20초마다 천천히 고개를 돌린다(좌우 0.35 rad)
@@ -1465,7 +1473,13 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     // 모래사장(2026-11-15) — 꼭대기 평지에 물 쪽(왼쪽)을 보고 눕는다. 나눠 쓰면 앞뒤로 비켜 눕는다(모래사장은 가로가 좁고 앞뒤가 길다)
     const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * length * 0.7;
     const lim = 5 * scale - length * 0.42, zl = Math.max(0.2, roomZ(length / 2) * (opts.deep || 1) - 0.2);
-    rx = Math.max(-lim, Math.min(lim, o.x - (sh % 3) * length * 0.25)); rz = Math.max(-zl, Math.min(zl, o.z + off)) / (opts.deep || 1); ry = floorY + o.h + (length * 0.12) / (opts.tall || 1);
+    rx = Math.max(-lim, Math.min(lim, o.x - (sh % 3) * length * 0.25)); rz = Math.max(-zl, Math.min(zl, o.z + off)) / (opts.deep || 1);
+    // 해변은 앞으로 올수록 오른쪽으로 물러난다(habitat.beachShift) — 나눠 쓰다 앞쪽 · 왼쪽으로 비켜난 큰 몸은 해변 밖 물 위 허공에 떠 있었다(2026-11-26).
+    //   몸 가운데가 그 앞뒤 자리의 모래 턱(BEACH_DRY_X) 너머에 오게 오른쪽으로 옮기고, 그래도 안 되면 뒤로 물린다
+    { const need = length * 0.25 / scale, zMax = BEACH_Z0 + Math.max(0, (lim / scale - need) - BEACH_DRY_X) / BEACH_ZK;
+      if (rz > zMax) rz = zMax;
+      rx = Math.min(lim, Math.max(rx, (BEACH_DRY_X + Math.max(0, rz - BEACH_Z0) * BEACH_ZK + need) * scale)); }
+    ry = floorY + o.h + (length * 0.12 * (opts.thick ?? 1)) / (opts.tall || 1);
     fx = -1; fz = 0.25 + (unit(h, 131) - 0.5) * 0.5;
   } else if (o) {
     // 바위 꼭대기 — 나눠 쓰면 양옆으로 비켜 눕는다. 둥근 바위라 가운데에서 멀수록 조금 낮다
@@ -1473,11 +1487,21 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     // 바위 앞 어깨(앞유리 쪽)에 눕는다 — 꼭대기 한가운데면 큰 바위 뒤로 숨어 안 보였다(2026-11-14). 높이는 둥근 언덕의 그 자리 높이 + 몸 두께(물리 밀어내기와 같은 언덕)
     const front = o.r * 0.35, d = Math.min(0.95, Math.hypot(off, front) / Math.max(0.05, o.r));
     const lim = 5 * scale - length * 0.42;
-    rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z + front / (opts.deep || 1); ry = floorY + o.h * Math.sqrt(1 - d * d) + (length * 0.12) / (opts.tall || 1); // 몸 두께는 월드 길이 — 길 좌표의 높이는 엔진이 tall 배로 늘리므로 미리 나눈다(안 나누면 6단계에서 바위 위로 붕 떴다)
+    rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z + front / (opts.deep || 1); ry = floorY + o.h * Math.sqrt(1 - d * d) + (length * 0.12 * (opts.thick ?? 1)) / (opts.tall || 1); // 몸 두께는 월드 길이 — 길 좌표의 높이는 엔진이 tall 배로 늘리므로 미리 나눈다(안 나누면 6단계에서 바위 위로 붕 떴다)
   } else {
     // 바위가 없으면 뒤 유리 앞 모래 위
-    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + (length * 0.15) / (opts.tall || 1); ground = 1; // 몸 두께 — 0.1 이면 모래에 몸길이 7 ~ 8% 박혔다(2026-11-20)
+    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + (length * 0.15 * (opts.thick ?? 1)) / (opts.tall || 1); ground = 1; // 몸 두께 — 0.1 이면 모래에 몸길이 7 ~ 8% 박혔다(2026-11-20)
     fz = Math.abs(fz);
+  }
+  // 펭귄(2026-11-26 [사용자: "펭귄은 … 해변에서는 이족보행으로 다녀야해"]) — 땅 위에선 누워 쉬지 않고 두 발로 서서 쉼터 둘레를 천천히 오간다.
+  //   쉼터 자리가 좌우로 왔다 갔다 하고(끝에서 잠깐 멈춘다) 몸은 가는 쪽을 본다. 세우는 몫(upright)은 거의 다 올라왔을 때부터 — 엔진(glb)이 몸을 세우고 뒤뚱 걷는다
+  let walkUp = 0;
+  if (opts.walk && !opts.float) {
+    walkUp = smooth01((R - 0.82) / 0.18);
+    const ph = seconds * 0.2 + unit(h, 151) * TAU, span = Math.min(length * 0.8, o && o.kind !== "beach" ? o.r * 0.3 : length * 0.8), lim = 5 * scale - length * 0.42;
+    rx = Math.max(-lim, Math.min(lim, rx + Math.sin(ph) * span * walkUp));
+    const mv = Math.cos(ph), w = walkUp * smooth01((Math.abs(mv) - 0.15) / 0.3);
+    fx = fx * (1 - w) + Math.sign(mv) * w; fz *= 1 - w * 0.7;
   }
   const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
   {
@@ -1517,5 +1541,6 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
   if (out.nose) out.nose *= 1 - R; if (out.burst) out.burst *= 1 - R;
   // 누워 쉬는 해달 — 수면에 거의 닿은 끝(R 0.75 ~ 1)에 배를 위로 굴리고, 떠날 때 다시 엎드린다
   out.belly = opts.float ? smooth01((R - 0.75) / 0.25) : 0;
+  out.upright = walkUp;
   return R;
 }

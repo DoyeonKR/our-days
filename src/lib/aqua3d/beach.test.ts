@@ -113,3 +113,21 @@ test("절벽 · 해변 구분(2026-11-20) — 가파른 모래사장 경사는 �
   const block = src.slice(src.indexOf("float steep=beachK"), src.indexOf("aquaDry=beachK*above2;"));
   assert.ok(/^[\x00-\x7f]*$/.test(block), "절벽 셰이더 줄에 ASCII 밖 글자");
 });
+
+// 2026-11-26 [사용자: "해변애있은 모든 개채에대해 반영해야해"] — 해변 쉼터를 여럿이 나눠 쓰면 앞쪽 · 왼쪽으로 비켜났는데, 해변은 앞으로 올수록 오른쪽으로 물러나
+//   큰 몸(바다사자 · 바다코끼리 · 북극곰)이 해변 밖 물 위 허공에 떠 있었다. 이제 몸 가운데가 그 앞뒤 자리의 모래 턱 너머에 온다
+test("해변 쉼터는 나눠 써도 그 앞뒤 자리의 모래 턱 위 — 허공에 뜨지 않는다", async () => {
+  const H = await import("./habits.ts"), B = await import("./habitat.ts");
+  assert.equal(H.BEACH_Z0, B.BEACH_Z0); assert.equal(H.BEACH_ZK, B.BEACH_ZK);
+  assert.ok(Math.abs(H.BEACH_DRY_X - (B.BEACH_X0 + B.BEACH_BANK + 0.2)) < 1e-9, "모래 턱 = 둑 끝 + 0.2");
+  for (const tier of [8, 9, 10, 11]) {
+    const ax = tankAxes(tier, tankTall(tier), tankDeep(tier)), W = wideScale(0) * ax.x, D = ax.deep, Tl = ax.tall;
+    for (const length of [2.2, 4, 6.3, 8.3]) for (let share = 0; share < 9; share++) {
+      const out = { x: 0, y: 0, z: 0, dx: 1, dy: 0, dz: 0, turn: 0, amp: 1, effort: 1, hover: 0, ground: 0 } as unknown as Course;
+      let t = 0; for (; t < 600; t += 0.5) { const cc = { ...out }; if (haulBlend(3, t, length, W, WORLD.floor, { rock: { x: 4.65 * W, z: -1.5 * D, r: 2, h: BEACH_TOP - WORLD.floor, kind: "beach" }, share, deep: D, tall: Tl }, cc) >= 0.999) break; }
+      haulBlend(3, t, length, W, WORLD.floor, { rock: { x: 4.65 * W, z: -1.5 * D, r: 2, h: BEACH_TOP - WORLD.floor, kind: "beach" }, share, deep: D, tall: Tl }, out);
+      const sand = substrateHeight(out.x / W, out.z, tier, hasBeach(tier));
+      assert.ok(sand > 5.2, `${tier}단계 몸길이 ${length} 나눔 ${share}: 쉬는 자리 아래가 모래(${sand.toFixed(2)})`);
+    }
+  }
+});

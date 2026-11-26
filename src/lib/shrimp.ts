@@ -73,14 +73,43 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   //   2026-11-26 [사용자: "신규 개체들 움직임과 디테일 업그레이드 해줘 충분히"] — 바다코끼리는 숨 사이마다 모래로 내려가 주둥이를 박고 기며 조개를 찾고(forage — 모래 먼지 · 머리를 드는 기울기는 35° 안 — level),
   //   펭귄은 11초 남짓마다 날개를 세차게 저어 1.7배로 내달린다(burst — 거품 줄). 습성은 이 표 한 곳(habits.ts 의 FISH_HABITS 가 펼쳐 넣는다)
   { key: "emperor_penguin", name: "황제펭귄", grade: "영웅", price: 24500, hours: 207.5, minTank: 4, size: 26, cm: 115, fresh: false, ornamental: false,
-    spots: [], habit: { lo: -2, hi: 2.4, speed: 0.34, reach: 1, depth: 2, haul: true, breathe: 60, breathOnly: true, dart: 0.3, pace: 1, tilt: 0.45, burst: 11 } },
+    spots: [], habit: { lo: -2, hi: 2.4, speed: 0.34, reach: 1, depth: 2, haul: true, walk: true, breathe: 60, breathOnly: true, dart: 0.3, pace: 1, tilt: 0.45, burst: 11 } },
   { key: "walrus", name: "바다코끼리", grade: "전설", price: 53000, hours: 315, minTank: 5, size: 42, cm: 330, fresh: false, ornamental: false,
-    spots: [], habit: { lo: -3.4, hi: 1.2, speed: 0.14, reach: 0.9, depth: 1.8, haul: true, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.3, level: 0.7, forage: true } },
+    spots: [], habit: { lo: -3.4, hi: 1.2, speed: 0.14, reach: 0.9, depth: 1.8, haul: true, restThick: 0.85, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.3, level: 0.7, forage: true } },
   // 벨루가(2026-11-26 [사용자: "개체 추가해줘 자신있는 개체로"]) — 부위로 지은 모델(design/aqua3d-review/polar/beluga-build.mjs), 카드 그림은 모델을 찍은 것. 때 손님(곁 칸)으로만.
   //   북쪽 찬 바다의 작은 이빨고래: 무리 짓지 않고 가운데 물을 느긋하게 돌며 목이 있어 고개를 자주 돌려 두리번거린다(방향을 조금씩 튼다 — dart),
   //   숨 쉬러 자주 오르고(55초) 몸을 크게 기울이지 않는다(level 0.42 ≈ 23°). 누르면 머리를 내밀어 살핀다(breach.ts spyhop)
   { key: "beluga", name: "벨루가", grade: "영웅", price: 41500, hours: 275, minTank: 5, size: 36, cm: 450, fresh: false, ornamental: false,
     spots: [], habit: { lo: -1.2, hi: 2.2, speed: 0.22, reach: 1, depth: 2, breathe: 55, breathOnly: true, dart: 0.1, pace: 0.6, tilt: 0.24, level: 0.42 } },
+  // 남극 10종(2026-11-25 [사용자: "남극기지 낚시터에 … 10종" → "기존에있는 것과 조금 다른 느낌없어 ? 펭귄과 메로는 유지하고" → "다 완벽하게 진행해줘"]) —
+  //   그림 · 3D 는 Claude 세션이 부위로 지었다(design/aqua3d-review/polar/ penguins · antfish · inverts-build.mjs, 카드 그림은 모델을 찍은 것).
+  //   젠투 · 아델리 · 대왕등각류는 세종기지 pool 의 흔한 몫(시작 미끼 단계 — 대구 바로 뒤), 나머지 일곱은 세종기지 때 손님(곁 칸)
+  { key: "antarctic_urchin", name: "남극성게", grade: "흔함", price: 575, hours: 31.5, minTank: 1, size: 14, cm: 7, fresh: false, ornamental: false,
+    spots: [], habit: crawl({ lane: 0.7, speed: 0.012, rest: 0.85, hop: 0.3, dart: 0, hug: 0.2, idle: 0.1, pace: 0.4 }) },
+  { key: "gentoo_penguin", name: "젠투펭귄", grade: "고급", price: 2900, hours: 83, minTank: 2, size: 22, cm: 80, fresh: false, ornamental: false,
+    spots: [["sejong", 6, "cod"]], habit: { lo: -2, hi: 2.6, speed: 0.4, reach: 1, depth: 2, haul: true, walk: true, breathe: 45, breathOnly: true, dart: 0.4, pace: 1.2, tilt: 0.45, school: true } },
+  { key: "giant_isopod", name: "남극 대왕등각류", grade: "고급", price: 3150, hours: 86.2, minTank: 2, size: 18, cm: 19, fresh: false, ornamental: false,
+    spots: [["sejong", 4, "gentoo_penguin"]], habit: crawl({ lane: 0.85, speed: 0.05, rest: 0.55, dart: 0.1, hug: 0.08 }) },
+  { key: "adelie_penguin", name: "아델리펭귄", grade: "고급", price: 3450, hours: 90.5, minTank: 2, size: 21, cm: 70, fresh: false, ornamental: false,
+    spots: [["sejong", 6, "giant_isopod"]], habit: { lo: -1.8, hi: 2.6, speed: 0.38, reach: 1, depth: 2, haul: true, walk: true, breathe: 45, breathOnly: true, dart: 0.45, pace: 1.25, tilt: 0.45, school: true } },
+  { key: "icefish", name: "남극빙어", grade: "희귀", price: 3550, hours: 91.5, minTank: 2, size: 22, cm: 60, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -5, hi: -3.8, speed: 0.05, reach: 0.8, depth: 1.3, hug: 0.14, rest: 0.6, hop: 0.5, pace: 0.6, tilt: 0, lane: 0.8 } },
+  { key: "sea_pig", name: "바다돼지", grade: "희귀", price: 6650, hours: 108.5, minTank: 2, size: 16, cm: 15, fresh: false, ornamental: false,
+    spots: [], habit: crawl({ lane: 0.9, speed: 0.03, rest: 0.7, hop: 0.5, dart: 0, hug: 0.14, pace: 0.6 }) },
+  { key: "chinstrap_penguin", name: "턱끈펭귄", grade: "희귀", price: 7750, hours: 113.5, minTank: 3, size: 22, cm: 72, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -2, hi: 2.6, speed: 0.38, reach: 1, depth: 2, haul: true, walk: true, breathe: 45, breathOnly: true, dart: 0.4, pace: 1.2, tilt: 0.45, school: true } },
+  { key: "clione", name: "클리오네", grade: "영웅", price: 21250, hours: 196.2, minTank: 4, size: 12, cm: 4, fresh: false, ornamental: false,
+    spots: [], habit: { lo: 0.8, hi: 3.2, speed: 0.1, reach: 0.7, depth: 1.4, bob: 0.25, pace: 1.6, tilt: 0.1, school: true } },
+  { key: "toothfish", name: "메로", grade: "전설", price: 29500, hours: 227.5, minTank: 4, size: 34, cm: 175, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -4.2, hi: -1.6, speed: 0.08, reach: 0.9, depth: 1.6, pace: 0.6, tilt: 0.25, rest: 0.3 } },
+  // 북극곰(2026-11-25 [사용자: "북극곰도 만들어볼 수 있어 ? 태초등급으로 … 움직임도 이미지도 정말 이게 실제인지 그래픽인지 알 수없을정도로"]) —
+  //   USFWS · Ltshears · Unsplash(CC0) 사진(퍼블릭 도메인 · CC0)을 기준으로 Claude 세션이 부위로 지었다(design/aqua3d-review/polarbear/).
+  //   남극 세종기지 밤의 때 손님(곁 칸 · 뽑혀도 30% 만 문다 — 범고래와 같다. 2026-11-26 고성 거진항에서 옮겼다). 수면 가까이 머리를 내밀고 앞발을 번갈아 저어(개헤엄) 나아가고, 뒷다리는 뒤로 끌린다.
+  //   숨 쉬러 자주 오르고 모래사장 · 바위에서 쉰다. 사냥꾼(PREDATORS)에는 넣지 않았다 — 수조 물고기를 실제로 잡아먹게 된다
+  { key: "polar_bear", name: "북극곰", grade: "태초", price: 135000, hours: 550, minTank: 6, size: 46, cm: 250, fresh: false, ornamental: false,
+    spots: [], habit: { lo: -0.6, hi: 3, speed: 0.2, reach: 1, depth: 2, haul: true, restThick: 1.85, breathe: 40, breathOnly: true, dart: 0.15, pace: 0.7, tilt: 0.25 } },
+  { key: "salp", name: "살프 사슬", grade: "전설", price: 46500, hours: 294, minTank: 5, size: 30, cm: 60, fresh: false, ornamental: false,
+    spots: [], habit: { lo: 0.5, hi: 3, speed: 0.05, reach: 1, depth: 2, pace: 0.5, tilt: 0.15, bob: 0.2, feeds: false } },
 ];
 
 /** 켜졌을 때만 — 다른 표가 펼쳐 넣는다 */

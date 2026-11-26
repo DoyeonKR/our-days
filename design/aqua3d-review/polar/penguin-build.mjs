@@ -14,22 +14,27 @@ const STAGES = {
 // 몸 단면(x: 꼬리 -4.3 → 머리 앞 3.95). 새끼는 더 짧고 통통하다
 // 2026-11-25 — 예전엔 목(2.35)이 잘록했다가 머리(2.95)가 다시 부풀어 공을 몸에 얹은 모양이었다. 황제펭귄 헤엄 자세는 몸 → 목 → 머리가 한 줄로 가늘어지는 어뢰다
 const PROF = [[-4.3, .32, .3, .1], [-3.7, .78, .68, .02], [-2.5, 1.22, 1.1, -.06], [-1.0, 1.5, 1.34, -.1], [.4, 1.48, 1.32, -.08], [1.6, 1.26, 1.12, .02],
-  [2.35, 1.0, .9, .1], [2.95, .86, .78, .15], [3.45, .68, .6, .17], [3.95, .34, .32, .15]];
+  [2.35, 1.0, .9, .1], [2.95, .86, .78, .2], [3.45, .64, .56, .3], [3.95, .32, .29, .32]];
 // 새끼는 큰 둥근 머리가 몸과 나뉜다(목이 잘록)
 const PROF_CHICK = [[-3.2, .4, .38, .06], [-2.6, 1.0, .92, 0], [-1.4, 1.45, 1.36, -.06], [0, 1.6, 1.5, -.06], [1.2, 1.4, 1.3, 0], [1.85, 1.0, .94, .12],
   [2.4, 1.08, 1.0, .24], [2.85, 1.02, .96, .26], [3.2, .88, .84, .26], [3.45, .7, .67, .25], [3.63, .47, .45, .24], [3.74, .22, .21, .23]];
 const profOf = (T) => (x) => { let i = 0; while (i < T.length - 2 && x > T[i + 1][0]) i++; const A = T[i], B = T[i + 1], t = clamp((x - A[0]) / (B[0] - A[0])), k = t * t * (3 - 2 * t); return {a: A[1] + (B[1] - A[1]) * k, b: A[2] + (B[2] - A[2]) * k, cy: A[3] + (B[3] - A[3]) * k}; };
 
 function build(key) {
-  const st = STAGES[key], m = new Model(), T = st.chick ? PROF_CHICK : PROF, P = profOf(T), X0 = T[0][0], X1 = T[T.length - 1][0];
+  const st = STAGES[key], m = new Model(), T = st.chick ? PROF_CHICK : PROF, P0 = profOf(T), X0 = T[0][0], X1 = T[T.length - 1][0];
   const headX = st.chick ? 2.55 : 2.95, neckX = st.chick ? 1.9 : 2.35;
-  const surf = (x, th, k = 1) => { const p = P(x); return [x, p.cy + Math.cos(th) * p.a * k, Math.sin(th) * p.b * k]; };
+  // 머리 단면 — 2026-11-25 [사용자: "펭귄 얼굴이 너무 부자연스러운 원형이야"] 예전엔 머리가 거의 둥근 원기둥 끝이라 정면에서 동그란 공이었다.
+  //   진짜 펭귄 머리: 옆으로 납작(높이보다 폭이 좁다) · 정수리는 좁고 평평하게 · 눈 아래 뺨이 조금 불룩 · 턱 밑으로 좁아지며 목에 이어진다
+  const headK = (x) => smooth(neckX - .15, headX + .1, x);
+  const hr = (x, th) => { const k = headK(x), c = Math.cos(th), s = Math.sin(th) ** 2; return 1 - k * (.17 * Math.max(0, c) * s + .12 * Math.max(0, c) ** 6 - .07 * Math.exp(-(((c + .3) / .35) ** 2)) * s + .08 * Math.max(0, -c - .55) * s); };
+  const P = (x) => { const p = P0(x); return {...p, b: p.b * (1 - .24 * headK(x))}; };
+  const surf = (x, th, k = 1) => { const p = P(x), q = k * hr(x, th); return [x, p.cy + Math.cos(th) * p.a * q, Math.sin(th) * p.b * q]; };
   const eyeX = st.chick ? 3.05 : 3.3, eyeC = [-1, 1].map((sd) => surf(eyeX, sd * 1.05, .96));
   // 2026-11-25 3차 — 머리는 새까맣고 등은 그보다 밝은 청회색(예전엔 등까지 거의 검정에 큰 얼룩)
   const BLACK = st.juv ? [62, 66, 76] : [26, 30, 40], BACK = st.juv ? [96, 104, 118] : [74, 88, 108], HEAD = st.juv ? [40, 42, 48] : [10, 11, 14];
 
   // ── 몸통 ──
-  m.sweep('body', (s) => { const x = X0 + (X1 - X0) * s, p = P(x); return {c: [x, p.cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: p.a, b: p.b}; },
+  m.sweep('body', (s) => { const x = X0 + (X1 - X0) * s, p = P(x); return {c: [x, p.cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: p.a, b: p.b, r: (th) => hr(x, th)}; },
     {ns: 52, nt: 28, capStart: .2, capEnd: st.chick ? .08 : .26, capRings: 6, capSpanStart: .03, capSpanEnd: .1, island: [0, 0, 1, .62], bone: 'body',
       sMap: (s) => { const x = X0 + (X1 - X0) * s; return x < neckX ? (x - X0) / (neckX - X0) * .6 : .6 + (x - neckX) / (X1 - neckX) * .4; },
       paint: (p, n) => {
