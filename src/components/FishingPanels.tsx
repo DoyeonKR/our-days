@@ -1,6 +1,7 @@
 "use client";
 
 /* 낚시 창의 장비 · 능력치 칸 — 판 진행(FishingGame)과 상관없이 사고 올리고 받는 곳. 저장은 부모의 act 가 한다. */
+import { EVENT_FISH } from "@/lib/eventfish";
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { ActionButton } from "@/components/AppButtons";
 import { BaitIcon, CrownIcon, JunkIcon, MoonIcon } from "@/components/FishingIcons";
@@ -485,16 +486,18 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
           <p className="fish-how">{FAMILIES.length}종 · 도감 {ALL_FORMS.filter((x) => seen.has(x.key)).length}/{ALL_FORMS.length}칸</p>
           {SPOTS.map((s) => {
             const guests = FAMILIES.filter((f) => !placed.has(f.key) && TIMED_FISH.some((t) => t.spot === s.key && t.species === f.key));
+            // 이벤트 물고기(갓파 — lib/eventfish)도 그 낚시터 칸에(2026-11-26 — 목록에서 빠져 있었다)
+            const events = EVENT_FISH.filter((e) => e.spot === s.key && !placed.has(e.species) && !guests.some((f) => f.key === e.species));
             return (
               <section key={s.key}>
                 <h3 className="fish-sheet-title">{s.name} <small>{WATER_NAME[s.water]}{level < s.minLevel ? ` · Lv.${s.minLevel}` : ""}</small></h3>
                 <ul className="fish-timed">
-                  {[...s.pool.map(([k]) => k), ...guests.map((f) => f.key)].map((k) => (
+                  {[...s.pool.map(([k]) => k), ...guests.map((f) => f.key), ...events.map((e) => e.species)].map((k) => (
                     <li key={k} className={seenOf(k) ? "" : "is-unseen"}>
                       <span className="fish-boss-pic"><FishArt artKey={famArt(k, seen)} /></span>
                       <span className="min-w-0 flex-1">
                         <strong>{familyName(k)}</strong>
-                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}${TIMED_FISH.find((t) => t.species === k)!.always ? "" : "에만"}${TIMED_FISH.find((t) => t.species === k)!.rare ? ` · 와도 ${Math.round(TIMED_FISH.find((t) => t.species === k)!.rare! * 100)}%만` : ""}` : ""}</small>
+                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{events.some((e) => e.species === k) ? ` · 이벤트 · 던질 때마다 ${Math.round(events.find((e) => e.species === k)!.chance * 100)}%` : ""}{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}${TIMED_FISH.find((t) => t.species === k)!.always ? "" : "에만"}${TIMED_FISH.find((t) => t.species === k)!.rare ? ` · 와도 ${Math.round(TIMED_FISH.find((t) => t.species === k)!.rare! * 100)}%만` : ""}` : ""}</small>
                       </span>
                     </li>
                   ))}

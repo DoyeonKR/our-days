@@ -550,3 +550,11 @@ test("섬 시간 — 2시간마다 하루가 돌고 해질녘 · 밤이 매번 �
   let lit = 0; for (let m = 0; m < 120; m++) if (lightNight(t0 + m * 60_000)) lit++;
   assert.equal(lit, 50, "집어등 밤은 섬의 19 ~ 5시 = 2시간에 50분");
 });
+// 2026-11-26 [사용자: "북극곰은 왜 안보여 ? 모든물고기 목록에"] — '모든 물고기' 목록(낚시터 pool + 때 손님 + 이벤트)이 모든 계열을 담는다
+test("모든 물고기 목록 — 모든 계열이 어느 낚시터 칸엔가 나온다(북극곰 · 갓파 포함)", () => {
+  const listed = new Set([...SPOTS.flatMap((s) => s.pool.map(([k]) => k)), ...TIMED_FISH.filter((t) => FAMILIES.some((f) => f.key === t.species)).map((t) => t.species), ...EVENT_FISH.map((e) => e.species)]);
+  for (const f of FAMILIES) assert.ok(listed.has(f.key), `${f.key} 가 목록에 없다`);
+  assert.ok(listed.has("polar_bear") && listed.has("kappa"));
+  const panels = readFileSync(join(process.cwd(), "src/components/FishingPanels.tsx"), "utf8");
+  assert.ok(panels.includes("...events.map((e) => e.species)"), "이벤트 물고기를 목록에 넣는다");
+});
