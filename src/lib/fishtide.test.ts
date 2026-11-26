@@ -159,11 +159,11 @@ test("보름달 손님 — 보름달 밤에만 · 그 바다에만 · 이미 있
     assert.equal(off, 0, `${t.species} 보름달이 아니면 안 온다`);
     assert.equal(day, 0, `${t.species} 낮엔 안 온다`);
     // 같은 10% 칸을 밤 때 손님과 나눈다
-    const share = TIMED_CHANCE / timedAt(t.spot, night(true)).length;
+    const share = TIMED_CHANCE / timedAt(t.spot, night(true)).filter((x) => !x.side && !x.always).length;
     assert.ok(Math.abs(on / 6000 - share) < 0.03, `${t.species} ${on / 60}% (기대 ${share * 100}%)`);
   }
-  assert.deepEqual(timedAt("harbor", night(false)).map((t) => t.species), ["sea_bass"]);
-  assert.deepEqual(timedAt("harbor", night(true)).map((t) => t.species), ["sea_bass", "jellyfish"]);
+  assert.deepEqual(timedAt("harbor", night(false)).filter((t) => !t.always).map((t) => t.species), ["sea_bass"]);
+  assert.deepEqual(timedAt("harbor", night(true)).filter((t) => !t.always).map((t) => t.species), ["sea_bass", "jellyfish"]);
   // 미끼 상한은 그대로 — 지렁이로는 전설 산갈치가 안 온다
   for (let i = 0; i < 3000; i++) assert.notEqual(rollCatch(spotOf("ocean")!, 5, 0.4, i * 13, { bait: 0, when: night(true) }).family, "oarfish");
 });

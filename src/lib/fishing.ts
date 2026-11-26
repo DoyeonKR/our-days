@@ -30,7 +30,7 @@ import { tideEffect } from "./fishtide.ts";
 import { kstDate } from "./kst.ts";
 import { applyBossCall, planBossCall, type BossCallPlan } from "./bosscall.ts";
 import { noteRaidScore, notePaid, raidAvg, raidTier, tierReward } from "./bossmark.ts";
-import { BOSSES, BOSS_TAKEN, TIMED_CHANCE, bossAt, TIMED_SIDE_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
+import { ALWAYS_CHANCE, ALWAYS_SIDE_CHANCE, BOSSES, BOSS_TAKEN, TIMED_CHANCE, bossAt, TIMED_SIDE_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
 export type FishStat = "catch" | "power" | "line" | "luck";
 export const STAT_INFO: Record<FishStat, { name: string; desc: string }> = {
@@ -447,9 +447,12 @@ function rollCatchCore(spot: FishSpot, luck: number, cast: number, seed: number,
     const guests = timedAt(spot.key, opts.when).filter((t) => gradeNo(speciesOf(t.species)?.grade ?? "태초") <= capNow);
     const t = rng((seed ^ TIMED_SEED) >>> 0);
     // 원래 손님은 [0, TIMED_CHANCE) 띠, 4차 곁 칸 손님(side)은 바로 뒤 TIMED_SIDE_CHANCE 띠 — 같은 주사위라 원래 손님의 몫 · 결과가 4차 이전 그대로다
-    const main = guests.filter((g) => !g.side), side = guests.filter((g) => g.side);
-    const g0 = t();
-    const from = main.length && g0 < TIMED_CHANCE ? main : side.length && g0 >= TIMED_CHANCE && g0 < TIMED_CHANCE + TIMED_SIDE_CHANCE ? side : null;
+    // 아무 때나 오는 손님(always — 예전 새벽 손님)은 그 뒤 ALWAYS_CHANCE · ALWAYS_SIDE_CHANCE 띠 — 다른 손님의 몫은 그대로다
+    const main = guests.filter((g) => !g.side && !g.always), side = guests.filter((g) => g.side && !g.always);
+    const amain = guests.filter((g) => g.always && !g.side), aside = guests.filter((g) => g.always && g.side);
+    const g0 = t(), b1 = TIMED_CHANCE + TIMED_SIDE_CHANCE, b2 = b1 + ALWAYS_CHANCE, b3 = b2 + ALWAYS_SIDE_CHANCE;
+    const from = main.length && g0 < TIMED_CHANCE ? main : side.length && g0 >= TIMED_CHANCE && g0 < b1 ? side
+      : amain.length && g0 >= b1 && g0 < b2 ? amain : aside.length && g0 >= b2 && g0 < b3 ? aside : null;
     const pick0 = from ? from[Math.floor(t() * from.length) % from.length] : null;
     // rare(범고래 0.3) — 뽑혀도 그 몫만 문다. 나머지는 손님 없이 보통 낚시로
     const pick = pick0 && (pick0.rare === undefined || t() < pick0.rare) ? pick0 : null;

@@ -124,7 +124,8 @@ test("때 손님 — 4차 손님은 곁 칸(side)이라 원래 손님의 몫이 
   assert.ok(Math.abs(lion - TIMED_SIDE_CHANCE) < 0.015, `쏠배감펭 ${lion}`);
   // 곁 칸 손님이 있어도 원래 손님 칸은 seed 마다 같다 — 맑은 새벽(만새기 · 꽁치 있음)에 고래상어가 온 판은 맑은 낮(고래상어뿐)에도 고래상어다.
   // 거꾸로는 아니다: 낮엔 보통 뽑기로 다 큰 고래상어가 오는 판(맑은 날이라 허용)이 새벽엔 곁 칸 손님에게 돌아갈 수 있다
-  assert.ok(timedAt("ocean", { time: "day", wx: "clear" }).every((x) => !x.side));
+  // 2026-11-26 — 새벽 손님(만새기 · 꽁치 · 밍크고래)은 아무 때나(always) 오는 따로 칸이 됐다 — 낮에도 있다
+  assert.ok(timedAt("ocean", { time: "day", wx: "clear" }).every((x) => !x.side || x.always));
   let onlyDay = 0;
   for (let i = 0; i < 6000; i++) {
     const seed = i * 41 + 7, bait = BAITS.length - 1;

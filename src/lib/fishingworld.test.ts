@@ -77,7 +77,8 @@ test("때 손님 — 그 낚시터 계열의 품종이고, 그림 없는 새 물
     assert.ok(onlyThen || spot!.pool.some(([k]) => familyOf(k)?.finals.some((x) => x.key === t.species)), `${t.species} 는 ${t.spot} 에 없다`);
     assert.ok(!onlyThen || !spot!.pool.some(([k]) => k === t.species), "이때만 오는 물고기는 pool 에 없다");
     assert.ok(speciesOf(t.species), t.species);
-    assert.ok(t.time || t.wx);
+    assert.ok(t.time || t.wx || t.always);
+    assert.ok(t.time !== "dawn", `${t.species} 새벽에만 오는 손님은 없앴다(2026-11-26)`);
   }
   for (const s of SPOTS) assert.ok(TIMED_FISH.some((t) => t.spot === s.key), s.key);
 });
@@ -110,8 +111,9 @@ test("은어 · 메기 — 어릴 땐 늘 오고 다 큰 모습은 때에만 · 
   const clear = roll("pond", 1, { time: "day", wx: "clear" }, "catfish");
   assert.equal(clear.adult, 0, "비가 안 오면 다 큰 메기는 없다");
   assert.ok(clear.fry > 0, "어린 메기는 늘 온다");
-  assert.equal(roll("seomjin", 0, { time: "day", wx: null }, "sweetfish").adult, 0);
-  assert.ok(roll("seomjin", 0, { time: "dawn", wx: null }, "sweetfish").adult > 0);
+  // 은어는 2026-11-26 부터 아무 때나(드물게) — 낮과 새벽이 같다
+  const swDay = roll("seomjin", 0, { time: "day", wx: null }, "sweetfish").adult, swDawn = roll("seomjin", 0, { time: "dawn", wx: null }, "sweetfish").adult;
+  assert.ok(swDay > 0 && swDay === swDawn, `${swDay} / ${swDawn}`);
   const night = roll("reef", 3, { time: "night", wx: null }, "jellyfish");
   assert.ok(night.fry > night.juv && night.juv > night.adult && night.adult > 0, JSON.stringify(night));
   const dusk = roll("reef", 3, { time: "dusk", wx: null }, "jellyfish");
@@ -494,4 +496,37 @@ test("커플 레이드 — 사람마다 깎은 몫이 쌓이고, 오늘 둘 다 
   assert.ok(w.log!.at(-1)!.fin);
   for (let i = 0; i < 12; i++) r = bossHurt(r, 0.01, TODAY, "a");
   assert.ok((r.log?.length ?? 0) <= 8, "기록은 8줄까지");
+});
+
+// 2026-11-26 [사용자: "새벽에만 잡히는 생물 없애주고 대신 확률을 반 이상 낮춰줘 … 날씨도 너무 제한적이라 … 어플 안의 별도의 시간이나 날씨"]
+test("새벽 손님은 아무 때나 — 한 번 던질 때의 몫이 예전 새벽의 절반 아래 · 다른 손님 몫은 그대로", async () => {
+  const { ALWAYS_CHANCE, ALWAYS_SIDE_CHANCE, TIMED_SIDE_CHANCE } = await import("./fishingworld.ts");
+  assert.ok(ALWAYS_CHANCE <= TIMED_CHANCE * 0.5 && ALWAYS_SIDE_CHANCE <= TIMED_SIDE_CHANCE * 0.5);
+  const always = TIMED_FISH.filter((t) => t.always);
+  assert.ok(always.length >= 15);
+  for (const t of always) {
+    const spot = SPOTS.find((x) => x.key === t.spot)!;
+    const n = 6000, hit = (when: FishMoment) => { let k = 0; for (let i = 0; i < n; i++) if (rollCatch(spot, 5, 0.4, i * 41 + 7, { bait: BAITS.length - 1, when }).species === t.species) k++; return k / n; };
+    const a = hit({ time: "day", wx: null }), b = hit({ time: "night", wx: "rain" });
+    const band = t.side ? TIMED_SIDE_CHANCE : TIMED_CHANCE;
+    assert.ok(a > 0 && b > 0, `${t.species} 낮 · 밤 모두 온다 (${a} / ${b})`);
+    assert.ok(a < band * 0.5, `${t.species} ${(a * 100).toFixed(2)}% — 예전 새벽 칸 ${band * 100}% 의 절반 아래`);
+  }
+  // 원래 손님(밤 · 비 손님)의 몫은 always 가 생겨도 그대로 — 문섬 비 오는 밤 해파리 5%
+  const reef = SPOTS.find((x) => x.key === "reef")!;
+  let j = 0; for (let i = 0; i < 8000; i++) if (rollCatch(reef, 5, 0.4, i * 41 + 7, { bait: BAITS.length - 1, when: { time: "night", wx: "rain" } }).family === "jellyfish") j++;
+  assert.ok(Math.abs(j / 8000 - TIMED_CHANCE / 2) < 0.015, `해파리 ${j / 8000}`);
+});
+test("섬 날씨 — 20분마다 바뀌고 같은 시각이면 같다 · 비 · 눈 · 맑음이 하루에 여러 번 온다", async () => {
+  const { gameWxAt, gameWxNext, GAME_WX_MS } = await import("./fishingworld.ts");
+  const t0 = Date.UTC(2026, 10, 26, 3, 0, 0);
+  assert.equal(gameWxAt(t0), gameWxAt(t0 + 60_000));
+  const day: Record<string, number> = {};
+  for (let i = 0; i < 72; i++) { const w = String(gameWxAt(t0 + i * GAME_WX_MS)); day[w] = (day[w] ?? 0) + 1; }
+  for (const w of ["clear", "rain", "snow", "null"]) assert.ok((day[w] ?? 0) >= 3, `하루에 ${w} ${day[w] ?? 0}칸`);
+  const cnt: Record<string, number> = {};
+  for (let i = 0; i < 20000; i++) { const w = String(gameWxAt(t0 + i * GAME_WX_MS)); cnt[w] = (cnt[w] ?? 0) + 1; }
+  assert.ok(Math.abs(cnt.snow / 20000 - 0.15) < 0.02 && Math.abs(cnt.rain / 20000 - 0.2) < 0.02, JSON.stringify(cnt));
+  const nx = gameWxNext(t0);
+  assert.ok(nx.at > t0 && nx.wx !== gameWxAt(t0) && gameWxAt(nx.at - 1) === gameWxAt(t0));
 });

@@ -62,6 +62,25 @@ export function lightNight(now: number): boolean {
   const h = new Date(now + 9 * 3_600_000).getUTCHours();
   return h >= LIGHT_NIGHT.from || h < LIGHT_NIGHT.to;
 }
+/** 섬 날씨(2026-11-26 [사용자: "날씨도 너무 제한적이라 … 어플 안의 별도의 시간이나 날씨가 있어야"]) — 낚시는 실제 도시 날씨 대신 게임 안의 날씨를 쓴다.
+ *  KST 20분마다 바뀌고 서버 시각(gameNow)과 칸 번호만 보는 해시라 두 폰 · 모든 사람이 같은 날씨를 본다. 맑음 35% · 흐림 30% · 비 20% · 눈 15% —
+ *  비 · 눈 손님이 하루에도 여러 번 온다(실제 날씨면 눈은 한 해 며칠뿐이었다). */
+export const GAME_WX_MS = 20 * 60_000;
+const GAME_WX_SEED = 0x5eed_77a1;
+export function gameWxAt(now: number): FishWx {
+  const b = Math.floor((now + 9 * 3_600_000) / GAME_WX_MS);
+  let h = (b ^ GAME_WX_SEED) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0; h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0; h = (h ^ (h >>> 16)) >>> 0;
+  const r = h / 4294967296;
+  return r < 0.35 ? "clear" : r < 0.65 ? null : r < 0.85 ? "rain" : "snow";
+}
+/** 다음에 날씨가 바뀌는 때와 그 날씨 — 때 손님 시트의 '다음 날씨' */
+export function gameWxNext(now: number): { at: number; wx: FishWx } {
+  const cur = gameWxAt(now);
+  let at = (Math.floor((now + 9 * 3_600_000) / GAME_WX_MS) + 1) * GAME_WX_MS - 9 * 3_600_000;
+  for (let i = 0; i < 72 && gameWxAt(at) === cur; i++) at += GAME_WX_MS;
+  return { at, wx: gameWxAt(at) };
+}
 /** 날씨 그림 종류 → 낚시의 날씨. 구름 · 안개는 특별한 날씨가 아니다. */
 export function fishWxOf(icon: string | null | undefined): FishWx {
   if (icon === "rain" || icon === "drizzle" || icon === "thunder") return "rain";
@@ -72,22 +91,25 @@ export function fishWxOf(icon: string | null | undefined): FishWx {
 /** side — 곁 칸 손님(2026-11-13 4차 열여덟). 원래 손님의 10% 칸(TIMED_CHANCE)과 따로 TIMED_SIDE_CHANCE 칸을 저희끼리 나눈다 — 같은 칸을 나눠 쓰면
  *  원래 손님(고래상어 · 해파리 …)이 새 손님 수만큼 묽어졌다(울릉도 맑은 새벽 고래상어 10% → 셋이 나눠 3.3%, 문섬 비 오는 밤 해파리 5% → 3.3%). */
 /** rare — 뽑혀도 이 몫만 실제로 문다(나머지는 보통 낚시로 넘어간다). 2026-11-19 [사용자: "범고래는 더 귀하게"] */
-export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full"; side?: true; rare?: number };
+/** always — 아무 때나 오는 손님(2026-11-26 [사용자: "새벽에만 잡히는 생물 없애주고 대신 확률을 반 이상 낮춰줘 새벽은 너무 힘들다는 의견"]).
+ *  예전 새벽 손님이다. 시간을 안 가리는 대신 원래 칸(10% · 곁 칸 5%)의 40% 인 따로 칸(ALWAYS_CHANCE · ALWAYS_SIDE_CHANCE)을 저희끼리 나눈다 —
+ *  한 번 던질 때의 몫이 새벽 때의 40%(60% 줄었다), 다른 손님의 몫은 그대로다. 낚시터 pool 에서 다 큰 모습으로는 안 온다(finalAllowed). */
+export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full"; side?: true; rare?: number; always?: true };
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 /** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
  *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
 export const TIMED_ONLY: ReadonlySet<string> = new Set(["polar_bear", "bottlenose_dolphin", "minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "walrus", "emperor_penguin", "beluga", "kappa", "chinstrap_penguin", "icefish", "clione", "sea_pig", "toothfish", "salp", "antarctic_urchin", "jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
 export const TIMED_FISH: readonly TimedFish[] = [
-  { species: "sweetfish", spot: "seomjin", time: "dawn" },
-  { species: "crucian", spot: "dumulmeori", time: "dawn" },
-  { species: "smelt", spot: "soyang", time: "dawn" },
+  { species: "sweetfish", spot: "seomjin", always: true },
+  { species: "crucian", spot: "dumulmeori", always: true },
+  { species: "smelt", spot: "soyang", always: true },
   { species: "perch_kkeokji", spot: "bonghwa", time: "night" },
   { species: "masu_salmon", spot: "hwacheon", wx: "snow" },
   { species: "mandarin_fish", spot: "sanriver", time: "night" },
   { species: "anglerfish", spot: "abyss", time: "night" },
   { species: "catfish", spot: "pond", wx: "rain" },
   { species: "jellyfish", spot: "reef", time: "night" },
-  { species: "diamond_tetra", spot: "brook", time: "dawn" },
+  { species: "diamond_tetra", spot: "brook", always: true },
   { species: "tuxedo_guppy", spot: "brook", wx: "rain" },
   { species: "koi_betta", spot: "brook", wx: "snow" },
   { species: "ogon_koi", spot: "pond", wx: "snow" },
@@ -102,7 +124,7 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "azure_dragonfish", spot: "palace", wx: "rain" },
   { species: "imugi_fish", spot: "palace", time: "night" },
   { species: "moon_jelly", spot: "starsea", time: "night" },
-  { species: "aurora_ray", spot: "starsea", time: "dawn" },
+  { species: "aurora_ray", spot: "starsea", always: true },
   // 4차(2026-11-13) — 그 낚시터의 시작 미끼보다 싸거나(넣으면 기본 무리가 1% 띠로 밀린다) 귀한 계열이 넘치는 곳(미끼 1% 규칙)엔 때 손님으로.
   // 곁 칸(side)이라 원래 손님의 몫을 줄이지 않는다(TIMED_SIDE_CHANCE)
   { species: "lionfish", spot: "reef", wx: "rain", side: true },
@@ -118,7 +140,7 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "orca", spot: "ocean", wx: "rain", side: true, rare: 0.3 },
   // 고래 5종 · 톱상어(2026-11-18) — 때 손님(곁 칸)으로만. 밍크고래는 울릉도 새벽, 귀신고래 · 혹등고래는 기장(울산 앞바다 — 귀신고래 회유로) 낮 · 해 질 녘,
   //   향유고래는 깊은 밤바다, 흰수염고래는 고성 거진항 새벽, 톱상어는 심해 새벽
-  { species: "minke_whale", spot: "ocean", time: "dawn", side: true },
+  { species: "minke_whale", spot: "ocean", always: true, side: true },
   // 남극 세종기지 앞바다(2026-11-18) — 남극에 실제로 오는 혹등고래 · 대왕고래 · 남방밍크(밍크고래)
   { species: "humpback_whale", spot: "sejong", time: "day", side: true },
   { species: "blue_whale", spot: "sejong", wx: "snow", side: true },
@@ -126,11 +148,11 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "gray_whale", spot: "palace", time: "day", side: true },
   { species: "humpback_whale", spot: "palace", time: "dusk", side: true },
   { species: "sperm_whale", spot: "abyss", time: "night", side: true },
-  { species: "blue_whale", spot: "starsea", time: "dawn", side: true },
-  { species: "sawshark", spot: "abyss", time: "dawn", side: true },
+  { species: "blue_whale", spot: "starsea", always: true, side: true },
+  { species: "sawshark", spot: "abyss", always: true, side: true },
   // 바다코끼리 · 황제펭귄(2026-11-24) — 바다코끼리는 북쪽 찬 바다(고성 거진항)의 눈 오는 날, 황제펭귄은 남극 세종기지 앞바다의 새벽
   { species: "walrus", spot: "starsea", wx: "snow", side: true },
-  { species: "emperor_penguin", spot: "sejong", time: "dawn", side: true },
+  { species: "emperor_penguin", spot: "sejong", always: true, side: true },
   // 벨루가(2026-11-26) — 북쪽 찬 바다(고성 거진항)의 해 질 녘. 태초라 와도 15% 만 문다(한 번 던질 때 많아야 0.83% — 2% 미만, polarbear.test)
   { species: "beluga", spot: "starsea", time: "dusk", side: true, rare: 0.15 },
   // 남극 일곱(2026-11-25) — 세종기지 앞바다. 젠투 · 아델리 · 대왕등각류는 pool(shrimp.ts spots)
@@ -142,20 +164,20 @@ export const TIMED_FISH: readonly TimedFish[] = [
   // 북극곰(2026-11-26 [사용자: "북극곰은 당연히 남극에서 와야지"]) — 고성 거진항에서 세종기지 밤으로 옮겼다(실제 북극곰은 북극에 산다 — 게임의 극지 낚시터가 남극 하나라 거기로)
   { species: "polar_bear", spot: "sejong", time: "night", side: true, rare: 0.3 },
   { species: "salp", spot: "sejong", wx: "snow", side: true },
-  { species: "antarctic_urchin", spot: "sejong", time: "dawn", side: true },
+  { species: "antarctic_urchin", spot: "sejong", always: true, side: true },
   { species: "sunfish", spot: "starsea", time: "day", side: true },
-  { species: "butterflyfish", spot: "reef", time: "dawn", side: true },
+  { species: "butterflyfish", spot: "reef", always: true, side: true },
   { species: "boxfish", spot: "reef", wx: "clear", side: true },
   { species: "barracuda", spot: "reef", time: "dusk", side: true },
-  { species: "dolphinfish", spot: "ocean", time: "dawn", side: true },
+  { species: "dolphinfish", spot: "ocean", always: true, side: true },
   { species: "goosefish", spot: "ocean", wx: "rain", side: true },
-  { species: "saury", spot: "ocean", time: "dawn", side: true },
-  { species: "mudskipper", spot: "harbor", time: "dawn", side: true },
+  { species: "saury", spot: "ocean", always: true, side: true },
+  { species: "mudskipper", spot: "harbor", always: true, side: true },
   { species: "goby", spot: "harbor", time: "dusk", side: true },
   { species: "halfbeak", spot: "harbor", wx: "clear", side: true },
   { species: "hatchetfish", spot: "abyss", time: "dusk", side: true },
   { species: "lanternfish", spot: "abyss", time: "night", side: true },
-  { species: "blobfish", spot: "abyss", time: "dawn", side: true },
+  { species: "blobfish", spot: "abyss", always: true, side: true },
   { species: "arapaima", spot: "jungle", time: "dusk", side: true },
   { species: "electric_eel", spot: "jungle", time: "night", side: true },
 ];
@@ -176,16 +198,19 @@ export const isTimedSpecies = (key: string) => TIMED_KEYS.has(key);
 export const timedMatches = (t: Pick<TimedFish, "time" | "wx" | "moon">, m: FishMoment) => (!t.time || t.time === m.time) && (!t.wx || t.wx === m.wx) && (!t.moon || !!m.moon?.full);
 /** 지금 이 낚시터에 오는 손님 — 때 손님 뒤에 보름달 손님을 붙인다(보름달이 아니면 목록 · 뽑기가 예전과 같다) */
 export const timedAt = (spot: string, m: FishMoment) => [...TIMED_FISH, ...(m.moon?.full ? MOON_FISH : [])].filter((x) => x.spot === spot && timedMatches(x, m));
-export const timedLabel = (t: Pick<TimedFish, "time" | "wx" | "moon">) => [t.moon ? "보름달 밤" : t.time && TIME_NAME[t.time], t.wx && (t.wx === "clear" ? "맑은 날" : `${WX_NAME[t.wx]} 오는 날`)].filter(Boolean).join(" · ");
+export const timedLabel = (t: Pick<TimedFish, "time" | "wx" | "moon" | "always">) => t.always ? "아무 때나(드물게)" : [t.moon ? "보름달 밤" : t.time && TIME_NAME[t.time], t.wx && (t.wx === "clear" ? "맑은 날" : `${WX_NAME[t.wx]} 오는 날`)].filter(Boolean).join(" · ");
 /** 때가 맞을 때 때 손님이 물 확률 — 이 맛에 그때 다시 오는 정도. 다 큰 물고기라 너무 높으면 수조가 금방 찬다 */
 export const TIMED_CHANCE = 0.1;
 /** 곁 칸 손님(side)이 물 확률 — 원래 칸 바로 뒤의 띠라(같은 주사위) 원래 손님의 몫 · 뽑기 결과는 4차 이전과 같다. 둘을 합쳐도 15% 를 넘지 않는다.
  *  곁 칸 손님은 그 낚시터 pool 에 없는 계열이라 대개 어리게 와서(rollCatch) 수조가 금방 차지 않는다 */
 export const TIMED_SIDE_CHANCE = 0.05;
+/** 아무 때나 오는 손님(always)의 칸 — 원래 칸의 40%. 원래 · 곁 칸 바로 뒤의 띠라(같은 주사위) 다른 손님의 몫 · 결과는 그대로다 */
+export const ALWAYS_CHANCE = TIMED_CHANCE * 0.4;
+export const ALWAYS_SIDE_CHANCE = TIMED_SIDE_CHANCE * 0.4;
 /** 이 품종이 다 큰 모습으로 낚시에 오는가 */
 export const finalAllowed = (species: string, spot: string, m: FishMoment | undefined) => {
   if (!m || !TIMED_KEYS.has(species)) return true;
-  return timedAt(spot, m).some((t) => t.species === species);
+  return timedAt(spot, m).some((t) => t.species === species && !t.always);
 };
 
 /* ── 주인 ───────────────────────────────────────────── */

@@ -21,7 +21,7 @@ import { FishArt } from "@/components/AquaArt";
 import { BOSS_DUO, bossArt, bossDuo, type BossHit } from "@/lib/fishingworld";
 import { BOSS_CALL_DAY_CAP, BOSS_CALL_MAX } from "@/lib/bosscall";
 import type { RaidTier } from "@/lib/bossmark";
-import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, MOON_FISH, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
+import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, MOON_FISH, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, gameWxNext, WX_NAME, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { REQUEST_ALL_BONUS, type FishRequest } from "@/lib/fishrequest";
 
@@ -383,12 +383,13 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
 }
 
 /** 때 손님 — 지금 이 낚시터에 누가 오는지, 언제 다시 오면 되는지 */
-export function TimedSheet({ spot, moment, baitGrade, onClose }: { spot: FishSpot; moment: FishMoment; baitGrade: number; onClose: () => void }) {
+export function TimedSheet({ spot, moment, baitGrade, now = 0, onClose }: { spot: FishSpot; moment: FishMoment; baitGrade: number; now?: number; onClose: () => void }) {
+  const next = now ? gameWxNext(now) : null;
   // 보름달 손님도 같은 목록에(칩의 반짝임과 같은 timedAt 기준) — 같은 품종이 두 곳에 있어 key 는 낚시터와 함께
   const here = [...TIMED_FISH, ...MOON_FISH].filter((t) => t.spot === spot.key);
   return (
     <SheetShell title="때 손님" onClose={onClose}>
-      <p className="fish-how">시간과 날씨가 맞을 때만 다 큰 모습으로 무는 물고기예요. 날씨는 설정한 도시의 실제 날씨를 따라요.</p>
+      <p className="fish-how">시간과 날씨가 맞을 때만 다 큰 모습으로 무는 물고기예요. 날씨는 섬 날씨예요 — 20분마다 바뀌고 둘이 같은 날씨를 봐요.{next ? ` 지금 ${moment.wx ? WX_NAME[moment.wx] : "흐림"} · ${Math.max(1, Math.ceil((next.at - now) / 60_000))}분 뒤 ${next.wx ? WX_NAME[next.wx] : "흐림"}.` : ""} “아무 때나” 손님은 시간을 안 가리는 대신 드물게 와요.</p>
       <h3 className="fish-sheet-title">{spot.name}</h3>
       <ul className="fish-timed">
         {here.map((t) => {
@@ -493,7 +494,7 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
                       <span className="fish-boss-pic"><FishArt artKey={famArt(k, seen)} /></span>
                       <span className="min-w-0 flex-1">
                         <strong>{familyName(k)}</strong>
-                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}에만${TIMED_FISH.find((t) => t.species === k)!.rare ? ` · 와도 ${Math.round(TIMED_FISH.find((t) => t.species === k)!.rare! * 100)}%만` : ""}` : ""}</small>
+                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}${TIMED_FISH.find((t) => t.species === k)!.always ? "" : "에만"}${TIMED_FISH.find((t) => t.species === k)!.rare ? ` · 와도 ${Math.round(TIMED_FISH.find((t) => t.species === k)!.rare! * 100)}%만` : ""}` : ""}</small>
                       </span>
                     </li>
                   ))}

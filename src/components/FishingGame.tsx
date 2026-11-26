@@ -52,11 +52,8 @@ import { fishLogKey, noteFishLog } from "@/lib/fishlog";
 import { sendPokePush } from "@/lib/push";
 import { isEventFamily } from "@/lib/eventfish";
 import { BOSS_DUO, bossArt, bossChunk, bossDealt, bossDuo, familyName } from "@/lib/fishingworld";
-import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
+import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fmtCm, gameWxAt, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { lightBand, lightTune, startLight, type Light, type LightTune } from "@/lib/fishinglight";
-import { useForecast } from "@/lib/useforecast";
-import { useWeatherPlace } from "@/lib/weatherplace";
-import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
 import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
   HERD_TIME_S, herdBest, herdTune, startHerd, type Herd, type HerdTune, DEEP_GENTLE, DEEP_GENTLE_BONUS, GRAB_CHANCE, GRAB_METERS, deepGrabbing, deepBand, deepTune, lureLanded, lureTune, startDeep, startLure, startSway, swayTune, tapLure,
@@ -216,7 +213,9 @@ const COACH: Record<MethodKey, readonly string[]> = {
 export default function FishingGame({ coupleId, myUserId = null, myName = "", onClose, onOpenIsland }: { coupleId: string | null; myUserId?: string | null; myName?: string; onClose: () => void; onOpenIsland: () => void }) {
   const who = myUserId ?? "me";
   const by = useMemo(() => ({ who, couple: !!coupleId }), [who, coupleId]);
-  const { cached: forecast } = useForecast(useWeatherPlace());
+  // 섬 날씨(2026-11-26) — 실제 도시 날씨 대신 게임 안의 날씨(20분마다 바뀐다, fishingworld gameWxAt). 15초마다 다시 본다
+  const [gameWx, setGameWx] = useState(() => gameWxAt(clock()));
+  useEffect(() => { const id = window.setInterval(() => setGameWx(gameWxAt(clock())), 15_000); return () => window.clearInterval(id); }, []);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>("fish");
@@ -484,11 +483,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     fxRef.current = f;
     setFx(f);
   }, []);
-  // 비 · 눈은 캔버스가 그린다 — 칩과 같은 기준(오래된 예보면 날씨를 모르는 것으로 친다)
+  // 비 · 눈은 캔버스가 그린다 — 칩 · 뽑기와 같은 섬 날씨
   useEffect(() => {
-    const wx = forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null;
-    fx?.weather(wx === "rain" || wx === "snow" ? wx : null);
-  }, [fx, forecast]);
+    fx?.weather(gameWx === "rain" || gameWx === "snow" ? gameWx : null);
+  }, [fx, gameWx]);
   // 수조가 위에 열린 동안 낚시터는 그리지 않는다(수조는 3D 라 폰이 렌더를 둘 돌리면 프레임이 무너진다)
   useEffect(() => {
     if (!fx || (!tankOpen && !dialogOpen && phase !== "fever" && !raid)) return; // 피버 · 레이드는 전체 화면이라 뒤의 낚시터가 안 보인다
@@ -905,7 +903,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     return n.ok && !c.junk && !c.special && n.outcome !== "junk" && n.outcome !== "special" ? { ...n, state: seasonAdd(n.state, t, { landed: 1 }, { kind: c.family }) } : n;
   };
   // 달(2026-11-12 물때 · 달) — 때와 같은 서버 시각(gameNow)의 KST 로 센다. 둘이 같은 물때 · 같은 보름달 밤을 본다
-  const moment: FishMoment = { time: fishTimeOf(clock()), wx: forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null, moon: moonMomentOf(clock()) };
+  const moment: FishMoment = { time: fishTimeOf(clock()), wx: gameWx, moon: moonMomentOf(clock()) };
   const tide = tideOf(clock()), moonNow = moonPhase(clock());
   const guests = timedAt(spot.key, moment);
   const baseBoss = bossAt(spot.key);
@@ -2032,7 +2030,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
           {worldSheet === "fish" && <FishListSheet spot={spot} baitIdx={baitIndex(bait.key)} method={method} luck={eff.luck} moment={moment} level={fs.level} seen={formsSeen(st)} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "moon" && <MoonSheet spot={spot} now={clock()} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
-          {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
+          {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} now={clock()} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "boss" && boss && (
             <BossSheet boss={boss} rec={bossRec} today={today} called={bossCallHours(st, boss.key, bossRec)} tier={bossWinTier(st, boss.key, bossRec?.caught ?? 0)} who={who} why={bossWhy} tries={BOSS_TRIES} couple={!!coupleId} all={fs.bosses} level={fs.level} onClose={() => { setWorldSheet(null); setAwakeView(false); }} onStart={() => {
               // 주인과는 레이드로 겨룬다(2026-11-11) — 찌낚시 주인전(bossPick)은 화면에서 들어갈 길을 뺐다. 엔진은 옛 앱이 부르므로 남긴다

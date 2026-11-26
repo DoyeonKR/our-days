@@ -71,7 +71,7 @@ function dexHint(family: string, stage: 0 | 1 | 2, index: number): string {
   const ev = eventOf(family);
   if (ev) { const sp = SPOTS.find((x) => x.key === ev.spot); return `이벤트 · ${sp?.name ?? ev.spot}(Lv.${sp?.minLevel ?? 1})에서 던질 때마다 ${Math.round(ev.chance * 100)}% · 수조에 한 번 넣으면 더는 안 와요`; }
   const t = TIMED_FISH.find((x) => x.species === family) ?? MOON_FISH.find((x) => x.species === family);
-  if (t) { const sp = SPOTS.find((x) => x.key === t.spot); return `${sp?.name ?? t.spot}(Lv.${sp?.minLevel ?? 1}) · ${timedLabel(t)}에만 오는 손님${t.rare ? ` · 와도 ${Math.round(t.rare * 100)}%만 물어요` : ""}`; }
+  if (t) { const sp = SPOTS.find((x) => x.key === t.spot); return `${sp?.name ?? t.spot}(Lv.${sp?.minLevel ?? 1}) · ${t.always ? "아무 때나 드물게 오는 손님" : `${timedLabel(t)}에만 오는 손님`}${t.rare ? ` · 와도 ${Math.round(t.rare * 100)}%만 물어요` : ""}`; }
   const boss = BOSSES.find((b) => b.family === family);
   if (boss) return `${SPOTS.find((x) => x.key === boss.spot)?.name ?? boss.spot}의 주인(Lv.${boss.level})`;
   return "때 손님 · 주인으로 와요";
