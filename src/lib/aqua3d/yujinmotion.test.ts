@@ -42,3 +42,39 @@ test("땅 위(upright 1) — 서서 두 다리를 번갈아 내딛는다", async
   assert.ok(w.legSpan > .1 && w.legCorr < -.8, `다리 번갈아 (폭 ${w.legSpan.toFixed(2)} · 상관 ${w.legCorr.toFixed(2)})`);
   assert.equal((habitOf("yujin") as { walk?: boolean }).walk, true);
 });
+
+// 3차(2026-11-27 [사용자: "관절을 10배 이상 많게 … 동작도 추가하고"]) — 관절 126개 · 걸을 때 무릎 · 서 있을 때 하트 · 손 흔들기 · 머리카락 물결
+async function rig() {
+  const b = readFileSync("public/aqua/models/fish/yujin.glb");
+  const g = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(() => webp as never).parseAsync(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, "");
+  const holder = new T.Group(); holder.add(g.scene);
+  return { holder, anim: fishMotion(g.scene, "yujin", "yujin"), get: (n: string) => g.scene.getObjectByName(n)!, scene: g.scene };
+}
+const angle = (o: T.Object3D) => 2 * Math.acos(Math.min(1, Math.abs(o.quaternion.w)));
+
+test("관절 126개 — 머리 가닥 72 · 손가락 30 · 무릎 · 발목 · 가방", async () => {
+  const { scene } = await rig();
+  let n = 0; scene.traverse((o) => { if ((o as T.Bone).isBone) n++; });
+  assert.ok(n >= 120, `뼈 ${n}`);
+  const r = await rig();
+  for (const name of ["head", "hair_0_0", "hair_11_5", "f0_2_R", "f4_2_L", "knee_R", "ankle_L", "toe_R", "bag"]) assert.ok(r.get(name), name);
+});
+
+test("걸을 때 — 내딛는 다리의 무릎을 굽히고(번갈아) 머리카락 · 가방이 흔들린다", async () => {
+  const { anim, get } = await rig();
+  const kr: number[] = [], kl: number[] = [], hair: number[] = [];
+  for (let k = 0; k < 200; k++) { anim(k / 30, 1, { dt: 1 / 30, amp: .8, effort: 1, speed: .3, upright: 1, hover: 0, ground: 0 } as never); if (k > 60) { kr.push(angle(get("knee_R"))); kl.push(angle(get("knee_L"))); hair.push(get("hair_5_3").quaternion.z); } }
+  const span = (a: number[]) => Math.max(...a) - Math.min(...a);
+  assert.ok(Math.max(...kr) > .4 && Math.max(...kl) > .4, `무릎 굽힘 ${Math.max(...kr).toFixed(2)} ${Math.max(...kl).toFixed(2)}`);
+  const both = kr.filter((v, i) => v > .3 && kl[i] > .3).length;
+  assert.ok(both < kr.length * .1, `두 무릎이 같이 굽지 않는다 (${both}/${kr.length})`);
+  assert.ok(span(hair) > .005, `머리카락 물결 ${span(hair).toFixed(3)}`);
+});
+
+test("서 있을 때 — 가만히 있으면 하트 · 손 흔들기 · 둘러보기를 돌아가며 한다", async () => {
+  const { anim, get } = await rig();
+  let armMax = 0, headMax = 0;
+  for (let k = 0; k < 30 * 22; k++) { anim(k / 30, 1, { dt: 1 / 30, amp: .8, effort: 1, speed: 0, upright: 1, hover: 0, ground: 0 } as never); armMax = Math.max(armMax, angle(get("fin_L")), angle(get("fin_R"))); headMax = Math.max(headMax, angle(get("head"))); }
+  assert.ok(armMax > 2, `팔을 머리 위로 (${armMax.toFixed(2)})`);
+  assert.ok(headMax > .4, `고개를 돌린다 (${headMax.toFixed(2)})`);
+});

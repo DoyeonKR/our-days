@@ -534,6 +534,20 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   const hang = human && !upright0 ? [0, 1].map((s) => { const root = fins[s * 2], tip = fins[s * 2 + 1], side = s ? -1 : 1; return root && tip ? new T.Quaternion().setFromUnitVectors(tip.pos.clone().normalize(), new T.Vector3(-1, -0.12, side * 0.3).normalize()) : null; }) : [];
   const legHang = upright0 ? new T.Quaternion() : new T.Quaternion().setFromUnitVectors(new T.Vector3(-0.88, -0.05, 0.17).normalize(), new T.Vector3(-1, 0, 0.06).normalize()), legHangR = upright0 ? new T.Quaternion() : new T.Quaternion().setFromUnitVectors(new T.Vector3(-0.88, -0.05, -0.17).normalize(), new T.Vector3(-1, 0, -0.06).normalize());
   let walkBase: { q: T.Quaternion; pos: T.Vector3; lift: number } | null = null, walkY = NaN, uprightS = 0, stepPh = 0;
+  // 유진 3차(2026-11-27 [사용자: "관절을 10배 이상 많게 해야해 … 동작도 추가하고"]) — 관절 126개: 목/머리 · 긴 머리 가닥 12줄 × 6마디 · 팔마다 손목 · 손바닥 · 손가락 5 × 3마디 ·
+  //   다리마다 무릎 · 발목 · 발가락 · 가방. 짓는 자세에서 뼈는 회전이 없어 축은 모델 축이다(서 있을 때 모델 -X 가 아래 · -Y 가 앞, Z 축 회전 = 앞뒤로 흔들기, Y 축 회전 = 옆으로 들기, X 축 회전 = 고개 돌리기).
+  //   오른쪽(R)이 fins[0] · legs[0] 이다(사람 오른팔 = 게임 +Z 쪽)
+  const yj = upright0 ? (() => {
+    const sd = ["R", "L"];
+    return {
+      head: rig("head"), bag: rig("bag"),
+      knee: sd.map((x) => rig("knee_" + x)), ankle: sd.map((x) => rig("ankle_" + x)), wrist: sd.map((x) => rig("wrist_" + x)),
+      fing: sd.map((x) => [0, 1, 2, 3, 4].map((fi) => [0, 1, 2].map((k) => rig(`f${fi}_${k}_${x}`)))),
+      hair: Array.from({ length: 12 }, (_, h) => Array.from({ length: 6 }, (_, k) => rig(`hair_${h}_${k}`))),
+    };
+  })() : null;
+  const yjAll = yj ? [yj.head, yj.bag, ...yj.knee, ...yj.ankle, ...yj.wrist, ...yj.fing.flat(2), ...yj.hair.flat()].filter((r): r is Rig => !!r) : [];
+  let idleT = 0, hairT = (inner.id % 7) * 1.3;
   if (walker && body) {
     // 모델 좌표(inner 안)의 아래 끝 · 뒤 끝 — 세우면 뒤 끝(발 · 꼬리)이 바닥이 되므로 그 차이만큼 올린다
     inner.updateMatrixWorld(true);
@@ -716,6 +730,43 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
           for (let s = 0; s < 2; s++) { const r = fins[s * 2], h = hang[s]; if (r && (h || upright0)) r.bone.quaternion.multiply(qa.identity().slerp(h ?? qa, u)).multiply(qb.setFromAxisAngle(Z, (s ? -1 : 1) * 0.42 * sw)); }
           for (let s = 0; s < 2; s++) { const r = legs[s]; if (r) { r.bone.quaternion.copy(r.base).multiply(qa.identity().slerp(s ? legHangR : legHang, u)).multiply(qb.setFromAxisAngle(Z, (s ? 1 : -1) * 0.5 * sw)); } }
         } else for (let s = 0; s < 2; s++) { const r = fins[s * 2]; if (r) r.bone.quaternion.multiply(qa.setFromAxisAngle(X, (s ? 1 : -1) * (0.3 * u + 0.12 * Math.sin(stepPh) * walkAmp))); }
+      }
+      if (yj) {
+        for (const r of yjAll) r.bone.quaternion.copy(r.base);
+        const w = 1 - u, wa = Math.min(1, (speed ?? 0) / 0.12), still = u > 0.9 && (speed ?? 0) < 0.05;
+        if (dt > 0) hairT += dt * (reducedMotion() ? 0.35 : 1);
+        idleT = still && dt > 0 ? idleT + dt : still ? idleT : 0;
+        let curl = 0.24 * u + 0.04 * w, arm = [0, 0], elbow = [0, 0], wrist = [0, 0], tilt = 0, yaw = 0;
+        // 서 있을 때 — 2초 가만히 있으면 6초마다 한 동작(둘러보기 · 머리 위 하트 · 손 흔들기, 사람마다 순서가 다르다)
+        if (idleT > 2 && !reducedMotion()) {
+          const cyc = (idleT - 2) / 6, act = (Math.floor(cyc) + (inner.id % 3)) % 3, f = (cyc % 1) * 6, e0 = Math.max(0, Math.min(1, f / 0.8, (4.6 - f) / 0.8)), e = e0 * e0 * (3 - 2 * e0);
+          if (act === 0) { yaw = 0.62 * Math.sin((f / 4.6) * Math.PI * 2) * e; tilt = 0.08 * e; }
+          else if (act === 1) { arm = [2.3 * e, -2.3 * e]; elbow = [1.45 * e, -1.45 * e]; curl += 0.35 * e; tilt = 0.16 * e; }
+          else { const wv = Math.sin(f * 7); arm = [2.5 * e, 0]; elbow = [(0.55 + 0.45 * wv) * e, 0]; wrist = [0.3 * Math.sin(f * 7 + 1) * e, 0]; curl -= 0.2 * e; yaw = 0.18 * e; }
+        }
+        for (let s = 0; s < 2; s++) {
+          const ph = crawlPh + s * Math.PI, fwd = s ? Math.cos(stepPh) : -Math.cos(stepPh); // fwd > 0: 그 다리를 앞으로 내딛는 중
+          // 다리 — 걸을 땐 내딛는 다리의 무릎을 굽히고 발끝을 든다. 자유형에선 무릎을 살짝 굽혀 차고 발끝을 편다
+          yj.knee[s]?.bone.quaternion.multiply(qa.setFromAxisAngle(Z, -(0.05 + 0.65 * Math.max(0, fwd) * wa) * u - 0.35 * Math.max(0, Math.sin(crawlPh * 3 + s * Math.PI)) * w));
+          yj.ankle[s]?.bone.quaternion.multiply(qa.setFromAxisAngle(Z, 0.28 * Math.max(0, fwd) * wa * u - 0.9 * w));
+          // 팔 — 걸을 땐 팔꿈치를 조금 굽히고, 서서 하는 동작은 어깨를 옆으로 든다. 자유형에선 당길 때 손목을 젖힌다
+          const side = s ? -1 : 1, rt = fins[s * 2], tp = fins[s * 2 + 1];
+          if (rt && arm[s]) rt.bone.quaternion.multiply(qa.setFromAxisAngle(Y, arm[s]));
+          if (tp) tp.bone.quaternion.multiply(qa.setFromAxisAngle(Z, (0.2 + 0.18 * Math.max(0, -fwd) * wa) * u * (1 - Math.abs(arm[s]) / 2.5))).multiply(qb.setFromAxisAngle(Y, elbow[s]));
+          yj.wrist[s]?.bone.quaternion.multiply(qa.setFromAxisAngle(Y, wrist[s])).multiply(qb.setFromAxisAngle(Z, 0.3 * Math.max(0, -Math.sin(ph)) * w));
+          // 손가락 — 마디마다 손바닥 쪽으로(엄지는 덜) 굽힌다
+          yj.fing[s].forEach((fg, fi) => fg.forEach((r, k) => r?.bone.quaternion.multiply(qa.setFromAxisAngle(Y, -side * curl * (fi ? 1 : 0.5) * (k ? 1.15 : 0.7)))));
+        }
+        if (yj.head) yj.head.bone.quaternion.multiply(qa.setFromAxisAngle(X, yaw)).multiply(qb.setFromAxisAngle(Y, tilt));
+        // 긴 머리 — 마디마다 늦게 따라오는 물결. 걸을 땐 뒤로 날리며 걸음마다 튀고, 헤엄칠 땐 물살에 펄럭인다
+        yj.hair.forEach((ch, h) => ch.forEach((r, k) => {
+          if (!r) return;
+          const side = 0.03 * Math.sin(hairT * 1.3 - k * 0.6 + h * 0.25) + 0.05 * w * Math.sin(hairT * 4.2 - k * 0.9 + h * 0.4);
+          const back = -0.045 * wa * u + 0.03 * wa * u * Math.sin(stepPh * 2 - k * 0.7) + 0.02 * Math.sin(hairT * 0.9 - k * 0.5 + h * 0.3);
+          r.bone.quaternion.multiply(qa.setFromAxisAngle(Z, back)).multiply(qb.setFromAxisAngle(Y, side));
+        }));
+        // 가방 — 걸음마다 앞뒤로 흔들리고, 물속에선 천천히 뜬다
+        yj.bag?.bone.quaternion.multiply(qa.setFromAxisAngle(Z, 0.22 * Math.sin(stepPh - 0.6) * wa * u + 0.06 * Math.sin(hairT * 1.1) - 0.35 * w));
       }
       inner.quaternion.copy(walkBase.q).premultiply(qa.setFromAxisAngle(X, lean)).multiply(qb.setFromAxisAngle(Z, u * Math.PI / 2));
       if (roll) inner.quaternion.multiply(qa.setFromAxisAngle(X, roll));

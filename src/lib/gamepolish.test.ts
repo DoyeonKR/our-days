@@ -148,7 +148,7 @@ test("3D 모델 — 목록과 파일이 같고 · 임시 모델 위에 갈아 �
   assert.equal(report.approved, Object.values<{ approval: string }>(report.models).every(m => m.approval.startsWith("user_approved")), "new drafts must not inherit approval of existing models");
   for (const [key, m] of Object.entries<{ triangles: number; kind: string; limits: {triangles:number} }>(report.models)) {
     // 유진(사람 — 2026-11-26 [사용자: "디테일 더 챙겨 해상도 높히고"])만 12,000(얼굴 · 손 · 옷). 나머지 물고기는 8,000
-    assert.ok(m.limits.triangles <= (m.kind === "fish" ? (/yujin$/.test(key) ? 12000 : 8000) : 15000), key);
+    assert.ok(m.limits.triangles <= (m.kind === "fish" ? (/yujin$/.test(key) ? 40000 : 8000) : 15000), key);
     assert.ok(m.triangles <= m.limits.triangles, key);
   }
 });

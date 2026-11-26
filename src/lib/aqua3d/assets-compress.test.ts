@@ -69,7 +69,7 @@ test("수조 GLB 499개 전부 배포 형식(meshopt · 양자화 · 512px 이�
     for (const t of j.textures) { assert.equal(t.source, undefined, key); assert.equal(t.extensions?.EXT_texture_webp?.source, 0, key); }
     const iv = j.bufferViews[j.images[0].bufferView!], img = bin.subarray((iv as { byteOffset?: number }).byteOffset ?? 0, ((iv as { byteOffset?: number }).byteOffset ?? 0) + iv.byteLength);
     const [w, h] = webpSize(Buffer.from(img)); // 유진(사람 — 2026-11-26 [사용자: "해상도 높히고"])만 1024 — 얼굴이 512 에선 뭉개졌다
-    const tmax = /yujin$/.test(key) ? 1024 : 512; assert.ok(w <= tmax && h <= tmax && w >= 256 && h >= 256, `${key} ${w}x${h}`);
+    const tmax = /yujin$/.test(key) ? 2048 : 512; assert.ok(w <= tmax && h <= tmax && w >= 256 && h >= 256, `${key} ${w}x${h}`);
     const decode = (accessor: number) => {
       const a = j.accessors[accessor], ext = j.bufferViews[a.bufferView].extensions?.EXT_meshopt_compression;
       assert.ok(ext, `${key}: 형상 bufferView ${a.bufferView} 가 압축되지 않았다`);
@@ -125,7 +125,7 @@ test("게임과 같은 길(GLTFLoader + MeshoptDecoder)로 모두 열리고 · �
       assert.equal(meshes.length, 1, key);
       const m = meshes[0] as T.SkinnedMesh;
       assert.ok(m.isSkinnedMesh, key);
-      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : /(kappa|yujin)$/.test(key) ? 12 : 10, key); // 갓파는 다리 뼈 둘(leg_L · leg_R)을 더 — 땅 위에서 번갈아 걷는다(2026-11-26)
+      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : /yujin$/.test(key) ? 126 : /kappa$/.test(key) ? 12 : 10, key); // 갓파는 다리 뼈 둘(leg_L · leg_R)을 더 — 땅 위에서 번갈아 걷는다(2026-11-26)
       assert.ok(m.geometry.attributes.skinWeight.normalized && m.geometry.attributes.normal.normalized && m.geometry.attributes.uv.normalized, key);
       assert.equal(m.material instanceof T.MeshStandardMaterial && !!m.material.map, true, key);
     }

@@ -132,7 +132,7 @@ async function paintAtlas(model, SIZE) {
  * weight 의 넷째 인자는 부위 안 꼭짓점 번호. part.weld 가 같은 부위끼리는 같은 자리 꼭짓점의 법선을 함께 평균한다(한 그물을 여러 텍스처 칸으로 나눈 경우)
  */
 export const BX = [.75, .45, .15, -.15, -.45, -.8];
-export async function bake(key, model, {fins, legs, weight, source, atlas = 1024, roughness = .7, alpha = 1, compress = {}}) {
+export async function bake(key, model, {fins, legs, extraBones = [], weight, source, atlas = 1024, roughness = .7, alpha = 1, compress = {}}) {
   // keepWinding: 바깥에서 가져온 그물(Tripo 등)은 감김이 이미 맞다 — 반쪽 · 한 면만 있는 칸은 무게중심 시험이 틀리게 뒤집는다
   for (const p of model.parts) if (!p.keepWinding) orient(p);
   // 법선(부위마다 — 칠하기에 쓴다)
@@ -162,6 +162,15 @@ export async function bake(key, model, {fins, legs, weight, source, atlas = 1024
   bones[8].position.set(fr.root[0] - BX[1], fr.root[1], fr.root[2]); bones[9].position.set(fr.tip[0] - fr.root[0], fr.tip[1] - fr.root[1], fr.tip[2] - fr.root[2]);
   // legs.parent — 다리 뼈를 매달 척추 뼈(기본 spine_5). 사람은 엉덩이 높이의 뼈에 단다(헤엄칠 때 엉덩이에서 찬다)
   if (legs) { const pi = legs.parent ?? 5; for (const [i, l] of [[10, legs.L], [11, legs.R]]) { const p = G(l.root); bones[pi].add(bones[i]); bones[i].position.set(p[0] - BX[pi], p[1], p[2]); } }
+  // extraBones(2026-11-27, 유진 — 사람 관절): [{name, parent(이름), at(짓는 좌표)}] — 기본 뼈(10 · 12) 뒤에 차례로 붙는다(번호 = 기본 뼈 수 + 순서). 회전 없이 자리만
+  if (extraBones.length) {
+    bones[0].updateMatrixWorld(true);
+    for (const eb of extraBones) {
+      const b = new T.Bone(); b.name = eb.name; const parent = bones.find((x) => x.name === eb.parent); if (!parent) throw Error('parent ' + eb.parent);
+      parent.updateMatrixWorld(true); const pw = parent.getWorldPosition(new T.Vector3()), p = G(eb.at);
+      parent.add(b); b.position.set(p[0] - pw.x, p[1] - pw.y, p[2] - pw.z); bones.push(b); b.updateMatrixWorld(true);
+    }
+  }
   bones[0].updateMatrixWorld(true);
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   g.setAttribute('skinIndex', new T.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(W, 4)); g.setIndex(idx); g.computeVertexNormals();

@@ -15,12 +15,12 @@ const holder = new T.Group(); holder.add(g.scene); s.add(holder);
 const anim = fishMotion(g.scene, 'yujin', 'yujin');
 const V = {side: [0, 0, 1], top: [0, 1, .001], front: [1, 0, 0], obl: [.6, .5, 1]};
 let t = 0; const dt = 1 / 30;
-for (let k = 0; k < 90; k++) { anim(t, 1, {dt, speed, upright, amp: .8, effort: 1, hover: 0, ground: 0}); t += dt; }
+for (let k = 0; k < +(qs.get("warm") ?? 90); k++) { anim(t, 1, {dt, speed, upright, amp: .8, effort: 1, hover: 0, ground: 0}); t += dt; }
 for (let i = 0; i < frames; i++) {
   for (let k = 0; k < +(qs.get('gap') ?? 7); k++) { anim(t, 1, {dt, speed, upright, amp: .8, effort: 1, hover: 0, ground: 0}); t += dt; }
   holder.updateMatrixWorld(true);
   const cam = new T.OrthographicCamera(-1.25, 1.25, 1.25, -1.25, .01, 50), dd = new T.Vector3(...V[view]).normalize(); if (view === 'top') cam.up.set(-1, 0, 0);
-  cam.position.copy(dd.multiplyScalar(10)); cam.lookAt(0, 0, 0);
+  const cy = +(qs.get("cy") ?? 0); cam.position.copy(dd.multiplyScalar(10)).add(new T.Vector3(0, cy, 0)); cam.lookAt(0, cy, 0);
   r.setViewport(i * S, 0, S, S); r.setScissor(i * S, 0, S, S); r.render(s, cam);
 }
 const blob = await new Promise((res) => r.domElement.toBlob(res, 'image/png')); await fetch('/save/' + qs.get('name'), {method: 'PUT', body: blob}); document.title = 'saved';
