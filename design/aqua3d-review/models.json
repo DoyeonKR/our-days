@@ -54843,7 +54843,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/kappa.glb",
       "triangles": 7698,
-      "bytes": 73168,
+      "bytes": 74148,
       "bones": [
         "spine_0",
         "spine_1",
@@ -54864,8 +54864,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "30520ccaf3265baa2639312bb04344e9e47a0f501d679c90251097a8b2279f95",
-      "sha256": "916bc2b147e263e80473ad222b39747314a441c49a3263236f447ce5ebc40edf",
+      "sourceSHA256": "7fabd520dcbf619feff626edc1e5c3417effe0121c6c483dab49f56ac00303da",
+      "sha256": "3b0c0f206a7d248a730789583074d2248c64d3561d9a1c84e33c323ff8a66df1",
       "authoringProfile": {
         "key": "kappa",
         "name": "갓파",
@@ -54926,7 +54926,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_kappa.glb",
       "triangles": 7698,
-      "bytes": 72900,
+      "bytes": 74340,
       "bones": [
         "spine_0",
         "spine_1",
@@ -54947,8 +54947,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "2453d8a1261da5ea3b3e790c3bb3a0624e07ab774a61bf6dcbc6894476b1b86c",
-      "sha256": "9d200c69182874c51faf472a3d05bbef213c9552a5454b52706b6f4df998a987",
+      "sourceSHA256": "b430b3c2b5e6a97568d11bab9caffaec03dd29d7f76eac38eaf02762c0a6d828",
+      "sha256": "50d9f617214207adfbbcbb4563a16e307f99a1561f1cad002e1f1d4bb29a16ab",
       "authoringProfile": {
         "key": "kappa",
         "name": "갓파",
@@ -55009,7 +55009,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_kappa.glb",
       "triangles": 7698,
-      "bytes": 72932,
+      "bytes": 74392,
       "bones": [
         "spine_0",
         "spine_1",
@@ -55030,8 +55030,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "0e97ecec55f1c8f245c15afde5962eb1d32649d1afb4158ae24075888f2856a1",
-      "sha256": "9cecccdc8c643a9da7c735983f2f95d1c923773779f4a4d15e9b5293ce923211",
+      "sourceSHA256": "2d3ad5786ed3d5be199419fd1c65d11b206bf426a816936b464a2098f8bdaac9",
+      "sha256": "5816043826a09a59b3665a4c714c8caafc1f1f2062a10cd07abca7a7ce7d4ec6",
       "authoringProfile": {
         "key": "kappa",
         "name": "갓파",

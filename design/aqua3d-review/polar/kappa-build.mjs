@@ -42,7 +42,15 @@ function build(key) {
   const HC = [2.55, .12, 0], HR = [.98 * H, .92 * H, .96 * H];
   ell(m, 'head', HC, HR[0], HR[1], HR[2], {ns: 16, nt: 20, island: [0, .3, .5, .62], bone: 'head',
     r: (th) => 1 - .1 * Math.max(0, -Math.cos(th)),
-    paint: (p, n) => { const yr = (p[1] - HC[1]) / HR[1]; let c = skin(p, n, (p[1] - HC[1]) * 1.6 + p[0] * .25, st, smooth(-.3, -.85, yr) * .6); return c; }});
+    paint: (p, n) => {
+      const yr = (p[1] - HC[1]) / HR[1]; let c = skin(p, n, (p[1] - HC[1]) * 1.6 + p[0] * .25, st, smooth(-.3, -.85, yr) * .6);
+      // 뺨 줄무늬 — 눈 아래 · 옆으로 짙은 띠가 둘(기준 그림)
+      const cheek = smooth(.1, .5, p[0] - HC[0]) * smooth(.2, -.3, yr) * smooth(.3, .8, Math.abs(p[2]) / HR[2]);
+      c = mix(c, DARK, cheek * smooth(.6, .85, Math.sin((p[1] - HC[1]) * 9 + p[0] * 2)) * .8);
+      // 눈두덩 — 눈 둘레가 살짝 짙다
+      for (const sd of [-1, 1]) { const e = headSurf(sd * .48, .32, .86), d = Math.hypot(p[0] - e[0], p[1] - e[1], p[2] - e[2]) / ER; c = c.map((v) => v * (1 - .25 * smooth(1.45, 1.02, d))); }
+      return c;
+    }});
   const headSurf = (u, v, k = 1) => [HC[0] + HR[0] * k * Math.cos(v) * Math.cos(u), HC[1] + HR[1] * k * Math.sin(v), HC[2] + HR[2] * k * Math.cos(v) * Math.sin(u)];
 
   // ── 눈(크고 동그란 흰 눈 — 얼굴 앞 위쪽에 툭 튀어나온다. 검은 눈동자가 크고 반짝이 점 둘) ──
@@ -59,8 +67,9 @@ function build(key) {
         const h1 = norm([.86, .32, -sd * .18]), h2 = norm([.95, -.05, -sd * .38]);
         const s1 = n[0] * h1[0] + n[1] * h1[1] + n[2] * h1[2], s2 = n[0] * h2[0] + n[1] * h2[1] + n[2] * h2[2];
         col = mix(col, [255, 255, 255], smooth(.975, .985, s1)); col = mix(col, [255, 255, 255], smooth(.993, .996, s2));
-        // 흰자 가장자리에 옅은 선
-        col = mix(col, [60, 60, 60], smooth(.15, .02, d + .9) * .6);
+        // 2026-11-26 [사용자: "갓파 캐릭터 디테일 조금만 더 다듬어줘"] — 기준 그림처럼 흰자 둘레에 짙은 테(머리에 묻히는 가장자리)
+        const ob = norm(add(c, HC, -1)), rim = n[0] * ob[0] + n[1] * ob[1] + n[2] * ob[2];
+        col = mix(col, [34, 40, 34], smooth(.32, .16, rim));
         return col;
       }});
   }
@@ -70,10 +79,14 @@ function build(key) {
     m.sweep('beak', (s) => { const ph = s * Math.PI / 2, x = b0[0] + .62 * H * Math.sin(ph), env = Math.max(.02, Math.cos(ph)); return {c: [x, b0[1] - .1 * s * s, 0], u: [0, 1, 0], v: [0, 0, 1], a: .2 * H * Math.pow(env, .5), b: .4 * H * Math.pow(env, .35), e: 2.4}; },
       {ns: 12, nt: 18, island: [.74, .3, .99, .42], bone: 'head',
         paint: (p, n) => {
-          let c = mix(BEAK, BEAK_D, smooth(.1, -.6, n[1]) * .5);
-          // 입선 — 부리 가운데 높이를 가로질러 양 끝이 위로
-          const mid = b0[1] - .02 + .12 * Math.pow(Math.abs(p[2]) / (.4 * H), 2);
-          c = mix(c, [110, 90, 70], smooth(.025, .008, Math.abs(p[1] - mid)) * .85);
+          // 윗부리는 밝은 연노랑 · 아랫부리는 조금 짙다, 가운데 등줄이 밝게
+          const mid = b0[1] - .03 + .16 * Math.pow(Math.min(1, Math.abs(p[2]) / (.4 * H)), 2.2);
+          let c = p[1] > mid ? mix([228, 232, 150], BEAK, smooth(.4, -.2, n[1]) * .6) : mix(BEAK, BEAK_D, .45);
+          c = mix(c, [246, 246, 190], smooth(.05, .0, Math.abs(p[2])) * smooth(.3, .9, n[1]) * .6);
+          // 입선 — 양 끝이 위로 말려 웃는 입. 바로 아래 옅은 분홍 입술
+          const dm = p[1] - mid;
+          c = mix(c, [214, 150, 140], smooth(-.06, -.015, dm) * smooth(0, -.02, dm) * .7);
+          c = mix(c, [96, 74, 60], smooth(.02, .006, Math.abs(dm)) * .9);
           // 콧구멍 둘
           for (const sd of [-1, 1]) { const d = Math.hypot((p[0] - (b0[0] + .42 * H)) / .05, (p[2] - sd * .1 * H) / .035, (p[1] - (b0[1] + .14 * H)) / .06); c = mix(c, [90, 90, 60], smooth(1.2, .6, d)); }
           return c;
@@ -83,7 +96,7 @@ function build(key) {
   {
     const top = add(headSurf(0, Math.PI / 2 - .12, .97), [0, .11 * H, 0]); // 머리칼 덩이 위로 — 정수리에 접시가 보이게
     m.sweep('dish', (s) => { const a = Math.PI * s, e = Math.max(.02, Math.sin(a)); return {c: [top[0] - .3 * H * Math.cos(a), top[1] + .02, 0], u: [0, 1, 0], v: [0, 0, 1], a: .08 * e, b: .34 * H * e, r: (th) => 1 + .3 * Math.max(0, Math.cos(th)) * (1 - e)}; },
-      {ns: 10, nt: 16, island: [.5, .42, .7, .5], bone: 'head', paint: (p, n) => mix(DISH, DISH.map((v) => v * .85), smooth(.6, .95, Math.abs(p[2]) / (.32 * H))) });
+      {ns: 10, nt: 16, island: [.5, 0, .7, .1], bone: 'head', paint: (p, n) => mix(DISH, DISH.map((v) => v * .85), smooth(.6, .95, Math.abs(p[2]) / (.32 * H))) });
   }
   // ── 머리칼 — 머리 위를 통째로 덮는 덥수룩한 갈색 덩이(가발처럼) + 가장자리에 늘어진 굵은 가닥 ──
   //   2026-11-26 처음 판은 가는 가닥 마흔여섯이 듬성듬성해 발톱처럼 보였다. 기준 그림의 머리칼은 접시 둘레부터 머리를 덮고
@@ -96,11 +109,11 @@ function build(key) {
         const yn = Math.cos(th) * e, zn = Math.sin(th) * e, L = Math.hypot(cx, zn) || 1, h = hairLine(-cx / L * -1, zn / L);
         // 끝이 삐죽삐죽 — 둘레 방향으로 톱니
         const ang = Math.atan2(Math.abs(zn), -cx), jag = .1 * Math.abs(Math.sin(ang * 13)) + .05 * Math.cos(ang * 31); // 좌우 대칭
-        const on = smooth(h - .02 + jag, h + .06 + jag, yn);
+        const on = smooth(h - .005 + jag, h + .025 + jag, yn); // 경계를 좁게 — 넓으면 머리 겉과 겹치는 띠가 반투명하게 비쳤다
         return .78 + (1 - .78) * on + .04 * on * Math.sin(ang * 23 + yn * 9); // 덮지 않는 곳은 머리 속(머리 아래쪽이 좁아 .86 이면 뺨에 갈색이 비쳤다)
       }}; },
       {ns: 24, nt: 28, island: [.5, .42, .75, .62], bone: 'head',
-        paint: (p, n, [s, t]) => { const ang = Math.atan2(p[2] - HC[2], p[0] - HC[0]); const c = mix(HAIR, HAIR_D, .35 + .35 * Math.sin(ang * 40 + noise(p[0] * 6, p[1] * 6, p[2] * 6) * 6)); return c.map((v) => v * (.82 + .3 * smooth(.2, 1, (p[1] - HC[1]) / CR[1]) + .08 * noise(p[0] * 25, p[1] * 25, p[2] * 25))); }});
+        paint: (p, n, [s, t]) => { const ang = Math.atan2(p[2] - HC[2], p[0] - HC[0]); let c = mix(HAIR, HAIR_D, .35 + .35 * Math.sin(ang * 40 + noise(p[0] * 6, p[1] * 6, p[2] * 6) * 6)); c = mix(c, [204, 156, 100], smooth(.75, .95, Math.sin(ang * 17 + noise(p[0] * 4, p[1] * 4, p[2] * 4) * 5)) * .5); /* 밝은 결 */ return c.map((v) => v * (.82 + .3 * smooth(.2, 1, (p[1] - HC[1]) / CR[1]) + .08 * noise(p[0] * 25, p[1] * 25, p[2] * 25))); }});
     // 가장자리 굵은 가닥 — 덩이 끝에서 아래로 늘어진다(얼굴 앞은 짧게)
     let k = 0; const cnt = 30;
     for (let i = 0; i < cnt; i++) {

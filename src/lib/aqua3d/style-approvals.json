@@ -1935,15 +1935,15 @@
       "sheet": "design/aqua3d-review/polar/review-beluga.webp"
     },
     "kappa": {
-      "sourceHash": "30520ccaf3265baa2639312bb04344e9e47a0f501d679c90251097a8b2279f95",
+      "sourceHash": "7fabd520dcbf619feff626edc1e5c3417effe0121c6c483dab49f56ac00303da",
       "sheet": "design/aqua3d-review/polar/review-kappa.webp"
     },
     "juv_kappa": {
-      "sourceHash": "2453d8a1261da5ea3b3e790c3bb3a0624e07ab774a61bf6dcbc6894476b1b86c",
+      "sourceHash": "b430b3c2b5e6a97568d11bab9caffaec03dd29d7f76eac38eaf02762c0a6d828",
       "sheet": "design/aqua3d-review/polar/review-kappa.webp"
     },
     "fry_kappa": {
-      "sourceHash": "0e97ecec55f1c8f245c15afde5962eb1d32649d1afb4158ae24075888f2856a1",
+      "sourceHash": "2d3ad5786ed3d5be199419fd1c65d11b206bf426a816936b464a2098f8bdaac9",
       "sheet": "design/aqua3d-review/polar/review-kappa.webp"
     }
   }
