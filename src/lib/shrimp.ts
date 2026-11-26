@@ -79,7 +79,8 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   // 벨루가(2026-11-26 [사용자: "개체 추가해줘 자신있는 개체로"]) — 부위로 지은 모델(design/aqua3d-review/polar/beluga-build.mjs), 카드 그림은 모델을 찍은 것. 때 손님(곁 칸)으로만.
   //   북쪽 찬 바다의 작은 이빨고래: 무리 짓지 않고 가운데 물을 느긋하게 돌며 목이 있어 고개를 자주 돌려 두리번거린다(방향을 조금씩 튼다 — dart),
   //   숨 쉬러 자주 오르고(55초) 몸을 크게 기울이지 않는다(level 0.42 ≈ 23°). 누르면 머리를 내밀어 살핀다(breach.ts spyhop)
-  { key: "beluga", name: "벨루가", grade: "영웅", price: 41500, hours: 275, minTank: 5, size: 36, cm: 450, fresh: false, ornamental: false,
+  //   2026-11-26 [사용자: "북극곰 벨루가 모두 태초 등급으로 설정하고 획득 확률 2% 미만으로해"] — 영웅 → 태초(값 · 시간은 별무리어와 북극곰 사이, 수조 6단계), 때 손님은 와도 15% 만 문다(rare — 한 번 던질 때 많아야 0.83%)
+  { key: "beluga", name: "벨루가", grade: "태초", price: 125000, hours: 525, minTank: 6, size: 36, cm: 450, fresh: false, ornamental: false,
     spots: [], habit: { lo: -1.2, hi: 2.2, speed: 0.22, reach: 1, depth: 2, breathe: 55, breathOnly: true, dart: 0.1, pace: 0.6, tilt: 0.24, level: 0.42 } },
   // 남극 10종(2026-11-25 [사용자: "남극기지 낚시터에 … 10종" → "기존에있는 것과 조금 다른 느낌없어 ? 펭귄과 메로는 유지하고" → "다 완벽하게 진행해줘"]) —
   //   그림 · 3D 는 Claude 세션이 부위로 지었다(design/aqua3d-review/polar/ penguins · antfish · inverts-build.mjs, 카드 그림은 모델을 찍은 것).

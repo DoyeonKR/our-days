@@ -129,8 +129,8 @@ export const TIMED_FISH: readonly TimedFish[] = [
   // 바다코끼리 · 황제펭귄(2026-11-24) — 바다코끼리는 북쪽 찬 바다(고성 거진항)의 눈 오는 날, 황제펭귄은 남극 세종기지 앞바다의 새벽
   { species: "walrus", spot: "starsea", wx: "snow", side: true },
   { species: "emperor_penguin", spot: "sejong", time: "dawn", side: true },
-  // 벨루가(2026-11-26) — 북쪽 찬 바다(고성 거진항)의 해 질 녘
-  { species: "beluga", spot: "starsea", time: "dusk", side: true },
+  // 벨루가(2026-11-26) — 북쪽 찬 바다(고성 거진항)의 해 질 녘. 태초라 와도 15% 만 문다(한 번 던질 때 많아야 0.83% — 2% 미만, polarbear.test)
+  { species: "beluga", spot: "starsea", time: "dusk", side: true, rare: 0.15 },
   // 남극 일곱(2026-11-25) — 세종기지 앞바다. 젠투 · 아델리 · 대왕등각류는 pool(shrimp.ts spots)
   { species: "chinstrap_penguin", spot: "sejong", time: "day", side: true },
   { species: "icefish", spot: "sejong", time: "dusk", side: true },

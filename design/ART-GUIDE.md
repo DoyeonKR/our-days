@@ -148,7 +148,7 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 
 | key | 이름 | 등급 | 다 큰 몸길이 | 기준 |
 |---|---|---|---|---|
-| `beluga` | 벨루가 | 영웅 | 4.5m | 사진 · 그림을 쓰지 않았다 — 널리 알려진 해부 비율(둥근 멜론 · 짧은 주둥이 · 등 능선 · 노 모양 가슴지느러미)을 눈으로 옮겼다 |
+| `beluga` | 벨루가 | 태초 | 4.5m | 사진 · 그림을 쓰지 않았다 — 널리 알려진 해부 비율(둥근 멜론 · 짧은 주둥이 · 등 능선 · 노 모양 가슴지느러미)을 눈으로 옮겼다 |
 
 **모델**: `polar/beluga-build.mjs`(부위로 짓는다 — 몸통 · 눈 · 가슴지느러미 · 꼬리지느러미, 무늬는 3D 위치로 칠함). 새끼 짙은 청회색 · 어린 옅은 회색 · 어른 크림빛 흰색.
 **그림**: 모델을 찍은 카드(`ceph-v3/review.html?card=…` → `polar/cards/`) → `polar/cards-to-art.mjs` → `scripts/aqua-model-profiles.mjs` → `polar/sync-hashes.mjs`. 검수 `polar/review-beluga.webp`.

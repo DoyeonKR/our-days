@@ -45,11 +45,14 @@ test("앞발은 좌우 번갈아 앞뒤로 젓는다 — 옆으로 벌어지지 
   }
 });
 
-test("북극곰은 한 번 던질 때 2% 미만으로만 문다(2026-11-26 [사용자: \"무조건 2퍼센트 미만으로 잡히게\"]) — 가장 좋은 미끼 · 행운 · 던지기, 모든 시간 · 날씨 · 낚시터", async () => {
+// 2026-11-26 [사용자: "북극곰 벨루가 모두 태초 등급으로 설정하고 획득 확률 2% 미만으로해"] — 벨루가도 같은 잣대로
+test("북극곰 · 벨루가는 태초이고 한 번 던질 때 2% 미만으로만 문다(2026-11-26 [사용자: \"무조건 2퍼센트 미만으로 잡히게\"]) — 가장 좋은 미끼 · 행운 · 던지기, 모든 시간 · 날씨 · 낚시터", async () => {
   const { SPOTS, BAITS, rollCatch } = await import("../fishing.ts");
+  const { FAMILIES } = await import("../aquarium.ts");
+  for (const key of ["polar_bear", "beluga"]) assert.equal(FAMILIES.find((f) => f.key === key)!.finals[0].grade, "태초", key);
   for (const sp of SPOTS) for (const time of ["dawn", "day", "dusk", "night"] as const) for (const wx of [null, "rain", "snow", "clear"] as const) {
-    let n = 0; const N = 3000;
-    for (let i = 0; i < N; i++) if (rollCatch(sp, 50, 1, i * 41 + 7, { bait: BAITS.length - 1, when: { time, wx } }).family === "polar_bear") n++;
-    assert.ok(n / N < 0.02, `${sp.key} ${time} ${wx}: ${(n / N * 100).toFixed(2)}%`);
+    const n: Record<string, number> = { polar_bear: 0, beluga: 0 }; const N = 3000;
+    for (let i = 0; i < N; i++) { const f = rollCatch(sp, 50, 1, i * 41 + 7, { bait: BAITS.length - 1, when: { time, wx } }).family; if (f in n) n[f]++; }
+    for (const key of Object.keys(n)) assert.ok(n[key] / N < 0.02, `${key} ${sp.key} ${time} ${wx}: ${(n[key] / N * 100).toFixed(2)}%`);
   }
 });
