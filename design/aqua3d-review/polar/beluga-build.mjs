@@ -30,8 +30,9 @@ const profOf = (fat) => (x) => {
 const X0 = -4.6, X1 = 4.4;
 // 입선 — 입끝(4.55, -0.42)에서 뒤로 거의 곧게 가다 입꼬리(3.42)에서 -0.1 까지 말려 올라간다
 // 2026-11-26 [사용자: "입선은 눈 아래로 가야해"] — 입꼬리는 눈 바로 아래(x 3.2, 눈 아래 가장자리 조금 밑)까지 뒤로 간다
-const MOUTH_END = 3.2;
-const mouthY = (x) => -.47 + .37 * Math.pow(smooth(4.25, MOUTH_END, x), 1.5);
+// 같은 날 다시 [사용자: "주둥이 선은 눈 밑으로 가야한다고"] — 끝에서 가파르게 올라 눈에 닿았다. 낮게 뒤로 가 눈 밑(눈 아래 가장자리에서 0.2 아래)을 지나 살짝만 들려 끝난다
+const MOUTH_END = 3.08;
+const mouthY = (x) => -.47 + .22 * Math.pow(smooth(4.3, MOUTH_END, x), 1.3);
 // 이마 · 윗입술 사이 골 — 앞(주둥이 위)에서 뒤로 조금 내려가며 눈 앞까지(사진: 이마 아래 테두리가 눈 쪽으로 흐른다)
 const creaseY = (x) => -.02 + .1 * smooth(3.3, 4.25, x);
 const creaseLine = (x, y, n) => x < 3.28 || x > 4.3 ? 0 : smooth(.12, .02, Math.abs(y - creaseY(x))) * smooth(3.28, 3.45, x) * smooth(.35, .7, Math.abs(n[2]));

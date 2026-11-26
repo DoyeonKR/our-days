@@ -51855,7 +51855,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_beluga.glb",
       "triangles": 6764,
-      "bytes": 48052,
+      "bytes": 48000,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51876,8 +51876,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "4269be8b3fe791fff4bc4f15c2ad034e5a9640d1f262272cab2c6f32b2520d23",
-      "sha256": "04a93c13a6785bbb63becbfc74ccd504bf025e3f831f0719f9a5f2c47f5a977a",
+      "sourceSHA256": "a61eb005d51676b9add19562bf8d7b2a0f0eb57249c775fa0f051f85ff78ede4",
+      "sha256": "c04d8cd77b428017cc44975ee754a5f675b53f39885802f19a1bb78932160f3e",
       "authoringProfile": {
         "key": "beluga",
         "name": "흰고래",
@@ -51938,7 +51938,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_beluga.glb",
       "triangles": 6764,
-      "bytes": 49364,
+      "bytes": 49316,
       "bones": [
         "spine_0",
         "spine_1",
@@ -51959,8 +51959,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "248f0b24002b20e1a470b1d95c8b676889d4e70e26a5f626be35f6d184daf599",
-      "sha256": "1da0deb8607b578de24f7526c6279dc457c77e7555dd1b434fc405f1bf6b07bd",
+      "sourceSHA256": "2ef0f08e022dadccb5f6bcb92d571520abdaf3969418bdbaa91905afaa3be610",
+      "sha256": "eb901d8c3c84d0d07f8c95ff46ffd96735a390e501a6b5ec066acd867732b1bc",
       "authoringProfile": {
         "key": "beluga",
         "name": "흰고래",
@@ -52021,7 +52021,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/beluga.glb",
       "triangles": 6764,
-      "bytes": 49412,
+      "bytes": 49492,
       "bones": [
         "spine_0",
         "spine_1",
@@ -52042,8 +52042,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "4b54943013dc14e3f3d861939c95eef4bfdddadbc99b81de4bd0babc77edc198",
-      "sha256": "26726e0ad7bc0896436bc5e683084e297a87ba144a804958d91883585ffb2caf",
+      "sourceSHA256": "df87e68533e248db4c5dd1d5f4674fdc2fbf17ba4d4a1ec04e567925042ea258",
+      "sha256": "59519c7cea6cbc6eda27493be098bc832dc6530481da98f4193e5f1ed7f01124",
       "authoringProfile": {
         "key": "beluga",
         "name": "흰고래",
