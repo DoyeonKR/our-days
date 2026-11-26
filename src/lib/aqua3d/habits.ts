@@ -64,6 +64,8 @@ export type FishHabit = {
   float?: boolean;
   /** 땅 위에선 두 발로 서서 걷는다(펭귄, 2026-11-26) — haulBlend 가 course.upright 와 쉼터 둘레 오가기를 준다 */
   walk?: boolean;
+  /** 바위 · 모래사장에서 쉬는 몸 두께 배율(기본 1 — 몸길이 0.12). 다리가 몸 아래로 늘어진 북극곰은 크게(모래에 묻혔다), 납작하게 엎드리는 바다코끼리는 작게(2026-11-26) */
+  restThick?: number;
 };
 
 const swim = (lo: number, hi: number, speed: number, reach: number, depth: number, more: Partial<FishHabit> = {}): FishHabit => ({ lo, hi, speed, reach, depth, ...more });
@@ -1392,7 +1394,9 @@ export function haulRest(id: number, seconds: number): number {
 }
 /** 헤엄 길(out — 이미 계산한 schoolCourse)을 쉼터와 섞는다. 돌려주는 값 = 쉬는 정도(0~1) */
 const smooth01 = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
-export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean; walk?: boolean }, out: Course): number {
+/** 해변 모래 턱(root 안 x — 넓히기 전) · 앞뒤 물러남 — habitat.ts 의 BEACH_X0 + BEACH_BANK · BEACH_Z0 · BEACH_ZK 와 같은 값(beach.test 가 맞춰 본다). three 를 안 불러오려고 따로 둔다 */
+export const BEACH_DRY_X = 3.8, BEACH_Z0 = -0.3, BEACH_ZK = 1.35;
+export function haulBlend(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { rock: Obstacle | null; share: number; deep?: number; tall?: number; float?: boolean; walk?: boolean; thick?: number }, out: Course): number {
   let R = haulRest(id, seconds);
   // 먹이를 주면 쉬다가도 먹으러 간다
   R *= 1 - clamp01((out.feed ?? 0) * 1.5);
@@ -1416,7 +1420,13 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     // 모래사장(2026-11-15) — 꼭대기 평지에 물 쪽(왼쪽)을 보고 눕는다. 나눠 쓰면 앞뒤로 비켜 눕는다(모래사장은 가로가 좁고 앞뒤가 길다)
     const sh = opts.share, off = sh === 0 ? 0 : (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * length * 0.7;
     const lim = 5 * scale - length * 0.42, zl = Math.max(0.2, roomZ(length / 2) * (opts.deep || 1) - 0.2);
-    rx = Math.max(-lim, Math.min(lim, o.x - (sh % 3) * length * 0.25)); rz = Math.max(-zl, Math.min(zl, o.z + off)) / (opts.deep || 1); ry = floorY + o.h + (length * 0.12) / (opts.tall || 1);
+    rx = Math.max(-lim, Math.min(lim, o.x - (sh % 3) * length * 0.25)); rz = Math.max(-zl, Math.min(zl, o.z + off)) / (opts.deep || 1);
+    // 해변은 앞으로 올수록 오른쪽으로 물러난다(habitat.beachShift) — 나눠 쓰다 앞쪽 · 왼쪽으로 비켜난 큰 몸은 해변 밖 물 위 허공에 떠 있었다(2026-11-26).
+    //   몸 가운데가 그 앞뒤 자리의 모래 턱(BEACH_DRY_X) 너머에 오게 오른쪽으로 옮기고, 그래도 안 되면 뒤로 물린다
+    { const need = length * 0.25 / scale, zMax = BEACH_Z0 + Math.max(0, (lim / scale - need) - BEACH_DRY_X) / BEACH_ZK;
+      if (rz > zMax) rz = zMax;
+      rx = Math.min(lim, Math.max(rx, (BEACH_DRY_X + Math.max(0, rz - BEACH_Z0) * BEACH_ZK + need) * scale)); }
+    ry = floorY + o.h + (length * 0.12 * (opts.thick ?? 1)) / (opts.tall || 1);
     fx = -1; fz = 0.25 + (unit(h, 131) - 0.5) * 0.5;
   } else if (o) {
     // 바위 꼭대기 — 나눠 쓰면 양옆으로 비켜 눕는다. 둥근 바위라 가운데에서 멀수록 조금 낮다
@@ -1424,10 +1434,10 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     // 바위 앞 어깨(앞유리 쪽)에 눕는다 — 꼭대기 한가운데면 큰 바위 뒤로 숨어 안 보였다(2026-11-14). 높이는 둥근 언덕의 그 자리 높이 + 몸 두께(물리 밀어내기와 같은 언덕)
     const front = o.r * 0.35, d = Math.min(0.95, Math.hypot(off, front) / Math.max(0.05, o.r));
     const lim = 5 * scale - length * 0.42;
-    rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z + front / (opts.deep || 1); ry = floorY + o.h * Math.sqrt(1 - d * d) + (length * 0.12) / (opts.tall || 1); // 몸 두께는 월드 길이 — 길 좌표의 높이는 엔진이 tall 배로 늘리므로 미리 나눈다(안 나누면 6단계에서 바위 위로 붕 떴다)
+    rx = Math.max(-lim, Math.min(lim, o.x + off)); rz = o.z + front / (opts.deep || 1); ry = floorY + o.h * Math.sqrt(1 - d * d) + (length * 0.12 * (opts.thick ?? 1)) / (opts.tall || 1); // 몸 두께는 월드 길이 — 길 좌표의 높이는 엔진이 tall 배로 늘리므로 미리 나눈다(안 나누면 6단계에서 바위 위로 붕 떴다)
   } else {
     // 바위가 없으면 뒤 유리 앞 모래 위
-    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + (length * 0.15) / (opts.tall || 1); ground = 1; // 몸 두께 — 0.1 이면 모래에 몸길이 7 ~ 8% 박혔다(2026-11-20)
+    rx = (unit(h, 141) - 0.5) * 4 * scale; rz = -roomZ(length / 2) * 0.8; ry = floorY + (length * 0.15 * (opts.thick ?? 1)) / (opts.tall || 1); ground = 1; // 몸 두께 — 0.1 이면 모래에 몸길이 7 ~ 8% 박혔다(2026-11-20)
     fz = Math.abs(fz);
   }
   // 펭귄(2026-11-26 [사용자: "펭귄은 … 해변에서는 이족보행으로 다녀야해"]) — 땅 위에선 누워 쉬지 않고 두 발로 서서 쉼터 둘레를 천천히 오간다.

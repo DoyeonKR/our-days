@@ -73,7 +73,7 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   { key: "emperor_penguin", name: "황제펭귄", grade: "영웅", price: 24500, hours: 207.5, minTank: 4, size: 26, cm: 115, fresh: false, ornamental: false,
     spots: [], habit: { lo: -2, hi: 2.4, speed: 0.34, reach: 1, depth: 2, haul: true, walk: true, breathe: 60, breathOnly: true, dart: 0.3, pace: 1, tilt: 0.45 } },
   { key: "walrus", name: "바다코끼리", grade: "전설", price: 53000, hours: 315, minTank: 5, size: 42, cm: 330, fresh: false, ornamental: false,
-    spots: [], habit: { lo: -3.4, hi: 1.2, speed: 0.14, reach: 0.9, depth: 1.8, haul: true, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.3 } },
+    spots: [], habit: { lo: -3.4, hi: 1.2, speed: 0.14, reach: 0.9, depth: 1.8, haul: true, restThick: 0.85, breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.3 } },
   // 남극 10종(2026-11-25 [사용자: "남극기지 낚시터에 … 10종" → "기존에있는 것과 조금 다른 느낌없어 ? 펭귄과 메로는 유지하고" → "다 완벽하게 진행해줘"]) —
   //   그림 · 3D 는 Claude 세션이 부위로 지었다(design/aqua3d-review/polar/ penguins · antfish · inverts-build.mjs, 카드 그림은 모델을 찍은 것).
   //   젠투 · 아델리 · 대왕등각류는 세종기지 pool 의 흔한 몫(시작 미끼 단계 — 대구 바로 뒤), 나머지 일곱은 세종기지 때 손님(곁 칸)
@@ -100,7 +100,7 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   //   남극 세종기지 밤의 때 손님(곁 칸 · 뽑혀도 30% 만 문다 — 범고래와 같다. 2026-11-26 고성 거진항에서 옮겼다). 수면 가까이 머리를 내밀고 앞발을 번갈아 저어(개헤엄) 나아가고, 뒷다리는 뒤로 끌린다.
   //   숨 쉬러 자주 오르고 모래사장 · 바위에서 쉰다. 사냥꾼(PREDATORS)에는 넣지 않았다 — 수조 물고기를 실제로 잡아먹게 된다
   { key: "polar_bear", name: "북극곰", grade: "태초", price: 135000, hours: 550, minTank: 6, size: 46, cm: 250, fresh: false, ornamental: false,
-    spots: [], habit: { lo: -0.6, hi: 3, speed: 0.2, reach: 1, depth: 2, haul: true, breathe: 40, breathOnly: true, dart: 0.15, pace: 0.7, tilt: 0.25 } },
+    spots: [], habit: { lo: -0.6, hi: 3, speed: 0.2, reach: 1, depth: 2, haul: true, restThick: 1.85, breathe: 40, breathOnly: true, dart: 0.15, pace: 0.7, tilt: 0.25 } },
   { key: "salp", name: "살프 사슬", grade: "전설", price: 46500, hours: 294, minTank: 5, size: 30, cm: 60, fresh: false, ornamental: false,
     spots: [], habit: { lo: 0.5, hi: 3, speed: 0.05, reach: 1, depth: 2, pace: 0.5, tilt: 0.15, bob: 0.2, feeds: false } },
 ];
