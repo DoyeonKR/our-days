@@ -54836,6 +54836,255 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "added": "2026-11-26 [사용자: \"개체 추가해줘 자신있는 개체로\"]"
+    },
+    "kappa": {
+      "kind": "fish",
+      "family": "kappa",
+      "form": "adult",
+      "file": "public/aqua/models/fish/kappa.glb",
+      "triangles": 7698,
+      "bytes": 73168,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "30520ccaf3265baa2639312bb04344e9e47a0f501d679c90251097a8b2279f95",
+      "sha256": "916bc2b147e263e80473ad222b39747314a441c49a3263236f447ce5ebc40edf",
+      "authoringProfile": {
+        "key": "kappa",
+        "name": "갓파",
+        "grade": "신화",
+        "cm": 100,
+        "water": "fresh",
+        "body": "kappa",
+        "widthRatio": 0.5,
+        "life": "강 바닥 · 가운데를 개구리처럼 차며 헤엄 · 숨 쉬러 수면 · 바위에서 쉰다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/kappa-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"이벤트로 갓파쿠도 잡히게 해줘\" → \"최대한 유사하게 만들어 허락받았어\"]"
+    },
+    "juv_kappa": {
+      "kind": "fish",
+      "family": "kappa",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_kappa.glb",
+      "triangles": 7698,
+      "bytes": 72900,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "2453d8a1261da5ea3b3e790c3bb3a0624e07ab774a61bf6dcbc6894476b1b86c",
+      "sha256": "9d200c69182874c51faf472a3d05bbef213c9552a5454b52706b6f4df998a987",
+      "authoringProfile": {
+        "key": "kappa",
+        "name": "갓파",
+        "grade": "신화",
+        "cm": 100,
+        "water": "fresh",
+        "body": "kappa",
+        "widthRatio": 0.5,
+        "life": "강 바닥 · 가운데를 개구리처럼 차며 헤엄 · 숨 쉬러 수면 · 바위에서 쉰다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/kappa-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"이벤트로 갓파쿠도 잡히게 해줘\" → \"최대한 유사하게 만들어 허락받았어\"]"
+    },
+    "fry_kappa": {
+      "kind": "fish",
+      "family": "kappa",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_kappa.glb",
+      "triangles": 7698,
+      "bytes": 72932,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0e97ecec55f1c8f245c15afde5962eb1d32649d1afb4158ae24075888f2856a1",
+      "sha256": "9cecccdc8c643a9da7c735983f2f95d1c923773779f4a4d15e9b5293ce923211",
+      "authoringProfile": {
+        "key": "kappa",
+        "name": "갓파",
+        "grade": "신화",
+        "cm": 100,
+        "water": "fresh",
+        "body": "kappa",
+        "widthRatio": 0.5,
+        "life": "강 바닥 · 가운데를 개구리처럼 차며 헤엄 · 숨 쉬러 수면 · 바위에서 쉰다"
+      },
+      "geometryAuthoring": "part-built (design/aqua3d-review/polar/kappa-build.mjs) — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-26",
+      "approval": "user_requested_2026-11-26",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-26 [사용자: \"이벤트로 갓파쿠도 잡히게 해줘\" → \"최대한 유사하게 만들어 허락받았어\"]"
     }
   },
   "structuralValidation": "passed",

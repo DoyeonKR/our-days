@@ -153,6 +153,15 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **모델**: `polar/beluga-build.mjs`(부위로 짓는다 — 몸통 · 눈 · 가슴지느러미 · 꼬리지느러미, 무늬는 3D 위치로 칠함). 새끼 짙은 청회색 · 어린 옅은 회색 · 어른 크림빛 흰색.
 **그림**: 모델을 찍은 카드(`ceph-v3/review.html?card=…` → `polar/cards/`) → `polar/cards-to-art.mjs` → `scripts/aqua-model-profiles.mjs` → `polar/sync-hashes.mjs`. 검수 `polar/review-beluga.webp`.
 
+### D6. 갓파 — 그림 3장 + 3D 모델 3개 (2026-11-26, Claude 세션이 만들었다 — 다시 그릴 때의 기록)
+
+| key | 이름 | 등급 | 다 큰 몸길이 | 기준 |
+|---|---|---|---|---|
+| `kappa` | 갓파 | 신화 | 1m | 사용자가 보낸 그림 둘(허락을 받았다고 함) — 생김새만 눈으로 옮겼다(그림 픽셀은 쓰지 않음) |
+
+**모델**: `polar/kappa-build.mjs` — 큰 머리 · 큰 흰 눈과 검은 눈동자(반짝이 점) · 넓은 연둣빛 부리 · 머리를 덮는 갈색 머리칼 덩이(가장자리 톱니 + 굵은 가닥) · 정수리 접시 · 초록 살갗의 짙은 줄무늬 · 세 갈래 물갈퀴 손발. 엎드려 헤엄치는 자세.
+**그림**: 모델을 찍은 카드 → `polar/cards-to-art.mjs` → `scripts/aqua-model-profiles.mjs` → `polar/sync-hashes.mjs`. 검수 `polar/review-kappa.webp`.
+
 ### F. 범고래 새끼 · 어린 개체 — 그림 2장 + 3D 모델 2개 (2026-11-14)
 
 > **2026-11-18 끝** — 그림 세션 없이 Claude 세션이 다 큰 모델 · 그림에서 비율만 바꿔 만들었다(`design/aqua3d-review/orca-young-build.mjs` · `orca-young-art.mjs`, 검수 `orca-young/review.webp`). 진짜 새끼 그림으로 다시 그리면 이 두 스크립트 대신 아래 규칙대로.

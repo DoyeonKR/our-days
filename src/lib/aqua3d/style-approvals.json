@@ -1933,6 +1933,18 @@
     "fry_beluga": {
       "sourceHash": "da9069fbc118480eaebbcb1bbf28a63b906b765c34a8e8e3da9c76099e31c2ed",
       "sheet": "design/aqua3d-review/polar/review-beluga.webp"
+    },
+    "kappa": {
+      "sourceHash": "30520ccaf3265baa2639312bb04344e9e47a0f501d679c90251097a8b2279f95",
+      "sheet": "design/aqua3d-review/polar/review-kappa.webp"
+    },
+    "juv_kappa": {
+      "sourceHash": "2453d8a1261da5ea3b3e790c3bb3a0624e07ab774a61bf6dcbc6894476b1b86c",
+      "sheet": "design/aqua3d-review/polar/review-kappa.webp"
+    },
+    "fry_kappa": {
+      "sourceHash": "0e97ecec55f1c8f245c15afde5962eb1d32649d1afb4158ae24075888f2856a1",
+      "sheet": "design/aqua3d-review/polar/review-kappa.webp"
     }
   }
 }
