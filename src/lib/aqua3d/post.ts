@@ -19,8 +19,8 @@ import {faceJaw} from './faces.ts';
 /** 반정밀(HalfFloat) 그림에 그릴 수 있나 — 못 그리는 기기는 8비트 그림으로 떨어지고 환경광(PMREM 은 반정밀만)도 건너뛴다 */
 export const canRenderHalf = (renderer: T.WebGLRenderer) => renderer.extensions.has("EXT_color_buffer_half_float") || renderer.extensions.has("EXT_color_buffer_float");
 
-// 위로 갈수록 밝은 물빛, 꼭대기엔 수면의 빛 창(스넬의 창), 옆엔 은은한 띠
-export const ENV_FRAG = "varying vec3 vP;uniform vec3 top;uniform vec3 deep;void main(){float h=vP.y*.5+.5;vec3 c=mix(deep,top,pow(h,1.4));c+=vec3(1.,.97,.9)*smoothstep(.86,.98,vP.y)*3.;c+=top*.25*pow(1.-abs(vP.y),6.);gl_FragColor=vec4(c,1.);}";
+// 위로 갈수록 밝은 바다 물빛, 꼭대기엔 찬란한 수면의 빛 창(스넬의 창), 수평선엔 청록빛 산란 띠
+export const ENV_FRAG = "varying vec3 vP;uniform vec3 top;uniform vec3 deep;void main(){float h=vP.y*.5+.5;vec3 c=mix(deep,top,pow(h,1.25));c+=vec3(.92,1.,1.)*smoothstep(.78,.97,vP.y)*3.4;c+=vec3(.18,.62,.78)*pow(1.-abs(vP.y),4.)*.35;gl_FragColor=vec4(c,1.);}";
 const ENV_VERT = "varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}";
 
 /** 굽는다. 반정밀 그림을 못 그리는 기기는 null(PMREM 이 깨진 그림에 굽고 경고만 쏟았다).
@@ -136,8 +136,10 @@ void main(){
     c=c*.82+vec3(.05,.09,.12)*(.35+.65*clamp(e,0.,1.))+vec3(.02,.03,.035);}}
   if(bloom>.5)c+=texture2D(tGlow,uv).rgb*(1.-.65*murk);
   c*=lightMul;
-  c*=mix(.84,1.1,smoothstep(.0,1.,uv.y));
-  c*=1.-smoothstep(.12,.55,r2)*.42;
+  float oceanTop=smoothstep(.15,1.,uv.y);
+  c*=mix(.86,1.12,oceanTop);
+  c+=vec3(.012,.038,.052)*pow(oceanTop,2.4)*(1.-.7*murk);
+  c*=1.-smoothstep(.16,.62,r2)*.34;
   if(murk>.001){
     float l=luma(c);
     c=mix(c,vec3(l)*vec3(.82,1.,.62)+murkColor*.3,murk*.3);

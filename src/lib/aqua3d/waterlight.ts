@@ -65,10 +65,15 @@ export function waterLit(material: T.Material, rim: boolean): void {
       // 위를 보는 면만 빛을 받는다 — 옆면 · 밑면까지 일렁이면 빛이 어디서 오는지 흐려진다.
       //   (이 설명은 셰이더 원문 밖에 둔다 — 2026-11-12 전엔 GLSL 주석으로 들어가 있었다. GLSL ES 는 주석 속 한글도 컴파일 오류로 보는 기기가 있다)
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+        float aquaDepth=smoothstep(-5.8,4.8,vAquaWorld.y);
         float aquaC=aquaCaustic(vAquaWorld.xz,aquaTime)*smoothstep(.15,.85,vAquaUp)*aquaClarity;
-        totalEmissiveRadiance+=diffuseColor.rgb*vec3(.55,.72,.62)*aquaC;
-        ${rim ? `float aquaRim=pow(1.-clamp(abs(dot(normal,normalize(vViewPosition))),0.,1.),3.);
-        totalEmissiveRadiance+=aquaRimColor*aquaRim*.42*(vec3(.25)+diffuseColor.rgb*.75);` : ""}`);
+        float aquaC2=aquaCaustic(vAquaWorld.xz+vec2(.04,-.03),aquaTime)*smoothstep(.15,.85,vAquaUp)*aquaClarity;
+        vec3 aquaSun=vec3(aquaC*.78,mix(aquaC,aquaC2,.5)*1.02,aquaC2*1.08)*(.55+.65*aquaDepth);
+        totalEmissiveRadiance+=diffuseColor.rgb*aquaSun;
+        float aquaAbsorb=(1.-aquaDepth)*.12;
+        diffuseColor.rgb*=vec3(1.-aquaAbsorb,1.-aquaAbsorb*.32,1.);
+        ${rim ? `float aquaRim=pow(1.-clamp(abs(dot(normal,normalize(vViewPosition))),0.,1.),2.7);
+        totalEmissiveRadiance+=aquaRimColor*aquaRim*(.46+.22*aquaDepth)*(vec3(.28)+diffuseColor.rgb*.72);` : ""}`);
   };
   material.customProgramCacheKey = () => `${previousKey}|${KEY}|${rim ? 1 : 0}`;
   material.needsUpdate = true;

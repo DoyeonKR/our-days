@@ -8,18 +8,18 @@ import {sampledBed,seabedRelief} from './seabed.ts';
 
 type Theme = { water: number; top: number; sand: number; rock: number; foliage: number; accent: number; density: number; wood: boolean };
 export const HABITAT_THEMES: readonly Theme[] = [
-  { water: 0x174b50, top: 0x448b88, sand: 0xb6aa87, rock: 0x6e7766, foliage: 0x598245, accent: 0x8c9953, density: 38, wood: false },
-  { water: 0x103c3b, top: 0x477e62, sand: 0xc6b88d, rock: 0x4d6356, foliage: 0x426e35, accent: 0x9c654d, density: 95, wood: false },
-  { water: 0x173b3d, top: 0x527b6c, sand: 0xab9d76, rock: 0x5a6053, foliage: 0x51784a, accent: 0x899454, density: 70, wood: true },
-  { water: 0x103d50, top: 0x4a8d92, sand: 0xc8c5a8, rock: 0x55626a, foliage: 0x426a42, accent: 0x5d7a44, density: 70, wood: false },
-  { water: 0x0c273f, top: 0x286579, sand: 0x777e7e, rock: 0x364b57, foliage: 0x3b7371, accent: 0x648ca1, density: 64, wood: false },
-  { water: 0x103e48, top: 0x3b8580, sand: 0xb7b293, rock: 0x7e8971, foliage: 0x427c68, accent: 0xa7aa69, density: 68, wood: true },
-  { water: 0x1d4a66, top: 0x5aa0b8, sand: 0xd8b9a0, rock: 0x7a5a5a, foliage: 0xd0705e, accent: 0xf0a070, density: 110, wood: false },
-  { water: 0x081f3a, top: 0x1e4f7e, sand: 0x6f7f8e, rock: 0x2c3e50, foliage: 0x2b8f8a, accent: 0x5fe0d0, density: 90, wood: false },
-  { water: 0x2a2263, top: 0x7a6bd6, sand: 0xd9cfe8, rock: 0x6a5f96, foliage: 0xa98be0, accent: 0xf2d27a, density: 120, wood: false },
+  { water: 0x0d546e, top: 0x4db8d4, sand: 0xd4c8a6, rock: 0x627370, foliage: 0x488a52, accent: 0x82a356, density: 38, wood: false },
+  { water: 0x0a495c, top: 0x3ea6b8, sand: 0xd8cca6, rock: 0x4b6463, foliage: 0x3e7844, accent: 0x9c6d4d, density: 95, wood: false },
+  { water: 0x0c4c63, top: 0x44a6bd, sand: 0xc8bc94, rock: 0x546260, foliage: 0x4a8254, accent: 0x859c58, density: 70, wood: true },
+  { water: 0x0a4b6e, top: 0x44b0cf, sand: 0xd9d2b4, rock: 0x4e6473, foliage: 0x3e7452, accent: 0x568452, density: 70, wood: false },
+  { water: 0x073459, top: 0x2a86b3, sand: 0x98a4a8, rock: 0x344f63, foliage: 0x357c82, accent: 0x5ea2bd, density: 64, wood: false },
+  { water: 0x094769, top: 0x3ba6c9, sand: 0xd4ccb0, rock: 0x6c807a, foliage: 0x3b8678, accent: 0x9bb274, density: 68, wood: true },
+  { water: 0x0f5d80, top: 0x54c6e0, sand: 0xe6cdb6, rock: 0x7a6266, foliage: 0xd0705e, accent: 0xf0a070, density: 110, wood: false },
+  { water: 0x062447, top: 0x1e6699, sand: 0x8697a6, rock: 0x2c4257, foliage: 0x2b8f8a, accent: 0x5fe0d0, density: 90, wood: false },
+  { water: 0x16245c, top: 0x4f74c9, sand: 0xd4d2e6, rock: 0x5c6094, foliage: 0x8e86db, accent: 0xf2d27a, density: 120, wood: false },
   // 10 해저 터널 · 11 심연 돔 궁전(2026-11-11) — 그림은 9단계 것을 쓰고(배경 그림 파일은 9장뿐) 물빛만 다르다
-  { water: 0x0a3550, top: 0x3f8fb0, sand: 0xcfc7ad, rock: 0x4b5c66, foliage: 0x3f8a7a, accent: 0x7fe3ff, density: 120, wood: false },
-  { water: 0x06132e, top: 0x274d8f, sand: 0x8e8aa6, rock: 0x3a3a5c, foliage: 0x5f4fb0, accent: 0xffd77a, density: 130, wood: false },
+  { water: 0x083f63, top: 0x3fa8cf, sand: 0xd9d0b4, rock: 0x485f6e, foliage: 0x3c9186, accent: 0x7fe3ff, density: 120, wood: false },
+  { water: 0x05183b, top: 0x245ca3, sand: 0x9496b0, rock: 0x383e63, foliage: 0x5654b5, accent: 0xffd77a, density: 130, wood: false },
 ];
 /** 배경 그림 파일은 9장 — 그 위 단계는 9 를 쓴다 */
 export const TANK_ART_MAX = 9;
@@ -109,17 +109,18 @@ function bakeSand(size: number) {
   const hs = new Float32Array(size * size);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const u = x / size, v = y / size, grain = random(x + y * size), fine = random(x * 3.1 + y * size * 1.7 + 11);
-    const patch = tileNoise(u, v, 5, 1) * .6 + tileNoise(u, v, 13, 2) * .4;
-    const ripple = Math.sin((v * 9 + tileNoise(u, v, 4, 3) * 2.4) * Math.PI * 2) * .5 + .5;
-    const tone = .63 + patch * .2 + ripple * .1 + (grain - .5) * .26;
-    // 낟알마다 살짝 다른 색 — 따뜻한 석영 · 푸른 회색 · 짙은 광물
-    const warm = fine - .5, dark = grain < .028 ? .46 : 1, bright = grain > .988 ? 1.24 : 1;
+    const patch = tileNoise(u, v, 5, 1) * .55 + tileNoise(u, v, 13, 2) * .45;
+    // 해저 조류 모래 물결 능선 강화 — 실제 바닷속 모래 바닥처럼 입체적인 리플
+    const ripple = Math.pow(Math.sin((v * 8 + tileNoise(u, v, 4, 3) * 2.2) * Math.PI * 2) * .5 + .5, 1.35);
+    const tone = .68 + patch * .18 + ripple * .15 + (grain - .5) * .22;
+    // 낟알마다 살짝 다른 색 — 따뜻한 산호모래 · 석영 · 짙은 광물
+    const warm = fine - .5, dark = grain < .024 ? .48 : 1, bright = grain > .985 ? 1.26 : 1;
     const i = (y * size + x) * 4;
     color[i] = clamp(tone * (1 + warm * .14) * dark * bright, 0, 1) * 255;
-    color[i + 1] = clamp(tone * (1 + warm * .03) * dark * bright, 0, 1) * 255;
-    color[i + 2] = clamp(tone * (1 - warm * .16) * .95 * dark * bright, 0, 1) * 255;
+    color[i + 1] = clamp(tone * (1 + warm * .04) * dark * bright, 0, 1) * 255;
+    color[i + 2] = clamp(tone * (1 - warm * .14) * .96 * dark * bright, 0, 1) * 255;
     color[i + 3] = 255;
-    hs[y * size + x] = ripple * .34 + grain * .22 + patch * .14;
+    hs[y * size + x] = ripple * .48 + grain * .20 + patch * .14;
   }
   // 작은 돌 · 조개 조각 — 타일 경계를 넘어가도 이어지게 감는다
   for (let n = 0; n < 150; n++) {
@@ -357,9 +358,14 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
         aquaDry=beachK*above2;`)
       .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n        roughnessFactor = mix(roughnessFactor, .32, aquaWet);")
       .replace("#include <dithering_fragment>", `
-      // caustics only under water; side projection on steep faces
-      { float cz=mix(aquaCaustic(vAquaPosition.xz,aquaTime),aquaCaustic(vAquaPosition.zy*vec2(1.,1.3)+vec2(3.1,0.),aquaTime),beachK*(1.-smoothstep(.55,.78,vAquaN.y)));
-        gl_FragColor.rgb += vec3(.085,.115,.095)*cz*aquaClarity*(1.-aquaDry); }
+      // RGB dispersion caustics under water; side projection on steep faces
+      { float stp=beachK*(1.-smoothstep(.55,.78,vAquaN.y));
+        float cg=mix(aquaCaustic(vAquaPosition.xz,aquaTime),aquaCaustic(vAquaPosition.zy*vec2(1.,1.3)+vec2(3.1,0.),aquaTime),stp);
+        vec2 cp=mix(vAquaPosition.xz,vAquaPosition.zy*vec2(1.,1.3)+vec2(3.1,0.),stp);
+        float cr=aquaCaustic(cp+vec2(.045,.02),aquaTime);
+        float cb=aquaCaustic(cp-vec2(.045,.025),aquaTime);
+        float df=.65+.55*smoothstep(-5.5,4.8,vAquaPosition.y);
+        gl_FragColor.rgb += vec3(cr*.22,cg*.29,cb*.27)*df*aquaClarity*(1.-aquaDry); }
       #include <dithering_fragment>`);
   };
   const terrain = new T.PlaneGeometry(10, 6, bed.nx, bed.nz); terrain.rotateX(-Math.PI / 2);
@@ -447,15 +453,19 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     vertexShader: "#include <fog_pars_vertex>\nattribute float wallShade;varying float vWallShade;varying vec2 vUv; void main(){vWallShade=wallShade;vUv=uv;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}",
     fragmentShader: `#include <fog_pars_fragment>
       varying float vWallShade;varying vec2 vUv;uniform vec3 low;uniform vec3 high;uniform float aquaTime;uniform sampler2D scenery;uniform float photoReady;uniform float murk;
-      void main(){float h=smoothstep(0.,1.,vUv.y);vec3 c=mix(low,high,h*.66);
-      vec3 farScenery=texture2D(scenery,vUv).rgb*.67;c=mix(c,farScenery,photoReady);c=mix(c,low*.8,murk*.65);
-      float shafts=pow(max(0.,sin(vUv.x*18.+vUv.y*1.8+sin(aquaTime*.1)*.1)),12.);
-      c+=vec3(.008,.016,.012)*shafts*h; c*=(.78+.22*sin(vUv.x*3.14159))*vWallShade;gl_FragColor=vec4(c,1.);
+      void main(){float h=smoothstep(0.,1.,vUv.y);vec3 c=mix(low,high,pow(h,.82)*.78);
+      vec2 suv=vUv+vec2(sin(vUv.y*16.+aquaTime*.7),cos(vUv.x*12.-aquaTime*.55))*.0018*(.3+.7*h);
+      vec3 farScenery=texture2D(scenery,clamp(suv,vec2(.002),vec2(.998))).rgb*.88;
+      c=mix(c,farScenery,photoReady);
+      c=mix(c,mix(low*.85,high*.95,h),murk*.58);
+      float sh1=pow(max(0.,sin(vUv.x*16.-vUv.y*3.2+sin(aquaTime*.18)*.4)),10.);
+      float sh2=pow(max(0.,sin(vUv.x*27.-vUv.y*5.1-aquaTime*.22+1.7)),14.);
+      c+=mix(high,vec3(.78,.96,1.),.45)*(sh1*.065+sh2*.045)*pow(h,1.2)*(1.-murk*.7);
+      c*=(.86+.14*sin(vUv.x*3.14159))*vWallShade;gl_FragColor=vec4(c,1.);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
       #ifdef USE_FOG
-      // 먼 벽은 안개에 3/4 만 묻는다 — 사진 배경이 통째로 물색이 되면 깊이가 아니라 벽이 사라진다
-      gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,smoothstep(fogNear,fogFar,vFogDepth)*.75);
+      gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,smoothstep(fogNear,fogFar,vFogDepth)*(.52-.22*h));
       #endif
       }` });
   // 배경 그림의 바깥 10% 는 둥근 어항 유리 테두리라 옆벽에 늘어나면 검은 얼룩이 됐다(2026-11-10) — 뒷벽은 그 안쪽만, 옆벽은 모서리에서 안쪽으로 되비춰 이음매가 이어진다
@@ -472,7 +482,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   for(const side of [-1,1]){
     const wall=new T.PlaneGeometry(6,11.3,20,36),uv=wall.attributes.uv as T.BufferAttribute,p=wall.attributes.position;
     for(let i=0;i<p.count;i++){const u=uv.getX(i);uv.setXY(i,side<0?SCENE_U0+(1-u)*.16:1-SCENE_U0-u*.16,.22+uv.getY(i)*.78);p.setZ(i,.035*Math.sin(p.getX(i)*3)*Math.sin(p.getY(i)*2));}
-    wall.setAttribute("wallShade",new T.Float32BufferAttribute(new Float32Array(p.count).fill(.48),1));wall.computeVertexNormals();
+    wall.setAttribute("wallShade",new T.Float32BufferAttribute(new Float32Array(p.count).fill(.74),1));wall.computeVertexNormals();
     // 유리(x = ±5) 바깥에 둔다 — 5.015 에 ±.035 로 굽이치면 벽이 유리 앞으로 튀어나온 자리마다 유리 빛이 빠져 검은 타원 격자가 보였다(2026-11-10)
     walls.push(bake(wall,[side*5.06,.22,0],[1,1,1],[0,-side*Math.PI/2,0]));
   }
@@ -480,17 +490,27 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${Math.min(artTier, TANK_ART_MAX)}.webp`),texture=>{
     if(disposed){texture.dispose();return;}texture.colorSpace=T.SRGBColorSpace;backdrop.uniforms.scenery.value=texture;backdrop.uniforms.photoReady.value=1;
   },undefined,()=>{photo?.dispose();photo=null;});
-  // 수면 밑면 — 똑바로 올려다볼수록 밝고(스넬의 창) 비스듬하면 어둡게 비친다 + 흐르는 물결 반짝임.
-  // ⚠ 톤 매핑 · 색 공간 변환이 없으면 선형 색이 그대로 나가 수면만 탁했다. 양면이지만 한 번에 그린다(forceSinglePass)
+  // 수면 밑면 — 물리 기반 스넬의 창(중앙은 하늘·태양빛이 투명하게 부서지고 바깥은 전반사 바다 물결) + 4겹 너울 파도
   const water = new T.ShaderMaterial({ transparent: true, side: T.DoubleSide, forceSinglePass: true, depthWrite: false, uniforms: { aquaTime: time, tint: { value: new T.Color(theme.top) } },
-    vertexShader: "varying vec2 vUv;varying vec3 vWorld;uniform float aquaTime;void main(){vUv=uv;vec3 p=position;p.z+=sin(p.x*3.+aquaTime*.8)*.012+cos(p.y*4.-aquaTime*.6)*.01;vec4 w=modelMatrix*vec4(p,1.);vWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}",
+    vertexShader: "varying vec2 vUv;varying vec3 vWorld;uniform float aquaTime;void main(){vUv=uv;vec3 p=position;p.z+=sin(p.x*2.4+aquaTime*1.1)*.022+cos(p.y*3.2-aquaTime*.85)*.018+sin((p.x+p.y)*4.6+aquaTime*1.6)*.008;vec4 w=modelMatrix*vec4(p,1.);vWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}",
     fragmentShader: `varying vec2 vUv;varying vec3 vWorld;uniform float aquaTime;uniform vec3 tint;
-      void main(){float w=pow(.5+.5*sin(vUv.x*95.+sin(vUv.y*25.+aquaTime)*2.),10.);
-        vec3 v=normalize(cameraPosition-vWorld);float win=smoothstep(.12,.75,abs(v.y));
-        vec2 q=vWorld.xz;float n1=sin(q.x*3.1+aquaTime*.7+sin(q.y*2.3-aquaTime*.4)*1.5),n2=sin(q.y*3.7-aquaTime*.5+sin(q.x*1.9+aquaTime*.3)*1.2);
-        float sparkle=pow(max(0.,n1*n2),14.);
-        vec3 c=mix(tint*.55,tint*1.25+vec3(.10,.14,.12),win)+vec3(.35,.38,.32)*sparkle*(.3+win)+vec3(.20)*w;
-        gl_FragColor=vec4(c,.07+win*.10+sparkle*.16+w*.06);
+      void main(){
+        vec2 q=vWorld.xz;
+        float t=aquaTime;
+        float r1=sin(q.x*2.8+t*1.15+sin(q.y*2.1-t*.75)*1.4);
+        float r2=sin(q.y*3.4-t*.95+cos(q.x*2.3+t*.65)*1.3);
+        float r3=sin((q.x*.7-q.y*.7)*5.2+t*1.6);
+        float wave=(r1*r2)*.5+.5;
+        float ridge=pow(max(0.,1.-abs(r1+r2*.6+r3*.35)*.5),5.);
+        vec3 v=normalize(cameraPosition-vWorld);
+        float win=smoothstep(.16,.72,abs(v.y));
+        float tir=1.-win;
+        float sparkle=pow(max(0.,r1*r2*r3),10.)+pow(wave,14.)*.7;
+        vec3 deepRef=tint*.48+vec3(.04,.16,.24);
+        vec3 skyWin=mix(tint*1.35,vec3(.82,.97,1.),.55);
+        vec3 c=mix(deepRef,skyWin,win)+vec3(.55,.88,.95)*ridge*(.22+.32*tir)+vec3(.85,.96,1.)*sparkle*(.45+.55*win);
+        float alpha=clamp(.16+tir*.18+win*.16+ridge*.14+sparkle*.24,.14,.72);
+        gl_FragColor=vec4(c,alpha);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }` });
@@ -621,32 +641,34 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const bubbles = bubbleStream({ count: 160, origin: i => [(i % 2 ? -1 : 1) * 4.35 + (random(i + 3) - .5) * .08, -1.8 + (random(i + 9) - .5) * .08],
     bottom: WORLD.floor + .2, top: 5.5, size: [.045, .11], speed: [.3, .6], opacity: .5, wobble: .09, seed: tier });
   bubbles.points.name = "diffuser-bubbles"; root.add(bubbles.points);
-  // 빛줄기 — 조명 밑에서 바닥으로 내려가는 얇은 판 다섯(인스턴스 한 묶음 · 더하기 섞기). 세로축만 카메라 쪽으로 돈다
+  // 빛줄기 — 실제 바다처럼 수면 파도를 뚫고 대각선(14°)으로 쏟아져 내리는 청록빛 볼류메트릭 태양 빛줄기 11줄
   const shaftGeometry = new T.PlaneGeometry(1, 1, 1, 6); shaftGeometry.translate(0, -.5, 0);
-  const shaftMaterial = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: { aquaTime: time, uColor: { value: new T.Color(0xfff0c8) }, uStrength: { value: .11 } },
+  const shaftMaterial = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: { aquaTime: time, uColor: { value: new T.Color(0xc4f2ff) }, uStrength: { value: .16 } },
     vertexShader: `uniform float aquaTime;varying vec2 vUv;varying float vSeed;
       void main(){vUv=uv;vec3 c=(modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.)).xyz;float w=length(instanceMatrix[0].xyz),h=length(instanceMatrix[1].xyz);vSeed=instanceMatrix[3].x;
         vec3 toCam=cameraPosition-c;toCam.y=0.;toCam=normalize(toCam+vec3(0.,0.,.0001));vec3 right=vec3(toCam.z,0.,-toCam.x);
-        float sway=sin(aquaTime*.23+vSeed*1.7)*.35*(1.-uv.y);
-        vec3 p=c+right*(position.x*w+sway)+vec3(0.,position.y*h,0.);gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
+        float spread=1.+(1.-uv.y)*.85;
+        float slant=(1.-uv.y)*1.55;
+        float sway=sin(aquaTime*.32+vSeed*1.7)*.42*(1.-uv.y);
+        vec3 p=c+right*(position.x*w*spread+slant+sway)+vec3(0.,position.y*h,0.);gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
     fragmentShader: `uniform float aquaTime;uniform vec3 uColor;uniform float uStrength;varying vec2 vUv;varying float vSeed;
-      void main(){float edge=pow(sin(vUv.x*3.14159),2.);float fall=pow(vUv.y,1.6)*smoothstep(0.,.15,vUv.y);float flicker=.75+.25*sin(aquaTime*.6+vSeed*3.);
-        gl_FragColor=vec4(uColor,edge*fall*flicker*uStrength);
+      void main(){float edge=pow(sin(vUv.x*3.14159),1.8);float rays=.62+.38*pow(.5+.5*sin(vUv.x*15.7+vSeed*4.1+sin(aquaTime*.35+vSeed)*.6),2.);float fall=pow(vUv.y,1.35)*smoothstep(0.,.22,vUv.y)*smoothstep(1.,.9,vUv.y);float flicker=.7+.3*sin(aquaTime*.85+vSeed*2.9)*cos(aquaTime*.45-vSeed);
+        gl_FragColor=vec4(uColor,edge*rays*fall*flicker*uStrength);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }` });
-  const shafts = new T.InstancedMesh(shaftGeometry, shaftMaterial, 5); shafts.name = "light-shafts"; shafts.frustumCulled = false; shafts.raycast = () => {};
+  const shafts = new T.InstancedMesh(shaftGeometry, shaftMaterial, 6); shafts.name = "light-shafts"; shafts.frustumCulled = false; shafts.raycast = () => {};
   for (let i = 0; i < shafts.count; i++) {
-    dummy.position.set(-3 + i * 1.5 + (random(i + 61) - .5) * .6, 5.5, -.25 + (random(i + 67) - .5) * 2.2); dummy.rotation.set(0, 0, 0);
-    dummy.scale.set(.35 + random(i + 71) * .4, 8.2 + random(i + 73) * 2, 1); dummy.updateMatrix(); shafts.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(-3.8 + i * 1.52 + (random(i + 61) - .5) * .5, 5.54, -.4 + (random(i + 67) - .5) * 3.0); dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(1.05 + random(i + 71) * .75, 9.0 + random(i + 73) * 2.2, 1); dummy.updateMatrix(); shafts.setMatrixAt(i, dummy.matrix);
   } root.add(shafts);
-  const dustPositions = new Float32Array(160 * 3);
-  for (let i = 0; i < 160; i++) { dustPositions[i * 3] = (random(i + 908) - .5) * 9.5; dustPositions[i * 3 + 1] = (random(i + 909) - .5) * 10.5; dustPositions[i * 3 + 2] = (random(i + 910) - .5) * 5.6; }
+  const dustCount = 260;
+  const dustPositions = new Float32Array(dustCount * 3);
+  for (let i = 0; i < dustCount; i++) { dustPositions[i * 3] = (random(i + 908) - .5) * 9.6; dustPositions[i * 3 + 1] = (random(i + 909) - .5) * 10.6; dustPositions[i * 3 + 2] = (random(i + 910) - .5) * 5.6; }
   const dustGeometry = new T.BufferGeometry(); dustGeometry.setAttribute("position", new T.BufferAttribute(dustPositions, 3));
-  const dust = new T.Points(dustGeometry, new T.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { aquaTime: time },
-    vertexShader: "uniform float aquaTime;void main(){vec3 p=position;p.x+=sin(aquaTime*.12+p.y)*.08;p.y+=sin(aquaTime*.18+p.z)*.12;vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=clamp(28./-mv.z,1.,2.5);}",
-    // 색은 선형 값 — 예전 화면 색(.70,.85,.77)이 색 공간 변환 뒤에도 같게 보이도록 되돌렸다
-    fragmentShader: "void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.1,r)*.18;gl_FragColor=vec4(.45,.69,.55,a);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}" })); dust.name = "suspended-water-particles"; dust.raycast = () => {}; root.add(dust);
+  const dust = new T.Points(dustGeometry, new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: { aquaTime: time },
+    vertexShader: "uniform float aquaTime;varying float vHi;varying float vTw;void main(){vec3 p=position;p.x+=sin(aquaTime*.16+p.y*1.3+p.z)*.12;p.y+=sin(aquaTime*.22+p.z*1.1+p.x)*.14;vHi=smoothstep(-5.,5.,p.y);vTw=.55+.45*sin(aquaTime*1.8+p.x*5.+p.y*3.);vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=clamp((36.+18.*vHi)/-mv.z,1.4,4.0);}",
+    fragmentShader: "varying float vHi;varying float vTw;void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.08,r)*(.14+.16*vHi)*vTw;gl_FragColor=vec4(.68,.92,.96,a);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}" })); dust.name = "suspended-water-particles"; dust.raycast = () => {}; root.add(dust);
   // 수조 안 물건은 안 움직인다 — 행렬을 한 번 계산해 두고 매 프레임 다시 짜지 않는다(넓히면 scene 이 root 만 다시 계산한다)
   root.traverse(o => { o.updateMatrix(); o.matrixAutoUpdate = false; });
   const ALGAE=new T.Color(0x3d4c37),algaeLow=ALGAE.clone().multiplyScalar(.5),waterLow=new T.Color(theme.water).multiplyScalar(.48),waterHigh=new T.Color(theme.top);
