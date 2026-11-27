@@ -957,6 +957,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(meal&&meal.t0>=0){let j=0;for(const id of swimmers.keys()){if(id===meal.predId||id===meal.ghostId)motion.busy[j]=1;j++;}}
     // 행사 손님은 쫓지도 쫓기지도 않는다(huntPass 가 busy 를 건너뛴다 — 사냥꾼이 다가가지 않고, 손님 곁 물고기도 달아나지 않는다)
     if(guest){let j=0;for(const id of swimmers.keys()){if(id===GUEST_ID)motion.busy[j]=1;j++;}}
+    // 해변 · 바위 위에 올라와 있는 개체는 물속 사냥꾼/먹잇감 회피(huntPass)로 허공에 뜨지 않게 건너뛴다
+    {let j=0;for(const m of swimmers.values()){const sw=(m as unknown as StepFish).swim;if(sw?.haul&&!sw.float&&(sw.rest>.35||(m.course.land??0)>.3)&&j<motion.count)motion.busy[j]=1;j++;}}
     // 장면이 벌어지는 자리 둘레의 다른 물고기는 비켜난다(물기 전엔 먹이 자리, 문 뒤엔 입 자리 — 지난 프레임 값)
     let scare:{x:number;y:number;z:number;r:number}|undefined;
     if(meal&&meal.t0>=0){const pr=swimmers.get(meal.predId),bit=meal.bitesDone>0;if(pr){huntScare.x=bit?meal.mx:meal.bx;huntScare.y=bit?meal.my:meal.by;huntScare.z=bit?meal.mz:meal.bz;huntScare.r=pr.length*1.2+1.5;scare=huntScare;}}

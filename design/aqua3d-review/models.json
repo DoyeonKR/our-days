@@ -47832,8 +47832,8 @@
       "family": "sea_otter",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_sea_otter.glb",
-      "triangles": 2808,
-      "bytes": 97004,
+      "triangles": 6468,
+      "bytes": 72632,
       "bones": [
         "spine_0",
         "spine_1",
@@ -47855,7 +47855,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "74c635d544d96df8fcbacc2b56bb63f917e46c9479e4520cf20cc5433f1b489b",
-      "sha256": "1fcf994a560f35ef7c1a70225257a8bb5b08c4aa000654ea01c93973c3711b08",
+      "sha256": "66449427340d926a1b899bf666c3a91168f2bbb1422dc9a2a4fed00d43e83a8a",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -47867,7 +47867,7 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "geometryAuthoring": "part-built (design/aqua3d-review/seaotter/seaotter-build.mjs, polar/kit.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
@@ -47877,7 +47877,7 @@
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
-        "triangles": 3000,
+        "triangles": 8000,
         "bytes": 300000
       },
       "compression": {
@@ -47917,20 +47917,20 @@
         "spine_5"
       ],
       "deformationValidation": {
-        "sampledPoses": 3,
+        "sampledPoses": 5,
         "allVerticesFinite": true,
-        "maximumDisplacement": 0.24812474455382802
+        "maximumDisplacement": 0.29309382457011346
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+      "remodel": "2026-11-27 seaotter/seaotter-build.mjs (part-built 3D Enhydra lutris: round head, whisker pads, heart nose, whiskers, ears, forepaws, horizontal webbed hind flippers, flattened tail)"
     },
     "juv_sea_otter": {
       "kind": "fish",
       "family": "sea_otter",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_sea_otter.glb",
-      "triangles": 2928,
-      "bytes": 97760,
+      "triangles": 6468,
+      "bytes": 65032,
       "bones": [
         "spine_0",
         "spine_1",
@@ -47952,7 +47952,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4b6eaf769d847239f04036855397654abe623f7633324481a5ef5ec2fbe33e29",
-      "sha256": "fe7e3818867569fbb9b9f6a6f262d47aefe6a55caec1018b0fff93c7067fabcb",
+      "sha256": "4ec2f3b4f11e42fb2e0d310e90c3bdf1d9359f7e96e8a3849911aad54e171e6b",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -47964,7 +47964,7 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "geometryAuthoring": "part-built (design/aqua3d-review/seaotter/seaotter-build.mjs, polar/kit.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
@@ -47974,7 +47974,7 @@
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
-        "triangles": 3000,
+        "triangles": 8000,
         "bytes": 300000
       },
       "compression": {
@@ -48014,20 +48014,20 @@
         "spine_5"
       ],
       "deformationValidation": {
-        "sampledPoses": 3,
+        "sampledPoses": 5,
         "allVerticesFinite": true,
-        "maximumDisplacement": 0.24812474455382802
+        "maximumDisplacement": 0.2871669247736846
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+      "remodel": "2026-11-27 seaotter/seaotter-build.mjs (part-built 3D Enhydra lutris: round head, whisker pads, heart nose, whiskers, ears, forepaws, horizontal webbed hind flippers, flattened tail)"
     },
     "sea_otter": {
       "kind": "fish",
       "family": "sea_otter",
       "form": "adult",
       "file": "public/aqua/models/fish/sea_otter.glb",
-      "triangles": 2930,
-      "bytes": 89348,
+      "triangles": 6468,
+      "bytes": 61800,
       "bones": [
         "spine_0",
         "spine_1",
@@ -48049,7 +48049,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "5f2329fc5ef00cfec2063a761ac3ef5fbb0b4bf48b6af1b256e05f51dbaff72d",
-      "sha256": "c7f59208f47f18222daf3c89055cf2c5b53ba64f2d2e151e1a1d95bf51d9ff53",
+      "sha256": "88a8befe21929ea3e30b6d491b45efcb941e58b64658884d89454b0c6d3f5563",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -48061,7 +48061,7 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "visual-hull-v3 (design/aqua3d-review/remodel-*.mjs)",
+      "geometryAuthoring": "part-built (design/aqua3d-review/seaotter/seaotter-build.mjs, polar/kit.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
@@ -48071,7 +48071,7 @@
       "approval": "user_approved_2026-11-13",
       "activation": "not enabled",
       "limits": {
-        "triangles": 3000,
+        "triangles": 8000,
         "bytes": 300000
       },
       "compression": {
@@ -48111,12 +48111,12 @@
         "spine_5"
       ],
       "deformationValidation": {
-        "sampledPoses": 3,
+        "sampledPoses": 5,
         "allVerticesFinite": true,
-        "maximumDisplacement": 0.24812474455382802
+        "maximumDisplacement": 0.2888429263911964
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
-      "remodel": "2026-11-18 mammal-tube-build.mjs (traced round body from reference art, front flippers on fin bones)"
+      "remodel": "2026-11-27 seaotter/seaotter-build.mjs (part-built 3D Enhydra lutris: round head, whisker pads, heart nose, whiskers, ears, forepaws, horizontal webbed hind flippers, flattened tail)"
     },
     "fry_otter": {
       "kind": "fish",

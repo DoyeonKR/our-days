@@ -1588,15 +1588,15 @@
     },
     "fry_sea_otter": {
       "sourceHash": "74c635d544d96df8fcbacc2b56bb63f917e46c9479e4520cf20cc5433f1b489b",
-      "sheet": "design/aqua3d-review/mammals-models-3.webp"
+      "sheet": "design/aqua3d-review/seaotter/review-sea_otter.webp"
     },
     "juv_sea_otter": {
       "sourceHash": "4b6eaf769d847239f04036855397654abe623f7633324481a5ef5ec2fbe33e29",
-      "sheet": "design/aqua3d-review/mammals-models-3.webp"
+      "sheet": "design/aqua3d-review/seaotter/review-sea_otter.webp"
     },
     "sea_otter": {
       "sourceHash": "5f2329fc5ef00cfec2063a761ac3ef5fbb0b4bf48b6af1b256e05f51dbaff72d",
-      "sheet": "design/aqua3d-review/mammals-models-3.webp"
+      "sheet": "design/aqua3d-review/seaotter/review-sea_otter.webp"
     },
     "fry_otter": {
       "sourceHash": "be4cc17b751dd31873ca024b0412623e63a37c8ad4365030e3b8949c5b14279b",

@@ -1519,9 +1519,12 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     rx = Math.max(-lim, Math.min(lim, rx + Math.sin(ph) * span * walkUp));
     // 해변 위 2D 곡선 산책(앞뒤로도 완만하게 거닐되 모래 턱 안쪽 유지) + 발걸음 모래 먼지(puff)
     if (beachWalk) {
+      const need = length * 0.25 / scale;
       const zSpan = Math.min(0.42, length * 0.35 / (opts.deep || 1));
-      const zMax = BEACH_Z0 + Math.max(0, (rx / scale - length * 0.25 / scale) - BEACH_DRY_X) / BEACH_ZK;
-      rz = Math.min(zMax, rz + Math.sin(ph * 0.5 + unit(h, 157) * TAU) * zSpan * walkUp);
+      const zMax0 = BEACH_Z0 + Math.max(0, (lim / scale - need) - BEACH_DRY_X) / BEACH_ZK;
+      rz = Math.min(zMax0, rz + Math.sin(ph * 0.5 + unit(h, 157) * TAU) * zSpan * walkUp);
+      const xMin = (BEACH_DRY_X + Math.max(0, rz - BEACH_Z0) * BEACH_ZK + need) * scale;
+      rx = Math.min(lim, Math.max(xMin, rx));
       if (Math.abs(Math.cos(ph)) > 0.2 && walkUp > 0.6) out.puff = (seconds * 1.45 + unit(h, 163)) % 1.0;
     }
     const mv = Math.cos(ph), w = walkUp * smooth01((Math.abs(mv) - 0.15) / 0.3);
@@ -1598,7 +1601,8 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     // 오가는 동안은 힘껏 젓는다(쉬는 값으로 줄면 젓지 않고 떠간다)
     out.effort = Math.max(out.effort * (1 - R) + 0.12 * R, 1.1 * travel); out.amp = Math.max(out.amp * (1 - R) + 0.12 * R, 0.95 * travel); out.turn *= 1 - R;
   }
-  out.hover = out.hover * (1 - R) + R; out.ground = out.ground * (1 - R) + ground * R; out.puff = -1;
+  // 해변 길(beachWalk)은 out.y 에 이미 모래 높이(opts.sand)가 반영되므로 모래 경사 전(R 0.3)까지 out.ground 를 0 으로 줄여 모래 높이가 두 번 더해지지 않게 한다
+  out.hover = out.hover * (1 - R) + R; out.ground = beachWalk ? out.ground * (1 - smooth01(R / 0.3)) : out.ground * (1 - R) + ground * R; out.puff = -1;
   // 쉼터에선 주둥이 박기 · 질주를 거둔다(헤엄 길이 정한 몫을 쉬는 만큼 줄인다)
   if (out.nose) out.nose *= 1 - R; if (out.burst) out.burst *= 1 - R;
   // 누워 쉬는 해달 — 수면에 거의 닿은 끝(R 0.75 ~ 1)에 배를 위로 굴리고, 떠날 때 다시 엎드린다

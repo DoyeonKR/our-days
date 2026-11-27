@@ -269,6 +269,7 @@ export function swapBody(root: T.Group, inner: T.Group, keep: "center" | "base",
   root.position.copy(position);
   root.quaternion.copy(quaternion);
   root.scale.copy(scale);
+  root.updateMatrixWorld(true);
   return old;
 }
 
@@ -549,10 +550,15 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   const yjAll = yj ? [yj.head, yj.bag, ...yj.knee, ...yj.ankle, ...yj.wrist, ...yj.fing.flat(2), ...yj.hair.flat()].filter((r): r is Rig => !!r) : [];
   let idleT = 0, idleW = 0, hairT = (inner.id % 7) * 1.3;
   if (walker && body) {
-    // 모델 좌표(root 기준)의 아래 끝 · 발끝 — inner.scale 을 반영해 세웠을 때 발바닥이 모래에 파묻히지 않게 정확히 계산
+    // 모델 좌표(root 기준)의 아래 끝 · 발끝 — root 의 월드 자리 · 회전 · 배율과 무관하게 inner 로컬에서만 잰다
+    // (예전엔 swapBody 직후 갱신 전 root.matrixWorld 로 월드 Box3 를 잰 뒤 worldToLocal 로 되돌려, 비동기 GLB 교체 시점의 위치 · 방향에 따라 lift 가 11~20 단위로 튀어 해변 보행 시 하늘로 붕 떴다)
+    const parent = inner.parent;
+    parent?.remove(inner);
     inner.updateMatrixWorld(true);
     const box = new T.Box3().setFromObject(body, true);
-    const pMin = inner.parent ? inner.parent.worldToLocal(box.min.clone()).sub(inner.position) : inner.worldToLocal(box.min.clone()).multiply(inner.scale);
+    parent?.add(inner);
+    parent?.updateMatrixWorld(true);
+    const pMin = box.min.clone().sub(inner.position);
     // 서 있을 때(-X 가 아래로 회전) 발바닥 최저점이 root 기준 -0.065~-0.075(모래 표면 바로 위)에 오도록 들어 올린다
     const soleTarget = upright0 ? -0.06 : human ? -0.065 : -0.072;
     const footLift = Math.max(0, soleTarget - pMin.x - inner.position.y);
