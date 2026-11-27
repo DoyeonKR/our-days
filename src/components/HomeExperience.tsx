@@ -144,9 +144,9 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
     </section>
     <HomeWorld {...props} sceneOnly />
     <section className="home-memory-v3" aria-label="최근 사진">
-      <div className="home-memory-head"><div><p className="home-kicker">최근 사진</p><h2>아껴둔 우리의 장면</h2></div><button type="button" onClick={onGoAlbum} className="tap" aria-label="사진첩 모두 보기">모두 보기 <Icon name="chevronRight" size={14}/></button></div>
-      <button type="button" onClick={onGoAlbum} aria-label={memories.length ? `사진첩 열기, 최근 사진 ${memories.length}장` : "첫 사진을 남기러 사진첩 열기"} className={`tap home-memory-strip ${memories.length ? "" : "is-empty"}`}>
-        {memories.length ? memories.map((photo, i)=><span key={photo.id} className="home-memory-frame" style={{rotate:`${[-3,2,-2,3][i]}deg`}}>
+      <div className="home-memory-head"><div><p className="home-kicker">OUR GALLERY</p><h2>아껴둔 우리의 장면</h2></div><button type="button" onClick={onGoAlbum} className="tap" aria-label="사진첩 모두 보기">모두 보기 <Icon name="chevronRight" size={14}/></button></div>
+      <button type="button" onClick={onGoAlbum} aria-label={memories.length ? `사진첩 열기, 최근 사진 ${memories.length}장` : "첫 사진을 남기러 사진첩 열기"} className={`tap home-memory-strip ${memories.length ? `has-${memories.length}` : "is-empty"}`}>
+        {memories.length ? memories.map((photo)=><span key={photo.id} className="home-memory-frame">
           <MemoryPhoto url={photo.url} path={"path" in photo ? photo.path : undefined} onExpired={props.onPhotoExpired} />
           <small>{photo.date || "우리의 순간"}</small>
         </span>) : <><span className="home-memory-empty-icon" aria-hidden="true"><Icon name="camera" size={24}/></span><span>오늘의 첫 장면을 남겨볼까요?<small>사진 한 장으로 시작하는 우리의 기록</small></span><Icon name="plus" size={20}/></>}
