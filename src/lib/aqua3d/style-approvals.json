@@ -1969,6 +1969,18 @@
     "fry_yujin": {
       "sourceHash": "e1727320fa755c1aea6cad545de16ce54f48d6cf5e213b06ab0d4778180bc110",
       "sheet": "design/aqua3d-review/yujin/review-yujin.webp"
+    },
+    "manatee": {
+      "sourceHash": "67aff0b42c482fc7009bdd43865531eb276e571b2edb934c3b2b7ede343bf122",
+      "sheet": "design/aqua3d-review/manatee/review-manatee.webp"
+    },
+    "juv_manatee": {
+      "sourceHash": "61276251b26e1d45d7cbbeaf7e937404344158df04e4c0deff68d931e5ee3067",
+      "sheet": "design/aqua3d-review/manatee/review-manatee.webp"
+    },
+    "fry_manatee": {
+      "sourceHash": "96626acc88c52fa41cc16d77d676e9318252bbb117c689994db1c4c0315495d8",
+      "sheet": "design/aqua3d-review/manatee/review-manatee.webp"
     }
   }
 }

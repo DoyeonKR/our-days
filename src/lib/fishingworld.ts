@@ -127,7 +127,7 @@ export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: N
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 /** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
  *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
-export const TIMED_ONLY: ReadonlySet<string> = new Set(["yujin", "polar_bear", "bottlenose_dolphin", "minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "walrus", "emperor_penguin", "beluga", "kappa", "chinstrap_penguin", "icefish", "clione", "sea_pig", "toothfish", "salp", "antarctic_urchin", "jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
+export const TIMED_ONLY: ReadonlySet<string> = new Set(["yujin", "polar_bear", "bottlenose_dolphin", "manatee", "minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "walrus", "emperor_penguin", "beluga", "kappa", "chinstrap_penguin", "icefish", "clione", "sea_pig", "toothfish", "salp", "antarctic_urchin", "jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
 export const TIMED_FISH: readonly TimedFish[] = [
   { species: "sweetfish", spot: "seomjin", always: true },
   { species: "crucian", spot: "dumulmeori", always: true },
@@ -208,6 +208,8 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "lanternfish", spot: "abyss", time: "night", side: true },
   { species: "blobfish", spot: "abyss", always: true, side: true },
   { species: "arapaima", spot: "jungle", time: "dusk", side: true },
+  // 매너티(2026-11-27) — 서천 국립생태원의 낮(열대 물가 전시관)
+  { species: "manatee", spot: "jungle", time: "day", side: true },
   { species: "electric_eel", spot: "jungle", time: "night", side: true },
 ];
 /** 보름달 손님(2026-11-12 물때 · 달) [사용자: "보름달에만 오는 손님도 둡니다"] — 보름달이 뜬 밤에만 그 바다에 오는 이미 있는 품종.

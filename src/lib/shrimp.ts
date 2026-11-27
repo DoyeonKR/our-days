@@ -82,6 +82,12 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
   //   2026-11-26 [사용자: "북극곰 벨루가 모두 태초 등급으로 설정하고 획득 확률 2% 미만으로해"] — 영웅 → 태초(값 · 시간은 별무리어와 북극곰 사이, 수조 6단계), 때 손님은 와도 15% 만 문다(rare — 한 번 던질 때 많아야 0.83%)
   { key: "beluga", name: "벨루가", grade: "태초", price: 125000, hours: 525, minTank: 6, size: 36, cm: 450, fresh: false, ornamental: false,
     spots: [], habit: { lo: -1.2, hi: 2.2, speed: 0.22, reach: 1, depth: 2, breathe: 55, breathOnly: true, dart: 0.1, pace: 0.6, tilt: 0.24, level: 0.42 } },
+  // 매너티(2026-11-27 [사용자: "넣어도 괜찮아 허락 받았어 기준이미지도 넣고 매너티 움직임 구현해서 반영해줘"]) — 사용자가 다른 세션(Gemini 4 Neon · 나노 바나나 · Tripo)으로 만든 모델을
+  //   게임 형식으로 구웠다(design/aqua3d-review/manatee/manatee-build.mjs — 꼬리를 펴고 줄이고 색을 입혔다), 카드 그림은 모델을 찍은 것. 서천 국립생태원 낮의 때 손님(곁 칸)으로만.
+  //   느릿한 바다소: 무리 없이 바닥 가까이 아주 천천히 떠다니며, 숨 사이마다 바닥으로 내려가 주둥이를 박고 풀을 뜯고(forage — 바다코끼리와 같은 길),
+  //   숨 쉬러 가끔(100초) 수면에 코를 내민다. 주걱 꼬리를 위아래로 천천히 친다(anatomy 의 CETACEAN). 기울기 상한 22°(level 0.4). 누르면 머리를 내밀어 살핀다(spyhop)
+  { key: "manatee", name: "매너티", grade: "전설", price: 51200, hours: 310.5, minTank: 5, size: 40, cm: 350, fresh: true, ornamental: false,
+    spots: [], habit: { lo: -3.6, hi: 1.4, speed: 0.07, reach: 0.85, depth: 1.7, breathe: 100, breathOnly: true, pace: 0.4, tilt: 0.2, level: 0.4, forage: true } },
   // 큰돌고래(2026-11-26 [사용자: "만들었고 여기에 움직임과 색상 입혀서 배포해"]) — 사용자가 Tripo 로 만든 모델을 게임 형식으로 구웠다
   //   (design/aqua3d-review/dolphin/dolphin-build.mjs — 꼬리를 펴고 줄이고 꼬리지느러미를 붙여 색을 입혔다), 카드 그림은 모델을 찍은 것. 서귀포 문섬 낮의 때 손님(곁 칸)으로만.
   //   빠르고 장난스러운 이빨고래: 무리 지어(school) 가운데 · 위 물을 빠르게 돌고, 9초 남짓마다 꼬리를 세차게 쳐 내달리며(burst),

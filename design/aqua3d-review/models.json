@@ -56264,6 +56264,255 @@
       ],
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "added": "2026-11-26"
+    },
+    "manatee": {
+      "kind": "fish",
+      "family": "manatee",
+      "form": "adult",
+      "file": "public/aqua/models/fish/manatee.glb",
+      "triangles": 7000,
+      "bytes": 109776,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "67aff0b42c482fc7009bdd43865531eb276e571b2edb934c3b2b7ede343bf122",
+      "sha256": "b5d110205db361c3afd43aaaa8fe4141cfaea8bbdb82192230a6ac3c68c2eccd",
+      "authoringProfile": {
+        "key": "manatee",
+        "name": "매너티",
+        "grade": "전설",
+        "cm": 350,
+        "water": "fresh",
+        "body": "manatee",
+        "widthRatio": 0.3,
+        "life": "바닥 가까이 아주 천천히 · 숨 사이마다 바닥에서 풀 뜯기 · 가끔 수면에 코를 내밈"
+      },
+      "geometryAuthoring": "Tripo 모델(사용자 제공 — Gemini 4 Neon 세션이 나노 바나나 기준 그림으로 Tripo h3.1 생성, design/aqua3d-review/manatee/source) → design/aqua3d-review/manatee/manatee-build.mjs 로 꼬리 펴기 · 줄이기 · 색 · 뼈 — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-27",
+      "approval": "user_requested_2026-11-27",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-27 [사용자: \"넣어도 괜찮아 허락 받았어 기준이미지도 넣고 매너티 움직임 구현해서 반영해줘\"]"
+    },
+    "juv_manatee": {
+      "kind": "fish",
+      "family": "manatee",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_manatee.glb",
+      "triangles": 7000,
+      "bytes": 105428,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "61276251b26e1d45d7cbbeaf7e937404344158df04e4c0deff68d931e5ee3067",
+      "sha256": "94b94243eb39f6460657a263239b2af1c70dae7846bd23519645d72ccf0b9509",
+      "authoringProfile": {
+        "key": "juv_manatee",
+        "name": "매너티",
+        "grade": "전설",
+        "cm": 350,
+        "water": "fresh",
+        "body": "manatee",
+        "widthRatio": 0.3,
+        "life": "바닥 가까이 아주 천천히 · 숨 사이마다 바닥에서 풀 뜯기 · 가끔 수면에 코를 내밈"
+      },
+      "geometryAuthoring": "Tripo 모델(사용자 제공 — Gemini 4 Neon 세션이 나노 바나나 기준 그림으로 Tripo h3.1 생성, design/aqua3d-review/manatee/source) → design/aqua3d-review/manatee/manatee-build.mjs 로 꼬리 펴기 · 줄이기 · 색 · 뼈 — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-27",
+      "approval": "user_requested_2026-11-27",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-27 [사용자: \"넣어도 괜찮아 허락 받았어 기준이미지도 넣고 매너티 움직임 구현해서 반영해줘\"]"
+    },
+    "fry_manatee": {
+      "kind": "fish",
+      "family": "manatee",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_manatee.glb",
+      "triangles": 7000,
+      "bytes": 99780,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "mammal",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "96626acc88c52fa41cc16d77d676e9318252bbb117c689994db1c4c0315495d8",
+      "sha256": "2ade9fba990c44de13a358f5f2691bf2889a253d17f1895fb6ec3b8bac364c77",
+      "authoringProfile": {
+        "key": "fry_manatee",
+        "name": "매너티",
+        "grade": "전설",
+        "cm": 350,
+        "water": "fresh",
+        "body": "manatee",
+        "widthRatio": 0.3,
+        "life": "바닥 가까이 아주 천천히 · 숨 사이마다 바닥에서 풀 뜯기 · 가끔 수면에 코를 내밈"
+      },
+      "geometryAuthoring": "Tripo 모델(사용자 제공 — Gemini 4 Neon 세션이 나노 바나나 기준 그림으로 Tripo h3.1 생성, design/aqua3d-review/manatee/source) → design/aqua3d-review/manatee/manatee-build.mjs 로 꼬리 펴기 · 줄이기 · 색 · 뼈 — 2D 카드는 이 모델을 찍은 그림",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_requested_2026-11-27",
+      "approval": "user_requested_2026-11-27",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 8000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.24656352168275972
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "added": "2026-11-27 [사용자: \"넣어도 괜찮아 허락 받았어 기준이미지도 넣고 매너티 움직임 구현해서 반영해줘\"]"
     }
   },
   "structuralValidation": "passed",
