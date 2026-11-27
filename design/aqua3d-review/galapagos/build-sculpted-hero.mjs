@@ -177,57 +177,56 @@ function buildGalapagosPenguin(stage) {
 function buildMarineIguana(stage) {
   const m = new Model();
   const isFry = stage === 0;
-  const cDark = hex('#232528'), cRust = hex('#523930'), cSalt = hex('#c9c7be'), cCrest = hex('#5e5b52');
+  const cDark = hex('#2c3035'), cRust = hex('#6c4434'), cTeal = hex('#345852'), cSalt = hex('#dcdad2'), cCrest = hex('#747066');
   // 몸통+긴 꼬리 (s=0 주둥이 +1.0 -> s=1 꼬리끝 -1.45)
   m.sweep('body', (s) => {
     const x = 1.0 - s * 2.45;
     let a, b, cy = 0;
     if (s < 0.14) { // 뭉툭한 파충류 머리
       const f = s / 0.14;
-      a = 0.045 + 0.082 * Math.sin(f * Math.PI * 0.72);
-      b = 0.042 + 0.074 * Math.sin(f * Math.PI * 0.72);
-      cy = 0.03 + 0.015 * f;
+      a = 0.055 + 0.095 * Math.sin(f * Math.PI * 0.72);
+      b = 0.052 + 0.085 * Math.sin(f * Math.PI * 0.72);
+      cy = 0.05 + 0.02 * f;
     } else if (s < 0.46) { // 탄탄한 몸통
       const f = (s - 0.14) / 0.32;
-      a = 0.115 + 0.042 * Math.sin(f * Math.PI);
-      b = 0.118 + 0.048 * Math.sin(f * Math.PI);
-      cy = 0.03 * (1 - f);
+      a = 0.13 + 0.048 * Math.sin(f * Math.PI);
+      b = 0.135 + 0.052 * Math.sin(f * Math.PI);
+      cy = 0.04 * (1 - f);
     } else { // 좌우로 납작한 수영용 꼬리
       const f = (s - 0.46) / 0.54;
-      a = 0.112 * Math.pow(1 - f * 0.90, 0.85);
-      b = 0.088 * Math.pow(1 - f * 0.94, 1.35);
+      a = 0.125 * Math.pow(1 - f * 0.90, 0.85);
+      b = 0.095 * Math.pow(1 - f * 0.94, 1.35);
       cy = -0.02 * Math.sin(f * Math.PI);
     }
     return { c: [x, cy, 0], u: [0, 1, 0], v: [0, 0, 1], a: Math.max(0.012, a), b: Math.max(0.008, b), e: 2.15 };
   }, {
     ns: 34, nt: 16, capStart: 0.04, capEnd: 0.02, island: [0.02, 0.02, 0.72, 0.56], bone: 'body',
     paint: (P, n) => {
-      const sc = 0.86 + 0.28 * fbm([P[0] * 32, P[1] * 32, P[2] * 32], 3);
-      let col = mix(cDark, cRust, smooth(0.35, 0.75, fbm([P[0] * 7, P[1] * 7, P[2] * 7], 2)) * (isFry ? 0.15 : 0.42));
-      // 정수리 소금 결정(하얀 머리)
-      if (P[0] > 0.68 && n[1] > 0.45 && !isFry) col = mix(col, cSalt, smooth(0.68, 0.88, P[0]) * smooth(0.45, 0.82, n[1]) * 0.72);
-      // 배쪽은 약간 밝은 암회색
-      if (n[1] < -0.35) col = mix(col, [58, 56, 54], 0.45);
+      const sc = 0.88 + 0.26 * fbm([P[0] * 34, P[1] * 34, P[2] * 34], 3);
+      const mottle = fbm([P[0] * 7, P[1] * 7, P[2] * 7], 2);
+      let col = mix(cDark, mottle > 0.56 ? cRust : cTeal, smooth(0.32, 0.75, mottle) * (isFry ? 0.2 : 0.52));
+      if (P[0] > 0.68 && n[1] > 0.42 && !isFry) col = mix(col, cSalt, smooth(0.68, 0.88, P[0]) * smooth(0.42, 0.80, n[1]) * 0.78);
+      if (n[1] < -0.35) col = mix(col, [72, 70, 66], 0.45);
       return mul(col, sc);
     },
   });
   // 등가시 볏 (목~등~꼬리 앞부분)
   m.sweep('crest', (s) => {
-    const x = 0.72 - s * 1.35;
-    const h = 0.045 * Math.sin(s * Math.PI) * (0.75 + 0.25 * Math.sin(s * 52));
-    return { c: [x, 0.135 + h * 0.5 - s * 0.05, 0], u: [0, 1, 0], v: [0, 0, 1], a: Math.max(0.01, h), b: 0.014, e: 1.6 };
-  }, { ns: 24, nt: 6, capStart: 0.01, capEnd: 0.01, island: [0.74, 0.02, 0.98, 0.26], bone: 'body', paint: () => cCrest });
-  for (const sd of [-1, 1]) m.sphere('eye' + sd, [0.84, 0.068, sd * 0.072], 0.022, { island: [0.88, 0.88, 0.98, 0.98], bone: 'head', paint: () => [18, 16, 14] });
+    const x = 0.74 - s * 1.38;
+    const h = 0.068 * Math.sin(s * Math.PI) * (0.65 + 0.35 * Math.sin(s * 56));
+    return { c: [x, 0.155 + h * 0.5 - s * 0.055, 0], u: [0, 1, 0], v: [0, 0, 1], a: Math.max(0.012, h), b: 0.018, e: 1.6 };
+  }, { ns: 26, nt: 6, capStart: 0.01, capEnd: 0.01, island: [0.74, 0.02, 0.98, 0.26], bone: 'body', paint: () => cCrest });
+  for (const sd of [-1, 1]) m.sphere('eye' + sd, [0.83, 0.095, sd * 0.088], 0.026, { island: [0.88, 0.88, 0.98, 0.98], bone: 'head', paint: (P, n) => Math.abs(n[2]) > 0.55 ? [14, 14, 16] : [188, 152, 92] });
 
-  // 앞다리 2개 (fin_L/fin_R) + 뒷다리 2개 (leg_L/leg_R)
+  // 앞다리 2개 (fin_L/fin_R) + 뒷다리 2개 (leg_L/leg_R) — 무릎이 굽은 입체 다리 + 발가락
   const fins = {}, legs = { parent: 3 };
   for (const sd of [1, -1]) {
-    const rF = [0.46, -0.04, sd * 0.13], tF = [0.22, -0.22, sd * 0.34];
-    m.sweep('arm' + sd, (s) => ({ c: [rF[0] + (tF[0] - rF[0]) * s, rF[1] + (tF[1] - rF[1]) * s, rF[2] + (tF[2] - rF[2]) * s], u: [1, 0, 0], v: [0, 1, 0], a: 0.042 * (1 - 0.32 * s), b: 0.036 * (1 - 0.35 * s) }), { ns: 8, nt: 8, capEnd: 0.02, island: [0.02, 0.60, 0.44, 0.96], bone: sd > 0 ? 'fin_L' : 'fin_R', paint: () => cDark });
+    const rF = [0.46, -0.02, sd * 0.14], tF = [0.24, -0.22, sd * 0.34];
+    m.sweep('arm' + sd, (s) => ({ c: [rF[0] + (tF[0] - rF[0]) * s, rF[1] + (tF[1] - rF[1]) * s + Math.sin(s * Math.PI) * 0.05, rF[2] + (tF[2] - rF[2]) * s + sd * Math.sin(s * Math.PI) * 0.06], u: [1, 0, 0], v: [0, 1, 0], a: 0.052 * (1 - 0.28 * s), b: 0.044 * (1 - 0.30 * s) }), { ns: 9, nt: 8, capEnd: 0.024, island: [0.02, 0.60, 0.44, 0.96], bone: sd > 0 ? 'fin_L' : 'fin_R', paint: () => cDark });
     fins[sd > 0 ? 'L' : 'R'] = { root: rF, tip: tF };
 
-    const rB = [-0.12, -0.04, sd * 0.12], tB = [-0.42, -0.23, sd * 0.34];
-    m.sweep('leg' + sd, (s) => ({ c: [rB[0] + (tB[0] - rB[0]) * s, rB[1] + (tB[1] - rB[1]) * s, rB[2] + (tB[2] - rB[2]) * s], u: [1, 0, 0], v: [0, 1, 0], a: 0.048 * (1 - 0.35 * s), b: 0.040 * (1 - 0.35 * s) }), { ns: 8, nt: 8, capEnd: 0.02, island: [0.48, 0.60, 0.86, 0.96], bone: sd > 0 ? 'leg_L' : 'leg_R', paint: () => cDark });
+    const rB = [-0.12, -0.02, sd * 0.13], tB = [-0.38, -0.23, sd * 0.35];
+    m.sweep('leg' + sd, (s) => ({ c: [rB[0] + (tB[0] - rB[0]) * s, rB[1] + (tB[1] - rB[1]) * s + Math.sin(s * Math.PI) * 0.05, rB[2] + (tB[2] - rB[2]) * s + sd * Math.sin(s * Math.PI) * 0.06], u: [1, 0, 0], v: [0, 1, 0], a: 0.058 * (1 - 0.30 * s), b: 0.048 * (1 - 0.30 * s) }), { ns: 9, nt: 8, capEnd: 0.025, island: [0.48, 0.60, 0.86, 0.96], bone: sd > 0 ? 'leg_L' : 'leg_R', paint: () => cDark });
     legs[sd > 0 ? 'L' : 'R'] = { root: rB };
   }
   return {
@@ -247,9 +246,9 @@ function buildMarineIguana(stage) {
 function buildCetacean(kind, stage) {
   const m = new Model();
   const isBryde = kind === 'brydes_whale', isPilot = kind === 'pilot_whale', isDolphin = kind === 'spotted_dolphin';
-  const cBack = isPilot ? hex('#1e2228') : isBryde ? hex('#3c4856') : hex('#445468');
-  const cMid = isPilot ? hex('#323740') : isBryde ? hex('#5c6876') : hex('#8694a4');
-  const cBelly = isPilot ? hex('#4e545e') : hex('#d8dce2');
+  const cBack = isPilot ? hex('#2e343e') : isBryde ? hex('#3c4856') : hex('#445468');
+  const cMid = isPilot ? hex('#4a525e') : isBryde ? hex('#5c6876') : hex('#8694a4');
+  const cBelly = isPilot ? hex('#7c8490') : hex('#d8dce2');
 
   m.sweep('body', (s) => {
     const x = 1.0 - s * 2.0;
@@ -343,37 +342,37 @@ function buildCetacean(kind, stage) {
 function buildPinniped(kind, stage) {
   const m = new Model();
   const isFur = kind === 'galapagos_fur_seal';
-  const cCoat = isFur ? hex('#4e463e') : hex('#8c6b48');
-  const cBelly = isFur ? hex('#6c6258') : hex('#b08f68');
+  const cCoat = isFur ? hex('#5c5248') : hex('#9c764e');
+  const cBelly = isFur ? hex('#84786c') : hex('#c8a47a');
 
   m.sweep('body', (s) => {
-    const x = 0.96 - s * 1.92;
+    const x = 0.98 - s * 1.96;
     let a, b, cy = 0;
-    if (s < 0.16) { // 주둥이 + 머리
-      const f = s / 0.16;
-      a = 0.038 + 0.095 * Math.sin(f * Math.PI * 0.65);
-      b = 0.036 + 0.088 * Math.sin(f * Math.PI * 0.65);
-      cy = 0.10 - 0.01 * f;
-    } else if (s < 0.30) { // 목
-      const f = (s - 0.16) / 0.14;
-      a = 0.12 + 0.065 * f; b = 0.115 + 0.06 * f; cy = 0.09 - 0.05 * f;
+    if (s < 0.08) { // 뾰족한 주둥이(muzzle)
+      const f = s / 0.08;
+      a = 0.032 + 0.045 * f; b = 0.030 + 0.042 * f; cy = 0.16 + 0.01 * f;
+    } else if (s < 0.19) { // 둥근 두개골(head)
+      const f = (s - 0.08) / 0.11;
+      a = 0.077 + 0.045 * Math.sin(f * Math.PI); b = 0.072 + 0.042 * Math.sin(f * Math.PI); cy = 0.17 - 0.02 * f;
+    } else if (s < 0.34) { // 잘록하고 우아하게 솟은 목(neck)
+      const f = (s - 0.19) / 0.15;
+      a = 0.095 + 0.092 * f; b = 0.090 + 0.088 * f; cy = 0.15 - 0.11 * f;
     } else { // 유선형 몸통 -> 골반
-      const f = (s - 0.30) / 0.70, prof = Math.sin(Math.pow(clamp(1 - f, 0.02, 0.98), 0.68) * Math.PI * 0.5);
-      a = 0.03 + 0.185 * prof; b = 0.03 + 0.175 * prof; cy = 0.04 * (1 - f);
+      const f = (s - 0.34) / 0.66, prof = Math.sin(Math.pow(clamp(1 - f, 0.02, 0.98), 0.66) * Math.PI * 0.5);
+      a = 0.03 + 0.19 * prof; b = 0.03 + 0.18 * prof; cy = 0.04 * (1 - f);
     }
     return { c: [x, cy, 0], u: [0, 1, 0], v: [0, 0, 1], a, b, e: 2.1 };
   }, {
-    ns: 28, nt: 16, capStart: 0.035, capEnd: 0.025, island: [0.02, 0.02, 0.66, 0.56], bone: 'body',
+    ns: 32, nt: 16, capStart: 0.03, capEnd: 0.025, island: [0.02, 0.02, 0.66, 0.56], bone: 'body',
     paint: (P, n) => {
-      let col = mix(cBelly, cCoat, smooth(-0.35, 0.45, n[1]));
-      if (P[0] > 0.88 && Math.abs(P[2]) < 0.04) col = [26, 22, 20]; // 검은 코끝
-      return mul(col, 0.88 + 0.22 * fbm([P[0] * 24, P[1] * 24, P[2] * 24], 3));
+      let col = mix(cBelly, cCoat, smooth(-0.32, 0.48, n[1]));
+      if (P[0] > 0.93 && Math.hypot(P[1] - 0.165, P[2]) < 0.034) col = [24, 20, 18]; // 둥근 검은 코
+      return mul(col, 0.90 + 0.18 * fbm([P[0] * 24, P[1] * 24, P[2] * 24], 3));
     },
   });
   for (const sd of [1, -1]) {
-    m.sphere('eye' + sd, [0.78, 0.14, sd * 0.072], isFur ? 0.028 : 0.024, { island: [0.88, 0.88, 0.98, 0.98], bone: 0, paint: () => [14, 12, 10] });
-    // 작은 귓바퀴(바다사자/물개 특징)
-    m.sphere('ear' + sd, [0.64, 0.15, sd * 0.095], 0.020, { island: [0.80, 0.88, 0.86, 0.96], bone: 0, paint: () => cCoat });
+    m.sphere('eye' + sd, [0.78, 0.21, sd * 0.076], isFur ? 0.028 : 0.025, { island: [0.88, 0.88, 0.98, 0.98], bone: 0, paint: () => [14, 12, 10] });
+    m.sphere('ear' + sd, [0.66, 0.21, sd * 0.092], 0.020, { island: [0.80, 0.88, 0.86, 0.96], bone: 0, paint: () => cCoat });
   }
   const fins = {};
   for (const sd of [1, -1]) {

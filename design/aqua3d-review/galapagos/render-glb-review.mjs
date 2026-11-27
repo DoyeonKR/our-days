@@ -1,11 +1,12 @@
-// 실제 배포용 압축 GLB(EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp)를
-// 직접 디코딩해 4각도(옆 · 3/4 · 위 · 정면)로 소프트웨어 래스터라이즈하여 육안 검수 시트를 만든다.
+// 갈라파고스 50종 전수 5면 육안 검수 시트 렌더러:
+// 각 행 = [2D 기준 이미지 | GLB 옆모습 | GLB 3/4 | GLB 위 | GLB 정면] (종당 5칸, 시트당 6종 -> 총 9장)
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import sharp from 'sharp';
+import { GALAPAGOS_KEYS } from '../../../src/lib/galapagos.ts';
 
 await MeshoptDecoder.ready;
 const ROOT = resolve(process.cwd());
@@ -48,10 +49,10 @@ function renderOne(geom, texData, tw, th, rgba, W, cellOx, cellOy, S) {
   const cx = (x0 + x1) * 0.5, cy = (y0 + y1) * 0.5, cz = (z0 + z1) * 0.5;
   const L1 = norm([0.38, 0.68, 0.62]), L2 = norm([-0.55, -0.35, 0.55]);
   const views = [
-    { yaw: 0, pitch: 0, vx: 0, vy: 0 },
-    { yaw: 30, pitch: 18, vx: S, vy: 0 },
-    { yaw: 0, pitch: 88, vx: S * 2, vy: 0 },
-    { yaw: 90, pitch: 8, vx: S * 3, vy: 0 },
+    { yaw: 0, pitch: 0, vx: S, vy: 0 },
+    { yaw: 30, pitch: 18, vx: S * 2, vy: 0 },
+    { yaw: 0, pitch: 88, vx: S * 3, vy: 0 },
+    { yaw: 90, pitch: 8, vx: S * 4, vy: 0 },
   ];
 
   for (const { yaw, pitch, vx, vy } of views) {
@@ -100,19 +101,47 @@ function renderOne(geom, texData, tw, th, rgba, W, cellOx, cellOy, S) {
   }
 }
 
-async function buildSheet(keys, outName) {
-  const S = 224, W = S * 4, H = S * keys.length;
+async function buildAuditSheet(keys, outName) {
+  const S = 180, W = S * 5, H = S * keys.length;
   const rgba = new Uint8Array(W * H * 4);
   for (let i = 0; i < W * H; i++) { rgba[i * 4] = 240; rgba[i * 4 + 1] = 245; rgba[i * 4 + 2] = 250; rgba[i * 4 + 3] = 255; }
+
   for (let r = 0; r < keys.length; r++) {
     const k = keys[r];
+    // 1st col: 2D reference image
+    const refBuf = await sharp(resolve(ROOT, `public/aqua/fish/${k}.webp`)).resize(S - 12, S - 12, { fit: 'contain', background: { r: 240, g: 245, b: 250, alpha: 0 } }).ensureAlpha().raw().toBuffer();
+    for (let y = 0; y < S - 12; y++) for (let x = 0; x < S - 12; x++) {
+      const si = (y * (S - 12) + x) * 4, a = refBuf[si + 3] / 255;
+      if (a <= 0.01) continue;
+      const di = ((r * S + 6 + y) * W + (6 + x)) * 4;
+      rgba[di] = Math.round(rgba[di] * (1 - a) + refBuf[si] * a);
+      rgba[di + 1] = Math.round(rgba[di + 1] * (1 - a) + refBuf[si + 1] * a);
+      rgba[di + 2] = Math.round(rgba[di + 2] * (1 - a) + refBuf[si + 2] * a);
+    }
+    // cols 2..5: actual GLB rendered from 4 angles
     const { geom, texData, tw, th } = await loadGLBWithTexture(resolve(ROOT, `public/aqua/models/fish/${k}.glb`));
     renderOne(geom, texData, tw, th, rgba, W, 0, r * S, S);
   }
+
+  // Row separators + labels via SVG overlay
+  const labels = keys.map((k, r) => `<text x="6" y="${r * S + 16}" font-family="monospace" font-size="13" font-weight="bold" fill="#1e293b">${k}</text><line x1="0" y1="${r * S}" x2="${W}" y2="${r * S}" stroke="#cbd5e1" stroke-width="1"/>`).join('');
+  const svg = Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">${labels}</svg>`);
   const out = resolve(ROOT, `design/aqua3d-review/galapagos/${outName}`);
-  await sharp(Buffer.from(rgba), { raw: { width: W, height: H, channels: 4 } }).webp({ quality: 90 }).toFile(out);
+  await sharp(Buffer.from(rgba), { raw: { width: W, height: H, channels: 4 } })
+    .composite([{ input: svg, top: 0, left: 0 }])
+    .webp({ quality: 88 })
+    .toFile(out);
   console.log(`Rendered ${outName} (${keys.join(', ')})`);
 }
 
-await buildSheet(['scalloped_hammerhead', 'galapagos_penguin', 'marine_iguana', 'hawksbill_turtle', 'brydes_whale', 'spotted_eagle_ray'], 'glb_review_hero.webp');
-await buildSheet(['king_angelfish', 'moorish_idol', 'sailfish', 'blacktip_reef_shark', 'yellowfin_tuna', 'picasso_triggerfish'], 'glb_review_fish.webp');
+const argKeys = process.argv.slice(2);
+if (argKeys.length) {
+  await buildAuditSheet(argKeys, 'audit_custom.webp');
+} else {
+  const perSheet = 6;
+  for (let i = 0; i < GALAPAGOS_KEYS.length; i += perSheet) {
+    const batch = GALAPAGOS_KEYS.slice(i, i + perSheet);
+    const idx = String(Math.floor(i / perSheet) + 1).padStart(2, '0');
+    await buildAuditSheet(batch, `audit_${idx}.webp`);
+  }
+}

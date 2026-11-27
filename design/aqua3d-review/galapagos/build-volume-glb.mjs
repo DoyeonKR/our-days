@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import { volumeFish, bodyProfile } from '../volume-fish.mjs';
 import { compressGLB, COMPRESSION } from '../glb-compress.mjs';
 import { SCULPTED_KEYS } from './build-sculpted-hero.mjs';
+import { SPECIAL_KEYS } from './build-sculpted-specials.mjs';
 import { GALAPAGOS_KEYS } from '../../../src/lib/galapagos.ts';
 
 const ROOT = resolve(process.cwd());
@@ -232,7 +233,7 @@ function packRawGLB(key, g, png, bones, profile) {
 
 await mkdir(resolve(ROOT, 'public/aqua/models/fish'), { recursive: true });
 const argKeys = process.argv.slice(2);
-const volumeFamilies = (argKeys.length ? argKeys : GALAPAGOS_KEYS).filter((k) => !SCULPTED_KEYS.has(k));
+const volumeFamilies = (argKeys.length ? argKeys : GALAPAGOS_KEYS).filter((k) => !SCULPTED_KEYS.has(k) && !SPECIAL_KEYS.has(k));
 let built = 0;
 
 for (const family of volumeFamilies) {
