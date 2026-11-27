@@ -1513,22 +1513,38 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
   const beachWalk = !!(opts.sand && o?.kind === "beach");
   if (opts.walk && !opts.float) {
     walkUp = beachWalk ? smooth01((R - 0.56) / 0.12) : smooth01((R - 0.82) / 0.18);
-    const st = Math.max(0, Math.min(0.8, opts.landStand ?? 0)), base = seconds * 0.2 * (1 - st) + unit(h, 151) * TAU;
+    const st = Math.max(0, Math.min(0.8, opts.landStand ?? 0)), base = seconds * 0.16 * (1 - st) + unit(h, 151) * TAU;
     // 반 바퀴(π)마다 끝(sin = ±1 — cos 가 0 이라 빠르기가 이어진다)에서 st 몫만큼 멈춰 선다
-    const ph = standPhase(base, st), span = Math.min(length * 0.8, o && o.kind !== "beach" ? o.r * 0.3 : length * 0.8), lim = 5 * scale - length * 0.42;
-    rx = Math.max(-lim, Math.min(lim, rx + Math.sin(ph) * span * walkUp));
-    // 해변 위 2D 곡선 산책(앞뒤로도 완만하게 거닐되 모래 턱 안쪽 유지) + 발걸음 모래 먼지(puff)
+    const ph = standPhase(base, st), lim = 5 * scale - length * 0.42;
     if (beachWalk) {
+      // 건조 모래 구역(xMin ~ lim, 앞뒤 z)을 넓게 거니는 다주파 2D 산책 — 같은 자리를 반복 왕복하거나 벽에 막혀 제자리걸음하지 않게
       const need = length * 0.25 / scale;
-      const zSpan = Math.min(0.42, length * 0.35 / (opts.deep || 1));
+      const zMin = Math.max(-2.7, -2.2 - unit(h, 159) * 0.35);
       const zMax0 = BEACH_Z0 + Math.max(0, (lim / scale - need) - BEACH_DRY_X) / BEACH_ZK;
-      rz = Math.min(zMax0, rz + Math.sin(ph * 0.5 + unit(h, 157) * TAU) * zSpan * walkUp);
+      const zLo = Math.min(zMin, zMax0 - 0.25), zHi = Math.max(zLo + 0.25, zMax0);
+      const zMid = (zLo + zHi) * 0.5, zAmp = Math.min(1.15, (zHi - zLo) * 0.44);
+      const phZ = ph * 0.63 + unit(h, 157) * TAU;
+      const targetZ = zMid + Math.sin(phZ) * zAmp;
+      rz = rz * (1 - walkUp) + Math.max(zLo, Math.min(zHi, targetZ)) * walkUp;
       const xMin = (BEACH_DRY_X + Math.max(0, rz - BEACH_Z0) * BEACH_ZK + need) * scale;
-      rx = Math.min(lim, Math.max(xMin, rx));
-      if (Math.abs(Math.cos(ph)) > 0.2 && walkUp > 0.6) out.puff = (seconds * 1.45 + unit(h, 163)) % 1.0;
+      const xLo = Math.min(lim, xMin), xHi = Math.max(xLo, lim);
+      const xMid = (xLo + xHi) * 0.5, xAmp = Math.min(length * 1.4, (xHi - xLo) * 0.46);
+      const targetX = xMid + Math.sin(ph) * xAmp;
+      rx = rx * (1 - walkUp) + Math.max(xLo, Math.min(xHi, targetX)) * walkUp;
+      // 실제 진행 속도 벡터로 바라보는 방향을 자연스럽게 맞춘다(좌우 + 앞뒤 대각선 이동)
+      const vx = Math.cos(ph) * xAmp, vz = Math.cos(phZ) * 0.63 * zAmp * (opts.deep || 1);
+      const spd = hyp2(vx, vz), w = walkUp * smooth01((spd - 0.08) / 0.25);
+      if (spd > 1e-4) {
+        fx = fx * (1 - w) + (vx / spd) * w;
+        fz = fz * (1 - w) + (vz / spd) * w;
+      }
+      if (spd > 0.14 && walkUp > 0.6) out.puff = (seconds * 1.45 + unit(h, 163)) % 1.0;
+    } else {
+      const span = Math.min(length * 0.8, o ? o.r * 0.3 : length * 0.8);
+      rx = Math.max(-lim, Math.min(lim, rx + Math.sin(ph) * span * walkUp));
+      const mv = Math.cos(ph), w = walkUp * smooth01((Math.abs(mv) - 0.15) / 0.3);
+      fx = fx * (1 - w) + Math.sign(mv) * w; fz *= 1 - w * 0.7;
     }
-    const mv = Math.cos(ph), w = walkUp * smooth01((Math.abs(mv) - 0.15) / 0.3);
-    fx = fx * (1 - w) + Math.sign(mv) * w; fz *= 1 - w * 0.7;
   }
   const fl = hyp2(fx, fz); fx /= fl; fz /= fl;
   if (beachWalk) {

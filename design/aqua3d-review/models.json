@@ -56520,7 +56520,7 @@
       "form": "fry",
       "file": "public/aqua/models/fish/fry_kissing_gourami.glb",
       "triangles": 2762,
-      "bytes": 53784,
+      "bytes": 53920,
       "bones": [
         "spine_0",
         "spine_1",
@@ -56542,7 +56542,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "bd6c7b1e0a8ae2a9192567a14629c43539acdc002cfa571507e51ec8298823a3",
-      "sha256": "15d8e1705374afdc2b6a29108214069d2b4da564d461231164b4a75abcd9c08a",
+      "sha256": "06a94c0072f93d5743affbb81ae58bbcaf41d6a49d15d7d0ed2f544581363853",
       "authoringProfile": {
         "key": "kissing_gourami",
         "name": "키싱구라미",
@@ -56616,7 +56616,7 @@
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_kissing_gourami.glb",
       "triangles": 2392,
-      "bytes": 58984,
+      "bytes": 59124,
       "bones": [
         "spine_0",
         "spine_1",
@@ -56638,7 +56638,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "bb9444d6d652a6de4cf6cd9120e688f5facc3ab405eebbff114d3e39fe57eeb7",
-      "sha256": "f2eb146d7633e06e96236c8c3cfc45d78d74d7e03cabae7525c51183fa0e6ec6",
+      "sha256": "ca1a1410671f1f6ffcf4ba6cda66af5555748897014f1f8566febda724881bd3",
       "authoringProfile": {
         "key": "kissing_gourami",
         "name": "키싱구라미",
@@ -56712,7 +56712,7 @@
       "form": "adult",
       "file": "public/aqua/models/fish/kissing_gourami.glb",
       "triangles": 2382,
-      "bytes": 64448,
+      "bytes": 64596,
       "bones": [
         "spine_0",
         "spine_1",
@@ -56734,7 +56734,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4ee77b5dd29da755ac197140bc91a40b5178b20c4facc94630d81495bc35bfb5",
-      "sha256": "bd36752b60a895be6b7a6699d1b1431126b49faf62a34c0bd8198688fc3a7172",
+      "sha256": "44f8af230eab7aae6d6fe592f5932fdac9f74a52d88a92a738b45df8cc653043",
       "authoringProfile": {
         "key": "kissing_gourami",
         "name": "키싱구라미",

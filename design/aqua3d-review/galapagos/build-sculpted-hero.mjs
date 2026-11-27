@@ -308,11 +308,11 @@ function buildCetacean(kind, stage) {
     u: [1, 0, 0], v: [0, 0, 1], a: Math.max(0.015, (isPilot ? 0.22 : 0.13) * (1 - 0.78 * s)), b: 0.022 * (1 - 0.7 * s), e: 1.9,
   }), { ns: 8, nt: 8, capEnd: 0.012, island: [0.68, 0.02, 0.98, 0.30], bone: isBryde ? 4 : 2, paint: () => cBack });
 
-  // 가슴지느러미 (양쪽)
+  // 가슴지느러미 (양쪽) — 뿌리를 몸통 안쪽(z=0.06)에 확실히 묻고 spine_1 과 블렌딩해 떠 있지 않게
   const pX = isBryde ? 0.26 : isPilot ? 0.32 : 0.28, pL = isPilot ? 0.44 : isBryde ? 0.34 : 0.30;
   const fins = {};
   for (const sd of [1, -1]) {
-    const r = [pX, -0.09, sd * 0.13], t = [pX - 0.24, -0.20, sd * (0.13 + pL)];
+    const r = [pX, -0.06, sd * 0.06], t = [pX - 0.24, -0.20, sd * (0.13 + pL)];
     m.sweep(sd > 0 ? 'fin_L' : 'fin_R', (s) => ({ c: [r[0] + (t[0] - r[0]) * s, r[1] + (t[1] - r[1]) * s, r[2] + (t[2] - r[2]) * s], u: [1, 0.1, 0], v: [0, 1, 0], a: 0.10 * (1 - 0.72 * s), b: 0.02 * (1 - 0.65 * s), e: 1.9 }), { ns: 8, nt: 8, capEnd: 0.012, island: [0.68, 0.34, 0.98, 0.62], bone: sd > 0 ? 6 : 8, paint: () => cBack });
     fins[sd > 0 ? 'L' : 'R'] = { root: r, tip: t };
   }
@@ -324,13 +324,15 @@ function buildCetacean(kind, stage) {
       u: [1, 0, 0], v: [0, 1, 0], a: Math.max(0.016, 0.13 * (1 - 0.72 * s)), b: Math.max(0.006, 0.022 * (1 - 0.7 * s)), e: 1.9,
     }), { ns: 8, nt: 8, capEnd: 0.012, island: [0.02, 0.60, 0.60, 0.96], bone: 5, paint: () => cBack });
   }
-  for (const sd of [1, -1]) m.sphere('eye' + sd, [isDolphin ? 0.64 : 0.68, 0.01, sd * 0.13], 0.022, { island: [0.88, 0.88, 0.98, 0.98], bone: 0, paint: () => [14, 16, 20] });
+  for (const sd of [1, -1]) m.sphere('eye' + sd, [isDolphin ? 0.64 : isPilot ? 0.64 : 0.68, 0.01, sd * (isPilot ? 0.155 : isBryde ? 0.13 : 0.09)], 0.026, { island: [0.88, 0.88, 0.98, 0.98], bone: 0, paint: () => [14, 16, 20] });
 
   return {
     m, fins, roughness: 0.42,
     weight: (part, g, [s]) => {
-      if (part.name === 'fin_L') return [[6, 1 - s * 0.6], [7, s * 0.6]];
-      if (part.name === 'fin_R') return [[8, 1 - s * 0.6], [9, s * 0.6]];
+      if (part.name === 'fin_L' || part.name === 'fin_R') {
+        const root = part.name === 'fin_L' ? 6 : 8, k = smooth(0, 0.28, s);
+        return [[1, 1 - k], [root, k * (1 - s * 0.6)], [root + 1, k * s * 0.6]];
+      }
       if (part.bone === 0) return [[0, 1]];
       if (part.bone === 5) return [[5, 1]];
       return spineWeight(g[0]);

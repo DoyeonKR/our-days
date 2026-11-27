@@ -160,7 +160,7 @@ export function prepareFishSource(scene: T.Object3D, key = "") {
 }
 
 /** 위에서 본 윤곽을 방추형으로 고칠 물고기 — 납작하게 누운 것(광어 · 가오리 · 만타) · 리본(뱀장어 · 갈치 · 산갈치) · 해파리 · 불가사리 · 두족류 · 부푼 복어 · 둥근 난주 · 머리 혹 오란다 · 상상의 물고기는 그대로 */
-const NOT_FUSIFORM = /manatee|yujin|bottlenose|kappa|beluga|polar_bear|walrus|penguin|toothfish|icefish|clione|sea_pig|isopod|urchin|salp|hammerhead|orca|whale|sawshark|shrimp|prawn|crab|lobster|seal|sea_lion|otter|loach|pleco|electric_eel|moray|seahorse|sunfish|boxfish|goosefish|skate|frilled_shark|blobfish|flounder|ray|manta|jelly|starfish|octopus|squid|kraken|eel|oarfish|hairtail|imugi|puffer|ranchu|oranda|dragonfish|galaxy|genesis|astral|rising/;
+const NOT_FUSIFORM = /manatee|yujin|bottlenose|kappa|beluga|polar_bear|walrus|penguin|toothfish|icefish|clione|sea_pig|isopod|urchin|salp|hammerhead|orca|whale|sawshark|shrimp|prawn|crab|lobster|seal|sea_lion|otter|loach|pleco|electric_eel|moray|seahorse|sunfish|boxfish|goosefish|skate|frilled_shark|blobfish|flounder|ray|manta|jelly|starfish|octopus|squid|kraken|eel|oarfish|hairtail|imugi|puffer|ranchu|oranda|dragonfish|galaxy|genesis|astral|rising|turtle|iguana|dolphin|clam|nautilus|batfish|porcupine|seadragon/;
 export const fusiform = (key: string) => !!key && !NOT_FUSIFORM.test(key);
 /** 형상 하나의 옆 폭을 고친다(topview.ts) — 원본 정점 단위로 쓴다(압축본은 int16 · 배율이 역바인드 행렬에). 법선도 같은 비율로(옆으로 줄이면 법선은 옆으로 더 눕는다) */
 /** 물고기 텍스처를 작게(64²) 그려 밝기를 읽는다 — 등에 찍을 높이를 고를 때(topview.ts). 못 읽으면(그림이 아직 · 캔버스 없음 · 시험) undefined */
@@ -182,10 +182,9 @@ function texLuma(mesh: T.Mesh): ((u: number, v: number) => number) | undefined {
   } catch { return undefined; }
 }
 function reshapeTopView(mesh: T.SkinnedMesh) {
-  // V3 assets already contain a sculpted width profile and a radial UV atlas.
-  // The legacy image-plate repair would flatten their fins and rewrite the
-  // new atlas coordinates, recreating the very streaks it was meant to fix.
-  if (mesh.userData.aquaGeometry === "closed-volume-v3") return;
+  // V3 assets and part-built 3D sculptures already contain a sculpted width profile and custom UV atlas.
+  // The legacy image-plate repair would flatten their bodies and detach fins/limbs.
+  if (typeof mesh.userData.aquaGeometry === "string" && (mesh.userData.aquaGeometry === "closed-volume-v3" || mesh.userData.aquaGeometry.startsWith("part-built"))) return;
   const g = mesh.geometry;
   if (g.userData.aquaTop) return;
   g.userData.aquaTop = true;
@@ -559,10 +558,10 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
     parent?.add(inner);
     parent?.updateMatrixWorld(true);
     const pMin = box.min.clone().sub(inner.position);
-    // 서 있을 때(-X 가 아래로 회전) 발바닥 최저점이 root 기준 -0.065~-0.075(모래 표면 바로 위)에 오도록 들어 올린다
-    const soleTarget = upright0 ? -0.06 : human ? -0.065 : -0.072;
+    // 서 있을 때(-X 가 아래로 회전) 발바닥 최저점이 root 기준 모래 표면(-0.12L)에 찰싹 닿도록 맞춘다
+    const soleTarget = upright0 ? -0.115 : human ? -0.11 : -0.122;
     const footLift = Math.max(0, soleTarget - pMin.x - inner.position.y);
-    const baseLift = Math.max(0, pMin.y - pMin.x * (upright0 ? 1.04 : human ? 1.06 : 1.02));
+    const baseLift = Math.max(0, pMin.y - pMin.x * (upright0 ? 1.02 : human ? 1.03 : 0.96));
     walkBase = { q: inner.quaternion.clone(), pos: inner.position.clone(), lift: Math.max(baseLift, footLift) };
   }
   const qa = new T.Quaternion(), qb = new T.Quaternion();
@@ -707,10 +706,11 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       const up = Math.max(0, Math.min(1, (pose as { upright?: number } | undefined)?.upright ?? 0)), k = dt > 0 ? 1 - Math.exp(-Math.min(dt, 0.25) / 0.45) : 1;
       uprightS += (up - uprightS) * k;
       const u = uprightS < 0.002 ? 0 : uprightS;
-      // 걸음 — 실제 빠르기(몸길이/초)로 박자를 쌓는다. 멈추면 기울기도 0 으로 돌아온다
-      const walkAmp = u * Math.min(1, (speed ?? 0) / 0.12);
-      if (dt > 0) stepPh += dt * (3.2 + 4 * Math.min(1, (speed ?? 0) / 0.3)) * (walkAmp > 0.02 ? 1 : 0);
-      const lean = Math.sin(stepPh) * (human ? 0.05 : 0.17) * walkAmp, bob = Math.abs(Math.sin(stepPh)) * (human ? 0.02 : 0.035) * walkAmp;
+      // 걸음 — 실제 이동 빠르기(몸길이/초)에 비례해 박자를 쌓아 제자리걸음/미끄러짐을 없앤다. 멈추면 기울기도 0 으로 돌아온다
+      const spNow = Math.max(0, speed ?? 0);
+      const walkAmp = u * Math.max(0, Math.min(1, (spNow - 0.03) / 0.14));
+      if (dt > 0 && walkAmp > 0.02) stepPh += dt * Math.min(8.5, Math.max(1.2, spNow * (upright0 ? 11 : human ? 10 : 12)));
+      const lean = Math.sin(stepPh) * (human ? 0.045 : 0.16) * walkAmp, bob = Math.abs(Math.sin(stepPh)) * (human ? 0.015 : 0.018) * walkAmp;
       // 자유형(2026-11-26 [사용자: "사람이 자유영 하느 느낌으로 수영하는 모션도 취해야해"]) — 물고기 몸 물결 · 지느러미 젓기를 거두고
       //   팔을 번갈아 크게 돈다(옆 축 Z): 몸 옆(-X) → 물 밖으로 등 위(+Y)를 넘어 → 머리 앞(+X)으로 뻗고 → 배 밑(-Y)으로 당겨 → 다시 몸 옆. 넘기는 동안은 팔꿈치를 굽힌다.
       //   발은 빠르게 번갈아 차고(박자의 3배), 당기는 쪽으로 몸이 구르고(몸 축 X), 두 번 젓는 데 한 번 고개를 돌려 숨 쉰다. 땅 위(upright)로 갈수록 걷기로 넘어간다

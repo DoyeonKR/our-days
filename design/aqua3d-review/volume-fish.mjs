@@ -68,7 +68,7 @@ export function volumeFish(family,key,ref,profile){
  const {l,t,r,b,W,H,ratio,X,Y,raw,long,bill,box,peak,sample,sourceAt,center}=bodyProfile(family,ref,profile);
  const paint=(u,v)=>[(l+clamp(u)*W)/ref.info.width,.5+(t+clamp(v)*H)/ref.info.height*.5];
  const skin=(x,fin=null)=>{
-  if(fin){const root=fin.side>0?6:8,f=smooth(fin.t);return {ids:[root,root+1,0,0],ws:[1-f,f,0,0]};}
+  if(fin){const root=fin.side>0?6:8,f=smooth(fin.t),rb=smooth(clamp(fin.t/.28));return rb<.999?{ids:[1,root,root+1,0],ws:[1-rb,rb*(1-f),rb*f,0]}:{ids:[root,root+1,0,0],ws:[1-f,f,0,0]};}
   if(!long&&x>=.65)return {ids:[0,0,0,0],ws:[1,0,0,0]};
   const q=clamp((.85-x)/.34,0,5);
   const j=Math.floor(q),f=q-j,a=[(1-f)**3/6,(3*f**3-6*f*f+4)/6,(-3*f**3+3*f*f+3*f+1)/6,f**3/6],map=new Map();
@@ -156,7 +156,7 @@ export function volumeFish(family,key,ref,profile){
  }
  // Thin, cambered, swept leaf fins with a real root and flexible distal region.
  if(profile.shark)for(const side of [-1,1]){
-  const start=positions.length/3,q=sample(.71),rootX=X(q.u),rootY=Y(q.center)-q.half*ratio*.35,rootZ=profile.widthRatio*widthCurve(.71)*.85;
+  const start=positions.length/3,q=sample(.71),rootX=X(q.u),rootY=Y(q.center)-q.half*ratio*.35,rootZ=profile.widthRatio*widthCurve(.71)*.45;
   const span=profile.finSpan*(key.startsWith('fry_')?.8:key.startsWith('juv_')?.9:1),R=8,C=4;
   // Triangular swept planform with a broad attached root, thin edges and
   // camber. Both surfaces meet at their leading/trailing edges and tip.
@@ -196,7 +196,7 @@ export function volumeFish(family,key,ref,profile){
   regions.push({name:side>0?'pectoral_L':'pectoral_R',start,end:positions.length/3});
  }
  else if(!profile.shark&&family!=='moray')for(const side of [-1,1]){
-  const start=positions.length/3,s=.72,q=sample(s),anchor=[X(q.u),Y(q.center)-q.half*ratio*.28,side*profile.widthRatio*widthCurve(s)];
+  const start=positions.length/3,s=.72,q=sample(s),anchor=[X(q.u),Y(q.center)-q.half*ratio*.28,side*profile.widthRatio*widthCurve(s)*.55];
   const gain=['box','disc','blob'].includes(profile.body)?.48:long?.42:1,R=6,C=4;
   for(const face of [-1,1])for(let j=0;j<=R;j++)for(let k=0;k<=C;k++){
    const f=j/R,v=k/C*2-1,spread=Math.sin(Math.PI*f),x=anchor[0]-.29*f*gain+v*.075*spread*gain;

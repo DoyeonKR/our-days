@@ -151,11 +151,11 @@ function buildNautilus(stage) {
   });
   // 두건(hood) + 큰 눈
   m.sweep('hood', (s) => ({ c: [0.16 + s * 0.34, 0.16 - s * 0.08, 0], u: [0, 1, 0], v: [0, 0, 1], a: 0.14 * (1 - 0.55 * s), b: 0.16 * (1 - 0.45 * s) }), { ns: 8, nt: 10, capEnd: 0.02, island: [0.64, 0.02, 0.98, 0.40], bone: 0, paint: (P) => mix(cHood, cIvory, noise(P[0] * 28, P[1] * 28, P[2] * 28) > 0.65 ? 0.8 : 0) });
-  for (const sd of [1, -1]) m.sphere('eye' + sd, [0.28, 0.02, sd * 0.17], 0.058, { island: [0.86, 0.86, 0.98, 0.98], bone: 0, paint: (P, n) => Math.abs(n[2]) > 0.72 ? [16, 16, 20] : [235, 228, 212] });
+  for (const sd of [1, -1]) m.sphere('eye' + sd, [0.26, 0.04, sd * 0.11], 0.058, { island: [0.86, 0.86, 0.98, 0.98], bone: 0, paint: (P, n) => Math.abs(n[2]) > 0.72 ? [16, 16, 20] : [235, 228, 212] });
   // 촉수 다발(cirri)
   for (let k = 0; k < 10; k++) {
-    const dy = (k / 9 - 0.5) * 0.26, dz = ((k % 3) - 1) * 0.08;
-    m.sweep('cir' + k, (s) => ({ c: [0.24 + s * 0.44, -0.05 + dy - s * 0.06, dz * (1 + s * 0.5)], u: [0, 1, 0], v: [0, 0, 1], a: 0.016 * (1 - 0.65 * s), b: 0.016 * (1 - 0.65 * s) }), { ns: 6, nt: 5, capEnd: 0.005, island: [0.64, 0.44, 0.98, 0.80], bone: 0, paint: () => cIvory });
+    const dy = (k / 9 - 0.5) * 0.22, dz = ((k % 3) - 1) * 0.07;
+    m.sweep('cir' + k, (s) => ({ c: [0.16 + s * 0.50, -0.02 + dy - s * 0.06, dz * (1 + s * 0.5)], u: [0, 1, 0], v: [0, 0, 1], a: 0.018 * (1 - 0.65 * s), b: 0.018 * (1 - 0.65 * s) }), { ns: 6, nt: 5, capEnd: 0.005, island: [0.64, 0.44, 0.98, 0.80], bone: 0, paint: () => cIvory });
   }
   const fins = { L: { root: [0.2, 0, 0.16], tip: [0.55, -0.05, 0.22] }, R: { root: [0.2, 0, -0.16], tip: [0.55, -0.05, -0.22] } };
   return { m, fins, roughness: 0.42, weight: stdFinWeight };
