@@ -43,10 +43,10 @@ test("the shown number is exactly the chance used (no hidden rounding or modifie
   assert.equal(coopChance(0.4, false), 0.4);
   // 화면 — 같은 chance 를 글자와 판정에 넘긴다
   const game = readFileSync(new URL("../components/FishingGame.tsx", import.meta.url), "utf8");
-  assert.match(game, /const chance = fish \? pinCapture\(fish\.family, coopChance\(soloChance, coopHelpedNow\)\) : 0;/); // 유진만 9% 고정(fishing.FIXED_CAPTURE — eventfish.test)
+  assert.match(game, /const chance = fish \? pinCapture\(fish\.family, coopChance\(soloChance, coopHelpedNow\)\) : 0;/); // 유진만 0.5% 고정(fishing.FIXED_CAPTURE — eventfish.test)
   assert.match(game, /const roll = dice\(\), c = fish, p = chance, t = clock\(\);/);
   for (const call of ["tryNet(s, c, p, roll,", "tryStore(s, c, p, roll,", "tryStoreSwap(s, c, releaseId, p, roll,"]) assert.ok(game.includes(call), call);
   assert.match(game, /수조에 담기 · 성공 확률 \{pct\(chance\)\}/);
   assert.match(game, /const dice = \(\) => Math\.random\(\);/);
-  assert.match(game, /const pct = \(v: number\) => `\$\{Math\.round\(v \* 100\)\}%`;/);
+  assert.match(game, /const pct = \(v: number\) => \(v > 0 && v < 0\.01 \? `\$\{\+\(v \* 100\)\.toFixed\(1\)\}%` : `\$\{Math\.round\(v \* 100\)\}%`\);/);
 });

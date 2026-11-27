@@ -4,13 +4,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { BAITS, SPOTS, catchValue, poolFor, rollCatch, spotMinBait, spotValue, type MethodKey } from "./fishing.ts";
+import { EVENT_FISH } from "./eventfish.ts";
 import { GRADES } from "./aquarium.ts";
+
+const ALL_EVENTS_DONE = EVENT_FISH.map((e) => e.species);
 
 const rate = (spotKey: string, bait: number, luck: number, method: MethodKey, n = 6000) => {
   const spot = SPOTS.find((s) => s.key === spotKey)!;
   let leg = 0, myth = 0;
   for (let i = 0; i < n; i++) {
-    const g = GRADES.indexOf(rollCatch(spot, luck, 0.7, (Math.imul(i + 1, 2654435761) + 11) >>> 0, { bait, method }).grade);
+    const g = GRADES.indexOf(rollCatch(spot, luck, 0.7, (Math.imul(i + 1, 2654435761) + 11) >>> 0, { bait, method, eventDone: ALL_EVENTS_DONE }).grade);
     if (g >= 5) leg++;
     if (g >= 6) myth++;
   }

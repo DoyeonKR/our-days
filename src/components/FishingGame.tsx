@@ -103,7 +103,7 @@ const LIGHT_FLICK_MS = 140;
 const dice = () => Math.random();
 const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear", "장비"], ["stat", "목표"], ["more", "수집"], ["rank", "랭킹"]];
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
-const pct = (v: number) => `${Math.round(v * 100)}%`;
+const pct = (v: number) => (v > 0 && v < 0.01 ? `${+(v * 100).toFixed(1)}%` : `${Math.round(v * 100)}%`);
 const buzz = (p: number | number[]) => haptic(p);
 const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 /** 뜰채로 건지는 시간 — 판정은 바로 나도 이만큼은 조마조마해야 한다 */
@@ -1683,7 +1683,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   // 목표 탭의 숫자는 받을 목표만 — 능력치 점수는 2026-11-13 장비 탭으로 옮겨서, 목표 탭에 더하면 목표를 다 받아도 숫자가 안 사라졌다
   const goalCount = claimableGoals(fs, today);
   const todayItems = fishTodayItems(st, fs, today, who), todayLabel = fishTodayLabel(todayItems);
-  const catchable = catchableCount(spot, baitIndex(bait.key), moment);
+  const catchable = catchableCount(spot, baitIndex(bait.key), moment, eventDone(st));
   /** 결과 카드의 소식 — 길이 · 기록 · 원정. 없으면 그리지 않는다 */
   const sizeLine = fish?.cm ? `${fmtCm(fish.cm)}${result?.sizeNote === "top" ? " · 상대 기록을 넘었어요!" : result?.sizeNote === "mine" ? " · 내 최고 기록!" : ""}${result?.sizeCoins ? ` +${result.sizeCoins.toLocaleString()}하트 · 경험치 1.5배` : ""}` : null;
   const requestLine = result?.request ? `의뢰 완료! ${familyName(result.request.family)} +${result.request.coins.toLocaleString()}하트${result.request.all ? " · 오늘 의뢰를 다 했어요" : ""}` : null;
@@ -2057,7 +2057,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             <span aria-hidden className="fish-loadout-more">▾</span>
           </button>
 
-          {worldSheet === "fish" && <FishListSheet spot={spot} baitIdx={baitIndex(bait.key)} method={method} luck={eff.luck} moment={moment} level={fs.level} seen={formsSeen(st)} onClose={() => setWorldSheet(null)} />}
+          {worldSheet === "fish" && <FishListSheet spot={spot} baitIdx={baitIndex(bait.key)} method={method} luck={eff.luck} moment={moment} level={fs.level} seen={formsSeen(st)} done={eventDone(st)} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "moon" && <MoonSheet spot={spot} now={clock()} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} now={clock()} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "boss" && boss && (

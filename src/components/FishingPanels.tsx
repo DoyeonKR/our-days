@@ -448,7 +448,7 @@ export function MoonSheet({ spot, now, moment, baitGrade, onClose }: { spot: Fis
   );
 }
 
-const chanceText = (v: number) => (v < 0.01 ? "1% 미만" : `${Math.round(v * 100)}%`);
+const chanceText = (v: number) => (v < 0.01 ? (v >= 0.0005 ? `${+(v * 100).toFixed(1)}%` : "1% 미만") : `${Math.round(v * 100)}%`);
 /** 계열의 대표 그림 — 만난 다 큰 모습이 있으면 그것, 없으면 첫 품종 */
 const famArt = (key: string, seen: ReadonlySet<string>) => {
   const f = FAMILIES.find((x) => x.key === key);
@@ -456,12 +456,13 @@ const famArt = (key: string, seen: ReadonlySet<string>) => {
 };
 
 /** 잡을 수 있는 물고기 — 지금 여기서 무는 것(확률은 실제 뽑기로 잰다)과 모든 어종이 어디서 잡히는지 */
-export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen, onClose }: { spot: FishSpot; baitIdx: number; method: MethodKey; luck: number; moment: FishMoment; level: number; seen: ReadonlySet<string>; onClose: () => void }) {
+export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen, done, onClose }: { spot: FishSpot; baitIdx: number; method: MethodKey; luck: number; moment: FishMoment; level: number; seen: ReadonlySet<string>; done?: readonly string[]; onClose: () => void }) {
   const [view, setView] = useState<"now" | "all">("now");
-  const rows = useMemo(() => catchTable(spot, luck, baitIdx, method, moment), [spot, luck, baitIdx, method, moment.time, moment.wx, moment.moon?.full]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => catchTable(spot, luck, baitIdx, method, moment, 3000, done), [spot, luck, baitIdx, method, done, moment.time, moment.wx, moment.moon?.full]); // eslint-disable-line react-hooks/exhaustive-deps
   const seenOf = (family: string) => ALL_FORMS.filter((x) => x.family === family && seen.has(x.key)).length;
   const totalOf = (family: string) => ALL_FORMS.filter((x) => x.family === family).length;
   const placed = new Set(SPOTS.flatMap((s) => s.pool.map(([k]) => k)));
+  const famOfSpecies = (sp: string) => FAMILIES.find((x) => x.key === sp || x.finals.some((y) => y.key === sp))?.key;
   return (
     <SheetShell title="잡을 수 있는 물고기" onClose={onClose}>
       <div className="fish-rank-switch" role="group" aria-label="보기">
@@ -485,22 +486,37 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
         <>
           <p className="fish-how">{FAMILIES.length}종 · 도감 {ALL_FORMS.filter((x) => seen.has(x.key)).length}/{ALL_FORMS.length}칸</p>
           {SPOTS.map((s) => {
+            const spotPool = new Set(s.pool.map(([k]) => k));
             const guests = FAMILIES.filter((f) => !placed.has(f.key) && TIMED_FISH.some((t) => t.spot === s.key && t.species === f.key));
-            // 이벤트 물고기(갓파 — lib/eventfish)도 그 낚시터 칸에(2026-11-26 — 목록에서 빠져 있었다)
-            const events = EVENT_FISH.filter((e) => e.spot === s.key && !placed.has(e.species) && !guests.some((f) => f.key === e.species));
+            // 보름달 손님(MOON_FISH — 항구 해파리 · 대양 산갈치 · 용궁 달빛해파리)도 그 낚시터 칸에 누락 없이 표시
+            const moons = MOON_FISH.filter((m) => m.spot === s.key)
+              .map((m) => ({ fam: famOfSpecies(m.species), m }))
+              .filter((x): x is { fam: string; m: (typeof MOON_FISH)[number] } => !!x.fam && !spotPool.has(x.fam) && !guests.some((f) => f.key === x.fam));
+            // 이벤트 물고기(갓파 · 유진 — lib/eventfish)도 그 낚시터 칸에
+            const events = EVENT_FISH.filter((e) => e.spot === s.key && !spotPool.has(e.species) && !guests.some((f) => f.key === e.species) && !moons.some((x) => x.fam === e.species));
             return (
               <section key={s.key}>
                 <h3 className="fish-sheet-title">{s.name} <small>{WATER_NAME[s.water]}{level < s.minLevel ? ` · Lv.${s.minLevel}` : ""}</small></h3>
                 <ul className="fish-timed">
-                  {[...s.pool.map(([k]) => k), ...guests.map((f) => f.key), ...events.map((e) => e.species)].map((k) => (
-                    <li key={k} className={seenOf(k) ? "" : "is-unseen"}>
-                      <span className="fish-boss-pic"><FishArt artKey={famArt(k, seen)} /></span>
-                      <span className="min-w-0 flex-1">
-                        <strong>{familyName(k)}</strong>
-                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{events.some((e) => e.species === k) ? ` · 이벤트 · 던질 때마다 ${Math.round(events.find((e) => e.species === k)!.chance * 100)}%` : ""}{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}${TIMED_FISH.find((t) => t.species === k)!.always ? "" : "에만"}${TIMED_FISH.find((t) => t.species === k)!.rare ? ` · 와도 ${Math.round(TIMED_FISH.find((t) => t.species === k)!.rare! * 100)}%만` : ""}` : ""}</small>
-                      </span>
-                    </li>
-                  ))}
+                  {[...s.pool.map(([k]) => k), ...guests.map((f) => f.key), ...moons.map((x) => x.fam), ...events.map((e) => e.species)].map((k) => {
+                    const ev = events.find((e) => e.species === k);
+                    const g = guests.some((f) => f.key === k) ? TIMED_FISH.find((t) => t.spot === s.key && t.species === k) : undefined;
+                    const mn = moons.find((x) => x.fam === k)?.m;
+                    return (
+                      <li key={k} className={seenOf(k) ? "" : "is-unseen"}>
+                        <span className="fish-boss-pic"><FishArt artKey={famArt(k, seen)} /></span>
+                        <span className="min-w-0 flex-1">
+                          <strong>{familyName(k)}</strong>
+                          <small>
+                            {DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸
+                            {ev ? ` · 이벤트 · 던질 때마다 ${+(ev.chance * 100).toFixed(1)}%` : ""}
+                            {g ? ` · ${timedLabel(g)}${g.always ? "" : "에만"}${g.rare ? ` · 와도 ${Math.round(g.rare * 100)}%만` : ""}` : ""}
+                            {mn ? ` · ${timedLabel(mn)}에만` : ""}
+                          </small>
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             );

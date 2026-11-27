@@ -282,7 +282,7 @@ test("원정 — 지금 낚시터로 한 주에 채울 만한 무게다", () => 
     const spot = open[Math.max(0, open.length - 2)];
     const e = expedFor({ level, exped: null }, TODAY, true);
     let kg = 0;
-    for (let i = 0; i < e.need.count; i++) kg += kgOf(rollCatch(spot, 5, 0.4, i * 131 + 9, { bait: BAITS.findIndex((b) => poolFor(spot, b.maxGrade).length > 0) }).cm ?? 0);
+    for (let i = 0; i < e.need.count; i++) kg += kgOf(rollCatch(spot, 5, 0.4, i * 131 + 9, { bait: BAITS.findIndex((b) => poolFor(spot, b.maxGrade).length > 0), eventDone: ["yujin", "kappa"] }).cm ?? 0);
     assert.ok(kg >= e.need.kg, `Lv.${level}: ${kg.toFixed(2)} < ${e.need.kg}`);
     assert.ok(kg < e.need.kg * 60, `Lv.${level}: 너무 쉽다 ${kg.toFixed(2)} / ${e.need.kg}`);
   }

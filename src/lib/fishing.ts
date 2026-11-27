@@ -954,8 +954,8 @@ export const xpValue = (difficulty: number) => Math.round(10 * 1.5 ** difficulty
 /** 고래류(범고래 · 밍크 · 귀신 · 혹등 · 향유 · 흰수염)는 수조에 담는 확률이 절반(2026-11-19 [사용자: "고래류 포획률은 더 낮춰줘 반으로"]) — 버튼에 보이는 확률도 같은 값 */
 export const isWhale = (family?: string) => !!family && /^(orca|[a-z]+_whale)$/.test(family) && family !== "whale_shark";
 export const WHALE_CAPTURE = 0.5;
-/** 수조 담기 확률을 고정하는 이벤트 물고기(2026-11-27 [사용자: "유진이도 이벤트성 … 포획 확률도 10퍼 미만으로 고정"]) — 능력치 · 솜씨 · 끈끈 미끼 · 함께 끌어올리기 · 피버와 무관하게 이 값. 버튼에 보이는 확률도 같은 값 */
-export const FIXED_CAPTURE: Readonly<Record<string, number>> = { yujin: 0.09 };
+/** 수조 담기 확률을 고정하는 이벤트 물고기(2026-11-27 [사용자: "유진이 낚시 잡힐 확률 5%로 올리고 수조에 넣을 확률을 0.5% 낮춰"]) — 능력치 · 솜씨 · 끈끈 미끼 · 함께 끌어올리기 · 피버와 무관하게 이 값. 버튼에 보이는 확률도 같은 값 */
+export const FIXED_CAPTURE: Readonly<Record<string, number>> = { yujin: 0.005 };
 export const pinCapture = (family: string | undefined, chance: number): number => (family && family in FIXED_CAPTURE ? FIXED_CAPTURE[family] : chance);
 export function captureChance(catchStat: number, difficulty: number, quality: number, perfectHook: boolean, method: MethodKey = "float", bonus = 0, family?: string): number {
   const p = 0.55 + (catchStat - difficulty * 9) * 0.02 + quality * 0.1 + (perfectHook ? 0.05 : 0) + methodOf(method).capture + bonus;
@@ -1169,24 +1169,34 @@ export function formsSeen(st: Pick<IslandState, "fishing" | "aquarium">): Set<st
 
 /** 지금 이 낚시터 · 미끼 · 방식 · 때에 잡히는 물고기 — 실제 뽑기를 돌려 세므로 규칙을 고쳐도 표가 따라온다. 쓰레기는 뺀 값이다. */
 export type CatchRow = { family: string; chance: number; forms: string[] };
-export function catchTable(spot: FishSpot, luck: number, bait: number, method: MethodKey, when: FishMoment | undefined, n = 3000): CatchRow[] {
+export function catchTable(spot: FishSpot, luck: number, bait: number, method: MethodKey, when: FishMoment | undefined, n = 3000, done?: readonly string[]): CatchRow[] {
   const rows = new Map<string, { hits: number; forms: Set<string> }>();
   for (let i = 0; i < n; i++) {
-    const c = rollCatch(spot, luck, CAST_BASE, (Math.imul(i + 1, 2654435761) + 11) >>> 0, { bait, method, when });
+    const c = rollCatch(spot, luck, CAST_BASE, (Math.imul(i + 1, 2654435761) + 11) >>> 0, { bait, method, when, eventDone: done });
     const r = rows.get(c.family) ?? { hits: 0, forms: new Set<string>() };
     r.hits++;
     r.forms.add(catchArt(c));
     rows.set(c.family, r);
   }
-  return [...rows].map(([family, r]) => ({ family, chance: r.hits / n, forms: [...r.forms] })).sort((a, b) => b.chance - a.chance);
+  const out = [...rows].map(([family, r]) => ({ family, chance: r.hits / n, forms: [...r.forms] }));
+  // 확률이 낮은 이벤트 물고기가 표본에서 우연히 빠져 누락되지 않도록 보충
+  for (const e of EVENT_FISH) {
+    if (e.spot === spot.key && !done?.includes(e.species) && !rows.has(e.species)) {
+      out.push({ family: e.species, chance: e.chance, forms: [e.species] });
+    }
+  }
+  return out.sort((a, b) => b.chance - a.chance);
 }
-/** 이 미끼 · 때에 물 수 있는 계열 수 — 버튼의 숫자 */
-export function catchableCount(spot: FishSpot, bait: number, when: FishMoment | undefined): number {
+/** 이 미끼 · 때에 물 수 있는 계열 수 — 버튼의 숫자(이벤트 물고기 포함) */
+export function catchableCount(spot: FishSpot, bait: number, when: FishMoment | undefined, done?: readonly string[]): number {
   const cap = BAITS[Math.min(BAITS.length - 1, bait)].maxGrade;
   const keys = new Set(poolFor(spot, cap).map(([k]) => k));
   for (const t of when ? timedAt(spot.key, when) : []) {
     const f = FAMILIES.find((x) => x.finals.some((y) => y.key === t.species));
     if (f && gradeNo(speciesOf(t.species)?.grade ?? "태초") <= cap) keys.add(f.key);
+  }
+  for (const e of EVENT_FISH) {
+    if (e.spot === spot.key && !done?.includes(e.species)) keys.add(e.species);
   }
   return keys.size;
 }
