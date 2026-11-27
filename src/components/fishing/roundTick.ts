@@ -9,7 +9,7 @@ import { GRADES } from "@/lib/aquarium";
 import { BOSS_PHASE_NAME, bossPhase, bossTune, catchArt, deepestOf, fightLevel, fightQuality, noteDeepest, shadowSize, startFight, stepFight, traceTick, type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type GearResult, type MethodKey } from "@/lib/fishing";
 import { bossLeft, bossOf } from "@/lib/fishingworld";
 import { lightBand, lightFightTune, lightHook, lightQuality, lightTotalQuality, stepLight, type Light, type LightTune } from "@/lib/fishinglight";
-import { HERD_TIME_S, deepGrabbing, deepQuality, deepSurvivedGrab, herdBest, lureQuality, lureRing, stepDeep, stepHerd, stepLure, stepSway, swayQuality, type Deep, type DeepTune, type Herd, type HerdTune, type Lure, type LureTune, type Sway, type SwayTune } from "@/lib/fishingmodes";
+import { HERD_TIME_S, deepGrabbing, deepQuality, deepSurvivedGrab, herdBest, lureQuality, lureRing, stepDeep, stepHerd, stepLure, stepSway, swayQuality, triggerHerdDash, type Deep, type DeepTune, type Herd, type HerdTune, type Lure, type LureTune, type Sway, type SwayTune } from "@/lib/fishingmodes";
 import type { LostKey, Phase, StampTone } from "@/components/FishingGame";
 
 export type TickCtx = {
@@ -38,6 +38,7 @@ export type TickCtx = {
   /** 뜰채로 붙잡았다 — 판을 끝내는 표시(올리는 쪽은 화면에 둔다: 판을 시작할 때 화면이 다시 내린다) */
   markHerdCaught: () => void;
   herdAt: { current: { x: number; y: number } };
+  herdDashRef?: { current: boolean };
   gradeRef: { current: number };
   timers: { current: ReturnType<typeof setTimeout>[] };
   methodRef: { current: MethodKey };
@@ -173,21 +174,36 @@ export function tickLantern(k: TickCtx, dt: number): void {
   return;
 }
 
-/** 뜰채 — 그물로 몰아 붙잡기 */
+/** 뜰채 v2 — 여울 포켓 · 물살 · 휘두르기 대시 · 황금 거품 */
 export function tickHerd(k: TickCtx, dt: number): void {
-  const { fxRef, roundEnded, fishRef, herdRef, herdTuneRef, herdCaught, markHerdCaught, herdAt, gradeRef, timers, setPerfectHook, setHerdS, setFish, loseRound, landRound, feverNow, showStamp, buzz } = k;
+  const { fxRef, roundEnded, fishRef, herdRef, herdTuneRef, herdCaught, markHerdCaught, herdAt, herdDashRef, gradeRef, timers, setPerfectHook, setHerdS, setFish, loseRound, landRound, feverNow, showStamp, buzz } = k;
   const fxn = fxRef.current;
-  const cur = herdRef.current, tune = herdTuneRef.current;
+  let cur = herdRef.current;
+  const tune = herdTuneRef.current;
   if (!cur || !tune || roundEnded.current || herdCaught.current) return;
   const at = herdAt.current;
+  if (herdDashRef?.current) {
+    herdDashRef.current = false;
+    const dashed = triggerHerdDash(cur, at.x, at.y, tune);
+    if (dashed !== cur) {
+      cur = dashed;
+      buzz(22);
+    }
+  }
+  const prevBonus = cur.bonuses ?? 0;
   const next = stepHerd(cur, dt, at.x, at.y, tune);
   herdRef.current = next;
   setHerdS(next);
   // 개발 빌드에서만 — 콘솔 · 자동 확인에서 판 상태를 본다(배포 빌드엔 이 분기가 없다)
   if (process.env.NODE_ENV !== "production") (window as { __fishHerd?: Herd }).__fishHerd = next;
+  if ((next.bonuses ?? 0) > prevBonus) {
+    showStamp("황금 거품! +2초", "gold");
+    buzz([20, 20, 45]);
+  }
   fxn?.setShoal(next.fish.map((f) => ({ id: f.id, x: f.x, y: f.y, h: Math.atan2(f.vy, f.vx || 1e-6), z: 1, reach: true, size: shadowSize(f.haul), grade: GRADES.indexOf(f.haul.grade), junk: !!f.haul.junk })));
   fxn?.aim({ x: next.nx, y: next.ny, r: tune.netR });
   const best = herdBest(next);
+  fxn?.setHerdV2({ pockets: next.pockets, flow: next.flow, bubble: next.bubble, lureAt: next.lureAt, dashing: (next.dashLeft ?? 0) > 0, progress: best.p });
   if (next.status === "on" && best.i >= 0 && !next.fish[best.i].haul.junk) {
     const c = next.fish[best.i].haul;
     fishRef.current = c;

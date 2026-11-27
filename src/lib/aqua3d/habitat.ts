@@ -313,18 +313,23 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
         float beachK=smoothstep(aquaBeachX0,aquaBeachX0+.8,vAquaPosition.x);
         diffuseColor.rgb *= mix(vec3(1.),vec3(.28,.34,.24),bank*aquaBankStrength*(1.-beachK));
         diffuseColor.rgb *= mix(vec3(1.),vec3(1.18,1.12,1.0),beachK);
-        float dry=beachK*smoothstep(5.45,5.7,vAquaPosition.y);
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(1.55,1.42,1.18), dry);
-        // 물가(2026-11-18) — 물 밑 경사엔 물가와 나란한 모래 물결, 수면 바로 위는 젖어 짙고 매끈한 띠, 물이 닿는 선엔 오르내리는 거품
-        float sub=beachK*(1.-smoothstep(5.4,5.56,vAquaPosition.y));
-        float rip=sin(vAquaPosition.x*15.+sin(vAquaPosition.z*2.3)*1.6+sin(vAquaPosition.z*5.1)*.4);
-        diffuseColor.rgb *= 1.+rip*.075*sub;
-        float lap=5.585+.03*sin(aquaTime*.9+vAquaPosition.z*1.7)+.012*sin(aquaTime*2.3+vAquaPosition.z*4.9);
-        float wet=beachK*smoothstep(5.5,5.56,vAquaPosition.y)*(1.-smoothstep(lap+.03,lap+.16,vAquaPosition.y));
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(.62,.6,.56), wet*.85);
-        float foamN=.5+.5*sin(vAquaPosition.z*23.+aquaTime*1.3)*sin(vAquaPosition.z*9.7-aquaTime*.7);
-        float foam=beachK*(1.-smoothstep(.0,.028,abs(vAquaPosition.y-lap)))*(.55+.45*foamN);
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.93,.95,.94), foam*.8);
+        float dry=beachK*smoothstep(5.54,5.76,vAquaPosition.y);
+        float glint=pow(max(0.,sin(vAquaPosition.x*67.+vAquaPosition.z*43.)*cos(vAquaPosition.x*53.-vAquaPosition.z*71.)),14.);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(1.58,1.46,1.22)+vec3(.14,.13,.10)*glint, dry);
+        // shoreline swash zone: dynamic wave lap, glossy wet sand, lacy backwash foam, shallow turquoise tint
+        float sub=beachK*(1.-smoothstep(5.42,5.58,vAquaPosition.y));
+        float rip=sin(vAquaPosition.x*16.+sin(vAquaPosition.z*2.3)*1.6+sin(vAquaPosition.z*5.1)*.4);
+        diffuseColor.rgb *= 1.+rip*.085*sub;
+        float shallow=sub*smoothstep(4.2,5.52,vAquaPosition.y);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(.78,1.06,1.08)+vec3(.02,.08,.09), shallow*.45);
+        float lap=5.59+.042*sin(aquaTime*1.05+vAquaPosition.z*1.55)+.016*sin(aquaTime*2.4+vAquaPosition.z*4.3);
+        float swash=5.64+.025*sin(aquaTime*.7+vAquaPosition.z*1.1);
+        float wet=beachK*smoothstep(5.48,5.56,vAquaPosition.y)*(1.-smoothstep(swash,swash+.22,vAquaPosition.y));
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(.56,.54,.50), wet*.88);
+        float foamN=.5+.5*sin(vAquaPosition.z*24.+aquaTime*1.5)*sin(vAquaPosition.z*10.3-aquaTime*.85);
+        float foam=beachK*(1.-smoothstep(.0,.038,abs(vAquaPosition.y-lap)))*(.6+.4*foamN);
+        float lace=beachK*smoothstep(lap-.09,lap-.01,vAquaPosition.y)*(1.-smoothstep(lap,lap+.02,vAquaPosition.y))*pow(foamN,2.2)*.55;
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.95,.98,.99), clamp(foam*.88+lace,0.,1.));
         aquaWet=wet;
         // 물 밑 모래는 곳곳이 축축하게 짙다 — 넓은 얼룩이 있어야 타일 반복이 안 보인다
         float damp=.5+.5*sin(vAquaPosition.x*.9+sin(vAquaPosition.z*1.3)*1.4)*sin(vAquaPosition.z*1.1+vAquaPosition.x*.35);
@@ -356,7 +361,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
         float moss=steep*(1.-above2)*smoothstep(.35,.85,sin(vAquaPosition.y*2.3+vAquaPosition.z*1.7)*.5+.5)*smoothstep(4.5,-1.,vAquaPosition.y);
         diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.62,.78,.52),moss*.6);
         aquaDry=beachK*above2;`)
-      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n        roughnessFactor = mix(roughnessFactor, .32, aquaWet);")
+      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n        roughnessFactor = mix(roughnessFactor, .14, aquaWet);")
       .replace("#include <dithering_fragment>", `
       // RGB dispersion caustics under water; side projection on steep faces
       { float stp=beachK*(1.-smoothstep(.55,.78,vAquaN.y));
@@ -490,10 +495,10 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${Math.min(artTier, TANK_ART_MAX)}.webp`),texture=>{
     if(disposed){texture.dispose();return;}texture.colorSpace=T.SRGBColorSpace;backdrop.uniforms.scenery.value=texture;backdrop.uniforms.photoReady.value=1;
   },undefined,()=>{photo?.dispose();photo=null;});
-  // 수면 밑면 — 물리 기반 스넬의 창(중앙은 하늘·태양빛이 투명하게 부서지고 바깥은 전반사 바다 물결) + 4겹 너울 파도
-  const water = new T.ShaderMaterial({ transparent: true, side: T.DoubleSide, forceSinglePass: true, depthWrite: false, uniforms: { aquaTime: time, tint: { value: new T.Color(theme.top) } },
-    vertexShader: "varying vec2 vUv;varying vec3 vWorld;uniform float aquaTime;void main(){vUv=uv;vec3 p=position;p.z+=sin(p.x*2.4+aquaTime*1.1)*.022+cos(p.y*3.2-aquaTime*.85)*.018+sin((p.x+p.y)*4.6+aquaTime*1.6)*.008;vec4 w=modelMatrix*vec4(p,1.);vWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}",
-    fragmentShader: `varying vec2 vUv;varying vec3 vWorld;uniform float aquaTime;uniform vec3 tint;
+  // 수면 밑면 — 물리 기반 스넬의 창 + 4겹 너울 파도 + 해변 물가 포말 블렌딩
+  const water = new T.ShaderMaterial({ transparent: true, side: T.DoubleSide, forceSinglePass: true, depthWrite: false, uniforms: { aquaTime: time, tint: { value: new T.Color(theme.top) }, beachEdge: { value: beach ? beachStart(beach) + BEACH_BANK + .65 : 99 } },
+    vertexShader: "varying vec2 vUv;varying vec3 vWorld;varying vec3 vLocal;uniform float aquaTime;void main(){vUv=uv;vec3 p=position;p.z+=sin(p.x*2.4+aquaTime*1.1)*.022+cos(p.y*3.2-aquaTime*.85)*.018+sin((p.x+p.y)*4.6+aquaTime*1.6)*.008;vLocal=p;vec4 w=modelMatrix*vec4(p,1.);vWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}",
+    fragmentShader: `varying vec2 vUv;varying vec3 vWorld;varying vec3 vLocal;uniform float aquaTime;uniform vec3 tint;uniform float beachEdge;
       void main(){
         vec2 q=vWorld.xz;
         float t=aquaTime;
@@ -509,7 +514,12 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
         vec3 deepRef=tint*.48+vec3(.04,.16,.24);
         vec3 skyWin=mix(tint*1.35,vec3(.82,.97,1.),.55);
         vec3 c=mix(deepRef,skyWin,win)+vec3(.55,.88,.95)*ridge*(.22+.32*tir)+vec3(.85,.96,1.)*sparkle*(.45+.55*win);
-        float alpha=clamp(.16+tir*.18+win*.16+ridge*.14+sparkle*.24,.14,.72);
+        float shoreX=beachEdge+max(0.,-vLocal.y+.3)*1.35;
+        float nearShore=smoothstep(shoreX-.85,shoreX+.05,vLocal.x);
+        float shoreFoam=nearShore*(1.-smoothstep(shoreX+.05,shoreX+.42,vLocal.x))*(.55+.45*sin(vLocal.y*18.+t*2.1));
+        c=mix(c,vec3(.93,.98,.99),shoreFoam*.85);
+        float alpha=clamp(.16+tir*.18+win*.16+ridge*.14+sparkle*.24+shoreFoam*.38,.14,.82);
+        alpha*=1.-smoothstep(shoreX+.12,shoreX+.52,vLocal.x);
         gl_FragColor=vec4(c,alpha);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

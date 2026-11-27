@@ -56,7 +56,7 @@ import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt,
 import { lightBand, lightTune, startLight, type Light, type LightTune } from "@/lib/fishinglight";
 import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
-  HERD_TIME_S, herdBest, herdTune, startHerd, type Herd, type HerdTune, DEEP_GENTLE, DEEP_GENTLE_BONUS, GRAB_CHANCE, GRAB_METERS, deepGrabbing, deepBand, deepTune, lureLanded, lureTune, startDeep, startLure, startSway, swayTune, tapLure,
+  HERD_DASH_CD, HERD_TIME_S, herdBest, herdTune, startHerd, type Herd, type HerdTune, DEEP_GENTLE, DEEP_GENTLE_BONUS, GRAB_CHANCE, GRAB_METERS, deepGrabbing, deepBand, deepTune, lureLanded, lureTune, startDeep, startLure, startSway, swayTune, tapLure,
   type Deep, type DeepTune, type Lure, type LureTune, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
@@ -409,6 +409,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const keySpin = useRef(false);
   /** 뜰채 — 건진 뒤 결과가 뜨기까지(650ms) 다시 정산하지 않게 */
   const herdCaught = useRef(false);
+  const herdDashRef = useRef(false);
   /** 뜰채 — 손가락(마우스)이 눌려 있나. 안 눌린 마우스의 움직임으로 그물이 따라가지 않게 */
   const herdDown = useRef(false);
   const noteId = useRef(0);
@@ -779,7 +780,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     // 방식별 처리는 fishing/roundTick(2026-11-20 정리) — 화면의 ref · setState 를 그대로 넘긴다
     const tick: TickCtx = {
       pausedRef, roundEnded, fxRef, keySpin, castAngRef, traceRef, spinRef, lureRef, lureTuneRef, fishRef, lightStrike, lightRef, lightTuneRef, holdRef, lightQ, effRef, planFeverRef, tuneRef, fightRef,
-      herdRef, herdTuneRef, herdCaught, markHerdCaught: () => { herdCaught.current = true; }, herdAt, gradeRef, timers, methodRef, swayRef, swayTuneRef, rodXRef, coopAskRef, deepRef, deepTuneRef, spinAcc, backAcc, spinNow, backNow, releasingRef, reelDir, reelDirShown, deepMeters, rowRef,
+      herdRef, herdTuneRef, herdCaught, markHerdCaught: () => { herdCaught.current = true; }, herdAt, herdDashRef, gradeRef, timers, methodRef, swayRef, swayTuneRef, rodXRef, coopAskRef, deepRef, deepTuneRef, spinAcc, backAcc, spinNow, backNow, releasingRef, reelDir, reelDirShown, deepMeters, rowRef,
       fightHpRef, bossChunkRef, bossPhaseRef, bossEffRef, setSpinLive, setCharge, setLureS, setLightS, setPerfectHook, setFight, setPhase, setHerdS, setFish, setSwayS, setReleasing, setReelDirS, setDeepS, setSpin, setDeepRecord, setBossRage,
       loseRound, landRound, feverNow, deepPend, showStamp, act, buzz, dice, clock,
     };
@@ -1150,6 +1151,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     herdRef.current = h;
     herdTuneRef.current = tune;
     herdCaught.current = false;
+    herdDashRef.current = false;
     herdAt.current = { x: h.nx, y: h.ny };
     planFever();
     setHerdS(h);
@@ -1542,6 +1544,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       setRodX(rodXRef.current);
       return;
     }
+    if (phase === "aim" && (e.key === " " || e.key === "Enter")) {
+      e.preventDefault();
+      if (e.type === "keydown" && !e.repeat) herdDashRef.current = true;
+      return;
+    }
     if (e.key !== " " && e.key !== "Enter") return;
     e.preventDefault();
     if (e.type === "keydown" && !e.repeat) {
@@ -1661,7 +1668,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     : phase === "wait" ? (depthPick !== null ? `${Math.round(depthPick.meters * 10) / 10}m ${DEPTH_NAMES[depthPick.zone]}에서 — ${method === "deep" ? "줄이 크게 당겨질 때까지" : "찌가 크게 잠길 때까지"}` : method === "deep" ? "줄이 크게 당겨질 때까지 기다려요" : "찌가 크게 잠길 때까지 기다려요")
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
-    : phase === "aim" ? (herdS && herdBest(herdS).p > 0.05 ? "붙잡았어요! 놓치지 말고 그대로 눌러 두세요" : "그물로 물고기를 물가 · 구석으로 몰아 붙여요")
+    : phase === "aim" ? (herdS && herdBest(herdS).p > 0.05 ? "붙잡았어요! 놓치지 말고 그대로 눌러 두세요" : "구석 · 청록 여울로 몰고, 휘두르기로 기절시켜요")
     : phase === "glow" ? lightHint
     : phase === "fight" ? fightHint
     : phase === "lost" || phase === "result" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 다시 던지기 · 오늘 ${bossTriesLeft(bossRec, who, today)}번 남음` : "눌러서 다시 던지기")) : "";
@@ -1917,9 +1924,23 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               </div>
             )}
             {phase === "aim" && herdS && (
-              <div className="fish-lure-hud" aria-hidden>
-                <div className="fish-meter is-time"><em>시간</em><span><b style={{ width: `${Math.max(0, herdS.left / HERD_TIME_S) * 100}%` }} /></span></div>
-                <div className="fish-meter is-catch"><em><NetMark /> 붙잡기</em><span><b style={{ width: `${herdBest(herdS).p * 100}%` }} /></span></div>
+              <div className="fish-lure-hud">
+                <div className="fish-meter is-time" aria-hidden><em>시간</em><span><b style={{ width: `${Math.max(0, herdS.left / HERD_TIME_S) * 100}%` }} /></span></div>
+                <div className="fish-meter is-catch" aria-hidden><em><NetMark /> 붙잡기</em><span><b style={{ width: `${herdBest(herdS).p * 100}%` }} /></span></div>
+                <button
+                  type="button"
+                  disabled={(herdS.dashCd ?? 0) > 0}
+                  onPointerDown={(e) => { e.stopPropagation(); herdDashRef.current = true; }}
+                  style={{
+                    marginTop: 4, padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                    border: "1px solid rgba(160,244,255,.55)",
+                    background: (herdS.dashCd ?? 0) > 0 ? "rgba(10,30,44,.55)" : "linear-gradient(135deg, rgba(46,204,218,.92), rgba(24,142,196,.92))",
+                    color: (herdS.dashCd ?? 0) > 0 ? "rgba(210,235,245,.65)" : "#ffffff",
+                    cursor: (herdS.dashCd ?? 0) > 0 ? "default" : "pointer",
+                  }}
+                >
+                  {(herdS.dashCd ?? 0) > 0 ? `휘두르기 ${(herdS.dashCd ?? 0).toFixed(1)}s` : `휘두르기 대시 (${Math.round((1 - (herdS.dashCd ?? 0) / HERD_DASH_CD) * 100)}%)`}
+                </button>
               </div>
             )}
             {phase === "fight" && method === "deep" && band && (

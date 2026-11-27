@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SPOTS } from "./fishing.ts";
-import { HERD_AREA, HERD_TIME_S, herdBest, herdPinned, herdTune, startHerd, stepHerd, type Herd } from "./fishingmodes.ts";
+import { HERD_AREA, HERD_DASH_CD, HERD_TIME_S, herdBest, herdInPocket, herdPinned, herdTune, startHerd, stepHerd, triggerHerdDash, type Herd } from "./fishingmodes.ts";
 
 const root = join(import.meta.dirname, "../..");
 const code = (f: string) => readFileSync(join(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
@@ -125,4 +125,31 @@ test("화면 — 뜰채는 몰아서 건지기로 돈다 · 피버는 붙잡는 
   assert.match(g, /loseRound\("time"\)/);
   assert.doesNotMatch(g, /setPhase\("lift"\)|netDown\(|stepLift\(/);
   assert.match(g, /if \(method === "scoop"\) \{\s*beginScoop\(\);/, "던지지 않고 바로 판(가라앉기 없음)");
+});
+
+test("뜰채 v2 — 여울 포켓 안에서는 구석처럼 빠르게 붙잡히고, 휘두르기 대시는 쿨타임 · 돌진 · 물결 충격(기절)을 주며, 황금 거품은 시간 +2초 · 유인 보너스", () => {
+  const spot = SPOTS.find((s) => s.key === "brook")!;
+  const tune = herdTune(1, { power: 5, line: 5 });
+  const h0 = startHerd(spot, 5, 0, 19);
+  assert.equal(h0.pockets?.length, 2, "여울 포켓 2곳 생성");
+  const pk = h0.pockets![0];
+  // 여울 포켓 안에서 붙잡기 가속 확인
+  const inPkt: Herd = { ...h0, nx: pk.x, ny: pk.y, fish: [{ ...h0.fish[0], x: pk.x, y: pk.y, vx: 0, vy: 0, stam: 1, dwell: 0 }] };
+  assert.equal(herdInPocket(inPkt.fish[0], inPkt.pockets), true);
+  const afterPkt = stepHerd(inPkt, 0.2, pk.x, pk.y, tune);
+  assert.ok(afterPkt.fish[0].dwell > 0.22, `여울 포켓 가속 붙잡기 (${afterPkt.fish[0].dwell.toFixed(3)})`);
+  // 휘두르기 대시 — 쿨타임 진입 + 주변 물고기 기절/스태미나 감소
+  const nearFish: Herd = { ...h0, nx: 0.5, ny: 0.66, fish: [{ ...h0.fish[0], x: 0.5 + tune.netR, y: 0.66, vx: 0, vy: 0, stam: 1, dwell: 0, stun: 0 }] };
+  const dashed = triggerHerdDash(nearFish, 0.7, 0.66, tune);
+  assert.equal(dashed.dashCd, HERD_DASH_CD);
+  assert.ok((dashed.dashLeft ?? 0) > 0, "대시 돌진 시작");
+  assert.ok((dashed.fish[0].stun ?? 0) > 0.5 && dashed.fish[0].stam < 0.8, "물결 충격으로 기절 및 스태미나 감소");
+  assert.equal(triggerHerdDash(dashed, 0.7, 0.66, tune), dashed, "쿨타임 중 재발동 불가");
+  // 황금 거품 — 스치면 시간 보너스 + bonuses 증가 + 유인
+  const withBubble: Herd = { ...h0, left: 15, nx: 0.4, ny: 0.6, bubble: { x: 0.4, y: 0.6, r: 0.055, life: 4, maxLife: 5.5 } };
+  const popped = stepHerd(withBubble, 0.05, 0.4, 0.6, tune);
+  assert.equal(popped.bubble, null, "거품 터짐");
+  assert.equal(popped.bonuses, 1);
+  assert.ok(popped.left > 16.5, `시간 +2초 보너스 (${popped.left.toFixed(2)})`);
+  assert.ok(popped.lureAt && popped.lureAt.left > 0.8, "물고기 유인 발동");
 });

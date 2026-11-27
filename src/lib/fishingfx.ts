@@ -147,6 +147,15 @@ export class FishFx {
   private crankA = 0;
   /** 뜰채 겨누기(2026-11-13) — 손가락을 누르고 있는 동안의 조준 원(px). 떼면 내리친다(화면이 aim(null)) */
   private aimAt: { x: number; y: number; rx: number; ry: number } | null = null;
+  /** 뜰채 v2 수면 연출 상태(여울 포켓 · 물살 · 황금 거품 · 대시 · 붙잡기 진행률) */
+  private herdV2: {
+    pockets?: readonly { x: number; y: number; r: number }[];
+    flow?: { x: number; y: number };
+    bubble?: { x: number; y: number; r: number; life: number; maxLife: number } | null;
+    lureAt?: { x: number; y: number; left: number } | null;
+    dashing?: boolean;
+    progress?: number;
+  } | null = null;
   private hang = { x: 0, y: 0, vx: 0, vy: 0, init: false };
 
   private bob = { on: false, x: 0, y: 0, sink: 0.25, sinkTo: 0.25, dip: 0, home: { x: 0, y: 0 } };
@@ -741,6 +750,12 @@ export class FishFx {
   /** 뜰채 겨누기 — 손가락을 누르고 있는 동안 그물 크기의 조준 원을 보여 준다(x · y 는 화면 비율, r 은 netRadius). null 이면 지운다 */
   aim(at: { x: number; y: number; r: number } | null) {
     this.aimAt = at && Number.isFinite(at.x) && Number.isFinite(at.y) ? { x: at.x * this.W, y: at.y * this.H, rx: at.r * this.W, ry: this.aimRy(at.r) } : null;
+    if (!at) this.herdV2 = null;
+  }
+
+  /** 뜰채 v2 수면 연출 상태 갱신 */
+  setHerdV2(v: typeof this.herdV2) {
+    this.herdV2 = v;
   }
 
   /** 건진 그물을 그 자리에서 들어 올리기 시작한다 — 내리친 그물(net)의 자리를 이어받는다 */
@@ -2791,14 +2806,82 @@ export class FishFx {
     }
     const aim = this.aimAt;
     if (!this.net && aim && this.view.phase === "aim") {
-      // 겨누는 중 — 그물이 닿는 크기 그대로(건질 수 있는 물고기 위면 그 등급 색)
-      let col = "#ffffff";
+      // 뜰채 v2: 여울 포켓 · 물살 흐름선 · 황금 거품 링 · 유인 파문
+      const hv = this.herdV2;
+      if (hv) {
+        const u = this.u;
+        c.save();
+        if (hv.flow && (Math.abs(hv.flow.x) + Math.abs(hv.flow.y) > 0.002)) {
+          const ang = Math.atan2(hv.flow.y * 1.25, hv.flow.x);
+          c.strokeStyle = "rgba(180,242,255,.22)";
+          c.lineWidth = 1.6 * u;
+          c.lineCap = "round";
+          for (let i = 0; i < 6; i++) {
+            const ph = (this.t * 0.45 + i * 0.19) % 1;
+            const bx = (0.18 + ((i * 0.37) % 0.64)) * this.W + Math.cos(ang) * (ph - 0.5) * 48 * u;
+            const by = (0.52 + ((i * 0.23) % 0.30)) * this.H + Math.sin(ang) * (ph - 0.5) * 48 * u;
+            c.globalAlpha = Math.sin(ph * Math.PI) * 0.45;
+            c.beginPath();
+            c.moveTo(bx - Math.cos(ang) * 14 * u, by - Math.sin(ang) * 14 * u);
+            c.lineTo(bx + Math.cos(ang) * 14 * u, by + Math.sin(ang) * 14 * u);
+            c.stroke();
+          }
+          c.globalAlpha = 1;
+        }
+        if (hv.pockets) {
+          for (const pk of hv.pockets) {
+            const px = pk.x * this.W, py = pk.y * this.H, prx = pk.r * this.W, pry = this.aimRy(pk.r);
+            const pulse = 0.92 + 0.08 * Math.sin(this.t * 2.6 + pk.x * 9);
+            c.fillStyle = "rgba(72,226,214,.14)";
+            c.beginPath(); c.ellipse(px, py, prx * pulse, pry * pulse, 0, 0, 6.29); c.fill();
+            c.setLineDash([5 * u, 4 * u]);
+            c.strokeStyle = "rgba(142,248,238,.55)";
+            c.lineWidth = 1.8 * u;
+            c.stroke();
+            c.setLineDash([]);
+          }
+        }
+        if (hv.bubble) {
+          const b = hv.bubble, bx = b.x * this.W, by = b.y * this.H, br = b.r * this.W * (0.9 + 0.14 * Math.sin(this.t * 5));
+          const fade = Math.min(1, b.life * 1.5);
+          c.globalAlpha = fade;
+          c.fillStyle = "rgba(255,228,118,.24)";
+          c.beginPath(); c.ellipse(bx, by, br, this.aimRy(b.r), 0, 0, 6.29); c.fill();
+          c.strokeStyle = "rgba(255,235,140,.92)";
+          c.lineWidth = 2.2 * u;
+          c.stroke();
+          c.globalAlpha = 1;
+        }
+        if (hv.lureAt) {
+          const lr = hv.lureAt, lx = lr.x * this.W, ly = lr.y * this.H, k = 1 - lr.left / 1.2;
+          c.strokeStyle = "rgba(255,236,150,.7)";
+          c.lineWidth = 2 * u;
+          c.globalAlpha = Math.max(0, 1 - k);
+          c.beginPath(); c.ellipse(lx, ly, (18 + k * 56) * u, (14 + k * 44) * u, 0, 0, 6.29); c.stroke();
+          c.globalAlpha = 1;
+        }
+        c.restore();
+      }
+      // 겨누는 중 — 그물이 닿는 크기 그대로(건질 수 있는 물고기 위면 그 등급 색 · 대시 중이면 시안빛)
+      let col = hv?.dashing ? "#7ef4ff" : "#ffffff";
       for (const f of this.shoal) {
         if (!f.reach || f.junk) continue;
         const dx = (f.x * this.W - aim.x) / aim.rx, dy = (f.y * this.H - aim.y) / aim.ry;
         if (dx * dx + dy * dy <= 1) { col = FX_GRADE_LIGHT[clamp(f.grade, 0, 7)]; break; }
       }
       this.reticle(c, aim.x, aim.y, aim.rx, aim.ry, col, 1);
+      // 붙잡기 진행 호(arc) — 그물 바깥 테두리에 실시간 게이지 표시
+      if (hv && (hv.progress ?? 0) > 0.02) {
+        const u = this.u;
+        c.save();
+        c.strokeStyle = "#ffe57a";
+        c.lineWidth = 3.5 * u;
+        c.lineCap = "round";
+        c.beginPath();
+        c.ellipse(aim.x, aim.y, aim.rx + 4 * u, aim.ry + 4 * u, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(hv.progress ?? 0, 0, 1));
+        c.stroke();
+        c.restore();
+      }
     }
     const n = this.net;
     if (!n) return;

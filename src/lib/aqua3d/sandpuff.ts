@@ -35,7 +35,7 @@ export function makeSandPuffs(heightAt: (x: number, z: number) => number): SandP
     let m = 0;
     for (let k = 0; k < count; k++) {
       const c = courses[k];
-      if (c.puff < 0 || c.puff >= LIFE || c.ground < 0.99) continue;
+      if (c.puff < 0 || c.puff >= LIFE || (c.ground < 0.99 && (c.land ?? 0) < 0.55)) continue;
       if (m < SLOTS) { pick[m] = k; age[m] = c.puff; m++; continue; }
       let old = 0; for (let s = 1; s < SLOTS; s++) if (age[s] > age[old]) old = s;
       if (c.puff < age[old]) { pick[old] = k; age[old] = c.puff; }

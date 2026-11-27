@@ -341,30 +341,40 @@ export const deepQuality = (de: Pick<Deep, "good" | "t">) => (de.t <= 0 ? 0 : Ma
 /** 습격을 버텨 낸 판 — 대물(cm 1.25배) */
 export const deepSurvivedGrab = (de: Pick<Deep, "grab" | "status">) => de.status === "landed" && de.grab === 4;
 
-/* ── 뜰채: 몰아서 건지기 (2026-11-14) ──────────────────────
- * [사용자: "모든 낚시게임이 다 타이밍 류 낚시게임인데 뜰채 낚시 방법을 개편하고 변경하자"]
- * 예전 뜰채(떠오를 때 앞서 내리치기 → 몸부림 예고에 반대로 버티기)는 둘 다 '언제 누르나'였다. 이제는 '어디로 모나'다:
- *  · 손가락이 그물을 끌고 다닌다(그물은 손가락보다 조금 위 · 빠르기 상한이 있다 — 휙 옮겨 덮치지 못한다).
- *  · 물고기는 그물이 다가오면 달아난다. 흔한 물고기 말고는 그물보다 빠르다 — 쫓기만 해서는 안 잡히고,
- *    물가 · 구석으로 몰아 달아날 길을 막아야 한다. 오래 쫓기면 지쳐서 느려진다(끈질기게 몰면 결국 잡힌다).
- *  · 그물 안에 잠깐(dwell) 붙잡아 두면 건진다. 빠져나가면 진행이 되돌아간다. 시간 안에 못 건지면 흩어진다.
- *  · 반응 속도보다 길(어느 쪽에서 다가가 어디로 모나)이 성공을 가른다 — fishingherd.test 가 봇 둘로 잠근다.
- * 물고기 뽑기는 예전 뜰채와 같은 seed · 같은 rollCatch(method "scoop" · junk) — 다 큰 놈 없음 · 쓰레기는 빛 고리 없는 그림자. 순수 · 고정 걸음. */
+/* ── 뜰채 v2: 몰아서 건지기 + 여울 포켓 · 물살 · 휘두르기 대시 · 황금 거품 (2026-11-27) ──
+ * 기존 몰아서 건지기(길 · 구석 몰이)의 철학은 유지하면서 공간 전략과 손맛을 강화한 v2:
+ *  · 여울 포켓(pockets): 수면의 얕은 여울 구역 2곳 — 몰아넣으면 물고기가 느려지고 1.45배 빠르게 붙잡힌다.
+ *  · 물살(flow): 판마다 흐르는 은은한 물살 — 순방향으로 몰면 그물이 더 민첩하다.
+ *  · 휘두르기 대시(triggerHerdDash): 2.6초 쿨타임으로 짧은 돌진 + 물결 충격(0.65초 기절 · 스태미나 감소).
+ *  · 황금 거품(bubble): 수면에 떠오르는 거품을 스치면 주변 물고기를 잠시 유인 + 남은 시간 +2초 · 솜씨 보너스. */
 export const HERD_TIME_S = 25;
+export const HERD_DASH_CD = 2.6;
+export const HERD_DASH_LEN = 0.22;
+export const HERD_DASH_MULT = 2.4;
 /** 물고기가 헤엄치는 수면 칸(화면 비율) — 예전 뜰채와 같은 칸. 세로 거리는 1.25 를 곱해 잰다(4:5) */
 export const HERD_AREA = { x: [0.12, 0.88], y: [0.46, 0.86] } as const;
 const HERD_STEP = 1 / 60;
 const HY = 1.25;
 export type HerdTune = { netSpeed: number; netR: number };
-export type HerdFish = { id: number; haul: FishCatch; x: number; y: number; vx: number; vy: number; stam: number; dwell: number; need: number; flee: number; fleeR: number; tire: number; wx: number; wy: number; ph: number; side: number };
+export type HerdPocket = { x: number; y: number; r: number };
+export type HerdBubble = { x: number; y: number; r: number; life: number; maxLife: number };
+export type HerdFish = { id: number; haul: FishCatch; x: number; y: number; vx: number; vy: number; stam: number; dwell: number; need: number; flee: number; fleeR: number; tire: number; wx: number; wy: number; ph: number; side: number; stun?: number };
 export type HerdStatus = "on" | "caught" | "out";
-export type Herd = { t: number; left: number; nx: number; ny: number; fish: HerdFish[]; status: HerdStatus; caught: number; quality: number; acc: number };
+export type Herd = {
+  t: number; left: number; nx: number; ny: number; fish: HerdFish[]; status: HerdStatus; caught: number; quality: number; acc: number;
+  pockets?: HerdPocket[];
+  flow?: { x: number; y: number };
+  dashCd?: number; dashLeft?: number; dashDx?: number; dashDy?: number;
+  bubble?: HerdBubble | null; nextBubble?: number;
+  lureAt?: { x: number; y: number; left: number } | null;
+  bonuses?: number; rngState?: number;
+};
 
 export function herdTune(netTier: number, eff: Eff): HerdTune {
   eff = soft(eff);
   return { netSpeed: 0.3 * (1 + eff.power * 0.012), netR: netRadius(netTier) * 1.05 + eff.line * 0.0006 };
 }
-/** 판을 연다 — 물고기 4~5마리, 그물은 아래 가운데 물가 */
+/** 판을 연다 — 물고기 4~5마리, 그물은 아래 가운데 물가, 여울 포켓 2곳 · 물살 생성 */
 export function startHerd(spot: FishSpot, luck: number, bait: number, seed: number, when?: FishMoment, eventDone?: readonly string[]): Herd {
   const r = rng(seed);
   const n = 4 + (luck >= 20 ? 1 : 0);
@@ -379,12 +389,23 @@ export function startHerd(spot: FishSpot, luck: number, bait: number, seed: numb
       // 흔한 물고기(d 1~1.5)는 그물과 비슷한 빠르기 — 쫓아도 잡힌다. 귀할수록 빠르고 일찍 눈치챈다
       flee: junk ? 0.08 : 0.34 + d * 0.03,
       fleeR: junk ? 0.1 : 0.2 + d * 0.012,
-      // 귀할수록 덜 지친다 — 쫓기만 해서는(지쳐서 붙잡히기) 시간 안에 못 건진다. 물가로 몰아야 한다
+      // 귀할수록 덜 지친다 — 쫓기만 해서는(지쳐서 붙잡히기) 시간 안에 못 건진다. 물가 · 여울로 몰아야 한다
       tire: junk ? 0.2 : 0.075 / (1 + d * 0.14),
-      wx: 0.4 + r() * 0.5, wy: 0.5 + r() * 0.6, ph: r() * 6.28, side: r() < 0.5 ? -1 : 1,
+      wx: 0.4 + r() * 0.5, wy: 0.5 + r() * 0.6, ph: r() * 6.28, side: r() < 0.5 ? -1 : 1, stun: 0,
     };
   });
-  return { t: 0, left: HERD_TIME_S, nx: 0.5, ny: 0.8, fish, status: "on", caught: -1, quality: 0, acc: 0 };
+  // 여울 포켓 2곳 — 중앙(0.5, 0.66)과 대기 자리(0.5, 0.8)를 피해 좌우 가장자리 쪽에 배치
+  const flip = r() < 0.5 ? 1 : -1;
+  const pockets: HerdPocket[] = [
+    { x: flip > 0 ? 0.22 + r() * 0.06 : 0.72 + r() * 0.06, y: 0.53 + r() * 0.05, r: 0.075 },
+    { x: flip > 0 ? 0.72 + r() * 0.06 : 0.22 + r() * 0.06, y: 0.74 + r() * 0.05, r: 0.075 },
+  ];
+  const fang = r() * Math.PI * 2;
+  const flow = { x: Math.cos(fang) * 0.035, y: Math.sin(fang) * 0.022 };
+  return {
+    t: 0, left: HERD_TIME_S, nx: 0.5, ny: 0.8, fish, status: "on", caught: -1, quality: 0, acc: 0,
+    pockets, flow, dashCd: 0, dashLeft: 0, dashDx: 0, dashDy: 0, bubble: null, nextBubble: 4.5, lureAt: null, bonuses: 0, rngState: (seed * 53 + 17) >>> 0,
+  };
 }
 /** 구석 — 두 벽까지 이만큼 안(거리 단위) */
 export const HERD_PIN = 0.07;
@@ -393,39 +414,114 @@ export const HERD_TIRED = 0.2;
 /** 구석에 몰렸나 — 가로 벽과 세로 벽 둘 다에 붙었다(벽 하나면 벽을 따라 미끄러져 빠져나간다) */
 export const herdPinned = (f: Pick<HerdFish, "x" | "y">) =>
   Math.min(f.x - HERD_AREA.x[0], HERD_AREA.x[1] - f.x) <= HERD_PIN && Math.min((f.y - HERD_AREA.y[0]) * HY, (HERD_AREA.y[1] - f.y) * HY) <= HERD_PIN;
+/** 여울 포켓 안에 들어왔나 */
+export const herdInPocket = (f: Pick<HerdFish, "x" | "y">, pockets?: readonly HerdPocket[]) =>
+  !!pockets?.some((p) => Math.hypot(f.x - p.x, (f.y - p.y) * HY) <= p.r);
 /** 그물 중심과의 거리(세로 1.25 배) */
 export const herdDist = (f: Pick<HerdFish, "x" | "y">, x: number, y: number) => Math.hypot(f.x - x, (f.y - y) * HY);
+
+/** 뜰채 v2: 휘두르기 대시 발동(순수) — 쿨타임이 0이면 목표 쪽으로 짧게 돌진 + 주변 물고기 물결 충격 */
+export function triggerHerdDash(s: Herd, tx: number, ty: number, tune: HerdTune): Herd {
+  if (s.status !== "on" || (s.dashCd ?? 0) > 0) return s;
+  const gx = clamp(tx, HERD_AREA.x[0], HERD_AREA.x[1]), gy = clamp(ty, HERD_AREA.y[0], HERD_AREA.y[1]);
+  let dx = gx - s.nx, dy = (gy - s.ny) * HY, dl = Math.hypot(dx, dy);
+  if (dl < 1e-4) { dx = 0; dy = -1; dl = 1; }
+  dx /= dl; dy /= dl;
+  const hitR = tune.netR * 1.75;
+  const fish = s.fish.map((f) => {
+    const nf = { ...f };
+    if (herdDist(f, s.nx, s.ny) <= hitR) {
+      nf.stun = Math.max(nf.stun ?? 0, 0.65);
+      nf.stam = Math.max(0, nf.stam - 0.28);
+    }
+    return nf;
+  });
+  return { ...s, fish, dashCd: HERD_DASH_CD, dashLeft: HERD_DASH_LEN, dashDx: dx, dashDy: dy };
+}
 
 function herdTick(h: Herd, tx: number, ty: number, tune: HerdTune) {
   const dt = HERD_STEP;
   h.t += dt;
   h.left -= dt;
-  // 그물 — 손가락 쪽으로, 빠르기 상한
+  if ((h.dashCd ?? 0) > 0) h.dashCd = Math.max(0, (h.dashCd ?? 0) - dt);
+  if (h.lureAt) {
+    h.lureAt = h.lureAt.left - dt > 0 ? { ...h.lureAt, left: h.lureAt.left - dt } : null;
+  }
+  // 황금 거품 주기 생성 & 수명 처리
+  if (h.bubble) {
+    const life = h.bubble.life - dt;
+    if (life <= 0) { h.bubble = null; h.nextBubble = 5.5; }
+    else h.bubble = { ...h.bubble, life };
+  } else if (h.nextBubble !== undefined) {
+    h.nextBubble -= dt;
+    if (h.nextBubble <= 0) {
+      const r = rng(h.rngState ?? 13);
+      h.rngState = ((h.rngState ?? 13) * 31 + 23) >>> 0;
+      h.bubble = { x: 0.24 + r() * 0.52, y: 0.50 + r() * 0.20, r: 0.055, life: 5.5, maxLife: 5.5 };
+    }
+  }
+  // 그물 — 대시 중이면 빠른 돌진, 평소엔 손가락 쪽으로(물살 순방향 보너스)
   const gx = clamp(tx, HERD_AREA.x[0], HERD_AREA.x[1]), gy = clamp(ty, HERD_AREA.y[0], HERD_AREA.y[1]);
-  const ex = gx - h.nx, ey = (gy - h.ny) * HY, ed = Math.hypot(ex, ey);
-  const step = Math.min(ed, tune.netSpeed * dt);
-  if (ed > 1e-6) { h.nx += (ex / ed) * step; h.ny += (ey / ed) * step / HY; }
   const [x0, x1] = HERD_AREA.x, [y0, y1] = HERD_AREA.y;
+  const flow = h.flow ?? { x: 0, y: 0 };
+  if ((h.dashLeft ?? 0) > 0) {
+    h.dashLeft = Math.max(0, (h.dashLeft ?? 0) - dt);
+    const sp = tune.netSpeed * HERD_DASH_MULT * dt;
+    h.nx = clamp(h.nx + (h.dashDx ?? 0) * sp, x0, x1);
+    h.ny = clamp(h.ny + ((h.dashDy ?? 0) * sp) / HY, y0, y1);
+    // 대시 도중 닿는 물고기에게도 물결 충격
+    const hitR = tune.netR * 1.35;
+    for (const f of h.fish) {
+      if ((f.stun ?? 0) <= 0 && herdDist(f, h.nx, h.ny) <= hitR) {
+        f.stun = 0.55;
+        f.stam = Math.max(0, f.stam - 0.2);
+      }
+    }
+  } else {
+    const ex = gx - h.nx, ey = (gy - h.ny) * HY, ed = Math.hypot(ex, ey);
+    const align = ed > 1e-6 ? ((ex / ed) * flow.x + (ey / ed) * flow.y * HY) : 0;
+    const spMul = 1 + clamp(align * 3.2, -0.05, 0.14);
+    const step = Math.min(ed, tune.netSpeed * spMul * dt);
+    if (ed > 1e-6) { h.nx += (ex / ed) * step; h.ny += (ey / ed) * step / HY; }
+  }
+  // 그물이 황금 거품에 닿으면 톡 터짐 → 주변 물고기 유인 + 시간 +2초 보너스!
+  if (h.bubble && Math.hypot(h.nx - h.bubble.x, (h.ny - h.bubble.y) * HY) <= tune.netR + h.bubble.r * 0.7) {
+    h.lureAt = { x: h.bubble.x, y: h.bubble.y, left: 1.2 };
+    h.left = Math.min(HERD_TIME_S, h.left + 2.0);
+    h.bonuses = (h.bonuses ?? 0) + 1;
+    h.bubble = null;
+    h.nextBubble = 6.0;
+  }
   for (const f of h.fish) {
+    if ((f.stun ?? 0) > 0) f.stun = Math.max(0, (f.stun ?? 0) - dt);
+    const inPkt = herdInPocket(f, h.pockets);
+    const stunned = (f.stun ?? 0) > 0;
     const dx = f.x - h.nx, dy = (f.y - h.ny) * HY, d = Math.hypot(dx, dy) || 1e-6;
     let wx: number, wy: number, sp: number;
     const scared = d < f.fleeR;
-    if (scared) {
+    if (stunned) {
+      // 대시 물결 충격 — 잠시 제자리에서 허둥댐
+      wx = Math.cos(h.t * 18 + f.ph); wy = Math.sin(h.t * 18 + f.ph);
+      sp = 0.04;
+    } else if (scared) {
       // 달아난다 — 그물 반대쪽 + 물고기마다 정해진 쪽으로 조금 비껴서(늘 똑같이 곧게 달아나지 않게)
       wx = dx / d + (-dy / d) * 0.35 * f.side;
       wy = dy / d + (dx / d) * 0.35 * f.side;
-      // 물가를 꺼린다 — 트인 물로 가려 한다. 그래서 구석에 몰아넣어야 갇힌다(가장자리에 혼자 붙지 않는다)
-      // 그물이 코앞이면 그냥 도망친다(그래서 물가로 밀어붙일 수 있다)
       const m = 0.14, aw = 1.4 * Math.min(1, d / f.fleeR) ** 2;
       if (f.x - x0 < m) wx += (1 - (f.x - x0) / m) * aw;
       if (x1 - f.x < m) wx -= (1 - (x1 - f.x) / m) * aw;
       if ((f.y - y0) * HY < m) wy += (1 - ((f.y - y0) * HY) / m) * aw;
       if ((y1 - f.y) * HY < m) wy -= (1 - ((y1 - f.y) * HY) / m) * aw;
-      sp = f.flee * (0.45 + 0.55 * f.stam) * (0.55 + 0.45 * (1 - d / f.fleeR));
-      f.stam = Math.max(0, f.stam - dt * f.tire);
+      sp = f.flee * (0.45 + 0.55 * f.stam) * (0.55 + 0.45 * (1 - d / f.fleeR)) * (inPkt ? 0.65 : 1);
+      f.stam = Math.max(0, f.stam - dt * f.tire * (inPkt ? 1.35 : 1));
+    } else if (h.lureAt && !f.haul.junk) {
+      // 황금 거품 터짐 — 호기심에 거품 자리로 모여듦
+      wx = h.lureAt.x - f.x; wy = (h.lureAt.y - f.y) * HY;
+      sp = 0.14;
+      f.stam = Math.min(1, f.stam + dt * 0.03);
     } else {
-      // 느긋하게 떠돈다
-      wx = Math.sin(h.t * f.wx + f.ph); wy = Math.cos(h.t * f.wy + f.ph * 1.7) * 0.6;
+      // 느긋하게 떠돈다 + 은은한 물살
+      wx = Math.sin(h.t * f.wx + f.ph) + flow.x * 6; wy = Math.cos(h.t * f.wy + f.ph * 1.7) * 0.6 + flow.y * 6;
       sp = 0.06;
       f.stam = Math.min(1, f.stam + dt * 0.05);
     }
@@ -439,9 +535,11 @@ function herdTick(h: Herd, tx: number, ty: number, tune: HerdTune) {
     if (x < x0) { x = x0; if (f.vx < 0) f.vx = 0; } else if (x > x1) { x = x1; if (f.vx > 0) f.vx = 0; }
     if (y < y0) { y = y0; if (f.vy < 0) f.vy = 0; } else if (y > y1) { y = y1; if (f.vy > 0) f.vy = 0; }
     f.x = x; f.y = y;
-    // 트인 물에선 그물 밑으로 빠져나간다 — 물가(벽)에 밀어붙였거나 지쳤을 때만 그물 안에 붙잡힌다
-    const inside = herdDist(f, h.nx, h.ny) <= tune.netR && (herdPinned(f) || f.stam < HERD_TIRED);
-    f.dwell = inside ? f.dwell + dt : Math.max(0, f.dwell - dt * 1.5);
+    // 트인 물에선 그물 밑으로 빠져나간다 — 구석 · 여울 포켓 · 기절 · 지쳤을 때 붙잡힌다
+    const trapped = herdPinned(f) || inPkt || stunned || f.stam < HERD_TIRED;
+    const inside = herdDist(f, h.nx, h.ny) <= tune.netR && trapped;
+    const gain = inPkt || stunned ? 1.45 : 1;
+    f.dwell = inside ? f.dwell + dt * gain : Math.max(0, f.dwell - dt * 1.5);
   }
 }
 /** dt 만큼 — 손가락이 가리키는 곳(tx, ty, 화면 비율)으로 그물을 끈다. 고정 걸음(1/60초)이라 화면 틱 · 테스트가 같은 결과. 순수 */
@@ -456,8 +554,8 @@ export function stepHerd(s: Herd, dt: number, tx: number, ty: number, tune: Herd
     if (got >= 0) {
       h.status = "caught";
       h.caught = got;
-      // 솜씨 — 빨리 건질수록. 20초 판의 절반 안이면 거의 만점
-      h.quality = clamp(1.15 - h.t / (HERD_TIME_S * 0.8), 0, 1);
+      // 솜씨 — 빨리 건질수록 + 황금 거품 보너스. 20초 판의 절반 안이면 거의 만점
+      h.quality = clamp(1.15 - h.t / (HERD_TIME_S * 0.8) + (h.bonuses ?? 0) * 0.08, 0, 1);
     } else if (h.left <= 0) h.status = "out";
   }
   return h;

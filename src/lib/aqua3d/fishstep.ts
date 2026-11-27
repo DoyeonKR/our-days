@@ -507,6 +507,24 @@ function bodyFollow(n: number, fishes: StepFish[], b: StepBuffers, dt: number, w
         const yd = ty + (by - ty) * (1 - c.ground) + c.ground * (BFP.ground - gT), ylim = 2 * vmax * dt;
         by = st.by + Math.max(-ylim, Math.min(ylim, yd - st.by));
         b.rolls[k] = BFP.roll * c.ground;
+      } else if (st.haul && !st.float && (c.land ?? 0) > 0.65 && b.shore) {
+        // 해변 물리 보행(2026-11-27) — 실제 지형 높이(heightAt)와 경사면 법선(floorPose)에 실시간 밀착(중력 접지 + 경사 기울기 + 오르막 저항)
+        const lk = Math.min(1, ((c.land ?? 0) - 0.65) / 0.3);
+        floorPose(w.heightAt, bx, bz, c.dx, c.dz, L, BFP);
+        const targetClear = Math.max(L * 0.08 * st.thick, Math.min(L * 0.22 * st.thick, ty - w.heightAt(tx, tz)));
+        const wantY = BFP.ground + targetClear;
+        const ylim = Math.min(1.6 * vmax * dt, L * 3.0 * dt);
+        const nextY = st.by + Math.max(-ylim, Math.min(ylim, wantY - st.by));
+        by = by * (1 - lk) + nextY * lk;
+        // 이족보행(유진 · 펭귄 · 갓파)은 상체가 경사의 32%만 자연스럽게 기울고, 물범·북극곰은 경사의 82%를 따라 밀착
+        const slopeTilt = st.walk ? 0.32 : 0.82;
+        b.rolls[k] = BFP.roll * slopeTilt * lk;
+        // 오르막 경사 저항: 올라갈 때 수평 속도를 살짝 눌러 물리적 무게감 부여
+        if (BFP.slope > 0.08) {
+          const drag = 1 - Math.min(0.24, BFP.slope * 0.3) * lk;
+          bx = st.bx + (bx - st.bx) * drag;
+          bz = st.bz + (bz - st.bz) * drag;
+        }
       } else {
         // 헤엄치는 몸 — 몸 자리 모래 위로(목표가 모래에서 떠 있던 만큼, 몸길이 0.3 배까지)
         // 올리는 몫은 한 프레임에 최고 빠르기의 1.5 배까지 — 늦게 따라오던 몸이 모래사장 둑(위로 늘린 수조에선 거의 벽)에 닿아 둑을 타고 솟구치지 않게

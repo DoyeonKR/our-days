@@ -1515,6 +1515,13 @@ export function haulBlend(id: number, seconds: number, length: number, scale: nu
     // 반 바퀴(π)마다 끝(sin = ±1 — cos 가 0 이라 빠르기가 이어진다)에서 st 몫만큼 멈춰 선다
     const ph = standPhase(base, st), span = Math.min(length * 0.8, o && o.kind !== "beach" ? o.r * 0.3 : length * 0.8), lim = 5 * scale - length * 0.42;
     rx = Math.max(-lim, Math.min(lim, rx + Math.sin(ph) * span * walkUp));
+    // 해변 위 2D 곡선 산책(앞뒤로도 완만하게 거닐되 모래 턱 안쪽 유지) + 발걸음 모래 먼지(puff)
+    if (beachWalk) {
+      const zSpan = Math.min(0.42, length * 0.35 / (opts.deep || 1));
+      const zMax = BEACH_Z0 + Math.max(0, (rx / scale - length * 0.25 / scale) - BEACH_DRY_X) / BEACH_ZK;
+      rz = Math.min(zMax, rz + Math.sin(ph * 0.5 + unit(h, 157) * TAU) * zSpan * walkUp);
+      if (Math.abs(Math.cos(ph)) > 0.2 && walkUp > 0.6) out.puff = (seconds * 1.45 + unit(h, 163)) % 1.0;
+    }
     const mv = Math.cos(ph), w = walkUp * smooth01((Math.abs(mv) - 0.15) / 0.3);
     fx = fx * (1 - w) + Math.sign(mv) * w; fz *= 1 - w * 0.7;
   }
