@@ -103,7 +103,7 @@ export function TodayTogetherFrame({ done, streak, log, mood, question, habits }
                 <circle cx="27" cy="27" r={ringR} className="home-ring-track" />
                 <circle cx="27" cy="27" r={ringR} className="home-ring-fill" strokeDasharray={ringC} strokeDashoffset={ringOff} transform="rotate(-90 27 27)" />
               </svg>
-              <strong>{n}<small>/{STEPS.length}</small></strong>
+              <strong>{n}<small> / {STEPS.length}</small></strong>
             </div>
             {streak}
           </div>
