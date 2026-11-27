@@ -87,28 +87,30 @@ export function TodayTogetherFrame({ done, streak, log, mood, question, habits }
   const n = STEPS.filter((st) => done[st.k]).length;
 
   return (
-    <section className="home-daily-v3 home-daily-v4" aria-label="오늘의 우리">
-      <header className="home-daily-heading"><div><p className="home-kicker">오늘</p><h2>오늘의 우리</h2><p className="home-daily-sub">{n === STEPS.length ? "오늘의 마음을 모두 남겼어요" : "세 가지 작은 기록으로 하루를 채워요"}</p></div><div className="home-daily-count"><strong>{n}<small> / {STEPS.length}</small></strong>{streak}</div></header>
-      <div className="home-daily-meter" role="progressbar" aria-label="오늘 기록 달성률" aria-valuemin={0} aria-valuemax={3} aria-valuenow={n}><span style={{width:`${n / STEPS.length * 100}%`}}/></div>
-      {/* 진행 칩 — 누르면 그 카드로. 한 일은 채워진 칩 + 체크.
-          셋 다 끝나면 칩을 숨긴다 — 머리의 "3 / 3"과 바로 아래 카드 셋이 같은 말을 한 번 더 했다(2026-10-30 UX 점검). */}
-      {n < STEPS.length && <ol className="home-daily-steps" aria-label="오늘 할 일">
-        {STEPS.map((st) => {
-          const ok = done[st.k];
-          return (
-            <li key={st.k} className="min-w-0">
-              <button
-                onClick={() => focusHomeCard(st.id)}
-                aria-label={`${st.label} ${ok ? "완료" : "아직"} — 카드로 가기`}
-                className={`tap home-daily-step ${ok ? "is-done" : ""}`}
-              >
-                <Icon name={ok ? "check" : st.icon} size={13} className="shrink-0" />
-                <span>{st.label}</span><small>{ok ? "기록 완료" : "마음 남기기"}</small>
-              </button>
-            </li>
-          );
-        })}
-      </ol>}
+    <section className={`home-daily-v3 home-daily-v4 ${n === STEPS.length ? "is-all-done" : ""}`} aria-label="오늘의 우리">
+      <div className="home-daily-hub">
+        <header className="home-daily-heading"><div><p className="home-kicker">오늘</p><h2>오늘의 우리</h2><p className="home-daily-sub">{n === STEPS.length ? "오늘의 마음을 모두 남겼어요" : "세 가지 작은 기록으로 하루를 채워요"}</p></div><div className="home-daily-count"><strong>{n}<small> / {STEPS.length}</small></strong>{streak}</div></header>
+        <div className="home-daily-meter" role="progressbar" aria-label="오늘 기록 달성률" aria-valuemin={0} aria-valuemax={3} aria-valuenow={n}><span style={{width:`${n / STEPS.length * 100}%`}}/></div>
+        {/* 진행 칩 — 누르면 그 카드로. 한 일은 채워진 칩 + 체크.
+            셋 다 끝나면 칩을 숨긴다 — 머리의 "3 / 3"과 바로 아래 카드 셋이 같은 말을 한 번 더 했다(2026-10-30 UX 점검). */}
+        {n < STEPS.length && <ol className="home-daily-steps" aria-label="오늘 할 일">
+          {STEPS.map((st) => {
+            const ok = done[st.k];
+            return (
+              <li key={st.k} className="min-w-0">
+                <button
+                  onClick={() => focusHomeCard(st.id)}
+                  aria-label={`${st.label} ${ok ? "완료" : "아직"} — 카드로 가기`}
+                  className={`tap home-daily-step ${ok ? "is-done" : ""}`}
+                >
+                  <Icon name={ok ? "check" : st.icon} size={13} className="shrink-0" />
+                  <span>{st.label}</span><small>{ok ? "기록 완료" : "마음 남기기"}</small>
+                </button>
+              </li>
+            );
+          })}
+        </ol>}
+      </div>
       <div id="today-log" className="home-chapter-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)]">
         {log}
       </div>
