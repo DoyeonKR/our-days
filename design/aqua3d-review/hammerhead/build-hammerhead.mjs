@@ -111,7 +111,7 @@ function buildHammerhead(stage) {
     // 등은 살짝 아치형, 꼬리 자루는 수평
     const y = 0.028 * Math.sin(clamp(s, 0, 0.85) / 0.85 * Math.PI) - 0.012 * (1 - headFlat);
     return { c: [x, y, 0], u: [0, 1, 0], v: [0, 0, 1], a, b, e: 2.15 };
-  }, { ns: 34, nt: 22, capStart: 0.035, capEnd: 0.025, island: [0.02, 0.02, 0.54, 0.52], paint: paintBody });
+  }, { ns: 18, nt: 12, capStart: 0.035, capEnd: 0.025, island: [0.02, 0.02, 0.54, 0.52], paint: paintBody });
 
   // 2. 넓은 T자형 물결 망치 머리 (cephalofoil)
   const hammerHalf = isFry ? 0.36 : isJuv ? 0.37 : 0.39;
@@ -136,15 +136,15 @@ function buildHammerhead(stage) {
       b: Math.max(0.022, thick),
       e: 2.3,
     };
-  }, { ns: 32, nt: 16, capStart: 0.028, capEnd: 0.028, island: [0.56, 0.02, 0.98, 0.28], paint: paintHammer, bone: 0 });
+  }, { ns: 16, nt: 10, capStart: 0.028, capEnd: 0.028, island: [0.56, 0.02, 0.98, 0.28], paint: paintHammer, bone: 0 });
 
   // 3. 눈 (망치 머리 양쪽 끝단 앞쪽 바깥)
   const eyeR = isFry ? 0.030 : isJuv ? 0.027 : 0.025;
   const eyeX = 0.84 - 0.15 + 0.032;
   const eyeY = -0.018;
   const eyeZ = hammerHalf + 0.006;
-  m.sphere('eye_L', [eyeX, eyeY, eyeZ], eyeR, { island: [0.88, 0.88, 0.99, 0.99], paint: paintEye, bone: 0 });
-  m.sphere('eye_R', [eyeX, eyeY, -eyeZ], eyeR, { island: [0.88, 0.88, 0.99, 0.99], paint: paintEye, bone: 0 });
+  m.sphere('eye_L', [eyeX, eyeY, eyeZ], eyeR, { ns: 6, nt: 8, island: [0.88, 0.88, 0.99, 0.99], paint: paintEye, bone: 0 });
+  m.sphere('eye_R', [eyeX, eyeY, -eyeZ], eyeR, { ns: 6, nt: 8, island: [0.88, 0.88, 0.99, 0.99], paint: paintEye, bone: 0 });
 
   // 4. 높고 낫처럼 휜 제1 등지느러미 (falcate 1st dorsal)
   const d1H = isFry ? 0.31 : isJuv ? 0.34 : 0.38;
@@ -155,30 +155,30 @@ function buildHammerhead(stage) {
     const chord = 0.165 * Math.pow(1 - s * 0.86, 0.92);
     const thick = 0.026 * (1 - 0.72 * s);
     return { c: [x, y, 0], u: [1, 0, 0], v: [0, 0, 1], a: Math.max(0.015, chord), b: Math.max(0.006, thick), e: 1.9 };
-  }, { ns: 16, nt: 10, capEnd: 0.014, island: [0.56, 0.30, 0.98, 0.60], paint: paintFin, bone: 2 });
+  }, { ns: 10, nt: 8, capEnd: 0.014, island: [0.56, 0.30, 0.98, 0.60], paint: paintFin, bone: 2 });
 
   // 5. 제2 등지느러미
   m.sweep('dorsal2', (s) => {
     const y = 0.08 + s * 0.095;
     const x = -0.52 - s * 0.10;
     return { c: [x, y, 0], u: [1, 0, 0], v: [0, 0, 1], a: 0.062 * (1 - 0.76 * s), b: 0.013 * (1 - 0.65 * s), e: 1.9 };
-  }, { ns: 10, nt: 8, capEnd: 0.008, island: [0.56, 0.30, 0.98, 0.60], paint: paintFin, bone: 4 });
+  }, { ns: 6, nt: 6, capEnd: 0.008, island: [0.56, 0.30, 0.98, 0.60], paint: paintFin, bone: 4 });
 
   // 6. 긴 날개형 가슴지느러미 (fin_L · fin_R)
-  const pecLen = isFry ? 0.39 : 0.45;
+  const pecLen = isFry ? 0.35 : 0.40;
   for (const side of [1, -1]) {
     m.sweep(side > 0 ? 'fin_L' : 'fin_R', (s) => {
-      const px = 0.19 - Math.pow(s, 1.1) * 0.30;
-      const py = -0.095 - s * 0.135;
+      const px = 0.19 - Math.pow(s, 1.1) * 0.28;
+      const py = -0.095 - s * 0.125;
       const pz = side * (0.125 + s * pecLen);
-      const chord = 0.138 * Math.pow(1 - s * 0.78, 0.75);
+      const chord = 0.135 * Math.pow(1 - s * 0.78, 0.75);
       const thick = 0.022 * (1 - 0.7 * s);
       return { c: [px, py, pz], u: [1, 0.12, 0], v: [0, 1, 0], a: Math.max(0.016, chord), b: Math.max(0.006, thick), e: 1.95 };
-    }, { ns: 14, nt: 10, capEnd: 0.014, island: [0.48, 0.62, 0.86, 0.98], paint: paintFin, bone: side > 0 ? 6 : 8 });
+    }, { ns: 9, nt: 8, capEnd: 0.014, island: [0.48, 0.62, 0.86, 0.98], paint: paintFin, bone: side > 0 ? 6 : 8 });
   }
   const fins = {
-    L: { root: [0.19, -0.095, 0.125], tip: [0.19 - 0.30, -0.23, 0.125 + pecLen] },
-    R: { root: [0.19, -0.095, -0.125], tip: [0.19 - 0.30, -0.23, -(0.125 + pecLen)] },
+    L: { root: [0.19, -0.095, 0.125], tip: [0.19 - 0.28, -0.22, 0.125 + pecLen] },
+    R: { root: [0.19, -0.095, -0.125], tip: [0.19 - 0.28, -0.22, -(0.125 + pecLen)] },
   };
 
   // 7. 배지느러미 (pelvic fins) + 뒷지느러미 (anal fin)
@@ -187,13 +187,13 @@ function buildHammerhead(stage) {
       c: [-0.26 - s * 0.12, -0.115 - s * 0.075, side * (0.065 + s * 0.095)],
       u: [1, 0.1, 0], v: [0, 1, 0],
       a: 0.072 * (1 - 0.72 * s), b: 0.012 * (1 - 0.6 * s), e: 1.9,
-    }), { ns: 8, nt: 8, capEnd: 0.008, island: [0.56, 0.30, 0.98, 0.60], paint: paintFin, bone: 3 });
+    }), { ns: 5, nt: 6, capEnd: 0.008, island: [0.56, 0.30, 0.98, 0.60], paint: paintFin, bone: 3 });
   }
   m.sweep('anal', (s) => ({
     c: [-0.51 - s * 0.10, -0.072 - s * 0.082, 0],
     u: [1, 0, 0], v: [0, 0, 1],
     a: 0.058 * (1 - 0.74 * s), b: 0.012 * (1 - 0.65 * s), e: 1.9,
-  }), { ns: 8, nt: 8, capEnd: 0.008, island: [0.56, 0.30, 0.98, 0.60], paint: paintFin, bone: 4 });
+  }), { ns: 5, nt: 6, capEnd: 0.008, island: [0.56, 0.30, 0.98, 0.60], paint: paintFin, bone: 4 });
 
   // 8. 길고 우아한 이형 꼬리지느러미 (heterocercal tail: 긴 상엽 + 짧은 하엽)
   m.sweep('tail_top', (s) => {
@@ -203,7 +203,7 @@ function buildHammerhead(stage) {
     const chord = 0.098 * (1 - 0.68 * s) * notch;
     const thick = 0.022 * (1 - 0.75 * s);
     return { c: [x, y, 0], u: [0.52, 0.85, 0], v: [0, 0, 1], a: Math.max(0.012, chord), b: Math.max(0.005, thick), e: 1.85 };
-  }, { ns: 16, nt: 10, capEnd: 0.012, island: [0.02, 0.58, 0.44, 0.98], paint: paintFin, bone: 5 });
+  }, { ns: 10, nt: 8, capEnd: 0.012, island: [0.02, 0.58, 0.44, 0.98], paint: paintFin, bone: 5 });
 
   m.sweep('tail_bot', (s) => {
     const x = -0.82 - s * 0.22;
@@ -211,14 +211,15 @@ function buildHammerhead(stage) {
     const chord = 0.082 * (1 - 0.72 * s);
     const thick = 0.019 * (1 - 0.72 * s);
     return { c: [x, y, 0], u: [0.45, -0.89, 0], v: [0, 0, 1], a: Math.max(0.012, chord), b: Math.max(0.005, thick), e: 1.85 };
-  }, { ns: 12, nt: 8, capEnd: 0.01, island: [0.02, 0.58, 0.44, 0.98], paint: paintFin, bone: 5 });
+  }, { ns: 8, nt: 6, capEnd: 0.01, island: [0.02, 0.58, 0.44, 0.98], paint: paintFin, bone: 5 });
 
   return { m, fins };
 }
 
-function weight(part, g, [s]) {
-  if (part.name === 'fin_L') return [[6, clamp(1 - s * 0.85, 0.15, 1)], [7, clamp(s * 0.85, 0, 0.85)]];
-  if (part.name === 'fin_R') return [[8, clamp(1 - s * 0.85, 0.15, 1)], [9, clamp(s * 0.85, 0, 0.85)]];
+function weight(part, g) {
+  // 상어 가슴지느러미는 굳은 날개(stiff hydrofoil) — fin_L/R 뿌리 뼈에 단단히 묶어 과도한 펄럭임을 방지
+  if (part.name === 'fin_L') return [[6, 1]];
+  if (part.name === 'fin_R') return [[8, 1]];
   if (part.bone === 0) return [[0, 1]];
   if (part.bone === 5) return [[5, 1]];
   return spineWeight(g[0]);
