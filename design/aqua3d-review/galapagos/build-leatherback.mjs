@@ -52,19 +52,39 @@ function ventralKeel(th) {
   return k;
 }
 
+// 장수거북 고유 미세 별빛 반점(cellular starry freckles) 생성기 — 큰 얼룩이 아닌 실물 특유의 촘촘하고 선명한 하늘빛·흰색 작은 점들
+function starryFreckles(x, y, z, scale = 28) {
+  const sx = x * scale, sy = y * scale, sz = z * scale;
+  const ix = Math.floor(sx), iy = Math.floor(sy), iz = Math.floor(sz);
+  let minD = 9, cid = 0;
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+    const cx = ix + dx, cy = iy + dy, cz = iz + dz;
+    const h1 = noise(cx * 1.13 + 7.1, cy * 1.37 + 3.2, cz * 1.71 + 9.4);
+    const h2 = noise(cx * 1.91 + 2.3, cy * 1.19 + 8.7, cz * 1.43 + 4.1);
+    const h3 = noise(cx * 1.57 + 5.9, cy * 1.63 + 1.8, cz * 1.29 + 6.5);
+    const d = Math.hypot(sx - (cx + 0.15 + h1 * 0.70), sy - (cy + 0.15 + h2 * 0.70), sz - (cz + 0.15 + h3 * 0.70));
+    if (d < minD) { minD = d; cid = h1; }
+  }
+  const rad = 0.14 + cid * 0.14;
+  return cid > 0.36 ? smooth(rad, rad * 0.42, minD) : 0;
+}
+
 function buildLeatherback(stage) {
   // stage: 0=fry(치어), 1=juv(준성체), 2=adult(성체)
   const isFry = stage === 0, isJuv = stage === 1;
   const m = new Model();
 
-  const cObsidian = isFry ? hex('#14171c') : isJuv ? hex('#1b2028') : hex('#1e242c');
-  const cSlate    = isFry ? hex('#242a34') : isJuv ? hex('#323c4a') : hex('#384352');
-  const cKeel     = isFry ? hex('#e8eef4') : isJuv ? hex('#7c8da0') : hex('#5f6d7d');
-  const cSpotW    = isFry ? hex('#eef2f6') : hex('#cbd6e0');
-  const cSpotPink = hex('#d9a2a8');
-  const cPlastron = isFry ? hex('#cfd6dc') : hex('#dcd2cc');
-  const cThroat   = isFry ? hex('#b8bfc8') : hex('#d6b8b6');
-  const cPineal   = hex('#e29aa4'); // 장수거북 성체 정수리 고유 분홍 반점!
+  // 수중 조명 아래서도 검게 뭉개지지 않는 실제 장수거북의 깊은 남청·흑청 가죽 색감
+  const cObsidian = isFry ? hex('#1b222e') : isJuv ? hex('#243044') : hex('#283448');
+  const cSlate    = isFry ? hex('#2d394c') : isJuv ? hex('#3c4f6b') : hex('#445874');
+  const cTrough   = isFry ? hex('#131922') : hex('#1c2535');
+  const cKeel     = isFry ? hex('#eef4fa') : isJuv ? hex('#7e98b8') : hex('#687f9c');
+  const cSpotBlue = hex('#bdd9f2'); // 실물 지느러미·목의 맑은 연하늘 별빛 반점
+  const cSpotW    = hex('#eef5fc'); // 밝은 아이보리·백색 점
+  const cSpotPink = hex('#e4b0b8'); // 은은한 로즈 핑크 반점
+  const cPlastron = isFry ? hex('#d8e0e8') : hex('#ece4de');
+  const cThroat   = isFry ? hex('#c2ccd8') : hex('#e6cbc8');
+  const cPineal   = hex('#e8a4b0'); // 장수거북 성체 정수리 고유 분홍 반점!
 
   // ── 1. 유선형 눈물방울 등껍질(carapace) + 배딱지(plastron) — 실제 3D 7개 용골 조형 ──
   // x: +0.58(앞 목깃) -> -0.82(뾰족한 후미 supracaudal point), 총 등딱지 길이 1.40
@@ -117,32 +137,31 @@ function buildLeatherback(stage) {
       const grain = 0.90 + 0.18 * fbm([P[0] * 26, P[1] * 26, P[2] * 26], 3);
 
       if (isBelly) {
-        // 배딱지(plastron): 크림·연분홍 바탕 + 어두운 회색 얼룩
-        const mot = fbm([P[0] * 8, P[2] * 8, 3.1], 3);
-        let col = mix(cPlastron, cSlate, smooth(0.50, 0.78, mot) * 0.45);
-        col = mix(col, cSpotPink, smooth(0.35, 0.65, fbm([P[0] * 5, P[2] * 5, 1.7], 2)) * 0.32);
+        // 배딱지(plastron): 깨끗한 크림 아이보리 + 은은한 로즈핑크 홍조 + 가장자리 연한 청회 마블링
+        const mot = fbm([P[0] * 7, P[2] * 7, 3.1], 3);
+        let col = mix(cPlastron, cSpotPink, smooth(0.32, 0.72, mot) * 0.36);
+        const edgeBlue = smooth(0.24, 0.44, Math.abs(P[2]));
+        col = mix(col, cSlate, edgeBlue * 0.28);
         return mul(col, grain);
       }
 
-      // 가죽 등껍질(carapace): 깊은 젖은 흑청색 + 용골 하이라이트 + 별빛 흰/연청/분홍 반점
-      const broad = fbm([P[0] * 6, P[1] * 6, P[2] * 6], 3);
-      let col = mix(cObsidian, cSlate, smooth(0.32, 0.75, broad) * 0.62);
+      // 가죽 등껍질(carapace): 깊은 해양 남청·흑청 + 용골 하이라이트 + 촘촘한 별빛 반점
+      const broad = fbm([P[0] * 5.5, P[1] * 5.5, P[2] * 5.5], 3);
+      let col = mix(cObsidian, cSlate, smooth(0.28, 0.76, broad) * 0.65);
 
-      // 용골 능선 강조 (치어는 선명한 흰 구슬선, 성체는 밝은 은회·연분홍 마모 하이라이트)
-      const bead = isFry ? (0.65 + 0.35 * Math.sin(P[0] * 62)) : (0.55 + 0.45 * fbm([P[0] * 18, P[2] * 18, 2], 2));
-      col = mix(col, cKeel, kTop * (isFry ? 0.92 : isJuv ? 0.58 : 0.42) * bead);
+      // 골짜기(flute)는 깊은 남청 음영, 7개 용골 능선은 매끈한 은청 하이라이트
+      col = mix(cTrough, col, smooth(0.05, 0.35, kTop));
+      const bead = isFry ? (0.68 + 0.32 * Math.sin(P[0] * 62)) : (0.65 + 0.35 * fbm([P[0] * 16, P[2] * 16, 2], 2));
+      col = mix(col, cKeel, kTop * (isFry ? 0.94 : isJuv ? 0.62 : 0.48) * bead);
 
-      // 장수거북 고유의 불규칙한 흰/연하늘/연분홍 얼룩 반점 (자연스러운 다중 스케일)
-      const sp1 = fbm([P[0] * 17, P[1] * 17, P[2] * 17], 3);
-      const sp2 = noise(P[0] * 38, P[1] * 38, P[2] * 38);
-      if (sp1 > 0.66) {
-        const spotCol = sp2 > 0.62 ? cSpotPink : cSpotW;
-        col = mix(col, spotCol, smooth(0.66, 0.78, sp1) * (isFry ? 0.35 : 0.72));
+      // 실물 특유의 촘촘하고 선명한 하늘빛·아이보리 별빛 반점 (큰 얼룩 대신 2단 크기 세포 점!)
+      if (!isFry) {
+        const f1 = starryFreckles(P[0], P[1], P[2], 22);
+        const f2 = starryFreckles(P[0] + 1.3, P[1] + 0.7, P[2] - 0.9, 38);
+        const freck = Math.max(f1 * 0.85, f2 * 0.65);
+        const tint = noise(P[0] * 12, P[2] * 12, 5) > 0.72 ? cSpotW : cSpotBlue;
+        col = mix(col, tint, freck * (0.45 + 0.40 * kTop));
       }
-      if (sp2 > 0.86 && !isFry) col = mix(col, cSpotW, 0.55);
-
-      // 골짜기 오목 음영(ambient occlusion 느낌)
-      if (kTop < 0.15) col = mul(col, 0.86);
       return mul(col, grain);
     },
   });
@@ -163,9 +182,9 @@ function buildLeatherback(stage) {
     island: [0.64, 0.01, 0.98, 0.20], bone: 0,
     paint: (P, n) => {
       const grain = 0.90 + 0.18 * fbm([P[0] * 32, P[1] * 32, P[2] * 32], 3);
-      let col = n[1] < -0.18 ? mix(cThroat, cSlate, 0.28) : mix(cObsidian, cSlate, 0.45);
-      const sp = fbm([P[0] * 18, P[1] * 18, P[2] * 18], 2);
-      if (sp > 0.62) col = mix(col, n[1] < 0 ? cSpotPink : cSpotW, smooth(0.62, 0.78, sp) * 0.75);
+      let col = n[1] < -0.18 ? mix(cThroat, cPlastron, 0.35) : mix(cObsidian, cSlate, 0.45);
+      const freck = Math.max(starryFreckles(P[0], P[1], P[2], 30), starryFreckles(P[0] + 0.9, P[1], P[2], 46) * 0.7);
+      col = mix(col, n[1] < 0 ? cSpotPink : cSpotBlue, freck * 0.80);
       return mul(col, grain);
     },
   });
@@ -193,15 +212,15 @@ function buildLeatherback(stage) {
     island: [0.64, 0.22, 0.98, 0.46], bone: 0,
     paint: (P, n, [s]) => {
       const grain = 0.92 + 0.16 * fbm([P[0] * 36, P[1] * 36, P[2] * 36], 3);
-      let col = n[1] < -0.28 ? mix(cThroat, cSlate, 0.32) : mix(cObsidian, cSlate, 0.42);
-      // 뺨·이마 흰/분홍 반점
-      const sp = fbm([P[0] * 22, P[1] * 22, P[2] * 22], 2);
-      if (sp > 0.64) col = mix(col, cSpotW, smooth(0.64, 0.80, sp) * 0.68);
+      let col = n[1] < -0.28 ? mix(cThroat, cPlastron, 0.45) : mix(cObsidian, cSlate, 0.46);
+      // 뺨·이마·목의 촘촘한 별빛 반점
+      const freck = Math.max(starryFreckles(P[0], P[1], P[2], 32), starryFreckles(P[0] + 1.7, P[1], P[2], 48) * 0.7);
+      col = mix(col, cSpotBlue, freck * 0.78);
       // ★ 장수거북의 상징: 정수리 분홍 반점 (pink pineal spot)
       if (!isFry) {
         const dp = Math.hypot((P[0] - 0.83) * 1.1, P[2] * 1.4);
-        if (n[1] > 0.45 && dp < 0.055) {
-          col = mix(col, cPineal, smooth(0.055, 0.018, dp) * 0.88);
+        if (n[1] > 0.45 && dp < 0.058) {
+          col = mix(col, cPineal, smooth(0.058, 0.016, dp) * 0.90);
         }
       }
       // W자 윗부리 입선 (mouth line)
@@ -218,12 +237,12 @@ function buildLeatherback(stage) {
     },
   });
 
-  // 눈 + 두툼한 파충류 눈두덩(eyelids)
+  // 눈 + 두툼한 파충류 눈두덩(eyelids) — fin_R 텍스처 칸(v: 0.58..0.98)과 절대 겹치지 않는 전용 칸 사용!
   for (const sd of [1, -1]) {
     const ec = [0.895, 0.068, sd * 0.072];
-    m.sphere('eyelid' + sd, [ec[0] - 0.004, ec[1] + 0.004, ec[2] * 0.94], 0.031, { ns: 8, nt: 10, island: [0.82, 0.48, 0.98, 0.60], bone: 0, paint: () => cSlate });
+    m.sphere('eyelid' + sd, [ec[0] - 0.004, ec[1] + 0.004, ec[2] * 0.94], 0.031, { ns: 8, nt: 10, island: [0.82, 0.48, 0.90, 0.56], bone: 0, paint: () => cSlate });
     m.sphere('eye' + sd, ec, 0.023, {
-      ns: 8, nt: 10, island: [0.88, 0.88, 0.99, 0.99], bone: 0,
+      ns: 8, nt: 10, island: [0.91, 0.48, 0.99, 0.56], bone: 0,
       paint: (P, n) => {
         const glint = Math.exp(-((n[0] - 0.35) ** 2 + (n[1] - 0.48) ** 2) * 28);
         return mix([12, 14, 18], [242, 246, 255], clamp(glint * 0.92));
@@ -260,13 +279,16 @@ function buildLeatherback(stage) {
       island: sd > 0 ? [0.01, 0.58, 0.48, 0.98] : [0.50, 0.58, 0.98, 0.98],
       bone: sd > 0 ? 6 : 8,
       paint: (P, n, [s, t]) => {
-        const grain = 0.91 + 0.16 * fbm([P[0] * 24, P[1] * 24, P[2] * 24], 3);
-        const isUnder = n[1] < -0.22;
-        let col = isUnder ? mix(cSlate, cPlastron, 0.45) : mix(cObsidian, cSlate, 0.35 + 0.25 * s);
-        if (isFry && Math.abs(Math.cos(t * Math.PI * 2)) > 0.72) col = mix(col, cSpotW, 0.85);
-        const sp = fbm([P[0] * 16, P[1] * 16, P[2] * 16], 3);
-        if (sp > 0.63) col = mix(col, isUnder ? cSpotPink : cSpotW, smooth(0.63, 0.78, sp) * 0.76);
-        return mul(col, grain);
+      const grain = 0.91 + 0.16 * fbm([P[0] * 24, P[1] * 24, P[2] * 24], 3);
+      const isUnder = n[1] < -0.22;
+      let col = isUnder ? mix(cSlate, cPlastron, 0.55) : mix(cObsidian, cSlate, 0.38 + 0.22 * s);
+      if (isFry && Math.abs(Math.cos(t * Math.PI * 2)) > 0.72) col = mix(col, cSpotW, 0.90);
+      // 실물 장수거북 앞지느러미발의 촘촘한 은하수 별빛 반점 (사진의 앞지느러미 특징!)
+      const f1 = starryFreckles(P[0], P[1], P[2], 26);
+      const f2 = starryFreckles(P[0] + 2.1, P[1] - 0.8, P[2] + 1.4, 44);
+      const freck = Math.max(f1 * 0.92, f2 * 0.72);
+      col = mix(col, isUnder ? cSpotPink : (f2 > f1 ? cSpotW : cSpotBlue), freck * (isFry ? 0.45 : 0.88));
+      return mul(col, grain);
       },
     });
     fins[sd > 0 ? 'L' : 'R'] = { root, tip };
@@ -285,10 +307,9 @@ function buildLeatherback(stage) {
       ns: 12, nt: 10, capEnd: 0.016,
       island: [0.64, 0.48, 0.80, 0.57], bone: 5,
       paint: (P, n) => {
-        let col = n[1] < -0.25 ? mix(cSlate, cPlastron, 0.4) : cObsidian;
-        const sp = fbm([P[0] * 18, P[2] * 18, 2], 2);
-        if (sp > 0.65) col = mix(col, cSpotW, 0.65);
-        return col;
+        let col = n[1] < -0.25 ? mix(cSlate, cPlastron, 0.50) : cObsidian;
+        const freck = starryFreckles(P[0], P[1], P[2], 28);
+        return mix(col, cSpotBlue, freck * 0.82);
       },
     });
   }
