@@ -29,12 +29,12 @@ export type RodSprite = { src: CanvasImageSource; w: number; h: number; reelX: n
 /** 뜰채 그림 속 테(그물 입구)의 자리 — 그림 칸(가로세로 1, 가운데 원점)에 대한 비율: [가운데 x, y, 반지름 rx, ry, 기울기(rad), 자루 끝 x, y].
  *  그림을 10% 격자에 놓고 눈으로 잰 값이다(2026-11-13). 들어 올리는 물고기를 이 타원 안에 그린다 — 새 뜰채 그림을 넣으면 같이 잰다(fishingvisual.test 가 NETS 와 맞춰 본다) */
 export const FX_NET_HOOP: Readonly<Record<string, readonly [number, number, number, number, number, number, number]>> = {
-  net_bug: [-0.07, -0.21, 0.23, 0.12, 0.74, -0.23, 0.22],
-  net_cotton: [-0.15, -0.21, 0.25, 0.15, 0.52, -0.23, 0.25],
-  net_rubber: [-0.14, -0.21, 0.25, 0.14, 0.53, -0.13, 0.12],
-  net_silver: [-0.13, -0.2, 0.26, 0.14, 0.63, -0.27, 0.23],
-  net_gold: [-0.16, -0.18, 0.25, 0.15, 0.65, 0, 0.25],
-  net_moon: [0.2, -0.18, 0.17, 0.12, 0.25, 0.27, 0.18],
+  net_bug: [-0.18, -0.18, 0.21, 0.19, 0.2, -0.20, 0.12],
+  net_cotton: [-0.14, -0.16, 0.25, 0.17, 0.62, -0.13, 0.19],
+  net_rubber: [-0.11, -0.15, 0.26, 0.18, 0.64, -0.06, 0.26],
+  net_silver: [-0.11, -0.15, 0.26, 0.18, 0.64, -0.06, 0.26],
+  net_gold: [-0.14, -0.16, 0.25, 0.17, 0.62, -0.13, 0.19],
+  net_moon: [-0.11, -0.15, 0.26, 0.18, 0.64, -0.06, 0.26],
 };
 
 export function releaseRod(sp: RodSprite) {

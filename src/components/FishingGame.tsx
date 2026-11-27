@@ -513,7 +513,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   useEffect(() => {
     if (!fx || !row) return;
     const cur = fishingOf(row.state);
-    fx.art((k) => (FISHING_IMAGE_KEYS.has(k) ? asset(`/fishing/${k}.webp`) : null), NETS[cur.net]?.key ?? NETS[0].key);
+    fx.art((k) => (FISHING_IMAGE_KEYS.has(k) || k.startsWith("fx_") ? asset(`/fishing/${k}.webp`) : null), NETS[cur.net]?.key ?? NETS[0].key);
     const day = today || kstDate(clock()), place = currentSpot(cur, spotPick, day);
     fx.set({ rod: RODS[cur.rod]?.key ?? RODS[0].key, spot: place.key, bait: currentBait(cur, place, baitPick, methodOf(method).baitCost, day).bait.key });
     // 장비 꾸미기 — 이 폰의 사람이 낀 찌 · 줄 · 낚싯대 색(커플이 같이 사도 끼는 건 사람마다)

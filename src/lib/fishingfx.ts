@@ -111,6 +111,8 @@ export class FishFx {
   private rodTinted: { key: string; sp: RodSprite | null } | null = null;
   private netArt: { key: string; img: CanvasImageSource } | null = null;
   private netKey = "";
+  /** 실사 수면·릴 스프라이트(fx_eddy_pocket · fx_bubble_boil · fx_scoop_net · fx_reel_spool · fx_reel_knob) */
+  private fxArt: Record<string, CanvasImageSource | "loading"> = {};
   private shoal: FxShoalFish[] = [];
   private net: { t0: number; dur: number; x: number; y: number; r: number; ry: number; hit: boolean | null } | null = null;
   /** 뜰채 2막 — 건진 그물을 들어 올리는 중. h 0~1 · tilt -1~1 · kick 몸부림 중 */
@@ -315,6 +317,7 @@ export class FishFx {
     this.dropTinted();
     this.baitArt = null;
     this.netArt = null;
+    this.fxArt = {};
     this.grads.clear();
   }
 
@@ -436,6 +439,29 @@ export class FishFx {
         img.src = src;
       }
     }
+    for (const k of ["fx_eddy_pocket", "fx_bubble_boil", "fx_scoop_net", "fx_reel_spool", "fx_reel_knob"] as const) {
+      this.loadFx(k);
+    }
+  }
+
+  private loadFx(key: string) {
+    if (this.fxArt[key] || !this.artUrl || typeof Image === "undefined") return;
+    const src = this.artUrl(key);
+    if (!src) return;
+    this.fxArt[key] = "loading";
+    const img = new Image();
+    img.onload = () => {
+      if (!this.dead) this.fxArt[key] = img;
+    };
+    img.onerror = () => {
+      delete this.fxArt[key];
+    };
+    img.src = src;
+  }
+
+  private fxImg(key: string): CanvasImageSource | null {
+    const v = this.fxArt[key];
+    return v && v !== "loading" ? v : null;
   }
 
   private loadRod(key: string) {
@@ -2271,28 +2297,38 @@ export class FishFx {
   private drawCrank(c: CanvasRenderingContext2D, x: number, y: number, R: number, reel: string) {
     const u = this.u, a = this.reelAng, dark = mix(reel, "#000000", 0.55);
     const kx = x + Math.cos(a) * R * 1.25, ky = y + Math.sin(a) * R * 1.25;
+    const spoolImg = this.fxImg("fx_reel_spool");
+    const knobImg = this.fxImg("fx_reel_knob");
     c.save();
     c.translate(x, y);
-    c.scale(R * 0.55, R * 0.55);
-    c.fillStyle = this.grad(c, `crank:${reel}`, () => {
-      const g = c.createRadialGradient(-0.35, -0.35, 0, 0, 0, 1);
-      g.addColorStop(0, mix(reel, "#ffffff", 0.2));
-      g.addColorStop(0.65, mix(reel, "#000000", 0.38));
-      g.addColorStop(1, mix(reel, "#000000", 0.62));
-      return g;
-    });
-    c.beginPath();
-    c.arc(0, 0, 1, 0, 6.29);
-    c.fill();
+    if (spoolImg) {
+      c.rotate(a);
+      const d = R * 1.45;
+      c.drawImage(spoolImg, -d * 0.5, -d * 0.5, d, d);
+    } else {
+      c.scale(R * 0.55, R * 0.55);
+      c.fillStyle = this.grad(c, `crank:${reel}`, () => {
+        const g = c.createRadialGradient(-0.35, -0.35, 0, 0, 0, 1);
+        g.addColorStop(0, mix(reel, "#ffffff", 0.2));
+        g.addColorStop(0.65, mix(reel, "#000000", 0.38));
+        g.addColorStop(1, mix(reel, "#000000", 0.62));
+        return g;
+      });
+      c.beginPath();
+      c.arc(0, 0, 1, 0, 6.29);
+      c.fill();
+    }
     c.restore();
     // 원판 테 — 어두운 물 위에서도 쇠붙이 가장자리가 보이게
-    c.save();
-    c.strokeStyle = "rgba(255,255,255,.35)";
-    c.lineWidth = Math.max(0.6, 0.9 * u);
-    c.beginPath();
-    c.arc(x, y, R * 0.55, 0, 6.29);
-    c.stroke();
-    c.restore();
+    if (!spoolImg) {
+      c.save();
+      c.strokeStyle = "rgba(255,255,255,.35)";
+      c.lineWidth = Math.max(0.6, 0.9 * u);
+      c.beginPath();
+      c.arc(x, y, R * 0.55, 0, 6.29);
+      c.stroke();
+      c.restore();
+    }
     if (Math.abs(this.reelVel) > 9 && !this.reduced) {
       // 손잡이가 지나온 자리 — 흐린 호 한 줄(1.2 rad), 끝으로 갈수록 옅게 세 토막
       const dir = this.reelVel > 0 ? -1 : 1;
@@ -2317,20 +2353,25 @@ export class FishFx {
     c.moveTo(x, y);
     c.lineTo(kx, ky);
     c.stroke();
-    // 팔의 밝은 날 — 진한 팔이 어두운 물에 묻히지 않게(두 톤)
-    c.strokeStyle = "rgba(255,255,255,.5)";
-    c.lineWidth = Math.max(0.6, 0.9 * u);
+    // 팔의 밝은 금속 모서리 — 진한 팔이 어두운 물에 묻히지 않게(두 톤)
+    c.strokeStyle = "rgba(255,255,255,.58)";
+    c.lineWidth = Math.max(0.6, 0.95 * u);
     c.beginPath();
-    c.moveTo(x - Math.sin(a) * 0.6 * u, y + Math.cos(a) * 0.6 * u);
-    c.lineTo(kx - Math.sin(a) * 0.6 * u, ky + Math.cos(a) * 0.6 * u);
+    c.moveTo(x - Math.sin(a) * 0.65 * u, y + Math.cos(a) * 0.65 * u);
+    c.lineTo(kx - Math.sin(a) * 0.65 * u, ky + Math.cos(a) * 0.65 * u);
     c.stroke();
-    c.fillStyle = "#f4efe4";
-    c.strokeStyle = "rgba(15,23,42,.55)";
-    c.lineWidth = Math.max(0.6, 0.8 * u);
-    c.beginPath();
-    c.arc(kx, ky, 3 * u, 0, 6.29);
-    c.fill();
-    c.stroke();
+    if (knobImg) {
+      const kd = 7.4 * u;
+      c.drawImage(knobImg, kx - kd * 0.5, ky - kd * 0.5, kd, kd);
+    } else {
+      c.fillStyle = "#f4efe4";
+      c.strokeStyle = "rgba(15,23,42,.55)";
+      c.lineWidth = Math.max(0.6, 0.8 * u);
+      c.beginPath();
+      c.arc(kx, ky, 3 * u, 0, 6.29);
+      c.fill();
+      c.stroke();
+    }
     c.fillStyle = mix(reel, "#ffffff", 0.6);
     c.beginPath();
     c.arc(x, y, 1.8 * u, 0, 6.29);
@@ -2679,56 +2720,73 @@ export class FishFx {
     c.restore();
   }
 
-  /** 뜰채 — 헤엄치는 그림자들. 빛의 색이 등급이고, 깊이 들어가면 흐려져서 못 건진다. 쓰레기는 빛이 없다. */
+  /** 뜰채 — 헤엄치는 실사풍 수중 그림자들. 햇빛 굴절 윤광의 색이 등급이고, 수면 가까이 떠오르면 자연스러운 잔물결이 퍼진다. 쓰레기는 빛이 없다. */
   private drawShoal(c: CanvasRenderingContext2D) {
     for (const f of this.shoal) {
       const x = f.x * this.W, y = f.y * this.H;
       const L = (46 + f.size * 92) * this.u * Math.max(0.62, this.persp(y));
-      const a = f.reach ? 0.5 + f.z * 0.42 : 0.14;
+      const a = f.reach ? 0.44 + f.z * 0.46 : 0.14;
       c.save();
       if (!f.junk && f.reach) {
         const col = FX_GRADE_LIGHT[clamp(f.grade, 0, 7)];
-        const r = L * (0.72 + Math.sin(this.t * 3 + f.id) * 0.07);
+        const r = L * (0.76 + Math.sin(this.t * 2.8 + f.id) * 0.06);
+        // 부드러운 수중 햇빛 굴절 광채 — 인위적인 게임 링 대신 자연스러운 수면 반사 느낌으로 등급 구분
         c.save();
         c.globalCompositeOperation = "lighter";
         c.translate(x, y);
-        c.scale(r, r * 0.55);
-        c.globalAlpha *= clamp(0.15 + f.z * 0.5, 0, 1);
+        c.scale(r, r * 0.56);
+        c.globalAlpha *= clamp(0.16 + f.z * 0.34, 0, 0.55);
         c.fillStyle = this.glow(c, col);
         c.beginPath();
         c.arc(0, 0, 1, 0, 6.29);
         c.fill();
         c.restore();
-        // 밝은 물에선 빛이 안 보이니 등급 색 고리를 같이 — 무엇을 노릴지 고를 수 있어야 한다
+        // 수면 위 얇은 빛 굴절 파문 (등급 색의 은은한 물결)
         c.save();
-        c.strokeStyle = "rgba(2,16,28,.45)";
-        c.lineWidth = 4.4 * this.u;
-        c.globalAlpha = 0.5 + f.z * 0.5;
-        c.beginPath();
-        c.ellipse(x, y, L * 0.66, L * 0.36, 0, 0, 6.29);
-        c.stroke();
+        const wave = (this.t * 0.9 + f.id * 0.41) % 1;
         c.strokeStyle = col;
-        c.lineWidth = 2.4 * this.u;
+        c.lineWidth = (f.grade >= 4 ? 1.8 : 1.25) * this.u;
+        c.globalAlpha = (0.28 + f.z * 0.38) * (1 - wave * 0.45);
+        c.beginPath();
+        c.ellipse(x, y, L * (0.52 + wave * 0.24), L * (0.27 + wave * 0.13), 0, 0, 6.29);
         c.stroke();
-        // 수면 가까이 떠오르면 등지느러미가 물을 가르며 잔물결이 퍼진다(2026-11-13 — 건질 때를 눈으로)
+        // 수면 가까이 떠오르면 등지느러미가 물을 가르며 흰 잔물결이 퍼진다
         if (f.z > 0.55) {
           const k = (this.t * 1.4 + f.id * 0.37) % 1;
-          c.strokeStyle = "#ffffff";
-          c.lineWidth = 1.6 * this.u;
+          c.strokeStyle = "rgba(240,250,255,.9)";
+          c.lineWidth = 1.4 * this.u;
           c.globalAlpha = (1 - k) * 0.55 * clamp((f.z - 0.55) / 0.3, 0, 1);
           c.beginPath();
-          c.ellipse(x, y, L * (0.5 + k * 0.6), L * (0.2 + k * 0.25), 0, 0, 6.29);
+          c.ellipse(x, y, L * (0.48 + k * 0.62), L * (0.22 + k * 0.28), 0, 0, 6.29);
           c.stroke();
         }
         c.restore();
       }
+      // 깊은 수중 확산 그림자(1겹) + 본체 그림자(1겹) + 등 쪽 햇빛 반사 1줄 — 실제 물속 물고기처럼 입체감 표현
       c.translate(x, y);
       c.scale(1, 0.56);
       c.rotate(f.h);
-      c.fillStyle = "#001226";
+      c.fillStyle = "#000e1f";
+      c.globalAlpha = a * 0.34;
+      c.save();
+      c.translate(2 * this.u, 4 * this.u);
+      c.scale(1.06, 1.08);
+      this.fishPath(c, L, this.t * 9 + f.id);
+      c.fill();
+      c.restore();
+      c.fillStyle = "#02182e";
       c.globalAlpha = a;
       this.fishPath(c, L, this.t * 9 + f.id);
       c.fill();
+      if (!f.junk && f.reach) {
+        c.strokeStyle = FX_GRADE_LIGHT[clamp(f.grade, 0, 7)];
+        c.lineWidth = 1.2 * this.u;
+        c.globalAlpha = 0.25 + f.z * 0.35;
+        c.beginPath();
+        c.moveTo(L * 0.26, -L * 0.05);
+        c.quadraticCurveTo(0, -L * 0.12, -L * 0.24, -L * 0.03);
+        c.stroke();
+      }
       c.restore();
     }
   }
@@ -2829,53 +2887,91 @@ export class FishFx {
           c.globalAlpha = 1;
         }
         if (hv.pockets) {
+          const eddyImg = this.fxImg("fx_eddy_pocket");
           for (const pk of hv.pockets) {
             const px = pk.x * this.W, py = pk.y * this.H, prx = pk.r * this.W, pry = this.aimRy(pk.r);
-            const pulse = 0.92 + 0.08 * Math.sin(this.t * 2.6 + pk.x * 9);
-            c.fillStyle = "rgba(72,226,214,.14)";
-            c.beginPath(); c.ellipse(px, py, prx * pulse, pry * pulse, 0, 0, 6.29); c.fill();
-            c.setLineDash([5 * u, 4 * u]);
-            c.strokeStyle = "rgba(142,248,238,.55)";
-            c.lineWidth = 1.8 * u;
-            c.stroke();
-            c.setLineDash([]);
+            const pulse = 0.96 + 0.04 * Math.sin(this.t * 2.2 + pk.x * 9);
+            if (eddyImg) {
+              c.save();
+              c.translate(px, py);
+              c.scale(1, pry / Math.max(1, prx));
+              c.rotate(this.reduced ? 0 : this.t * 0.38 + pk.x * 6);
+              c.globalAlpha = 0.72;
+              const d = prx * 2.3 * pulse;
+              c.drawImage(eddyImg, -d * 0.5, -d * 0.5, d, d);
+              c.restore();
+            } else {
+              c.fillStyle = "rgba(72,226,214,.14)";
+              c.beginPath(); c.ellipse(px, py, prx * pulse, pry * pulse, 0, 0, 6.29); c.fill();
+              c.strokeStyle = "rgba(180,248,242,.45)";
+              c.lineWidth = 1.4 * u;
+              c.stroke();
+            }
           }
         }
         if (hv.bubble) {
-          const b = hv.bubble, bx = b.x * this.W, by = b.y * this.H, br = b.r * this.W * (0.9 + 0.14 * Math.sin(this.t * 5));
+          const b = hv.bubble, bx = b.x * this.W, by = b.y * this.H, br = b.r * this.W * (0.94 + 0.08 * Math.sin(this.t * 4.2));
+          const bry = this.aimRy(b.r);
           const fade = Math.min(1, b.life * 1.5);
-          c.globalAlpha = fade;
-          c.fillStyle = "rgba(255,228,118,.24)";
-          c.beginPath(); c.ellipse(bx, by, br, this.aimRy(b.r), 0, 0, 6.29); c.fill();
-          c.strokeStyle = "rgba(255,235,140,.92)";
-          c.lineWidth = 2.2 * u;
-          c.stroke();
-          c.globalAlpha = 1;
+          const boilImg = this.fxImg("fx_bubble_boil");
+          c.save();
+          c.globalAlpha = fade * 0.92;
+          if (boilImg) {
+            c.translate(bx, by);
+            c.scale(1, bry / Math.max(1, br));
+            c.rotate(this.reduced ? 0 : Math.sin(this.t * 1.3) * 0.14);
+            const d = br * 2.55;
+            c.drawImage(boilImg, -d * 0.5, -d * 0.5, d, d);
+          } else {
+            c.fillStyle = "rgba(255,228,118,.24)";
+            c.beginPath(); c.ellipse(bx, by, br, bry, 0, 0, 6.29); c.fill();
+            c.strokeStyle = "rgba(255,235,140,.85)";
+            c.lineWidth = 1.8 * u;
+            c.stroke();
+          }
+          c.restore();
         }
         if (hv.lureAt) {
           const lr = hv.lureAt, lx = lr.x * this.W, ly = lr.y * this.H, k = 1 - lr.left / 1.2;
-          c.strokeStyle = "rgba(255,236,150,.7)";
-          c.lineWidth = 2 * u;
-          c.globalAlpha = Math.max(0, 1 - k);
-          c.beginPath(); c.ellipse(lx, ly, (18 + k * 56) * u, (14 + k * 44) * u, 0, 0, 6.29); c.stroke();
+          c.strokeStyle = "rgba(240,250,255,.78)";
+          c.lineWidth = 1.6 * u;
+          c.globalAlpha = Math.max(0, (1 - k) * 0.85);
+          c.beginPath(); c.ellipse(lx, ly, (16 + k * 54) * u, (11 + k * 38) * u, 0, 0, 6.29); c.stroke();
+          c.globalAlpha = Math.max(0, (1 - k) * 0.45);
+          c.beginPath(); c.ellipse(lx, ly, (8 + k * 36) * u, (6 + k * 25) * u, 0, 0, 6.29); c.stroke();
           c.globalAlpha = 1;
         }
         c.restore();
       }
-      // 겨누는 중 — 그물이 닿는 크기 그대로(건질 수 있는 물고기 위면 그 등급 색 · 대시 중이면 시안빛)
-      let col = hv?.dashing ? "#7ef4ff" : "#ffffff";
+      // 겨누는 중 — 실제 뜰채가 수면에 잠긴 채 손가락을 따라 움직이며, 수면 파문으로 닿는 범위를 자연스럽게 보여준다
+      let col = hv?.dashing ? "#93f5ff" : "rgba(240,250,255,.92)";
+      let overFish = false;
       for (const f of this.shoal) {
         if (!f.reach || f.junk) continue;
         const dx = (f.x * this.W - aim.x) / aim.rx, dy = (f.y * this.H - aim.y) / aim.ry;
-        if (dx * dx + dy * dy <= 1) { col = FX_GRADE_LIGHT[clamp(f.grade, 0, 7)]; break; }
+        if (dx * dx + dy * dy <= 1) { col = FX_GRADE_LIGHT[clamp(f.grade, 0, 7)]; overFish = true; break; }
       }
-      this.reticle(c, aim.x, aim.y, aim.rx, aim.ry, col, 1);
-      // 붙잡기 진행 호(arc) — 그물 바깥 테두리에 실시간 게이지 표시
+      // 수면 파문 링(실제 판정 범위와 동일한 타원)
+      this.reticle(c, aim.x, aim.y, aim.rx, aim.ry, col, overFish || hv?.dashing ? 0.95 : 0.7);
+      // 실제 장착한 뜰채(또는 실사 뜰채) 스프라이트를 물 위에 띄워 표시 — 조준 테가 정확히 aim 중심에 놓이게 보정
+      const liveNet = this.netArt?.img ?? this.fxImg("fx_scoop_net");
+      if (liveNet) {
+        const netSize = aim.rx * 3.15;
+        const hp = this.netHoop(netSize);
+        const sway = this.reduced ? 0 : Math.sin(this.t * 3.1) * 0.025 + (hv?.dashing ? -0.1 : 0);
+        c.save();
+        c.translate(aim.x - hp.x, aim.y - hp.y);
+        c.rotate(sway);
+        c.globalAlpha = hv?.dashing ? 0.96 : 0.88;
+        c.drawImage(liveNet, -netSize * 0.5, -netSize * 0.5, netSize, netSize);
+        c.restore();
+      }
+      // 붙잡기 진행 호(arc) — 그물 바깥 테두리에 부드러운 빛 물결 게이지
       if (hv && (hv.progress ?? 0) > 0.02) {
         const u = this.u;
         c.save();
-        c.strokeStyle = "#ffe57a";
-        c.lineWidth = 3.5 * u;
+        c.strokeStyle = "rgba(255,244,180,.92)";
+        c.lineWidth = 3 * u;
         c.lineCap = "round";
         c.beginPath();
         c.ellipse(aim.x, aim.y, aim.rx + 4 * u, aim.ry + 4 * u, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(hv.progress ?? 0, 0, 1));
@@ -2903,31 +2999,32 @@ export class FishFx {
     this.netPic(c, n.x, y, n.r * 2.5, n.hit ? -0.14 * p : 0.1 * p, 1 - p * p);
   }
 
-  /** 조준 원 — 흰 2u 고리 + 4u 어두운 테 + 십자 눈금 네 개 */
+  /** 수면 뜰채 접촉 파문 — 인위적인 십자 조준선 대신 자연스러운 수면 메니스커스 파문 2겹 */
   private reticle(c: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, col: string, a: number) {
     const u = this.u;
+    const rip = this.reduced ? 0 : ((this.t * 0.75) % 1);
     c.save();
     c.globalAlpha *= a;
-    c.lineCap = "round";
-    const draw = () => {
-      c.beginPath();
-      c.ellipse(x, y, rx, ry, 0, 0, 6.29);
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        c.moveTo(x + dx * (rx - 5 * u), y + dy * (ry - 5 * u));
-        c.lineTo(x + dx * (rx + 4 * u), y + dy * (ry + 4 * u));
-      }
-      c.moveTo(x - 3 * u, y);
-      c.lineTo(x + 3 * u, y);
-      c.moveTo(x, y - 3 * u);
-      c.lineTo(x, y + 3 * u);
-    };
-    draw();
-    c.strokeStyle = "rgba(2,16,28,.55)";
-    c.lineWidth = 4 * u;
+    // 물속 그물 그림자
+    c.fillStyle = "rgba(0,18,34,.14)";
+    c.beginPath();
+    c.ellipse(x + 2 * u, y + 3 * u, rx * 0.96, ry * 0.96, 0, 0, 6.29);
+    c.fill();
+    // 수면 접촉 테두리(부드러운 물결 하이라이트)
+    c.strokeStyle = "rgba(2,18,32,.36)";
+    c.lineWidth = 3.2 * u;
+    c.beginPath();
+    c.ellipse(x, y, rx, ry, 0, 0, 6.29);
     c.stroke();
-    draw();
     c.strokeStyle = col;
-    c.lineWidth = 2 * u;
+    c.lineWidth = 1.7 * u;
+    c.stroke();
+    // 바깥으로 잔잔하게 번지는 2차 파문
+    c.globalAlpha *= (1 - rip) * 0.42;
+    c.strokeStyle = "rgba(240,250,255,.85)";
+    c.lineWidth = 1.1 * u;
+    c.beginPath();
+    c.ellipse(x, y, rx * (1 + rip * 0.22), ry * (1 + rip * 0.22), 0, 0, 6.29);
     c.stroke();
     c.restore();
   }

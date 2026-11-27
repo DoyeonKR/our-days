@@ -7,6 +7,7 @@
  * 성능 — 손가락이 움직일 때마다 2,200줄짜리 FishingGame 을 다시 그리지 않는다. 도는 각도는 turn() 이 SVG 속성으로 바로 쓴다.
  * 그라디언트 id 는 useId() 로(한 화면에 둘이어도 안 겹친다). CSS filter · 그림자 없음(폰). 움직임 줄이기면 잔상 · 깜빡임 없음(games.css). */
 import { useId, useImperativeHandle, useRef, type Ref } from "react";
+import { asset } from "@/lib/base";
 
 export type DeepDialHandle = {
   /** ang = 다이얼 회전(라디안, 0 이면 손잡이가 맨 위), dir = 마지막으로 돈 방향(+1 시계 · -1 반시계) */
@@ -149,17 +150,18 @@ export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle
           </g>
         )}
 
-        {/* 스풀 — 바탕(빛은 왼쪽 위에 고정) */}
+        {/* 스풀 — 바탕(실사 가공 금속 스풀이 로딩되기 전 fallback) */}
         <circle cx={C} cy={C} r="36" fill={`url(#${g("spool")})`} />
         <circle cx={C} cy={C} r="26" className="fish-dial-wound" stroke={line} />
         <circle cx={C} cy={C} r="34.5" className="fish-dial-rim" />
         <circle cx={C} cy={C} r="32.6" className="fish-dial-rim-hi" />
-        {/* 도는 부분 — 감긴 줄 무늬 · 구멍 · 별 손잡이 · 팔 */}
+        {/* 도는 부분 — 실사 CNC 스풀 + 크랭크 암 + 별 드래그 */}
         <g ref={rot}>
           <path d={STRIPES} className="fish-dial-stripe" />
           {HOLES.map((p, i) => <circle key={i} cx={f1(p.x)} cy={f1(p.y)} r="5" className="fish-dial-hole" />)}
-          <path d={`M${C - 2.5} ${C}L${C + 2.5} ${C}L${C + 3.5} ${C - KNOB_R}L${C - 3.5} ${C - KNOB_R}Z`} className="fish-dial-arm" />
-          <path d={`M${C - 2.5} ${C}L${C} ${C}L${C} ${C - KNOB_R}L${C - 3.5} ${C - KNOB_R}Z`} className="fish-dial-arm-hi" />
+          <image href={asset("/fishing/fx_reel_spool.webp")} x={C - 37} y={C - 37} width="74" height="74" preserveAspectRatio="xMidYMid meet" />
+          <path d={`M${C - 3} ${C + 2}L${C + 3} ${C + 2}L${C + 4} ${C - KNOB_R}L${C - 4} ${C - KNOB_R}Z`} className="fish-dial-arm" />
+          <path d={`M${C - 2.6} ${C}L${C} ${C}L${C} ${C - KNOB_R}L${C - 3.6} ${C - KNOB_R}Z`} className="fish-dial-arm-hi" />
           <path d={STAR} className="fish-dial-hub" />
           <circle cx={C} cy={C} r="2.2" className="fish-dial-hub-pin" />
         </g>
@@ -170,7 +172,8 @@ export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle
         </g>
         <g ref={knob}>
           <circle cx={C} cy={C - KNOB_R} r="12" fill={`url(#${g("knob")})`} className="fish-dial-knob" />
-          <ellipse cx={C - 4} cy={C - KNOB_R - 4.5} rx="3.6" ry="2.4" className="fish-dial-knob-hi" />
+          <image href={asset("/fishing/fx_reel_knob.webp")} x={C - 13.5} y={C - KNOB_R - 13.5} width="27" height="27" preserveAspectRatio="xMidYMid meet" />
+          <ellipse cx={C - 4} cy={C - KNOB_R - 4.5} rx="3.2" ry="2" className="fish-dial-knob-hi" opacity="0.45" />
           <rect x={C - 10} y={C - KNOB_R - 2} width="20" height="4" rx="1.6" className="fish-dial-stop" transform={`rotate(-40 ${C} ${C - KNOB_R})`} />
         </g>
 
