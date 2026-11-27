@@ -710,9 +710,9 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
         if (dt > 0) crawlPh += dt * rate * (reducedMotion() ? 0.35 : 1);
         if (w > 0) {
           for (let s = 0; s < 2; s++) {
-            const ph = crawlPh + s * Math.PI, arm = fins[s * 2], fore = fins[s * 2 + 1];
-            if (arm) arm.bone.quaternion.multiply(qa.identity().slerp(qb.setFromAxisAngle(Z, -(ph % (Math.PI * 2))), w));
-            if (fore) fore.bone.quaternion.multiply(qa.setFromAxisAngle(Z, 0.85 * Math.max(0, Math.sin(ph)) ** 1.5 * w));
+            const ph = crawlPh + s * Math.PI, arm = fins[s * 2], fore = fins[s * 2 + 1], side = s ? -1 : 1, rec = Math.max(0, Math.sin(ph));
+            if (arm) arm.bone.quaternion.multiply(qa.identity().slerp(qb.setFromAxisAngle(Z, -(ph % (Math.PI * 2))), w)).multiply(qa.setFromAxisAngle(Y, side * 0.24 * rec * w));
+            if (fore) fore.bone.quaternion.multiply(qa.setFromAxisAngle(Z, 0.92 * rec ** 1.4 * w));
           }
           for (let s = 0; s < 2; s++) { const r = legs[s]; if (r) r.bone.quaternion.multiply(qa.setFromAxisAngle(Z, 0.26 * Math.sin(crawlPh * 3 + s * Math.PI) * w)); }
           roll = 0.5 * Math.sin(crawlPh + Math.PI / 2) * w;
@@ -727,6 +727,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
         if (human) {
           // 사람처럼 — 팔은 내려 다리와 반대로 앞뒤로 흔들고(왼팔 ↔ 오른다리), 다리는 곧게 내려 번갈아 내딛는다. 앞뒤 흔들기는 옆 축(Z) — 서 있을 때 배(모델 -Y)가 앞이다
           const sw = Math.sin(stepPh) * walkAmp;
+          if (spine[1] && upright0) spine[1].bone.quaternion.multiply(qa.setFromAxisAngle(X, -0.055 * sw));
           for (let s = 0; s < 2; s++) { const r = fins[s * 2], h = hang[s]; if (r && (h || upright0)) r.bone.quaternion.multiply(qa.identity().slerp(h ?? qa, u)).multiply(qb.setFromAxisAngle(Z, (s ? -1 : 1) * 0.42 * sw)); }
           for (let s = 0; s < 2; s++) { const r = legs[s]; if (r) { r.bone.quaternion.copy(r.base).multiply(qa.identity().slerp(s ? legHangR : legHang, u)).multiply(qb.setFromAxisAngle(Z, (s ? 1 : -1) * 0.5 * sw)); } }
         } else for (let s = 0; s < 2; s++) { const r = fins[s * 2]; if (r) r.bone.quaternion.multiply(qa.setFromAxisAngle(X, (s ? 1 : -1) * (0.3 * u + 0.12 * Math.sin(stepPh) * walkAmp))); }
@@ -742,7 +743,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
         if (idleT > 0.8 && !reducedMotion()) {
           const cyc = (idleT - 0.8) / 6, act = (Math.floor(cyc) + (inner.id % 3)) % 3, f = (cyc % 1) * 6, e0 = Math.max(0, Math.min(1, f / 0.8, (4.6 - f) / 0.8)), e = e0 * e0 * (3 - 2 * e0) * idleW;
           if (act === 0) { yaw = 0.62 * Math.sin((f / 4.6) * Math.PI * 2) * e; tilt = 0.08 * e; }
-          else if (act === 1) { arm = [2.3 * e, -2.3 * e]; elbow = [1.45 * e, -1.45 * e]; curl += 0.35 * e; tilt = 0.16 * e; }
+          else if (act === 1) { arm = [2.22 * e, -2.22 * e]; elbow = [1.55 * e, -1.55 * e]; wrist = [0.22 * e, -0.22 * e]; curl += 0.35 * e; tilt = 0.14 * e; }
           else { const wv = Math.sin(f * 7); arm = [2.5 * e, 0]; elbow = [(0.55 + 0.45 * wv) * e, 0]; wrist = [0.3 * Math.sin(f * 7 + 1) * e, 0]; curl -= 0.2 * e; yaw = 0.18 * e; }
         }
         for (let s = 0; s < 2; s++) {
@@ -767,7 +768,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
           r.bone.quaternion.multiply(qa.setFromAxisAngle(Z, back)).multiply(qb.setFromAxisAngle(Y, side));
         }));
         // 가방 — 걸음마다 앞뒤로 흔들리고, 물속에선 천천히 뜬다
-        yj.bag?.bone.quaternion.multiply(qa.setFromAxisAngle(Z, 0.22 * Math.sin(stepPh - 0.6) * wa * u + 0.06 * Math.sin(hairT * 1.1) - 0.35 * w));
+        yj.bag?.bone.quaternion.multiply(qa.setFromAxisAngle(Z, 0.18 * Math.sin(stepPh - 0.6) * wa * u + 0.05 * Math.sin(hairT * 1.1) - 0.22 * w));
       }
       inner.quaternion.copy(walkBase.q).premultiply(qa.setFromAxisAngle(X, lean)).multiply(qb.setFromAxisAngle(Z, u * Math.PI / 2));
       if (roll) inner.quaternion.multiply(qa.setFromAxisAngle(X, roll));
