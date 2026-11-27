@@ -16,7 +16,7 @@ export const SHARK_PROFILES=new Map([
 // These references have split jaws or sharply tapered faces. A morphological
 // opening can jump between jaw fragments; never inflate its centre with a
 // radius averaged from unrelated neighbouring columns.
-export const HEAD_CONTOUR_FAMILIES=new Set(['frilled_shark','moray','butterflyfish','corydoras','molly','barracuda']);
+export const HEAD_CONTOUR_FAMILIES=new Set(['frilled_shark','moray','butterflyfish','corydoras','molly','barracuda','kissing_gourami']);
 export function headContour(ref,u){
  const [l,t,r,b]=ref.bounds,H=b-t,W=r-l,edges=[];
  for(const dx of [-1,0,1]){
@@ -137,6 +137,22 @@ export function volumeFish(family,key,ref,profile){
    if(j<R&&k<C){const n=start+j*(C+1)+k;indices.push(n,n+1,n+C+1,n+1,n+C+2,n+C+1);}
   }
   regions.push({name:'solid_bill',start,end:positions.length/3});
+ }
+ if(family==='kissing_gourami'){
+  // 키싱구라미(Helostoma temminckii) 특유의 도톰하고 앞으로 돌출된 분홍 입술(위·아래 립 패드 — spine_0 바인딩, 뿌리를 주둥이 안에 묻어 떠 있는 부품 0)
+  const start=positions.length/3,q=sample(.98),tip=outline(.97),vMid=tip?(tip.top+tip.bottom)/2:q.sourceCenter;
+  const xBase=X(q.u)-.025,yMid=Y(vMid),sc=key.startsWith('fry_')?0.78:key.startsWith('juv_')?0.9:1;
+  const R=6,C=8;
+  for(const lip of [1,-1]){
+   const lStart=positions.length/3,yOff=lip*.022*sc,xLen=.072*sc,ry=.024*sc,rz=.038*sc;
+   for(let j=0;j<=R;j++)for(let k=0;k<=C;k++){
+    const f=j/R,a=k/C*Math.PI*2,bulge=Math.sin(Math.PI*clamp(.08+f*.86))**.55;
+    const x=xBase+xLen*f,y=yMid+yOff*(.55+.45*f)+Math.cos(a)*ry*bulge,z=Math.sin(a)*rz*bulge;
+    vertex([x,y,z],paint(clamp(.94+.05*f),clamp(vMid-lip*.018)));
+    if(j<R&&k<C){const n=lStart+j*(C+1)+k;indices.push(n,n+1,n+C+1,n+1,n+C+2,n+C+1);}
+   }
+  }
+  regions.push({name:'kissing_lips',start,end:positions.length/3});
  }
  // Thin, cambered, swept leaf fins with a real root and flexible distal region.
  if(profile.shark)for(const side of [-1,1]){

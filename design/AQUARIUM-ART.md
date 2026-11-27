@@ -1,7 +1,7 @@
 # 우리 수조 그림 목록 · 프롬프트
 
 > 이 파일은 `scripts/aqua-art-prompts.mjs` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **694장**: 치어 · 어린 물고기 406 · 최종 물고기 239 · 악세사리 40 · 수조 배경 9.
+> 모두 **697장**: 치어 · 어린 물고기 408 · 최종 물고기 240 · 악세사리 40 · 수조 배경 9.
 
 ## 넣는 법
 
@@ -41,7 +41,7 @@ Photorealistic aquarium decoration product photography, physically realistic cer
 Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280). Empty underwater interior filling the frame edge to edge: bright water upper area, physically believable caustics and soft light shafts, sandy floor in bottom 18%. NO animals, NO movable decorations in the middle; center open for compositing swimming animals and decorations. No text, UI, border, or front-glass reflections covering the center. Natural materials and realistic water, not cartoon or painted illustration; fantasy architecture only as distant realistic scenery.
 ```
 
-## 치어 · 어린 물고기 (406장)
+## 치어 · 어린 물고기 (408장)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -165,6 +165,8 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `juv_yujin` | 유진 어린 물고기 | Same person (identical card — the model has one look). |
 | `fry_manatee` | 매너티 치어 | Real newborn manatee calf: darker smooth grey skin, chubby, no algae. Transparent background, no text. |
 | `juv_manatee` | 매너티 어린 물고기 | Real juvenile manatee: grey skin with few algae patches, same shape as the adult. Transparent background, no text. |
+| `fry_kissing_gourami` | 키싱구라미 치어 | Tiny baby fry pink Kissing Gourami facing RIGHT: larger dark glossy eye, shorter translucent pale peach-pink body, tiny cute protruding pink lips, clear delicate fins. Transparent background, no text. |
+| `juv_kissing_gourami` | 키싱구라미 어린 물고기 | Juvenile pink Kissing Gourami facing RIGHT: slightly slimmer translucent pale blush-pink body, proportionally larger eye, modestly prominent pink lips. Transparent background, no text. |
 | `fry_bottlenose_dolphin` | 큰돌고래 치어 | Real newborn bottlenose dolphin calf: lighter grey, slightly plump, faint pale vertical fetal fold stripes on the flank. Transparent background, no text. |
 | `juv_bottlenose_dolphin` | 큰돌고래 어린 물고기 | Real juvenile bottlenose dolphin: same pattern as the adult, slightly lighter and smaller. Transparent background, no text. |
 | `fry_beluga` | 벨루가 치어 | Real newborn beluga calf: plump dark slate-grey body, smaller melon, short beak. Transparent background, no text. |
@@ -452,7 +454,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `fry_astral` | 별무리어 치어 | Biologically plausible newborn cosmic star fish spirit, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, translucent deep-indigo body filled with tiny stars, soft glow, little comet tail. A real newborn animal, not a baby cartoon. |
 | `juv_astral` | 별무리어 어린 물고기 | Juvenile cosmic star fish spirit: young teenage fish, body starting to take adult shape, fins half grown, indigo-violet translucent body with a small swirl of galaxy inside, wispy glowing fins. Clearly not yet fully grown, less ornate than the adult. |
 
-## 최종 물고기 (239장)
+## 최종 물고기 (240장)
 
 | key | 이름 | 등급 | 설명 |
 |---|---|---|---|
@@ -569,6 +571,7 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `kappa` | 갓파 | 신화 | Kappa river spirit swimming, head RIGHT: big round head with large white eyes and big black pupils, wide flat yellow-green beak, shaggy brown hair covering the head with a pale green dish on top, green skin with dark green stripes, thin limbs with webbed three-fingered hands and feet. Transparent background, no text. |
 | `yujin` | 유진 | 태초 | A young Korean woman standing, full body, three-quarter front view: long straight black hair, natural face, black fleece high-neck zip jacket, light-wash wide straight jeans, cream quilted crossbody bag with small black dots, dark sneakers. Made from the 3D model (design/aqua3d-review/yujin) — do not redraw. Transparent background, no text. |
 | `manatee` | 매너티 | 전설 | Photorealistic adult West Indian manatee (Trichechus manatus) swimming side view, head RIGHT: plump fusiform grey-brown body, no neck, small rounded head, large drooping bristly upper-lip pad with whiskers, tiny dark eye, two small paddle front flippers with rounded nails, large flat rounded spoon-shaped horizontal tail, no dorsal fin, wrinkled skin with faint scars and light algae patches. Transparent background, no text. |
+| `kissing_gourami` | 키싱구라미 | 보통 | Photorealistic adult pink Kissing Gourami (Helostoma temminckii) side view facing RIGHT: deep laterally compressed oval body with pearlescent pale pink scales, prominent thick protruding puckered pink lips, clear dark eye, long continuous translucent pale pink dorsal and anal fins, slightly concave rounded tail fin. Transparent background, no text. |
 | `bottlenose_dolphin` | 큰돌고래 | 전설 | Real common bottlenose dolphin (Tursiops truncatus) swimming side view, head RIGHT: sleek streamlined body, dark blue-grey back cape, lighter grey flanks, pale white belly and lower jaw, short stubby beak under a rounded melon, small dark eye, tall curved dorsal fin, pointed pectoral flippers, wide horizontal flukes. Transparent background, no text. |
 | `beluga` | 벨루가 | 태초 | Real beluga whale (Delphinapterus leucas) swimming side view, head RIGHT: stout creamy-white body, large rounded bulbous melon forehead over a short beak, upturned smiling mouth line, small dark eye, no dorsal fin (low dorsal ridge), broad rounded paddle flippers, wide flukes. Transparent background, no text. |
 | `sawshark` | 톱상어 | 영웅 | Real Japanese sawshark (Pristiophorus japonicus) side view, head RIGHT: slim brownish shark body, long flat saw-like snout lined with teeth, a pair of long barbels under the saw, two dorsal fins, no anal fin. Natural-history illustration, transparent background. |

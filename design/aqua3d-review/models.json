@@ -56513,6 +56513,294 @@
       },
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "added": "2026-11-27 [사용자: \"넣어도 괜찮아 허락 받았어 기준이미지도 넣고 매너티 움직임 구현해서 반영해줘\"]"
+    },
+    "fry_kissing_gourami": {
+      "kind": "fish",
+      "family": "kissing_gourami",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_kissing_gourami.glb",
+      "triangles": 2762,
+      "bytes": 53784,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "bd6c7b1e0a8ae2a9192567a14629c43539acdc002cfa571507e51ec8298823a3",
+      "sha256": "15d8e1705374afdc2b6a29108214069d2b4da564d461231164b4a75abcd9c08a",
+      "authoringProfile": {
+        "key": "kissing_gourami",
+        "name": "키싱구라미",
+        "grade": "보통",
+        "cm": 20,
+        "water": "fresh",
+        "body": "compressed",
+        "widthRatio": 0.18,
+        "life": "윗물 · 숨 쉬러 수면에 오르고 도톰한 입술로 수초 · 벽면을 쪼아 먹는다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3 (design/aqua3d-review/volume-fish.mjs + kissing_gourami/build.mjs, kissing_lips)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-27",
+      "approval": "user_approved_2026-11-27",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 88,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 5,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2748761111941469
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "juv_kissing_gourami": {
+      "kind": "fish",
+      "family": "kissing_gourami",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_kissing_gourami.glb",
+      "triangles": 2392,
+      "bytes": 58984,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "bb9444d6d652a6de4cf6cd9120e688f5facc3ab405eebbff114d3e39fe57eeb7",
+      "sha256": "f2eb146d7633e06e96236c8c3cfc45d78d74d7e03cabae7525c51183fa0e6ec6",
+      "authoringProfile": {
+        "key": "kissing_gourami",
+        "name": "키싱구라미",
+        "grade": "보통",
+        "cm": 20,
+        "water": "fresh",
+        "body": "compressed",
+        "widthRatio": 0.18,
+        "life": "윗물 · 숨 쉬러 수면에 오르고 도톰한 입술로 수초 · 벽면을 쪼아 먹는다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3 (design/aqua3d-review/volume-fish.mjs + kissing_gourami/build.mjs, kissing_lips)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-27",
+      "approval": "user_approved_2026-11-27",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 88,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 5,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.27615135094105653
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    "kissing_gourami": {
+      "kind": "fish",
+      "family": "kissing_gourami",
+      "form": "adult",
+      "file": "public/aqua/models/fish/kissing_gourami.glb",
+      "triangles": 2382,
+      "bytes": 64448,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "4ee77b5dd29da755ac197140bc91a40b5178b20c4facc94630d81495bc35bfb5",
+      "sha256": "bd36752b60a895be6b7a6699d1b1431126b49faf62a34c0bd8198688fc3a7172",
+      "authoringProfile": {
+        "key": "kissing_gourami",
+        "name": "키싱구라미",
+        "grade": "보통",
+        "cm": 20,
+        "water": "fresh",
+        "body": "compressed",
+        "widthRatio": 0.18,
+        "life": "윗물 · 숨 쉬러 수면에 오르고 도톰한 입술로 수초 · 벽면을 쪼아 먹는다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3 (design/aqua3d-review/volume-fish.mjs + kissing_gourami/build.mjs, kissing_lips)",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "user_approved_2026-11-27",
+      "approval": "user_approved_2026-11-27",
+      "activation": "not enabled",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 88,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 5,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.27618121296766973
+      },
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
     }
   },
   "structuralValidation": "passed",

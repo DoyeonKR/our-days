@@ -190,6 +190,14 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 **모델**: `manatee/manatee-build.mjs` — 돌리기(-Z 머리 → +X) · 꼬리 주걱 펴기(아래로 처져 있었다) · 약 7,000 삼각형으로 줄이기 · 부위 칸 나누기(몸 반쪽 둘 · 꼬리 주걱 위아래 · 가슴지느러미 위아래) · 원본 꼭짓점 색(녹조 · 긁힌 자국 · 눈 · 콧구멍)을 회갈색 살갗 위에 얹기 · 고해상도 오목함(주름 · 입술 패드) · 뼈 10개(`polar/kit.mjs`). 새끼는 짙은 회색 · 매끈 · 통통, 어린 개체는 얼룩 적게.
 **그림**: 모델을 찍은 카드 → `polar/cards-to-art.mjs` → `scripts/aqua-model-profiles.mjs` → `polar/sync-hashes.mjs`. 검수 `manatee/review-manatee.webp` · 움직임 `manatee/review-motion.webp`.
 
+### D9. 키싱구라미 — 그림 3장 + 3D 모델 3개 (2026-11-27)
+
+| key | 이름 | 등급 | 다 큰 몸길이 | 기준 |
+|---|---|---|---|---|
+| `kissing_gourami` | 키싱구라미 | 보통 | 20cm | 분홍 품종 *Helostoma temminckii* 정측면 스튜디오 2D 원화 3종 → `volume-fish.mjs`(`HEAD_CONTOUR_FAMILIES` + `kissing_lips`) + `kissing_gourami/build.mjs` |
+
+**모델**: `volume-fish.mjs` (`body: "compressed"`, `widthRatio: 0.18`) + 돌출 분홍 입술(`kissing_lips`, `spine_0` 바인딩) + 연속 방사 512 WebP 아틀라스(2,382~2,762 tris · 54~64KB · 떠 있는 부품 0). 검수 `kissing_gourami/review-kissing_gourami.webp` · `review-head.webp`.
+
 ### F. 범고래 새끼 · 어린 개체 — 그림 2장 + 3D 모델 2개 (2026-11-14)
 
 > **2026-11-18 끝** — 그림 세션 없이 Claude 세션이 다 큰 모델 · 그림에서 비율만 바꿔 만들었다(`design/aqua3d-review/orca-young-build.mjs` · `orca-young-art.mjs`, 검수 `orca-young/review.webp`). 진짜 새끼 그림으로 다시 그리면 이 두 스크립트 대신 아래 규칙대로.

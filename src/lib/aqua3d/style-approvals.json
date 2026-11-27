@@ -2581,6 +2581,18 @@
     "fry_brydes_whale": {
       "sourceHash": "0be0792ed8341b839d2b4e24f8f4dc64b7aaa13bd3c038a91a9fab56c3ec3232",
       "sheet": "design/aqua3d-review/galapagos/review.webp"
+    },
+    "fry_kissing_gourami": {
+      "sourceHash": "bd6c7b1e0a8ae2a9192567a14629c43539acdc002cfa571507e51ec8298823a3",
+      "sheet": "design/aqua3d-review/kissing_gourami/review-kissing_gourami.webp"
+    },
+    "juv_kissing_gourami": {
+      "sourceHash": "bb9444d6d652a6de4cf6cd9120e688f5facc3ab405eebbff114d3e39fe57eeb7",
+      "sheet": "design/aqua3d-review/kissing_gourami/review-kissing_gourami.webp"
+    },
+    "kissing_gourami": {
+      "sourceHash": "4ee77b5dd29da755ac197140bc91a40b5178b20c4facc94630d81495bc35bfb5",
+      "sheet": "design/aqua3d-review/kissing_gourami/review-kissing_gourami.webp"
     }
   }
 }

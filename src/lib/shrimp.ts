@@ -134,6 +134,9 @@ export const SHRIMP_FAMILIES: readonly StagedFamily[] = [
     spots: [], habit: { lo: -0.6, hi: 3, speed: 0.2, reach: 1, depth: 2, haul: true, restThick: 1.85, breathe: 40, breathOnly: true, dart: 0.15, pace: 0.7, tilt: 0.25 } },
   { key: "salp", name: "살프 사슬", grade: "전설", price: 46500, hours: 294, minTank: 5, size: 30, cm: 60, fresh: false, ornamental: false,
     spots: [], habit: { lo: 0.5, hi: 3, speed: 0.05, reach: 1, depth: 2, pace: 0.5, tilt: 0.15, bob: 0.2, feeds: false } },
+  // 키싱구라미(2026-11-27, 분홍 품종 Helostoma temminckii) — 서천 국립생태원 드워프구라미 뒤. 윗물에서 숨 쉬러 오르며(breathe) 도톰한 입술로 수초 · 벽면을 쪼아 먹는다
+  { key: "kissing_gourami", name: "키싱구라미", grade: "보통", price: 1000, hours: 51, minTank: 1, size: 16, cm: 20, fresh: true, ornamental: true,
+    spots: [["jungle", 0.5, "gourami"]], habit: { lo: 0.6, hi: 3, speed: 0.09, reach: 0.55, depth: 1.2, pace: 0.7, breathe: 55, breathOnly: true } },
 ];
 
 /** 켜졌을 때만 — 다른 표가 펼쳐 넣는다 */

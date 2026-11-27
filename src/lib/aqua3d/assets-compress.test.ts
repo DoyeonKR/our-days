@@ -55,7 +55,7 @@ test("수조 GLB 502개 전부 배포 형식(meshopt · 양자화 · 512px 이�
   // 벨루가(2026-11-26 — polar/beluga-build.mjs)
   // 갓파(2026-11-26 — polar/kappa-build.mjs)
   const polarKeys=['polar_bear','walrus','emperor_penguin','beluga','kappa','yujin','gentoo_penguin','chinstrap_penguin','adelie_penguin','toothfish','icefish','clione','sea_pig','giant_isopod','antarctic_urchin','salp','bottlenose_dolphin','manatee'].flatMap(k=>['fry_'+k,'juv_'+k,k]);for(const key of polarKeys)assert.ok(files.some(f=>f.kind==='fish'&&f.key===key),key);
-  assert.equal(files.filter(f=>f.kind==='fish').length,381+mammalKeys.length+shrimpKeys.length+orcaKeys.length+crabKeys.length+whaleKeys.length+polarKeys.length+150);
+  assert.equal(files.filter(f=>f.kind==='fish').length,384+mammalKeys.length+shrimpKeys.length+orcaKeys.length+crabKeys.length+whaleKeys.length+polarKeys.length+150);
   assert.equal(files.filter(f=>f.kind==='decor').length,37);
   for (const { key, path } of files) {
     const b = readFileSync(path), { json: j, bin } = parse(b);

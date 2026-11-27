@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ALL_FORMS, ALL_SPECIES, FAMILIES, fishCm, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
+import { ALL_FORMS, ALL_SPECIES, FAMILIES, FISH_BASE_CM, fishCm, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
 import { bossPhase } from "./fishing.ts";
 import { BAITS, FRESH_FAMILIES, ORNAMENTAL_FAMILIES, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
 import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, TIMED_ONLY, bossBeaten, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
@@ -28,7 +28,7 @@ test("크기 — 같은 물고기도 길이가 다르고, 대물은 드물다 ·
   for (let i = 0; i < 4000; i++) if (rollCm("koi", 2, 5, 0.4, (i * 0.618) % 1, (i * 0.414) % 1) > 65 * 1.3) big++;
   assert.ok(big / 4000 < 0.12 && big > 0, `대물 ${big / 40}%`);
   assert.ok(rollCm("koi", 2, 0, 0, 0.5, 0.5) > rollCm("koi", 0, 0, 0, 0.5, 0.5));
-  for (const f of FAMILIES.map((x) => x.key)) assert.ok(rollCm(f, 2, 0, 0, 0.5, 0.5) !== rollCm("__없음", 2, 0, 0, 0.5, 0.5) || f === "__없음", `${f} 길이 표 빠짐`);
+  for (const f of FAMILIES.map((x) => x.key)) assert.ok(f in FISH_BASE_CM && Number.isFinite(FISH_BASE_CM[f]) && FISH_BASE_CM[f] > 0, `${f} 길이 표 빠짐`);
 });
 test("크기 — 길이를 더해도 물고기 뽑기 순서는 그대로다 · 쓰레기엔 길이가 없다", () => {
   const a = rollCatch(SPOTS.find((x) => x.key === "pond")!, 5, 0.4, 991, { bait: 2 });
@@ -386,8 +386,8 @@ test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 
   assert.match(panel, /모든 물고기/);
 });
 
-test("모든 어종 — 239종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
-  assert.equal(ALL_SPECIES.length, 239);
+test("모든 어종 — 240종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
+  assert.equal(ALL_SPECIES.length, 240);
   for (const k of ["nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"]) {
     assert.ok(speciesOf(k), k);
     assert.ok(SPOTS.some((s) => s.pool.some(([f]) => f === k)), k);
@@ -398,9 +398,9 @@ test("모든 어종 — 239종이 도감에 있고, 낚시터에서 실제로 �
   assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
 });
 
-test("모델 하나 = 물고기 하나 — 645폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
-  assert.equal(ALL_FORMS.length, 645);
-  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 645);
+test("모델 하나 = 물고기 하나 — 648폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
+  assert.equal(ALL_FORMS.length, 648);
+  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 648);
   for (const f of ALL_FORMS) if (f.family !== "sea_turtle") assert.ok(FISH_GLB.has(f.key), f.key);
   const seen = new Set<string>();
   const times = ["dawn", "day", "dusk", "night"] as const, wxs = ["rain", "snow", "clear", null] as const;

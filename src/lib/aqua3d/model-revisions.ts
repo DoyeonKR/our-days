@@ -276,6 +276,8 @@ export const FISH_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.free
  snowflake_clown:'f3719728c840',striped_jack:'cf0498a66e5b',yellowtail:'29e48c0fd32e',
  // 2026-11-20 쏠배감펭 부채 가슴지느러미 · 톱상어 납작한 톱 + 이빨
  lionfish:'e0455e460274',juv_lionfish:'654f913aba3e',fry_lionfish:'b5e02a1033d4',
+ // 2026-11-27 키싱구라미(Helostoma temminckii, volume-fish + kissing_lips)
+ fry_kissing_gourami:'15d8e1705374',juv_kissing_gourami:'f2eb146d7633',kissing_gourami:'bd36752b60a8',
 });
 /** 주인 모델(public/aqua/models/boss/, 2026-11-15) — 같은 규칙(바이트 해시) */
 export const BOSS_MODEL_REVISIONS: Readonly<Record<string,string>> = Object.freeze({
