@@ -17,6 +17,7 @@
  *  · 꽝 [사용자: "일정 확률로 바다 쓰레기(꽝)도 낚을 수 있는 재미 포인트 … 쓰레기의 종류는 여러개"] — 끌어올리기 전까진 물고기와 똑같다. 낚시터마다 다른 쓰레기가 있고 수집함에 남는다.
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
 import { ACTIVE_SHRIMP, withShrimp } from "./shrimp.ts";
+import { GALAPAGOS_FAMILIES, GALAPAGOS_POOL } from "./galapagos.ts";
 import { EVENT_FISH, EVENT_SEED, isEventFamily } from "./eventfish.ts";
 import type { IslandState } from "./island.ts";
 import type { SpecialCard } from "./fishplus.ts";
@@ -51,7 +52,7 @@ export type FishWater = "river" | "lake" | "valley" | "wetland" | "hall" | "sea"
 export const WATER_NAME: Readonly<Record<FishWater, string>> = { river: "강", lake: "호수", valley: "계곡", wetland: "늪", hall: "열대관", sea: "바다" };
 export const FRESH_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "sweetfish", "goldfish", "betta", "catfish", "angel", "discus", "koi", "ray", "arowana", "salmon", "crucian", "pale_chub", "chinese_minnow", "smelt", "bullhead", "common_carp", "masu_salmon", "snakehead", "mandarin_fish", "perch_kkeokji", "eel", "lenok", "bitterling", "shiri", "sturgeon", "loach", "dark_chub", "sleeper", "gudgeon", "skygazer", "rainbow_trout", "grass_carp", "bluegill", "largemouth_bass", "char", "ricefish", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel", "otter", ...ACTIVE_SHRIMP.filter((f) => f.fresh).map((f) => f.key)]);
 /** 관상어 — 한국 강 · 늪에 사는 물고기가 아니다. 어울리는 곳(청계천 관상어 거리 · 국립생태원 열대관)에만 둔다[사용자: "관상어는 빼고 … 맞지 않다면 적절한 곳에 배치해"]. */
-export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "goldfish", "betta", "angel", "discus", "ray", "arowana", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel", ...ACTIVE_SHRIMP.filter((f) => f.ornamental).map((f) => f.key)]);
+export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "goldfish", "betta", "angel", "discus", "ray", "arowana", "arapaima", "oscar", "molly", "platy", "zebra_danio", "pleco", "corydoras", "gourami", "redtail_catfish", "piranha", "electric_eel", ...ACTIVE_SHRIMP.filter((f) => f.ornamental).map((f) => f.key), ...GALAPAGOS_FAMILIES.filter((f) => f.ornamental).map((f) => f.key)]);
 /** common — 이 낚시터에서 '흔한 물고기'로 치는 미끼 단계(없으면 이 낚시터의 가장 싼 미끼 단계). 미끼 1% 규칙은 이 단계 위의 계열에만 걸린다.
  *  열대관처럼 그 낚시터의 대표 물고기(엔젤피시)가 한 단계 위 미끼부터 무는 곳에만 쓴다. */
 export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[]; art?: string; common?: number; push?: number };
@@ -83,6 +84,8 @@ const BASE_SPOTS: readonly FishSpot[] = [
   // 심해는 맨 끝 낚시터인데 기본 계열이 영웅(떡밥)이라 한 번당 용궁사(전설 · 발광 미끼)보다 덜 벌었다(33 대 50).
   // 2026-11-11 떡밥 값을 내려 시작 미끼로 57. 물고기 구성은 그대로 — 미끼 1% 규칙(사용자 결정)을 지킨다.
   { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["viperfish", 7], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3], ["frilled_shark", 8]] },
+  // 2026-11-27 최상위 낚시터 — 갈라파고스 제도(Lv.40 · 50종 고유 생태계: 희귀 16 · 영웅 18 · 전설 9 · 신화 6 · 태초 1)
+  { key: "galapagos", name: "갈라파고스 제도", water: "sea", minLevel: 40, common: 4, push: 3.4, pool: GALAPAGOS_POOL },
 ];
 /** 낚시터 — 켜진 새우(shrimp.ts)는 정해진 계열 바로 뒤에 끼운다(꺼져 있으면 BASE 그대로) */
 export const SPOTS: readonly FishSpot[] = ACTIVE_SHRIMP.length ? BASE_SPOTS.map((x) => ({ ...x, pool: withShrimp(x.key, x.pool) })) : BASE_SPOTS;
@@ -195,6 +198,7 @@ export const JUNKS: readonly FishJunk[] = [
   { key: "junk_stool", name: "얼음낚시 의자", line: "주인은 추워서 먼저 들어갔나 봐요", coins: 4, spot: "hwacheon" },
   { key: "junk_helmet", name: "패러글라이딩 헬멧", line: "하늘에서 떨어졌나 봐요. 주인은 무사해요", coins: 6, spot: "sanriver" },
   { key: "junk_probe", name: "심해 탐사선 부품", line: "깊이 2천 미터의 물건치고는 멀쩡해요", coins: 20, spot: "abyss", minDepth: 1000 },
+  { key: "junk_lava", name: "화산암 조각", line: "갈라파고스 검은 용암이 파도에 깎였어요", coins: 10, spot: "galapagos" },
 ];
 export const junkOf = (key: string | undefined) => JUNKS.find((x) => x.key === key);
 const JUNK_SEED = 0x2f6e2b1;
@@ -375,7 +379,7 @@ export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; whe
 export type FishDepth = 0 | 1 | 2;
 export const DEPTH_NAMES = ["표층", "중층", "바닥"] as const;
 export const SURFACE_FAMILIES: ReadonlySet<string> = new Set(["yujin", "polar_bear", "guppy", "ricefish", "pale_chub", "zebra_danio", "molly", "anchovy", "saury", "sweetfish", "gourami", "betta", "halfbeak", "skygazer", "snakehead", "salmon", "koi", "sea_otter", "dolphinfish", "arowana", "blue_shark", "sunfish", "marlin", "manta", "swordfish", "astral", "clione", "salp"]);
-export const BOTTOM_FAMILIES: ReadonlySet<string> = new Set(["corydoras", "lanternfish", "goby", "loach", "hatchetfish", "bullhead", "mudskipper", "sleeper", "gudgeon", "scorpionfish", "pleco", "catfish", "flounder", "shiri", "rockfish", "sailfin_sandfish", "starfish", "cod", "mandarin_fish", "blobfish", "perch_kkeokji", "cutlassfish_pollock", "nurse_shark", "moray", "leopard_shark", "skate", "croaker", "eel", "ray", "viperfish", "octopus", "goosefish", "gulper_eel", "electric_eel", "redtail_catfish", "sturgeon", "frilled_shark", "anglerfish", "oarfish", "coelacanth", "megamouth", "giant_squid", "kraken", "toothfish", ...ACTIVE_SHRIMP.filter((f) => f.habit.hug !== undefined).map((f) => f.key)]);
+export const BOTTOM_FAMILIES: ReadonlySet<string> = new Set(["corydoras", "lanternfish", "goby", "loach", "hatchetfish", "bullhead", "mudskipper", "sleeper", "gudgeon", "scorpionfish", "pleco", "catfish", "flounder", "shiri", "rockfish", "sailfin_sandfish", "starfish", "cod", "mandarin_fish", "blobfish", "perch_kkeokji", "cutlassfish_pollock", "nurse_shark", "moray", "leopard_shark", "skate", "croaker", "eel", "ray", "viperfish", "octopus", "goosefish", "gulper_eel", "electric_eel", "redtail_catfish", "sturgeon", "frilled_shark", "anglerfish", "oarfish", "coelacanth", "megamouth", "giant_squid", "kraken", "toothfish", ...ACTIVE_SHRIMP.filter((f) => f.habit.hug !== undefined).map((f) => f.key), ...GALAPAGOS_FAMILIES.filter((f) => f.habit.hug !== undefined).map((f) => f.key)]);
 export const familyDepth = (family: string): FishDepth => (SURFACE_FAMILIES.has(family) ? 0 : BOTTOM_FAMILIES.has(family) ? 2 : 1);
 /** 맞춘 수심의 계열이 받는 무게 배수 · 다른 수심 계열의 배수 — 같은 미끼 단계 안에서만(단계의 몫 = 미끼 1% 규칙은 그대로).
  *  [사용자 2026-11-13: "수심 마다 잡히는 물고기도 달라져야해"] 다른 수심의 물고기는 4분의 1 로 줄인다. 어군에 맞히면 맞춘 수심이 더 세다 */
@@ -384,7 +388,7 @@ export const DEPTH_OTHER = 0.25;
 export const DEPTH_SCHOOL = 7;
 /** 낚시터의 물 깊이(m) — 실제 그곳에 견준 값. 미끼는 이 깊이(바닥)보다 깊이 못 내려간다 */
 export const SPOT_DEPTH: Readonly<Record<string, number>> = {
-  brook: 1.5, dumulmeori: 6, pond: 3, soyang: 30, seomjin: 5, bonghwa: 2.5, jungle: 4, hwacheon: 4, harbor: 15, sanriver: 10, reef: 25, ocean: 80, palace: 60, sejong: 150, starsea: 120, abyss: 1500,
+  brook: 1.5, dumulmeori: 6, pond: 3, soyang: 30, seomjin: 5, bonghwa: 2.5, jungle: 4, hwacheon: 4, harbor: 15, sanriver: 10, reef: 25, ocean: 80, palace: 60, sejong: 150, starsea: 120, abyss: 1500, galapagos: 350,
 };
 export const spotDepth = (spot: Pick<FishSpot, "key">) => SPOT_DEPTH[spot.key] ?? 10;
 /** 봉돌 — 무거울수록 깊이 내려간다(장비 탭에서 하트로, 저장은 섬 최상위 fishPlus.sinker). 심해 방식은 무거운 채비라 3배까지 */

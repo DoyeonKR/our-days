@@ -15,6 +15,7 @@
  * ⚠ 섬 엔진은 타입만 부른다 — 값으로 부르면 이 파일을 쓰는 화면이 섬 엔진까지 싣는다. */
 import { isEventFamily } from "./eventfish.ts";
 import { ACTIVE_SHRIMP } from "./shrimp.ts";
+import { GALAPAGOS_FAMILIES } from "./galapagos.ts";
 import { mealPairs, nextMealTime, pickMeal } from "./predation.ts";
 import { adoptMorphs, morphOf as bookMorph, noteMorph, readMorphBook, rollMorph, type Morph, type MorphBook } from "./aquamorph.ts";
 import { checkFishName, lifeLeave, lifeLog, lifeName, lifeSettle, lifeTime, readLife, type AquaLife, type LifeEntry, type LifeRef } from "./aqualife.ts";
@@ -175,8 +176,8 @@ const BASE_FAMILIES: readonly AquaFamily[] = [
   { key: "astral", name: "별무리어", price: 120000, hours: 504, minTank: 6, size: 34, finals: [s("moon_jelly", "달빛 해파리", "신화"), s("aurora_ray", "오로라 가오리", "신화"), s("galaxy_fish", "은하수어", "태초"), s("genesis_fish", "태초의 물고기", "태초")] },
   { key: "kraken", name: "크라켄", price: 150000, hours: 600, minTank: 6, size: 48, youngName: "새끼", finals: [s("kraken", "크라켄", "태초")] },
 ];
-/** 계열 표 — 새우류는 그림 · 모델이 들어와 SHRIMP_ON 을 켜야 들어온다(shrimp.ts). 표는 값어치 순서라 값 자리에 끼운다(뒤 계열일수록 비싸다) */
-export const FAMILIES: readonly AquaFamily[] = ACTIVE_SHRIMP.reduce<AquaFamily[]>((list, f) => {
+/** 계열 표 — 새우류 · 갈라파고스 50종을 값어치 순서로 끼운다(뒤 계열일수록 비싸다) */
+export const FAMILIES: readonly AquaFamily[] = [...ACTIVE_SHRIMP, ...GALAPAGOS_FAMILIES].reduce<AquaFamily[]>((list, f) => {
   const fam: AquaFamily = { key: f.key, name: f.name, price: f.price, hours: f.hours, minTank: f.minTank, size: f.size, youngName: "새끼", finals: [s(f.key, f.name, f.grade)] };
   const i = list.findIndex((x) => x.price > f.price);
   list.splice(i < 0 ? list.length : i, 0, fam);
@@ -186,6 +187,7 @@ export const ALL_SPECIES: readonly AquaSpecies[] = FAMILIES.flatMap((f) => [...f
 /** 다 컸을 때 보통 길이(cm) */
 export const FISH_BASE_CM: Readonly<Record<string, number>> = {
   ...Object.fromEntries(ACTIVE_SHRIMP.map((f) => [f.key, f.cm])),
+  ...Object.fromEntries(GALAPAGOS_FAMILIES.map((f) => [f.key, f.cm])),
   // 해양 포유류(2026-11-13) — 다 큰 몸길이
   spotted_seal: 160, fur_seal: 150, steller_sea_lion: 280, japanese_sea_lion: 230, sea_otter: 130, otter: 110, orca: 650,
   guppy: 5, tetra: 4, goldfish: 22, betta: 7, angel: 15, clown: 9, discus: 18, koi: 65, ray: 45, arowana: 85,
@@ -250,7 +252,7 @@ export const TANK_GATES: Readonly<Record<number, { level: number; dex: number; b
 export type TankGateCheck = { ok: boolean; items: { label: string; have: number; need: number }[] };
 /** 낚시터 주인 key — fishingworld.ts 의 BOSSES 와 같은 순서 · 같은 목록이어야 한다(models-fix.test 가 맞춰 본다).
  *  값으로 import 하지 않는 이유: fishingworld 가 이 파일의 값(FISH_BASE_CM 등)을 import 한다 — 순환을 만들지 않는다 */
-export const BOSS_KEYS: readonly string[] = ["dolsoe", "neuti", "hongryeon", "dammit", "gwihyang", "eunjasa", "geurimja", "eoreum", "baetmeori", "dodam", "sanho", "geomeun", "munji", "bingbyeok", "byeol", "simyeon"];
+export const BOSS_KEYS: readonly string[] = ["dolsoe", "neuti", "hongryeon", "dammit", "gwihyang", "eunjasa", "geurimja", "eoreum", "baetmeori", "dodam", "sanho", "geomeun", "munji", "bingbyeok", "byeol", "simyeon", "darwin"];
 /** 잡아 본 주인 수 — 수조 조건(tankGate)과 주인 화면(FishingPanels)이 같이 쓴다(2026-11-11).
  *  예전엔 수조 조건이 저장된 아무 key 나 세고, 주인 화면은 BOSSES 만 세서 둘이 다른 수를 보일 수 있었다(옛 · 모르는 key) */
 export function bossesBeaten(bosses: Readonly<Record<string, { caught?: unknown } | undefined>> | undefined): number {

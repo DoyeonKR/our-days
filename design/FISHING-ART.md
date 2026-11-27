@@ -4,7 +4,7 @@
 > **이 문서의 그림은 전부 2D 다.** 수조 내부의 3D 모델은 별도 제작·검수하며(`design/aqua3d-review/`), 이 문서의 낚시터 · 장비 · 미끼 · 쓰레기를 대체하지 않는다.
 > 낚시 결과 카드 · 게임 탭 카드의 물고기는 2D 그림(`public/aqua/fish`, design/AQUARIUM-ART.md)을 그대로 쓴다 — 수조가 3D 가 돼도 지우지 않는다.
 >
-> 모두 **81장**: 낚시터 배경 16 · 장비 12 · 미끼 7 · 꽝 쓰레기 24 · 유물 18 · 만든 미끼 4. 미끼 · 쓰레기 · 유물 · 만든 미끼는 없으면 화면이 벡터 아이콘으로 그린다.
+> 모두 **83장**: 낚시터 배경 17 · 장비 12 · 미끼 7 · 꽝 쓰레기 25 · 유물 18 · 만든 미끼 4. 미끼 · 쓰레기 · 유물 · 만든 미끼는 없으면 화면이 벡터 아이콘으로 그린다.
 > **아직 안 그린 것**은 `node scripts/fishing-art.mjs sync` 가 끝에 '아직 없음'으로 알려 준다. 최신 지침서는 `design/ART-GUIDE.md`.
 
 ## 넣는 법
@@ -28,7 +28,7 @@ Premium hand-painted mobile fishing game background, portrait 4:5 (1024x1280), v
 Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.
 ```
 
-## 낚시터 (16장)
+## 낚시터 (17장)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -48,6 +48,7 @@ Premium hand-painted mobile game item icon, cute but believable, glossy rich sha
 | `spot_palace` | 기장 용궁사 앞바다 | Real Korean place: the coast at Haedong Yonggungsa temple in Gijang, Busan. A traditional Korean Buddhist temple with curved tiled roofs built on rugged seaside rocks in the far distance, stone lanterns, sunrise sky of violet and pink over open East Sea. Real landscape, not a fantasy underwater palace. |
 | `spot_sejong` | 남극 세종기지 앞바다 | Real place: Marian Cove off King Sejong Station on King George Island, Antarctica (the Korean Antarctic research station). A tidewater glacier front of white and pale-blue ice cliffs with vertical crevasses meeting the sea on the far left, snow-covered Barton Peninsula ridges with a few dark rock outcrops behind, a few small low colourful station buildings far away on the far right shore, scattered icebergs and small ice floes on calm deep blue water, clear cold Antarctic sky, crisp bright daylight. No penguins or animals in the picture. |
 | `spot_starsea` | 고성 거진항 | Real Korean place: Geojin fishing port in Goseong, Gangwon, on the East Sea at night. A small working harbor with a low breakwater and a little red lighthouse and white lighthouse far away, moored squid boats, a line of bright green-white squid-boat lamps on the dark horizon, the faint silhouette of Seorak mountains behind, many clear stars in a deep navy sky, calm dark water with soft reflections. |
+| `spot_galapagos` | 갈라파고스 제도 | Real place: Galápagos Islands off San Cristóbal looking at Kicker Rock (León Dormido) rising from crystal-clear equatorial Pacific turquoise water, volcanic basalt cliffs on the far left, sunny blue sky with soft trade-wind clouds, horizon at 34%. |
 
 ## 장비 (12장)
 
@@ -85,7 +86,7 @@ Premium hand-painted mobile game item icon, cute but believable, glossy rich sha
 | `bait_pearl` | 용궁 진주 미끼 | A luminous pearl resting in a small violet clam shell, Korean Dragon King's palace treasure. |
 | `bait_star` | 별가루 미끼 | A small handful of star dust forming a glowing golden star shape with tiny sparkles orbiting it. |
 
-## 꽝 쓰레기 (24장) — 장비 공통 프롬프트(귀엽게, 더럽지 않게)
+## 꽝 쓰레기 (25장) — 장비 공통 프롬프트(귀엽게, 더럽지 않게)
 
 | key | 이름 | 설명 |
 |---|---|---|
@@ -113,6 +114,7 @@ Premium hand-painted mobile game item icon, cute but believable, glossy rich sha
 | `junk_letter` | 유리병 편지 | A corked green glass bottle with a rolled parchment letter inside. |
 | `junk_bill` | 용왕의 고지서 | An ancient parchment invoice with a red royal seal and wavy ocean ornament border, no readable text. |
 | `junk_satellite` | 인공위성 조각 | A broken piece of a small satellite with one bent blue solar panel, sparkling with stardust. |
+| `junk_lava` | 화산암 조각 | A weathered black volcanic basalt lava rock fragment from the Galápagos shore with tiny pale barnacles and sea salt crust. |
 
 ## 보물 · 유물 조각 (18장) — 장비 공통 프롬프트(물속에서 건진 느낌은 살짝만, 글자 없이)
 

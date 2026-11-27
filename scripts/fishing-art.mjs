@@ -22,6 +22,7 @@ export const SPOTS = [
   ["spot_palace", "기장 용궁사 앞바다", "Real Korean place: the coast at Haedong Yonggungsa temple in Gijang, Busan. A traditional Korean Buddhist temple with curved tiled roofs built on rugged seaside rocks in the far distance, stone lanterns, sunrise sky of violet and pink over open East Sea. Real landscape, not a fantasy underwater palace."],
   ["spot_sejong", "남극 세종기지 앞바다", "Real place: Marian Cove off King Sejong Station on King George Island, Antarctica (the Korean Antarctic research station). A tidewater glacier front of white and pale-blue ice cliffs with vertical crevasses meeting the sea on the far left, snow-covered Barton Peninsula ridges with a few dark rock outcrops behind, a few small low colourful station buildings far away on the far right shore, scattered icebergs and small ice floes on calm deep blue water, clear cold Antarctic sky, crisp bright daylight. No penguins or animals in the picture."],
   ["spot_starsea", "고성 거진항", "Real Korean place: Geojin fishing port in Goseong, Gangwon, on the East Sea at night. A small working harbor with a low breakwater and a little red lighthouse and white lighthouse far away, moored squid boats, a line of bright green-white squid-boat lamps on the dark horizon, the faint silhouette of Seorak mountains behind, many clear stars in a deep navy sky, calm dark water with soft reflections."],
+  ["spot_galapagos", "갈라파고스 제도", "Real place: Galápagos Islands off San Cristóbal looking at Kicker Rock (León Dormido) rising from crystal-clear equatorial Pacific turquoise water, volcanic basalt cliffs on the far left, sunny blue sky with soft trade-wind clouds, horizon at 34%."],
 ];
 export const GEAR = [
   ["rod_bamboo", "대나무 낚싯대", "Simple old bamboo fishing rod with a small wooden reel."],
@@ -72,6 +73,7 @@ export const JUNK_ART = [
   ["junk_letter", "유리병 편지", "A corked green glass bottle with a rolled parchment letter inside."],
   ["junk_bill", "용왕의 고지서", "An ancient parchment invoice with a red royal seal and wavy ocean ornament border, no readable text."],
   ["junk_satellite", "인공위성 조각", "A broken piece of a small satellite with one bent blue solar panel, sparkling with stardust."],
+  ["junk_lava", "화산암 조각", "A weathered black volcanic basalt lava rock fragment from the Galápagos shore with tiny pale barnacles and sea salt crust."],
 ];
 
 /** 보물 · 유물 조각(2026-11-13) — 화면은 지금 벡터 아이콘(FishRelics 의 ART). 그림이 오면 relic_<조각 key> 를 먼저 쓴다. 네 세트는 색 톤을 맞춘다 */

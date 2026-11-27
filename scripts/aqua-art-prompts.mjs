@@ -7,6 +7,7 @@ import native from "../design/aqua3d-review/native-prompts.json" with { type: "j
 import expansion4 from "../design/aqua3d-review/expansion4-prompts.json" with { type: "json" };
 import mammals from "../design/aqua3d-review/mammals-prompts.json" with { type: "json" };
 import shrimp from "../design/aqua3d-review/shrimp-prompts.json" with { type: "json" };
+import { GALAPAGOS_FAMILIES } from "../src/lib/galapagos.ts";
 
 export const FISH_STYLE = "Photorealistic natural-history aquarium animal photography, scientifically credible anatomy, natural small eyes, real scales and skin microtexture, restrained wet specular highlights and soft upper-left daylight. NOT a character, NOT cartoon, NOT chibi, NOT an illustration, no oversized eyes, no human expressions. Single living animal in a neutral swimming pose, exact side view, HEAD POINTING RIGHT, tail LEFT. Whole body, tail and all fins fully visible, 10% empty padding on every side. True transparent background (PNG alpha), isolated cutout. No water, no bubbles unless stated, no scenery, no ground, no cast shadow, no text, border or watermark. 1024x1024. For mythical species only, use convincing live-action creature VFX anatomy, never cartoon styling.";
 export const DECOR_STYLE = "Photorealistic aquarium decoration product photography, physically realistic ceramic, stone, metal or plant textures, soft upper-left light, clean readable silhouette. Single object in slight front three-quarter view, base at the bottom, 10% empty padding all around. True transparent background (PNG alpha). No surrounding water, sand, fish or scenery, no cast shadow, text, border or watermark. 1024x1024. Fantasy decorations should still look like real crafted objects, never cartoon illustrations.";
@@ -69,6 +70,7 @@ export const YOUNG = [
   // 범고래(2026-11-14) — 새끼 · 어린 그림은 아직 없어 다 큰 그림을 쓴다(ART-GUIDE F)
   ["orca", "범고래", ORCA_FRY, ORCA_JUV],
   ...Object.entries(CRAB).map(([key, [name, , , f, j]]) => [key, name, f, j]),
+  ...GALAPAGOS_FAMILIES.map(({ key, name }) => [key, name, fry(key.replaceAll("_", " "), `Galápagos marine species (${name}), natural hatchling proportions, exact side view, head RIGHT`), juv(key.replaceAll("_", " "), `Galápagos marine species (${name}), authentic juvenile markings, exact side view, head RIGHT`)]),
   ...expansion4.species.map(({key, name}) => [key, name,
     expansion4.items.find(i => i.key === `fry_${key}`).subject,
     expansion4.items.find(i => i.key === `juv_${key}`).subject]),
@@ -104,6 +106,7 @@ export const FINALS = [
   ...mammals.species.map(({key, name, grade}) => [key, name, grade, mammals.items.find(i => i.key === key).subject]),
   ...shrimp.species.map(({key, name}) => [key, name, SHRIMP_GRADE[key], shrimpSubject(key)]),
   ...Object.entries(CRAB).map(([key, [name, grade, adult]]) => [key, name, grade, adult]),
+  ...GALAPAGOS_FAMILIES.map(({ key, name, grade }) => [key, name, grade, `Real adult ${key.replaceAll("_", " ")} (${name}) of the Galápagos Islands, photorealistic marine anatomy, authentic markings and fins, exact side view, head RIGHT, transparent background.`]),
   ["orca", "범고래", "신화", "Real adult killer whale (Orcinus orca): powerful streamlined black body, rounded blunt head with closed mouth, white oval eye patch behind and above a tiny dark eye, white lower jaw and belly with sweeping flank marking, grey saddle patch behind a tall dorsal fin, broad paddle-shaped pectoral flippers, horizontal tail flukes. Exact side view, head RIGHT, neutral straight swimming pose, matte skin with no white specular streaks."],
   ...expansion.species.map(([key, name, grade]) => [key, name, grade, expansion.items.find(i => i.key === key).subject]),
   ["catfish", "메기", "고급", "Real adult Korean Amur catfish (Silurus asotus), long flat dark-olive scaleless body, broad flattened head, one long maxillary barbel pair and one short mandibular barbel pair, small natural eyes, tiny dorsal fin and long anal fin. Exact side view, head RIGHT, neutral straight swimming pose."],

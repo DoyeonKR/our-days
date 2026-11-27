@@ -13,8 +13,8 @@ import { DAILY_COIN_CAP } from "./merge.ts";
 import { SKINS } from "./mergeskins.ts";
 import { TUNING } from "./island.ts";
 
-test("주인 — 처음 잡기 보상은 그대로(합 201,400 — 2026-11-18 남극 세종기지 빙벽의 범고래 30,000 을 더했다) · 다시 잡기는 4분의 1", () => {
-  assert.equal(BOSSES.reduce((n, b) => n + bossReward(b, 0), 0), 201_400);
+test("주인 — 처음 잡기 보상은 그대로(합 281,400 — 갈라파고스 다윈의 청새치 80,000 포함) · 다시 잡기는 4분의 1", () => {
+  assert.equal(BOSSES.reduce((n, b) => n + bossReward(b, 0), 0), 281_400);
   for (const b of BOSSES) {
     assert.equal(bossReward(b, 0), b.coins);
     assert.equal(bossReward(b, 1), Math.round(b.coins / 4), b.key);
@@ -49,7 +49,7 @@ test("낚시 — 뒤 낚시터일수록 한 번당 순이익이 줄지 않는다
   assert.ok(palace > ocean, `용궁사 ${palace} > 울릉도 ${ocean}`);
   assert.ok(starsea >= palace - 2, `거진항 ${starsea} ≥ 용궁사 ${palace}`);
   assert.ok(abyss > starsea, `심해 ${abyss} > 거진항 ${starsea} — 예전엔 33 대 50`);
-  assert.equal(SPOTS[SPOTS.length - 1].key, "abyss");
+  assert.equal(SPOTS[SPOTS.length - 1].key, "galapagos");
 });
 
 // 심해는 시작 미끼(떡밥)가 본전 자리다. 발광 · 진주 · 별가루는 심해에서 도감(실러캔스 · 대왕오징어 · 크라켄)을 노리는 값이라
@@ -77,7 +77,7 @@ const dayN = (n: number) => new Date(Date.parse(`${DAY0}T00:00:00Z`) + n * 86_40
 type YearOut = { coins: number; kills: number };
 // 1년 모형은 §10.25 시뮬레이션(주인 15마리)의 1년 순수입과 견준다 — 그 뒤에 더한 주인(2026-11-18 남극 세종기지 bingbyeok)을 넣으면 분자에만 새 낚시터 수입이 들어가
 //   같은 세상끼리 견주지 않게 된다. 그래서 그 15마리로만 돌린다(새 낚시터는 새 수입이라 따로 본다)
-const SIM_BOSSES = BOSSES.filter((b) => b.key !== "bingbyeok");
+const SIM_BOSSES = BOSSES.filter((b) => b.key !== "bingbyeok" && b.key !== "darwin");
 const BY_COINS = [...SIM_BOSSES].sort((x, y) => y.coins - x.coins);
 function bossYear(opts: { raids: number; score: number; tiered: boolean; callH: number }): YearOut {
   let recs: Record<string, BossRecord> = {}, call: IslandState["bossCall"] = undefined, coins = 0, kills = 0;

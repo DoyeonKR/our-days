@@ -12,5 +12,6 @@ export const EXPANSION4_FAMILIES = ["bitterling", "hatchetfish", "gourami", "box
 export const MAMMAL_FAMILIES = ["spotted_seal", "fur_seal", "steller_sea_lion", "japanese_sea_lion", "sea_otter", "otter", "orca"];
 /** 새우류 3계열(2026-11-14 켰다 — design/ART-GUIDE.md D · src/lib/shrimp.ts) */
 export const SHRIMP_KEYS = ["yujin", "polar_bear", "bottlenose_dolphin", "manatee", "cherry_shrimp", "fleshy_prawn", "dokdo_shrimp", "snow_crab", "king_crab", "lobster", "minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "walrus", "emperor_penguin", "gentoo_penguin", "chinstrap_penguin", "adelie_penguin", "toothfish", "icefish", "clione", "sea_pig", "giant_isopod", "antarctic_urchin", "salp", "beluga", "kappa"];
-export const PREPARED_FISH_KEYS = ["catfish", "sweetfish", "jellyfish", ...EXPANSION_FAMILIES, ...EXPANSION2_FAMILIES, ...NATIVE_FAMILIES, ...EXPANSION4_FAMILIES, ...MAMMAL_FAMILIES, ...SHRIMP_KEYS]
+import { GALAPAGOS_KEYS } from "../galapagos.ts";
+export const PREPARED_FISH_KEYS = ["catfish", "sweetfish", "jellyfish", ...EXPANSION_FAMILIES, ...EXPANSION2_FAMILIES, ...NATIVE_FAMILIES, ...EXPANSION4_FAMILIES, ...MAMMAL_FAMILIES, ...SHRIMP_KEYS, ...GALAPAGOS_KEYS]
   .flatMap(f => [f, `fry_${f}`, `juv_${f}`]);

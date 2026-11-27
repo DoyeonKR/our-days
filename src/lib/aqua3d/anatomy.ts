@@ -1,3 +1,4 @@
+import { GALAPAGOS_ANATOMY } from "../galapagos.ts";
 export type Anatomy = {
   kind: "fish" | "ray" | "jelly" | "dragon" | "star" | "cephalopod";
   /** Body volume prior in the cropped source image; fins keep their actual source outline. */
@@ -86,6 +87,7 @@ const families: Record<string, Partial<Anatomy>> = {
   manta: { kind: "ray", cx: .69, cy: .49, rx: .27, ry: .18, depth: .22, frequency: 2.1, flex: .12 },
   rising: { cx: .56, rx: .41, ry: .20, depth: .24, frequency: 2.6, flex: .14 },
   astral: { cx: .70, rx: .28, ry: .22, depth: .22, frequency: 2.5, flex: .20 },
+  ...GALAPAGOS_ANATOMY,
 };
 
 export function anatomy(family: string, key: string): Anatomy {
@@ -130,24 +132,24 @@ export type BendProfile = {
   stride: number;
 };
 /** 뱀장어형 — 몸 전체가 고르게 물결친다 */
-const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel|moray|electric_eel|loach|frilled_shark)$/;
+const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel|moray|electric_eel|loach|frilled_shark|garden_eel|ribbon_eel)$/;
 /** 다랑어 · 백상아리형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
-const THUNNIFORM = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|dolphinfish|great_white|marlin|swordfish|barracuda)$/;
+const THUNNIFORM = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|dolphinfish|great_white|marlin|swordfish|barracuda|skipjack_tuna|amberjack|giant_trevally|wahoo|yellowfin_tuna|sailfish|blue_marlin)$/;
 /** 상어(2026-11-13) — 예전엔 모두 다랑어형이었다. 실제로는 백상아리(악상어류)만 꼬리로 치고, 청새리 · 귀상어 · 고래상어 · 넓은주둥이는 몸 뒤쪽 절반이 같이 휘며(전갱이형),
  *  바닥 상어(수염 · 표범)는 몸 전체가 크게 물결친다(뱀장어에 가깝다). 주름상어는 이미 뱀장어형 */
-const SHARK_CRUISE = /^(blue_shark|hammerhead|whale_shark|megamouth)$/;
+const SHARK_CRUISE = /^(blue_shark|hammerhead|whale_shark|megamouth|blacktip_reef_shark|whitetip_reef_shark|silky_shark|galapagos_shark|scalloped_hammerhead|tiger_shark)$/;
 const SHARK_BOTTOM = /^(nurse_shark|leopard_shark)$/;
 /** 상어 — 가슴지느러미가 굳은 날개다(젓지 않는다) */
-export const SHARKS = /^(great_white|blue_shark|hammerhead|whale_shark|megamouth|nurse_shark|leopard_shark|frilled_shark|sawshark)$/;
+export const SHARKS = /^(great_white|blue_shark|hammerhead|whale_shark|megamouth|nurse_shark|leopard_shark|frilled_shark|sawshark|blacktip_reef_shark|whitetip_reef_shark|silky_shark|galapagos_shark|scalloped_hammerhead|tiger_shark)$/;
 /** 빨리 헤엄칠 때 가슴지느러미를 몸 옆 홈에 접어 붙이는 다랑어 · 새치 */
-const FOLDERS = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|marlin|swordfish)$/;
+const FOLDERS = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|marlin|swordfish|skipjack_tuna|amberjack|giant_trevally|wahoo|yellowfin_tuna|sailfish|blue_marlin)$/;
 const pectOf = (family: string): BendProfile["pect"] => (FOLDERS.test(family) ? "fold" : SHARKS.test(family) || family === "barracuda" || family === "sturgeon" || family === "dolphinfish" ? "stiff" : family === "coelacanth" ? "alt" : undefined);
 /** 가슴지느러미로 노 젓는 넓적한 몸(꼬리는 조금만) */
 /** 2026-11-13 — 파랑비늘돔 · 블루탱 · 흰동가리도 가슴지느러미로 날듯이 젓는다(놀래기형) */
 /** 몸이 단단한 종(복어목 · 해마) — 몸통은 거의 안 휘고 등 · 뒷지느러미(해마는 등지느러미)를 떨어 나아간다. 복어 · 쥐치는 2026-11-13 에 더했다(몸통을 붕어의 0.6배로 흔들었다) */
 // 남극 무척추 넷(2026-11-25) — 몸이 거의 안 휜다(성게 · 등각류 · 바다돼지, 클리오네는 날개만 친다)
-export const RIGID = /^(boxfish|sunfish|seahorse|puffer|filefish|antarctic_urchin|giant_isopod|sea_pig|clione)$/;
-const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish|parrotfish|blue_tang|clown)$/;
+export const RIGID = /^(boxfish|sunfish|seahorse|puffer|filefish|antarctic_urchin|giant_isopod|sea_pig|clione|porcupinefish|picasso_triggerfish|clown_triggerfish|pygmy_seahorse|leafy_seadragon|giant_clam)$/;
+const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish|parrotfish|blue_tang|clown|galapagos_damselfish|mandarinfish|moorish_idol|picasso_triggerfish|king_angelfish|spanish_hogfish|porcupinefish|clown_triggerfish|bumphead_parrotfish|napoleon_wrasse)$/;
 /** 몸은 곧게 두고 긴 지느러미를 물결쳐 나간다 — 전기뱀장어(배 쪽 뒷지느러미) · 산갈치 · 갈치(등지느러미) */
 /** 해양 포유류(2026-11-13) — 헤엄치는 법이 셋이다(실제 생태 그대로).
  *  물범(PHOCID): 뒷지느러미를 좌우로 휘저어 나간다 — 몸 뒤쪽이 크게 옆으로 물결, 앞지느러미는 몸에 붙인다(굳은 날개 · 젓지 않는다).
@@ -155,12 +157,12 @@ const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahor
  *  수달 · 해달(MUSTELID): 몸과 꼬리를 위아래로 물결친다(물고기와 달리 위아래) — verticalWave */
 // 바다코끼리도 뒷지느러미를 좌우로 저어 나간다(물범과 같다). 펭귄은 날개를 위아래로 저어 날듯이 — 물개 · 바다사자와 같은 몸짓
 export const PHOCID = /^(spotted_seal|walrus)$/;
-export const OTARIID = /^(kappa|fur_seal|steller_sea_lion|japanese_sea_lion|emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin)$/;
+export const OTARIID = /^(kappa|fur_seal|steller_sea_lion|japanese_sea_lion|emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin|galapagos_fur_seal|galapagos_sea_lion|galapagos_penguin)$/;
 export const MUSTELID = /^(sea_otter|otter)$/;
 /** 북극곰(2026-11-25) — 앞발을 좌우 번갈아 앞뒤로 크게 저어(개헤엄) 나아간다. 몸은 거의 곧고 뒷다리는 키처럼 뒤로 끌린다. 머리는 수면 쪽으로 든다 */
 export const URSID = /^(polar_bear)$/;
 /** 땅 위에서 두 발로 서서 걷는 몸(2026-11-26) — 펭귄. 모래사장 · 바위에서 쉬는 동안(course.upright) 몸을 세우고 뒤뚱뒤뚱 걷는다(glb.fishMotion) */
-export const PENGUIN_WALKERS = /^(emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin)$/;
+export const PENGUIN_WALKERS = /^(emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin|galapagos_penguin|marine_iguana)$/;
 /** 땅 위에서 사람처럼 두 발로 걷는 몸(2026-11-26 [사용자: "갓파 는 해변에서 이족보행 해야해 사람처럼"]) — 갓파. 몸을 곧게 세우고 고개는 앞을 보고,
  *  팔은 내려 걸음과 반대로 흔들고 다리(leg_L · leg_R 뼈)는 곧게 내려 번갈아 내딛는다(glb.fishMotion) */
 export const HUMAN_WALKERS = /^(kappa|yujin)$/;
@@ -169,8 +171,8 @@ export const HUMAN_WALKERS = /^(kappa|yujin)$/;
 export const HUMAN_SWIMMERS = /^yujin$/;
 /** 고래(2026-11-14 범고래) — 꼬리자루와 꼬리지느러미를 위아래로 쳐서 나간다. 앞지느러미는 굳은 키라 젓지 않는다 */
 // 매너티(바다소, 2026-11-27)도 고래처럼 주걱 꼬리를 위아래로 쳐서 나아간다 — 그래서 이 묶음에 넣었다
-export const CETACEAN = /^(manatee|bottlenose_dolphin|beluga|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
-export const MAMMAL = /^(manatee|yujin|bottlenose_dolphin|kappa|beluga|polar_bear|walrus|emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin|spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale)$/;
+export const CETACEAN = /^(manatee|bottlenose_dolphin|beluga|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale|spotted_dolphin|pilot_whale|brydes_whale)$/;
+export const MAMMAL = /^(manatee|yujin|bottlenose_dolphin|kappa|beluga|polar_bear|walrus|emperor_penguin|gentoo_penguin|chinstrap_penguin|adelie_penguin|spotted_seal|fur_seal|steller_sea_lion|japanese_sea_lion|sea_otter|otter|orca|minke_whale|gray_whale|humpback_whale|sperm_whale|blue_whale|galapagos_penguin|galapagos_fur_seal|galapagos_sea_lion|spotted_dolphin|pilot_whale|brydes_whale|marine_iguana)$/;
 /** 몸 물결이 위아래(Z 축)인 몸 — 수달 · 해달. 누운 광어와 같은 축으로 물결치지만 몸을 눕히지는 않는다 */
 export const verticalWave = (family: string) => MUSTELID.test(family) || CETACEAN.test(family);
 /** 다리로 걷는 갑각류(2026-11-18) — 게 · 바닷가재. 몸 물결 · 지느러미 대신 다리 걸음(crabwalk.ts) */

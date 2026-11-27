@@ -6,6 +6,7 @@
  *  · 원정 — 한 주의 목표를 둘이 합쳐 채운다. 다 채운 순간 하트가 들어온다(받기 버튼을 놓쳐 잃는 일이 없게).
  *  ⚠ fishing.ts 와 물리는 값은 타입으로만 부른다 — 이 파일이 fishing.ts 를 값으로 부르면 순환이다. */
 import { FISH_BASE_CM, FISH_STAGE_SIZE, familyOf, speciesOf, type Grade } from "./aquarium.ts";
+import { GALAPAGOS_TIMED } from "./galapagos.ts";
 
 /* ── 크기 ───────────────────────────────────────────── */
 
@@ -127,7 +128,7 @@ export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: N
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 /** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
  *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
-export const TIMED_ONLY: ReadonlySet<string> = new Set(["yujin", "polar_bear", "bottlenose_dolphin", "manatee", "minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "walrus", "emperor_penguin", "beluga", "kappa", "chinstrap_penguin", "icefish", "clione", "sea_pig", "toothfish", "salp", "antarctic_urchin", "jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca"]);
+export const TIMED_ONLY: ReadonlySet<string> = new Set(["yujin", "polar_bear", "bottlenose_dolphin", "manatee", "minke_whale", "gray_whale", "humpback_whale", "sperm_whale", "blue_whale", "sawshark", "walrus", "emperor_penguin", "beluga", "kappa", "chinstrap_penguin", "icefish", "clione", "sea_pig", "toothfish", "salp", "antarctic_urchin", "jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel", "sea_otter", "japanese_sea_lion", "steller_sea_lion", "orca", ...GALAPAGOS_TIMED.map((t) => t.species)]);
 export const TIMED_FISH: readonly TimedFish[] = [
   { species: "sweetfish", spot: "seomjin", always: true },
   { species: "crucian", spot: "dumulmeori", always: true },
@@ -211,6 +212,8 @@ export const TIMED_FISH: readonly TimedFish[] = [
   // 매너티(2026-11-27) — 서천 국립생태원의 낮(열대 물가 전시관)
   { species: "manatee", spot: "jungle", time: "day", side: true },
   { species: "electric_eel", spot: "jungle", time: "night", side: true },
+  // 갈라파고스 제도(2026-11-27) — 전설 · 신화 · 태초 대형종 때 손님 16종
+  ...GALAPAGOS_TIMED.map((t): TimedFish => ({ ...t, spot: "galapagos", side: true })),
 ];
 /** 보름달 손님(2026-11-12 물때 · 달) [사용자: "보름달에만 오는 손님도 둡니다"] — 보름달이 뜬 밤에만 그 바다에 오는 이미 있는 품종.
  *  세 계열 다 그 낚시터 pool 에 없다 — 그래서 '보름달에만' 이 참말이다(해파리 · 별무리어처럼 대개 어리게 잡혀 수조에서 큰다).
@@ -270,6 +273,7 @@ export const BOSSES: readonly FishBoss[] = [
   { key: "bingbyeok", spot: "sejong", name: "빙벽 밑의 대왕오징어", family: "giant_squid", species: "giant_squid", level: 30, difficulty: 6.1, chunk: 0.125, cm: 1200, coins: 30000, story: "마리안 소만 빙벽이 무너져 내린 날부터 그 밑 깊은 곳에 산다는 대왕오징어. 얼음이 갈라지는 소리를 따라 떠오른다." },
   { key: "byeol", spot: "starsea", name: "별을 삼킨 자", family: "astral", species: "genesis_fish", level: 34, difficulty: 6.6, chunk: 0.12, cm: 900, coins: 40000, story: "밤하늘의 별 하나가 사라진 날, 이 물고기가 처음 보였다." },
   { key: "simyeon", spot: "abyss", name: "심연의 크라켄", family: "kraken", species: "kraken", level: 38, difficulty: 7.2, chunk: 0.11, cm: 1800, coins: 60000, story: "울릉분지 바닥에 산다는 전설. 줄이 내려간 만큼 무언가 끌어당긴다." },
+  { key: "darwin", spot: "galapagos", name: "다윈의 청새치", family: "blue_marlin", species: "blue_marlin", level: 42, difficulty: 7.6, chunk: 0.105, cm: 460, coins: 80000, story: "갈라파고스 키커 록 앞바다를 호령하는 푸른 전설. 창 같은 주둥이로 파도를 가르며 떠오른다." },
 ];
 /** 각성한 주인(2026-11-12 낚시터 숙련도 ★5 — fishmastery.ts) — 그 낚시터 주인의 2단계. key 끝이 _awake, 기록은 fishPlus.awake(옛 앱은 모른다).
  *  더 세게(등급 +1 — 레이드 박자 · 필요한 타수가 같이 오른다) · 한 판에 덜 깎이게(조각 0.75배 — 토벌까지 판이 4분의 1 남짓 더) ·

@@ -211,7 +211,7 @@ function humanFight(key: string, seed: number, stats: { power: number; line: num
   return f;
 }
 test("주인 — 그 낚시터 수준의 장비로 며칠에 걸려 잡히고, 한 판에 끝나지 않는다", () => {
-  const GEAR: Record<string, [number, number]> = { neuti: [0, 5], dammit: [1, 7], eunjasa: [1, 9], eoreum: [2, 10], dodam: [2, 11], simyeon: [5, 20], dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], gwihyang: [1, 8], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], bingbyeok: [4, 19], byeol: [5, 20] };
+  const GEAR: Record<string, [number, number]> = { neuti: [0, 5], dammit: [1, 7], eunjasa: [1, 9], eoreum: [2, 10], dodam: [2, 11], simyeon: [5, 20], darwin: [5, 22], dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], gwihyang: [1, 8], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], bingbyeok: [4, 19], byeol: [5, 20] };
   for (const b of BOSSES) {
     const [rod, pts] = GEAR[b.key];
     const stats = effectiveStats({ stats: { catch: 1, power: 1 + pts, line: 1 + pts, luck: 1 }, rod, net: 0 });
@@ -386,8 +386,8 @@ test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 
   assert.match(panel, /모든 물고기/);
 });
 
-test("모든 어종 — 189종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
-  assert.equal(ALL_SPECIES.length, 189);
+test("모든 어종 — 239종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
+  assert.equal(ALL_SPECIES.length, 239);
   for (const k of ["nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"]) {
     assert.ok(speciesOf(k), k);
     assert.ok(SPOTS.some((s) => s.pool.some(([f]) => f === k)), k);
@@ -398,9 +398,9 @@ test("모든 어종 — 189종이 도감에 있고, 낚시터에서 실제로 �
   assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
 });
 
-test("모델 하나 = 물고기 하나 — 495폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
-  assert.equal(ALL_FORMS.length, 495);
-  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 495);
+test("모델 하나 = 물고기 하나 — 645폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
+  assert.equal(ALL_FORMS.length, 645);
+  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 645);
   for (const f of ALL_FORMS) if (f.family !== "sea_turtle") assert.ok(FISH_GLB.has(f.key), f.key);
   const seen = new Set<string>();
   const times = ["dawn", "day", "dusk", "night"] as const, wxs = ["rain", "snow", "clear", null] as const;
