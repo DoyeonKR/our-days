@@ -1,6 +1,7 @@
 "use client";
 
 import { type ComponentProps, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useSharedAppearance } from "@/components/SharedAppearanceProvider";
 import HomeWorld from "@/components/HomeWorld";
 import Icon from "@/components/Icon";
@@ -9,6 +10,9 @@ import { DEFAULT_HOME_APPEARANCE, homeAppearanceKey, homeSubtitle, glueEdgeEmoji
 import { ambientMoodOf, nextMilestoneOf } from "@/lib/homeMilestone";
 import { kstHourFloatOf } from "@/lib/scenetime";
 import { haptic } from "@/lib/haptic";
+
+/** 홈 메인 히어로 3D 수조 — 정적 번들(firstload.test)에 three · island 엔진이 실리지 않도록 지연 로드한다 */
+const HomeAquariumHero = dynamic(() => import("@/components/HomeAquariumHero"), { ssr: false });
 
 export function HomeCommandCards({ actions }: { actions: {label:string; icon:"pencil"|"plus"|"send"|"heart"; onClick:()=>void}[] }) {
   return <>{actions.map((item,index)=><button type="button" key={item.label} onClick={()=>{haptic(8);item.onClick();}} className={`tap home-command-card ${index === 0 ? "is-primary-action" : ""} ${index === 0 && actions.length > 2 ? "is-featured" : ""}`}>
@@ -57,7 +61,7 @@ function MemoryPhoto({ url, path, onExpired }: { url: string; path?: string; onE
 
 /** The home is now a journal cover + a living landscape + a separate memory strip.
  * Reuse the real world renderer so weather, seasonal art and pet hit targets keep working. */
-type HomeProps = Omit<ComponentProps<typeof HomeWorld>, "sceneOnly"> & {personalizationScope?:string};
+type HomeProps = Omit<ComponentProps<typeof HomeWorld>, "sceneOnly"> & { personalizationScope?: string; coupleId?: string | null; onOpenAquarium?: () => void };
 export default function HomeExperience(props:HomeProps) {
   const key=homeAppearanceKey(props.personalizationScope ?? "device");
   // Remount on account/couple changes: old drafts and preferences never bleed into another scope.
@@ -74,6 +78,7 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
   const [editing,setEditing]=useState(false);
   const [saved,setSaved]=useState(false);
   const [heartPulse,setHeartPulse]=useState(0);
+  const [heroMode,setHeroMode]=useState<"aqua"|"world">("aqua");
   const [ambient,setAmbient]=useState(()=>ambientMoodOf(12));
   useEffect(()=>{
     const update=()=>setAmbient(ambientMoodOf(kstHourFloatOf(Date.now())));
@@ -142,7 +147,20 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
         </div>
       )}
     </section>
-    <HomeWorld {...props} sceneOnly />
+    <div className="home-hero-stage">
+      {heroMode === "aqua" ? (
+        <HomeAquariumHero coupleId={props.coupleId ?? null} active={props.active} onOpenFull={props.onOpenAquarium} />
+      ) : (
+        <HomeWorld {...props} sceneOnly />
+      )}
+      <button
+        type="button"
+        className="tap home-hero-mode-pill"
+        onClick={() => { haptic(6); setHeroMode((m) => (m === "aqua" ? "world" : "aqua")); }}
+      >
+        {heroMode === "aqua" ? "계절 풍경" : "3D 수조"}
+      </button>
+    </div>
     <section className="home-memory-v3" aria-label="최근 사진">
       <div className="home-memory-head"><div><p className="home-kicker">OUR GALLERY</p><h2>아껴둔 우리의 장면</h2></div><button type="button" onClick={onGoAlbum} className="tap" aria-label="사진첩 모두 보기">모두 보기 <Icon name="chevronRight" size={14}/></button></div>
       <button type="button" onClick={onGoAlbum} aria-label={memories.length ? `사진첩 열기, 최근 사진 ${memories.length}장` : "첫 사진을 남기러 사진첩 열기"} className={`tap home-memory-strip ${memories.length ? `has-${memories.length}` : "is-empty"}`}>

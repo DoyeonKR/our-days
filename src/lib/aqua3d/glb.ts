@@ -549,10 +549,15 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   const yjAll = yj ? [yj.head, yj.bag, ...yj.knee, ...yj.ankle, ...yj.wrist, ...yj.fing.flat(2), ...yj.hair.flat()].filter((r): r is Rig => !!r) : [];
   let idleT = 0, idleW = 0, hairT = (inner.id % 7) * 1.3;
   if (walker && body) {
-    // 모델 좌표(inner 안)의 아래 끝 · 뒤 끝 — 세우면 뒤 끝(발 · 꼬리)이 바닥이 되므로 그 차이만큼 올린다
+    // 모델 좌표(root 기준)의 아래 끝 · 발끝 — inner.scale 을 반영해 세웠을 때 발바닥이 모래에 파묻히지 않게 정확히 계산
     inner.updateMatrixWorld(true);
-    const box = new T.Box3().setFromObject(body, true), lo = inner.worldToLocal(box.min.clone());
-    walkBase = { q: inner.quaternion.clone(), pos: inner.position.clone(), lift: Math.max(0, lo.y - lo.x * (upright0 ? 1 : human ? 1.04 : 0.9)) }; // 갓파는 다리를 곧게 내려 조금 더 길다 // 꼬리 끝은 발보다 조금 뒤 · 아래 — 모래에 살짝 닿게(0.9)
+    const box = new T.Box3().setFromObject(body, true);
+    const pMin = inner.parent ? inner.parent.worldToLocal(box.min.clone()).sub(inner.position) : inner.worldToLocal(box.min.clone()).multiply(inner.scale);
+    // 서 있을 때(-X 가 아래로 회전) 발바닥 최저점이 root 기준 -0.065~-0.075(모래 표면 바로 위)에 오도록 들어 올린다
+    const soleTarget = upright0 ? -0.06 : human ? -0.065 : -0.072;
+    const footLift = Math.max(0, soleTarget - pMin.x - inner.position.y);
+    const baseLift = Math.max(0, pMin.y - pMin.x * (upright0 ? 1.04 : human ? 1.06 : 1.02));
+    walkBase = { q: inner.quaternion.clone(), pos: inner.position.clone(), lift: Math.max(baseLift, footLift) };
   }
   const qa = new T.Quaternion(), qb = new T.Quaternion();
   return (time, effort, pose) => {

@@ -51,6 +51,8 @@ export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean
   season?: { keys: readonly AquaEventKey[]; tints: Readonly<Record<number, AquaEventKey>>;
     /** 게임 시각(ms, 서버에 맞춘 지금 — islandsync.gameNow) — 계절 헤엄 빠르기 · 손님 물고기 시간표가 본다. 없으면 기기 시계 */ clock?: () => number;
     /** 손님 물고기 시간표의 씨앗 — 두 사람이 같은 값(커플 id). 없으면 날짜 · 시각만 */ seed?: string };
+  /** 자유 시점(2026-11-27) — 넓은 좌우 회전(±158°) · 상하 기울기 · 확대/축소 + 모바일 세로 드래그 허용 */
+  freeCam?: boolean;
   /** 수조 조명(2026-11-18, lib/aqualight) — 켠 조명 key. 없으면 기본 빛. 빛 색 · 세기만 바뀐다 */
   light?: string | null };
 /** lost · restored · ready 가 없으면 예전처럼 error 로 알린다 */
@@ -82,7 +84,9 @@ export type TankHandle = { update: (next: TankView) => void; feed: (atX?: number
   /** 화면에 보이는 물고기 자리(캔버스 0~1 · 가까울수록 작은 depth) — 이름표 자리를 잡는다. 임시 사냥꾼 · 유령은 뺀다 */
   photoPoints: () => { id: number; x: number; y: number; depth: number }[];
   /** 지금 장면을 캔버스의 최대 2배로 한 장 그려 2D 캔버스로 돌려준다(그리자마자 같은 일 안에서 옮긴다 — preserveDrawingBuffer 없이). 못 찍으면 null */
-  photoCapture: () => HTMLCanvasElement | null };
+  photoCapture: () => HTMLCanvasElement | null;
+  /** 자유 시점 카메라(회전 · 기울기 · 줌 · 이동)를 기본 정면 보기로 되돌린다 */
+  resetCamera: () => void };
 
 /** 낚시터 주인의 왕관 — 금빛 고리 + 뾰족한 다섯 개 */
 /** 주인의 왕관(2026-11-10) — 금 띠 하나에 원뿔 다섯이던 것을 위아래 테 · 바깥으로 벌어진 뾰족 끝 · 끝마다 진주 · 띠에 박힌 보석으로. 재질은 넷뿐(그리기 호출이 크게 안 는다). */
@@ -190,8 +194,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,deepTier=1,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
   let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
-  // 두 손가락 · 휠 당기기 배율 — 0.45 배까지 다가가고 1.5 배까지 물러난다
-  const ZOOM_MIN=.45,ZOOM_MAX=1.5;let userZoom=1;
+  // 두 손가락 · 휠 당기기 배율 — 0.28 배까지 가까이 다가가고 1.85 배까지 넓게 물러난다
+  const ZOOM_MIN=.28,ZOOM_MAX=1.85;let userZoom=1;
   const XRAY_LAYER=3,XRAY_SKIP=/^(moray|octopus|squid|giant_squid|kraken|jellyfish)$/;
   let shapeSent=0, overK=1, habitat:Habitat|null=null, habitatTier=0, habitatSink=0, wide=1, wideBase=1, tierX=1, tall=1, pan=0, panReach=0, panPerPx=.02, lastTouch=-99, schools=new Map<number,{leader:number;slot:number}>();
   /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
@@ -740,8 +744,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const nextIn=!!next.tunnel&&!!(tunnel||dome)&&!next.editing;
     if(nextIn!==inTunnel){inTunnel=nextIn;camera.fov=inTunnel?72:44;camera.updateProjectionMatrix();angle=0;pitch=0;}
     inDome=inTunnel&&!!dome;dome?.setInside(inDome);
-    // 터널 · 돔 안에선 위아래 끌기도 고개 돌리기다 — 캔버스의 pan-y(globals.css)면 브라우저가 세로 끌기를 페이지 스크롤로 가져가며 pointercancel 을 쏴서 위아래로 못 둘러봤다(2026-11-11)
-    canvas.style.touchAction=inTunnel||photoOn?"none":"";
+    // 터널 · 돔 · 자유 시점 안에선 위아래 끌기도 고개 돌리기다 — 캔버스의 pan-y(globals.css)면 브라우저가 세로 끌기를 페이지 스크롤로 가져가며 pointercancel 을 쏴서 위아래로 못 둘러봤다
+    canvas.style.touchAction=inTunnel||photoOn||state.freeCam?"none":"";
     {const fov=inDome?DOME_FOV:inTunnel?72:44;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}}
     if(moved||topologyChanged)refreshObstacles();
     const rescaled=habitatTier!==tierBefore||wide!==wideBefore||habitatSink!==sinkBefore;
@@ -864,9 +868,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     else followPick=null;
     mealK=dt>0?mealK+((shotAng!==null?1:0)-mealK)*Math.min(1,dt*1.6):shotAng!==null?1:0;
     if(shotAng!==null){mealAng=dt>0?mealAng+(shotAng-mealAng)*Math.min(1,dt*2):shotAng;mealElev=dt>0?mealElev+(shotElev-mealElev)*Math.min(1,dt*2):shotElev;}
-    // 자유롭게 보기의 끝(2026-11-14) — 많이 돌리고 다가가면 카메라가 앞유리 안 · 옆벽 밖으로 나가 벽 뒷면만 보였다. 시선이 늘 앞유리로 들어오게 각을 묶는다
-    //   (앞유리 앞 2 칸에 서고, 옆벽 끝 모서리보다 바깥으로 돌지 않는다). 터널 · 돔은 따로 본다
-    if(!inTunnel&&!inDome){const lim=Math.min(1.1,Math.atan((5*wide)/(3*deep))*.92,Math.acos(clamp((3*deep+2)/Math.max(1,camD),-1,1)));angle=clamp(angle,-lim,lim);}
+    // 자유롭게 보기 — 넓은 좌우 회전(자유 시점일 땐 ±2.75 rad ≈ ±158°까지 자유롭게, 기본 모드도 ±1.45 rad까지 넉넉히)
+    if(!inTunnel&&!inDome){const lim=state.freeCam?2.75:Math.min(1.45,Math.atan((5*wide)/(3*deep))*1.18,Math.acos(clamp((3*deep+1.2)/Math.max(1,camD),-1,1)));angle=clamp(angle,-lim,lim);}
     const camA=angle+(mealAng-angle)*mealK-beachK*BEACH_VIEW_YAW;
     const near=Math.min(camD*.65,Math.max(3.6,focusLen*3.4));let dist=camD+(near-camD)*focusK;
     // 사진 모드 확대(밖) — 앞유리 안으로는 못 들어간다(photo.ts photoDistance). 안개도 이 거리를 따라간다
@@ -1279,10 +1282,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(!e.isPrimary)return;lastTouch=elapsed;start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};try{canvas.setPointerCapture(e.pointerId);}catch{/* 이미 끝난 손가락 */}};
   const move=(e:PointerEvent)=>{if(photoOn){photoMove(e);return;}if(pts.has(e.pointerId))pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pinch&&pts.size>=2){userZoom=clamp(pinch.z*pinch.d/Math.max(1,pinchD()),ZOOM_MIN,ZOOM_MAX);lastTouch=elapsed;if(!active)draw(0);return;}
-    if(!start)return;const free=!inTunnel&&!inDome;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;angle=clamp(start.angle+(e.clientX-start.x)*(free?.004:.003),free?-1.1:-.4,free?1.1:.4);pan=clamp(start.pan-(e.clientX-start.x)*panPerPx,-panReach,panReach);lastTouch=elapsed;pitch=clamp(start.pitch+(e.clientY-start.y)*(free?.0016:.001),free?-.18:-.10,free?.34:.13);if(!active)draw(0);};
+    if(!start)return;const free=!inTunnel&&!inDome;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;const maxA=free?(state.freeCam?2.75:1.45):.4;angle=clamp(start.angle+(e.clientX-start.x)*(free?.0055:.003),-maxA,maxA);pan=clamp(start.pan-(e.clientX-start.x)*panPerPx,-panReach,panReach);lastTouch=elapsed;pitch=clamp(start.pitch+(e.clientY-start.y)*(free?.0024:.001),free?-.38:-.10,free?.66:.13);if(!active)draw(0);};
   const drop=(e:PointerEvent)=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;};
   const cancel=(e:PointerEvent)=>{if(photoOn){photoUp(e);return;}drop(e);start=null;};
-  const wheel=(e:WheelEvent)=>{if(photoOn||inTunnel||!(e.ctrlKey||canvas.closest(".is-full")))return; /* 평소 화면에선 휠이 페이지 스크롤이다 — 전체 보기 · 트랙패드 집기(ctrlKey)만 당기기 */e.preventDefault();userZoom=clamp(userZoom*Math.exp(e.deltaY*.0012),ZOOM_MIN,ZOOM_MAX);lastTouch=elapsed;if(!active)draw(0);};
+  const wheel=(e:WheelEvent)=>{if(photoOn||inTunnel||!(e.ctrlKey||state.freeCam||canvas.closest(".is-full")))return; /* 전체 보기 · 자유 시점 · 트랙패드 집기(ctrlKey)에서 휠 확대/축소 */e.preventDefault();userZoom=clamp(userZoom*Math.exp(e.deltaY*.0012),ZOOM_MIN,ZOOM_MAX);lastTouch=elapsed;if(!active)draw(0);};
   const end=(e:PointerEvent)=>{if(photoOn){photoUp(e);return;}drop(e);if(!start)return;const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;if(moved>8)return;
     const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
     if(state.editing&&state.placing){const floorHit=habitat?ray.intersectObject(habitat.floor)[0]:null;const point=floorHit?.point??ray.ray.intersectPlane(floorPlane,hitPoint);if(point){const p=worldToDecor(point.x,point.z/deep,wide);events.place(p.x,p.y);}return;}
@@ -1368,6 +1371,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         return shot;
       // 배율은 늘 되돌린다 — 찍는 도중 연결이 끊겨도 브라우저가 되돌려 준 뒤 2배로 계속 돌지 않게. 다시 그리기만 살아 있을 때
       }finally{if(!disposed){renderer.setPixelRatio(cur);syncPointScale();if(!gl.isContextLost())draw(0);}}},
+    resetCamera(){if(disposed)return;angle=0;pitch=0;pan=0;userZoom=1;domeYaw=0;lastTouch=elapsed;if(!active)draw(0);},
     dispose,
   };
   } catch (e) { dispose(); throw e; }

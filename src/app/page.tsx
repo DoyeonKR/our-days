@@ -1375,6 +1375,8 @@ export default function Home() {
           오브젝트(우편함/표지판/나룻배/벤치)가 곧 내비게이션이다. */}
       <HomeExperience
         personalizationScope={`${myUserId ?? "device"}:${coupleId ?? "solo"}`}
+        coupleId={coupleId}
+        onOpenAquarium={() => { setView("game"); setOpenAquaReq((n) => n + 1); }}
         me={me}
         partnerName={partnerName}
         nDays={nDays}

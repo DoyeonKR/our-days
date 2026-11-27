@@ -1916,6 +1916,19 @@ select {
 .home-milestone-track { height: 6px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, .22); }
 .home-milestone-track > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffe4b5, #ffffff); transition: width .6s cubic-bezier(.22, 1, .36, 1); }
 .home-scene-v3 { width: 100%; border: 1px solid color-mix(in srgb, var(--line-strong) 80%, transparent); border-radius: 28px; background: #172431; box-shadow: 0 24px 46px -22px rgba(15, 23, 42, .48), inset 0 1px 0 rgba(255, 255, 255, .28); }
+.home-hero-stage { position: relative; width: 100%; }
+.home-aqua-hero-shell { position: relative; overflow: hidden; height: min(50vh, 420px); min-height: 320px; }
+.home-aqua-hero-shell .aqua-tank.is-hero { position: relative; width: 100%; height: 100%; margin: 0; border: 0; border-radius: inherit; aspect-ratio: auto !important; overflow: hidden; }
+.home-aqua-hero-shell .aqua-webgl { position: absolute; inset: 0; width: 100%; height: 100%; }
+.home-aqua-hero-shell .aqua-webgl > canvas { display: block; width: 100%; height: 100%; }
+.home-aqua-hero-shell .aqua-view-btn { position: absolute; right: 12px; top: 12px; z-index: 6; min-height: 34px; padding: 6px 12px; border: 1px solid rgba(255, 255, 255, .24); border-radius: 999px; background: rgba(12, 22, 36, .74); color: #fff; font: 700 11.5px/16px var(--font-prose); }
+.home-aqua-hero-shell .aqua-view-menu { position: absolute; right: 12px; top: 52px; z-index: 7; display: flex; flex-direction: column; min-width: 150px; padding: 6px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 14px; background: rgba(12, 22, 36, .92); box-shadow: 0 12px 26px rgba(0, 0, 0, .4); }
+.home-aqua-hero-shell .aqua-view-menu button { min-height: 38px; padding: 6px 10px; border-radius: 9px; color: #fff; font: 700 12px/18px var(--font-prose); text-align: left; }
+.home-aqua-hero-shell .aqua-3d-guide { position: absolute; left: 12px; bottom: 10px; z-index: 5; max-width: calc(100% - 126px); padding: 4px 9px; border-radius: 999px; background: rgba(8, 16, 28, .62); color: rgba(255, 255, 255, .86); font: 600 10.5px/15px var(--font-prose); pointer-events: none; }
+.home-aqua-hero-shell .aqua-empty { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 20px; text-align: center; color: rgba(255, 255, 255, .88); font: 700 13px/20px var(--font-prose); pointer-events: none; }
+.home-aqua-hero-shell .aqua-3d-error { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; background: rgba(12, 22, 36, .88); color: #fff; text-align: center; font: 600 12.5px/19px var(--font-prose); }
+.home-aqua-hero-shell .aqua-hero-open-btn { position: absolute; right: 12px; bottom: 10px; z-index: 6; min-height: 34px; padding: 6px 13px; border: 1px solid rgba(255, 255, 255, .28); border-radius: 999px; background: var(--brand-solid); color: #fff; font: 800 11.5px/16px var(--font-prose); box-shadow: 0 8px 18px -8px rgba(15, 10, 24, .55); }
+.home-hero-mode-pill { position: absolute; left: 12px; top: 12px; z-index: 6; min-height: 34px; padding: 6px 12px; border: 1px solid rgba(255, 255, 255, .24); border-radius: 999px; background: rgba(12, 22, 36, .74); color: #fff; font: 700 11.5px/16px var(--font-prose); }
 .home-memory-v3 { margin-top: 26px; }
 .home-memory-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .home-memory-head h2 { margin-top: 2px; color: var(--ink); font-family: var(--font-prose); font-size: 20px; font-weight: 850; letter-spacing: -.7px; }

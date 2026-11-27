@@ -21,7 +21,7 @@ const RECOVER_WINDOW_MS = 10 * 60 * 1000;
 const MEAL_SEEN_KEY = "ourdays:aqua:mealSeen";
 const storedMealSeen = () => { try { return Number(localStorage.getItem(MEAL_SEEN_KEY)) || 0; } catch { return 0; } };
 
-export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX, replaySignal, onReplay, replaying, replayNote, people, onPhoto }: { view: TankView;
+export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX, replaySignal, onReplay, replaying, replayNote, people, onPhoto, hero = false, onOpenFull }: { view: TankView;
   onFish: (id: number) => void; onDecor: (id: number) => void; onPlace: (x: number, y: number) => void;
   feedSignal?: number; feedX?: number;
   /** 다시 보기 — 누를 때마다 k 가 바뀐다. n = 잡아먹기 소식 번호. onReplay 가 결과(busy · reduced …)를 듣는다 */
@@ -30,6 +30,8 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   replaying?: boolean; replayNote?: string | null;
   /** 사진 카드에 적을 두 사람 이름(2026-11-13 사진 모드) · 사진 모드가 열리고 닫힐 때 — 화면이 소식 카드 줄을 멈춘다 */
   people?: readonly string[]; onPhoto?: (on: boolean) => void;
+  /** 홈 메인 히어로 모드 — 자유 시점 기본 켜짐 · 전체 수조 열기 CTA */
+  hero?: boolean; onOpenFull?: () => void;
 }) {
   // 10단계(터널) · 11단계(돔)는 안에서 보는 것이 기본 — '밖에서 보기'로 바꿀 수 있다(꾸미는 동안은 밖). 기준값은 tunnel.ts 한곳
   const [outside, setOutside] = useState(true);
@@ -44,16 +46,18 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   const [close, setClose] = useState(false);
   // 전체 보기에서 수조 칸의 높이를 수조 모양에 맞춘다 — 가로로 긴 수조는 세로 화면에서 띠가 되고 위아래가 검게 비었다(0.8 = 예전 4:5 보다 길어지지 않게, 2.4 까지 납작하게)
   const [shape, setShape] = useState<number | null>(null);
+  // 전체 보기 — 아이폰 사파리엔 요소 전체 화면이 없어서 화면 위에 펼치는 방식이 기본이고, 되는 브라우저는 진짜 전체 화면까지 쓴다
+  const [full, setFull] = useState(false);
+  // 자유 시점(2026-11-27) — 수조 뷰를 360° 가깝게 자유롭게 회전·상하·줌. 전체 화면 · 홈 히어로에선 기본 켜짐
+  const [freeCam, setFreeCam] = useState(hero);
   const canBeach = given.aquarium.tank >= BEACH_VIEW_TIER && !given.editing && !(canTunnel && !outside);
-  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside, beach: canBeach && beachView, overview: !close }), [given, canTunnel, outside, canBeach, beachView, close]);
+  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside, beach: canBeach && beachView, overview: !close, freeCam: freeCam || full }), [given, canTunnel, outside, canBeach, beachView, close, freeCam, full]);
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef({ view, onFish, onDecor, onPlace });
   const controller = useRef<TankHandle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  // 전체 보기 — 아이폰 사파리엔 요소 전체 화면이 없어서 화면 위에 펼치는 방식이 기본이고, 되는 브라우저는 진짜 전체 화면까지 쓴다
-  const [full, setFull] = useState(false);
   const [menu, setMenu] = useState(false);
   const shell = useRef<HTMLDivElement>(null);
   // 끊긴 뒤 저절로 다시 연 횟수 — 수조를 새로 열면(다시 시도) 0
@@ -155,20 +159,24 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
     }).catch(() => { if (!cancelled) setError("3D 그래픽을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요."); });
     return () => { cancelled = true; window.clearTimeout(timer); document.removeEventListener("visibilitychange", recover); controller.current?.dispose(); controller.current = null; };
   }, [attempt]);
-  // 보기 메뉴 — 지금 쓸 수 있는 것만(예전 버튼 넷과 같은 조건)
+  // 보기 메뉴 — 지금 쓸 수 있는 것만(예전 버튼 넷과 같은 조건 + 자유 시점 · 시점 초기화)
   const live = ready && !error;
-  type ViewKey = "full" | "photo" | "beach" | "tunnel" | "close";
+  type ViewKey = "free" | "reset" | "full" | "photo" | "beach" | "tunnel" | "close";
   const menuItems: { key: ViewKey; label: string }[] = [
+    ...(live && !view.tunnel ? [{ key: "free" as const, label: freeCam ? "자유 시점 끄기" : "자유 시점 (상하·회전·줌)" }] : []),
+    ...(live ? [{ key: "reset" as const, label: "시점 초기화" }] : []),
     ...(live && !view.tunnel ? [{ key: "close" as const, label: close ? "수조 전체 보기" : "가까이 보기" }] : []),
-    ...(!full ? [{ key: "full" as const, label: "전체 화면" }] : []),
-    ...(live && !view.editing && !replaying ? [{ key: "photo" as const, label: "사진 찍기" }] : []),
+    ...(!full && !hero ? [{ key: "full" as const, label: "전체 화면" }] : []),
+    ...(live && !view.editing && !replaying && !hero ? [{ key: "photo" as const, label: "사진 찍기" }] : []),
     ...(live && canBeach ? [{ key: "beach" as const, label: beachView ? "수조 전체 보기" : "해변 가까이 보기" }] : []),
     ...(live && canTunnel ? [{ key: "tunnel" as const, label: outside ? inside : "밖에서 보기" }] : []),
   ];
   // 누를 때만 부른다(렌더 중엔 안 부른다 — ref 를 읽는 함수가 섞여 있다)
   function runView(k: ViewKey) {
     setMenu(false);
-    if (k === "full") toggleFull();
+    if (k === "free") setFreeCam((f) => !f);
+    else if (k === "reset") controller.current?.resetCamera();
+    else if (k === "full") toggleFull();
     else if (k === "photo") enterPhoto();
     else if (k === "beach") setBeachView((b) => !b);
     else if (k === "close") setClose((c) => !c);
@@ -176,8 +184,8 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   }
   const photoView = view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "dome" : "tunnel") : "outside";
   const chrome = !photo;
-  const fitShape = !close && !full && !photo && !view.tunnel && !view.editing && shape ? Math.min(2.4, Math.max(0.8, shape)) : null;
-  return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full || photo ? "is-full" : ""} ${photo ? "is-photo" : ""}`} style={fitShape ? { aspectRatio: String(Math.round(fitShape * 100) / 100) } : undefined}>
+  const fitShape = !hero && !close && !full && !photo && !view.tunnel && !view.editing && shape ? Math.min(2.4, Math.max(0.8, shape)) : null;
+  return <div ref={shell} className={`aqua-tank aqua-tank-3d ${hero ? "is-hero" : ""} ${freeCam || full ? "is-free-cam" : ""} ${view.editing ? "is-editing" : ""} ${full || photo ? "is-full" : ""} ${photo ? "is-photo" : ""}`} style={fitShape ? { aspectRatio: String(Math.round(fitShape * 100) / 100) } : undefined}>
     <div ref={host} className="aqua-webgl" />
     {photo && <AquaPhoto tank={photo.tank} host={photo.host} view={photoView} fishNames={fishNames} people={people ?? []} subscribe={subscribeCam} onExit={exitPhoto} dead={!!photo.dead} onShot={setHasShot} />}
     {/* 보기 메뉴(2026-11-21 리뷰 ⑧) — 전체 보기 · 사진 · 해변 보기 · 밖에서 보기가 버튼 넷으로 수조 위에 흩어져 있었다. 하나로 모은다.
@@ -189,17 +197,20 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
         {menuItems.map((x) => <button key={x.key} type="button" role="menuitem" className="tap" onClick={() => runView(x.key)}>{x.label}</button>)}
       </div>
     )}
+    {chrome && hero && live && onOpenFull && (
+      <button type="button" className="tap aqua-hero-open-btn" onClick={onOpenFull}>수조 열기 →</button>
+    )}
     {photoNote && <p className="aqua-replay-note" role="status">{photoNote}</p>}
     {replaying && ready && !error && <CloseButton onClose={() => { if (!controller.current?.stopReplay()) onReplay?.("stopped"); }} label="그만 보기" ariaLabel="다시 보기 그만 보기" className="aqua-replay-stop" />}
     {replayNote && <p className="aqua-replay-note" role="status">{replayNote}</p>}
     {!ready && !error && <p className="aqua-empty" role="status">입체 수조를 준비하고 있어요…</p>}
     {error && <div className="aqua-3d-error" role="alert"><p>{error}</p><button type="button" className="tap aqua-btn" onClick={() => { recovered.current = 0; setError(null); setReady(false); setAttempt(n=>n+1); }}>다시 시도</button></div>}
     {chrome && ready && !error && view.aquarium.fish.length===0 && !view.editing && <p className="aqua-empty">낚시로 만난 물고기를<br/>입체 수조에서 키워 보세요</p>}
-    {chrome && ready && !error && pendingCount > 0 && !view.editing && <div className="aqua-3d-quality-note" role="status">
+    {chrome && ready && !error && pendingCount > 0 && !view.editing && !hero && <div className="aqua-3d-quality-note" role="status">
       <strong>물고기 {pendingCount}마리 · 3D 모델 준비 중</strong>
       <span>원본과의 유사도 검수를 통과한 모델만 표시해요.<br/>보유 물고기는 그대로이며 아래 목록에서 확인할 수 있어요.</span>
     </div>}
     {view.editing && !error && <p className="aqua-hint">{view.preview ? "미리보기 · 아래에서 회전·크기를 조절하고 확정하세요" : view.placing ? "바닥을 눌러 장식을 미리 놓아 보세요" : "장식을 눌러 선택하세요"}</p>}
-    {chrome && !view.editing && ready && !error && !replaying && <span className="aqua-3d-guide" aria-hidden>{view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "끌어서 한 바퀴 둘러보기 · 물고기를 누르면 그쪽을 봐요" : "끌어서 둘러보기 · 물고기를 누르면 올려다봐요") : (close ? "좌우로 드래그해 둘러보기" : "물고기를 누르면 다가가요 · 끌어서 둘러보기")}</span>}
+    {chrome && !view.editing && ready && !error && !replaying && <span className="aqua-3d-guide" aria-hidden>{view.tunnel ? (given.aquarium.tank >= DOME_TIER ? "끌어서 한 바퀴 둘러보기 · 물고기를 누르면 그쪽을 봐요" : "끌어서 둘러보기 · 물고기를 누르면 올려다봐요") : (freeCam || full ? "드래그로 자유 회전 · 두 손가락/휠로 확대·축소" : close ? "좌우로 드래그해 둘러보기" : "물고기를 누르면 다가가요 · 끌어서 둘러보기")}</span>}
   </div>;
 }

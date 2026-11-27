@@ -511,7 +511,11 @@ function bodyFollow(n: number, fishes: StepFish[], b: StepBuffers, dt: number, w
         // 해변 물리 보행(2026-11-27) — 실제 지형 높이(heightAt)와 경사면 법선(floorPose)에 실시간 밀착(중력 접지 + 경사 기울기 + 오르막 저항)
         const lk = Math.min(1, ((c.land ?? 0) - 0.65) / 0.3);
         floorPose(w.heightAt, bx, bz, c.dx, c.dz, L, BFP);
-        const targetClear = Math.max(L * 0.08 * st.thick, Math.min(L * 0.22 * st.thick, ty - w.heightAt(tx, tz)));
+        const onDrySand = BFP.ground > tallY(5.5, tall);
+        const upK = onDrySand ? (c.upright ?? 0) : 0;
+        const slopePad = upK > 0.2 ? Math.min(0.45, Math.abs(BFP.slope)) * L * 0.05 * upK : 0;
+        const minClear = upK > 0.2 ? Math.max(L * 0.08 * st.thick, L * 0.095 + slopePad) : L * 0.08 * st.thick;
+        const targetClear = Math.max(minClear, Math.min(L * 0.22 * st.thick + slopePad, ty - w.heightAt(tx, tz)));
         const wantY = BFP.ground + targetClear;
         const ylim = Math.min(1.6 * vmax * dt, L * 3.0 * dt);
         const nextY = st.by + Math.max(-ylim, Math.min(ylim, wantY - st.by));
