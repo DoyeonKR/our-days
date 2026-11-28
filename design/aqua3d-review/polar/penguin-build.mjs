@@ -120,21 +120,24 @@ function build(key) {
   // ── 꼬리깃(뻣뻣한 쐐기) ──
   m.sweep('tail', (s) => ({c: [X0 + .15 - .9 * s, P(X0).cy + .02, 0], u: [0, 1, 0], v: [0, 0, 1], a: .1 * (1 - .7 * s), b: .3 * (1 - .75 * s)}),
     {ns: 6, nt: 10, capEnd: .05, capRings: 1, island: [.62, .8, .8, .9], bone: 'tail', paint: (p) => (st.chick ? [150, 152, 158] : BLACK).map((v) => v * (.9 + .2 * noise(p[0] * 30, 0, p[2] * 30)))});
-  // ── 발(꼬리 밑, 뒤로) ──
+  // ── 발(꼬리 밑, 뒤로 — 두 발 관절 leg_L / leg_R) ──
+  const legs = {};
   for (const sd of [-1, 1]) {
     const root = surf(X0 + .7, Math.PI - sd * .5, .85);
+    legs[sd < 0 ? 'R' : 'L'] = {root};
     m.sweep('foot' + sd, (s) => ({c: add(root, [-1, -.05, sd * .12], .75 * s), u: [0, 1, 0], v: [0, 0, 1], a: .07, b: .1 + .14 * s, e: 2.4}),
-      {ns: 6, nt: 10, capEnd: .06, capRings: 1, island: sd < 0 ? [0, .8, .3, .9] : [.31, .8, .61, .9], bone: 'tail', paint: () => [54, 48, 52]});
+      {ns: 6, nt: 10, capEnd: .06, capRings: 1, island: sd < 0 ? [0, .8, .3, .9] : [.31, .8, .61, .9], bone: 'foot' + sd, paint: () => [54, 48, 52]});
   }
-  return {m, fins};
+  return {m, fins, legs};
 }
 
 const keys = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(STAGES);
 for (const key of keys) {
-  const {m, fins} = build(key);
-  const {glb, tris} = await bake(key, m, {fins, source: 'design/aqua3d-review/polar/penguin-build.mjs', roughness: .55, weight: (part, g, [s]) => {
+  const {m, fins, legs} = build(key);
+  const {glb, tris} = await bake(key, m, {fins, legs, source: 'design/aqua3d-review/polar/penguin-build.mjs', roughness: .55, weight: (part, g, [s]) => {
     if (part.bone === 'head') return [[0, 1]];
     if (part.bone === 'tail') return [[5, 1]];
+    if (part.bone === 'foot1' || part.bone === 'foot-1') { const li = part.bone === 'foot1' ? 10 : 11, k = smooth(0, .25, s); return [[5, 1 - k], [li, k]]; }
     if (part.bone === 'fin1' || part.bone === 'fin-1') { const root = part.bone === 'fin1' ? 6 : 8, k = smooth(0, .2, s); return [[1, 1 - k], [root, k * (1 - s)], [root + 1, k * s]]; }
     return spineWeight(g[0]);
   }});

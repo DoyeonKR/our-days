@@ -7,17 +7,19 @@ import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import {FACE_PROFILES,createFishFace,disposeFishFace,faceJaw,faceMouth,respiratoryGape,facialAnatomy} from './faces.ts';
 
-test('얼굴 프로필은 기존·신규 GLB 381형태 모두의 기준 그림과 일치한다',()=>{
+test('얼굴 프로필은 기존·신규 GLB 420형태 모두의 기준 그림과 일치한다',()=>{
  const models=JSON.parse(readFileSync('design/aqua3d-review/models.json','utf8')).models;
- const fish=Object.entries(models).filter(([,m])=>{const meta=m as {kind:string;anatomyKind?:string};return meta.kind==='fish'&&meta.anatomyKind!=='mammal'&&meta.anatomyKind!=='shrimp'&&meta.anatomyKind!=='crab'&&meta.anatomyKind!=='cetacean'&&meta.anatomyKind!=='shark'&&meta.anatomyKind!=='polar';});
+ const fish=Object.entries(models).filter(([,m])=>{const meta=m as {kind:string;anatomyKind?:string};return meta.kind==='fish'&&meta.anatomyKind!=='mammal'&&meta.anatomyKind!=='shrimp'&&meta.anatomyKind!=='crab'&&meta.anatomyKind!=='cetacean'&&meta.anatomyKind!=='shark'&&meta.anatomyKind!=='polar'&&meta.anatomyKind!=='galapagos';});
  // 남극 10종(2026-11-25 — polar/ 부위 짓기 · 눈 · 입을 모델이 직접 가진다) — 물고기 얼굴 · 턱을 붙이지 않는다
  const polar=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='polar');assert.equal(polar.length,30);for(const [key] of polar)assert.equal(FACE_PROFILES[key],undefined,key);
+ // 갈라파고스 부위 짓기 35종(105형태 — 자체 눈·입 조형) — 물고기 얼굴 · 턱을 붙이지 않는다
+ const galapagos=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='galapagos');assert.equal(galapagos.length,105);for(const [key] of galapagos)assert.equal(FACE_PROFILES[key],undefined,key);
  for(const [key,m] of Object.entries(models))if(/^(cetacean|shark)$/.test((m as {anatomyKind?:string}).anatomyKind??''))assert.equal(FACE_PROFILES[key],undefined,'고래 · 톱상어(2026-11-18)는 원화 그대로 — 물고기 얼굴 · 턱을 붙이지 않는다');
  const shrimps=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='shrimp');
  assert.equal(shrimps.length,9);for(const [key] of shrimps)assert.equal(FACE_PROFILES[key],undefined,'새우에 물고기 얼굴 · 턱을 붙이지 않는다');
  const mammals=Object.entries(models).filter(([,m])=>(m as {anatomyKind?:string}).anatomyKind==='mammal');
  assert.equal(mammals.length,45);for(const [key,meta] of mammals){assert.equal((meta as {activation:string}).activation,'not enabled',key);assert.match((meta as {visualApproval:string}).visualApproval,/^(pending|user_approved_2026-11-15|user_requested_2026-11-24|user_requested_2026-11-25|user_requested_2026-11-26|user_requested_2026-11-27)$/,key);assert.equal(FACE_PROFILES[key],undefined,'포유류에 물고기 얼굴을 붙이지 않는다');}
- assert.equal(fish.length,384);assert.equal(Object.keys(FACE_PROFILES).length,384);
+ assert.equal(fish.length,420);assert.equal(Object.keys(FACE_PROFILES).length,420);
  for(const [key] of fish){const p=FACE_PROFILES[key];assert.ok(p,key);assert.equal(p.sourceHash,createHash('sha256').update(readFileSync(`public/aqua/fish/${key}.webp`)).digest('hex'),key);}
  assert.equal(FACE_PROFILES.moray.teeth,'fang');assert.equal(FACE_PROFILES.piranha.teeth,'triangular');assert.equal(FACE_PROFILES.parrotfish.teeth,'beak');assert.equal(FACE_PROFILES.common_carp.teeth,'none');
  for(const key of ['moon_jelly','jellyfish','octopus','starfish'])assert.equal(FACE_PROFILES[key].mode,'none');
@@ -47,7 +49,7 @@ test('전체 GLB에 얼굴 생성·턱 제어·셰이더 연결·해제를 반�
   assert.deepEqual(Array.from(body.geometry.attributes.position.array),buffer,key);
   const gs=new Set<T.BufferGeometry>(),ms=new Set<T.Material>();root.traverse(o=>{if(o instanceof T.Mesh){gs.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])ms.add(m);if(o instanceof T.SkinnedMesh)o.skeleton.dispose();}});gs.forEach(g=>g.dispose());ms.forEach(m=>{(m as T.MeshStandardMaterial).map?.dispose();m.dispose();});
  }
- assert.equal(made,365);assert.equal(exceptions,19);assert.ok(maxTriangles>0);
+ assert.equal(made,401);assert.equal(exceptions,19);assert.ok(maxTriangles>0);
 });
 test('관형 입·부리·아래쪽 입·기존 치열은 서로 다른 해부 구조로 처리한다',()=>{
  assert.equal(facialAnatomy('seahorse','seahorse').tube,true);assert.equal(facialAnatomy('swordfish','swordfish').bill,true);assert.equal(facialAnatomy('great_white','great_white').shark,true);assert.equal(facialAnatomy('manta','oceanic_manta').ventral,true);assert.equal(facialAnatomy('anglerfish','anglerfish').nativeDentition,true);assert.equal(facialAnatomy('rising','imugi_fish').fantasy,true);

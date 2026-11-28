@@ -68,7 +68,7 @@ const wrap = (d: number) => Math.atan2(Math.sin(d), Math.cos(d));
 
 test("팔은 저마다 따로 움직인다 — 팔 끝끼리 움직임의 상관이 낮다(하나의 꼬리처럼 같이 휘지 않는다)", async () => {
   for (const key of ["kraken", "fry_kraken", "juv_kraken"]) {
-    const A = await armsOf(key), o = [0, 0, 0];
+    const A = await armsOf(key, "design/aqua3d-review/ceph-v3/old"), o = [0, 0, 0];
     // 팔 하나 = 위상 하나(cephArmData 가 이어진 정점을 한 팔로 묶는다) — 팔마다 가장 먼 정점을 끝으로
     const byArm = new Map<number, number>();
     for (let k = 0; k < A.n; k++) { if (A.d.attr[k * 4] < 0.9 || A.d.attr[k * 4 + 1] < 0.5) continue; const id = Math.round(A.d.attr[k * 4 + 2] * 20); const b = byArm.get(id); if (b === undefined || A.d.attr[k * 4 + 1] > A.d.attr[b * 4 + 1]) byArm.set(id, k); }
@@ -108,9 +108,9 @@ test("굽힘은 팔 뿌리에서 끝으로 지나가고, 끝이 뿌리 쪽보다
 });
 
 test("물 뿜기 — 팔을 외투막 반대쪽으로 모으고 물결을 거의 끈다 · 미끄러짐 끝엔 편다 · 어느 팔도 외투막을 뚫고 돌지 않는다", async () => {
-  // 2026-11-18 — 오징어 · 대왕오징어는 v3 입체 모델이 되어 이 옛 판 경로를 안 탄다(cephmotion3d.test 가 잰다). 옛 판으로 남은 문어 · 크라켄만
+  // 2026-11-27 — 두족류 12모습 모두 v3 입체 모델이 되어 옛 판 경로는 보관된 old 크라켄 GLB 로 검증
   for (const key of ["kraken", "fry_kraken", "juv_kraken"]) {
-    const A = await armsOf(key), o = [0, 0, 0];
+    const A = await armsOf(key, "design/aqua3d-review/ceph-v3/old"), o = [0, 0, 0];
     const tips = Array.from({ length: A.n }, (_, k) => k).filter((k) => A.d.attr[k * 4] > 0.9 && A.d.attr[k * 4 + 1] > 0.55);
     // 퍼진 폭 = 팔 끝들이 '늘어뜨리는 축'에서 옆으로 떨어진 거리(보이는 다발의 굵기). 외투막 쪽 팔은 돌리지 않고 몸 뒤로 끌어당기므로 각이 아니라 거리로 잰다
     const ex = Math.cos(A.d.sdir), ey = Math.sin(A.d.sdir);

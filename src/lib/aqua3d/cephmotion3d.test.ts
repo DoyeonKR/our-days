@@ -15,8 +15,8 @@ const open = (key: string) => {
   const b = readFileSync(`public/aqua/models/fish/${key}.glb`);
   return new Promise<T.Group>((res, rej) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(() => webp as never).parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, "", (g) => res(g.scene), rej));
 };
-const KEYS = ["squid", "fry_squid", "juv_squid", "giant_squid", "fry_giant_squid", "juv_giant_squid", "octopus", "fry_octopus", "juv_octopus"];
-const PLATE = ["kraken", "fry_kraken", "juv_kraken"];
+const KEYS = ["squid", "fry_squid", "juv_squid", "giant_squid", "fry_giant_squid", "juv_giant_squid", "octopus", "fry_octopus", "juv_octopus", "kraken", "fry_kraken", "juv_kraken"];
+const PLATE: string[] = [];
 type Arm = NonNullable<ReturnType<typeof cephArmData>>;
 async function armsOf(key: string) {
   const sc = await open(key); let m: T.SkinnedMesh | null = null; sc.traverse((o) => { if (!m && o instanceof T.SkinnedMesh) m = o; });
@@ -50,11 +50,11 @@ const corr = (a: number[], b: number[]) => {
   return ab / Math.sqrt(aa * bb);
 };
 
-test("v3 입체 모델 — 오징어 6모습은 팔 10개(팔 8 · 촉완 2) · 문어 3모습은 팔 8개를 팔 띠에서 찾는다 · 크라켄은 옛 판(표시 없음 → 옛 팔 경로)", async () => {
+test("v3 입체 모델 — 오징어 6모습은 팔 10개(팔 8 · 촉완 2) · 문어 · 크라켄 6모습은 팔 8개를 팔 띠에서 찾는다", async () => {
   for (const key of KEYS) {
     const A = await armsOf(key);
     assert.equal(A.mesh.userData.aquaGeometry, CEPH_V3, key);
-    assert.equal(A.d.arms, /octopus/.test(key) ? 8 : 10, key);
+    assert.equal(A.d.arms, /octopus|kraken/.test(key) ? 8 : 10, key);
   }
   for (const key of PLATE) {
     const sc = await open(key); let tag: unknown = "none"; sc.traverse((o) => { if (o instanceof T.SkinnedMesh) tag = o.userData.aquaGeometry; });

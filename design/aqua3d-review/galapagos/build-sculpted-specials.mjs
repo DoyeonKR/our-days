@@ -303,21 +303,21 @@ function buildPorcupinefish(stage) {
     const x = 0.72 - s * 1.44, f = Math.sin(clamp(s, 0.01, 0.99) * Math.PI);
     return { c: [x, 0, 0], u: [0, 1, 0], v: [0, 0, 1], a: 0.03 + 0.36 * Math.pow(f, 0.68), b: 0.03 + 0.34 * Math.pow(f, 0.68), e: 2.05 };
   }, {
-    ns: 22, nt: 18, capStart: 0.03, capEnd: 0.02, island: [0.02, 0.02, 0.64, 0.64], bone: 'body',
+    ns: 32, nt: 28, capStart: 0.03, capEnd: 0.02, island: [0.02, 0.02, 0.64, 0.64], bone: 'body',
     paint: (P, n) => {
       if (n[1] < -0.35) return cBelly;
       const sp = noise(P[0] * 22, P[1] * 22, P[2] * 22);
       return sp > 0.72 ? cSpot : mul(cTop, 0.90 + 0.18 * fbm([P[0] * 10, P[1] * 10, P[2] * 10], 2));
     },
   });
-  // 입체 가시 (등/옆면에 28개)
+  // 입체 가시 (등/옆면에 28개 — 뿌리를 몸통 표면에 밀착·매립하고 body 스파인 가중치로 연결해 절대 뜨지 않게 한다)
   for (let i = 0; i < 28; i++) {
     const t = (i + 0.5) / 28, phi = i * 2.399, sx = 0.42 - t * 0.92;
     const f = Math.sin(clamp((0.72 - sx) / 1.44, 0.05, 0.95) * Math.PI);
-    const ry = 0.34 * Math.pow(f, 0.68), rz = 0.32 * Math.pow(f, 0.68);
+    const ry = 0.03 + 0.35 * Math.pow(f, 0.68), rz = 0.03 + 0.33 * Math.pow(f, 0.68);
     const cy = Math.cos(phi) * ry, cz = Math.sin(phi) * rz;
     const ny = Math.cos(phi), nz = Math.sin(phi);
-    m.sweep('sp' + i, (s) => ({ c: [sx - s * 0.05, cy + ny * s * 0.09, cz + nz * s * 0.09], u: [1, 0, 0], v: [0, -nz, ny], a: 0.016 * (1 - 0.85 * s), b: 0.016 * (1 - 0.85 * s) }), { ns: 3, nt: 5, capEnd: 0.003, island: [0.68, 0.02, 0.96, 0.30], bone: 2, paint: () => cBelly });
+    m.sweep('sp' + i, (s) => ({ c: [sx - s * 0.04, cy + ny * (s - 0.12) * 0.11, cz + nz * (s - 0.12) * 0.11], u: [1, 0, 0], v: [0, -nz, ny], a: 0.034 * (1 - 0.88 * s), b: 0.034 * (1 - 0.88 * s) }), { ns: 4, nt: 6, capEnd: 0.003, island: [0.68, 0.02, 0.96, 0.30], bone: 'body', paint: () => cBelly });
   }
   for (const sd of [1, -1]) m.sphere('eye' + sd, [0.50, 0.13, sd * 0.22], 0.068, { island: [0.86, 0.86, 0.98, 0.98], bone: 0, paint: (P, n) => Math.abs(n[2]) > 0.6 ? [16, 20, 26] : [188, 174, 134] });
   const fins = {};

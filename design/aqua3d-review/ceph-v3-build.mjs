@@ -36,7 +36,7 @@ export const CEPH_KEYS = Object.keys(CEPH_ART);
 const ARMS = {
   // 문어 · 크라켄(2026-11-18 2차): 팔 길이 · 말림은 그림 길에서 온다 — root(팔 뿌리 굵기 상한) · fan(앞뒤로 벌리는 몫, 팔 호 길이 대비). fan 은 물 뿜기 · 펴기가 보이는 최소(cephmotion3d 문턱)로 골랐다 — 크게 벌릴수록 몸 전체가 작아진다(길이 2 는 max(x, z) 로 잰다)
   octopus: {root: .42, fan: .5}, fry_octopus: {root: .4, fan: .7}, juv_octopus: {root: .41, fan: .8},
-  kraken: {root: .46, fan: .5}, fry_kraken: {root: .44, fan: .5}, juv_kraken: {root: .45, fan: .5},
+  kraken: {root: .52, fan: .6}, fry_kraken: {root: .48, fan: .72}, juv_kraken: {root: .50, fan: .65},
   squid: {len: .24, root: .32, tent: .36}, fry_squid: {len: .22, root: .32, tent: .32}, juv_squid: {len: .24, root: .32, tent: .36},
   giant_squid: {len: .28, root: .34, tent: 1.0, droop: true}, fry_giant_squid: {len: .26, root: .34, tent: .9, droop: true}, juv_giant_squid: {len: .27, root: .34, tent: .95, droop: true},
 };
@@ -405,7 +405,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '
   const args = process.argv.slice(2), install = args.includes('--install'), keys = args.filter((a) => !a.startsWith('--'));
   // 2026-11-18 — 게임에 켠 건 오징어 · 대왕오징어(1차)와 문어 3모습(2차 — 그림 팔 길 · 그림 팔 띠 · 빨판 구슬로 수조 카메라에서도 옛 판만큼 풍성해졌다).
   // 크라켄 3모습은 수조 카메라에서 옛 판(그림의 빽빽한 촉수 덩어리)보다 여전히 성겨 늘 후보 폴더에만 쓴다(검수 시트 ceph-v3/review-kraken-2.webp)
-  const dirOf = (key) => /kraken/.test(key) ? 'design/aqua3d-review/ceph-v3/octopus-candidates' : install ? 'public/aqua/models/fish' : octo(key) ? 'design/aqua3d-review/ceph-v3/octopus-candidates' : 'design/aqua3d-review/ceph-v3/stage';
+  const dirOf = (key) => install ? 'public/aqua/models/fish' : octo(key) ? 'design/aqua3d-review/ceph-v3/octopus-candidates' : 'design/aqua3d-review/ceph-v3/stage';
   for (const key of keys.length ? keys : CEPH_KEYS) {
     const dir = dirOf(key); await mkdir(dir, {recursive: true});
     const {glb, tris, verts, png} = await build(key);

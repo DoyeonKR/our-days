@@ -526,8 +526,8 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   //   몸을 세워(모델 Z 축 +90° — 머리 위 · 배 앞) 두 발로 선다. 헤엄 물결 · 날개 젓기는 거두고, 머리는 앞으로 숙여 부리가 앞을 보게(spine_0 을 숙이고 spine_1 로 되돌린다 — 뿌리 뼈가 머리라 머리만 숙는다),
   //   날개는 몸 옆에 조금 벌려 들고, 움직이는 동안은 뒤뚱뒤뚱 좌우로 기울며(걸음마다 한 번) 걸음에 맞춰 조금 오르내린다. 발 높이는 모델 아래 · 뒤 끝으로 맞춘다
   const human = HUMAN_WALKERS.test(family), walker = human || PENGUIN_WALKERS.test(family);
-  // 사람처럼 걷는 몸 — 팔 · 다리를 '곧게 내린' 자세로 돌리는 회전(짓는 자세의 뼈 방향 → 아래). 다리 뼈가 없는 옛 모델이면 팔만
-  const legs = human ? [rig("leg_L"), rig("leg_R")] : [];
+  // 걷는 몸(사람 · 펭귄) — 다리 뼈(leg_L · leg_R)가 있으면 걸을 때 번갈아 내딛는다
+  const legs = walker ? [rig("leg_L"), rig("leg_R")] : [];
   // 유진(2026-11-26)은 선 자세로 지은 사람이라 팔 · 다리가 이미 곧게 내려와 있다 — 내리는 회전 없이(머리도 숙이지 않는다)
   const swimmer = HUMAN_SWIMMERS.test(family), upright0 = swimmer;
   let crawlPh = (inner.id % 13) * 0.9;
@@ -741,7 +741,11 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
           if (spine[1] && upright0) spine[1].bone.quaternion.multiply(qa.setFromAxisAngle(X, -0.055 * sw));
           for (let s = 0; s < 2; s++) { const r = fins[s * 2], h = hang[s]; if (r && (h || upright0)) r.bone.quaternion.multiply(qa.identity().slerp(h ?? qa, u)).multiply(qb.setFromAxisAngle(Z, (s ? -1 : 1) * 0.42 * sw)); }
           for (let s = 0; s < 2; s++) { const r = legs[s]; if (r) { r.bone.quaternion.copy(r.base).multiply(qa.identity().slerp(s ? legHangR : legHang, u)).multiply(qb.setFromAxisAngle(Z, (s ? 1 : -1) * 0.5 * sw)); } }
-        } else for (let s = 0; s < 2; s++) { const r = fins[s * 2]; if (r) r.bone.quaternion.multiply(qa.setFromAxisAngle(X, (s ? 1 : -1) * (0.3 * u + 0.12 * Math.sin(stepPh) * walkAmp))); }
+        } else {
+          for (let s = 0; s < 2; s++) { const r = fins[s * 2]; if (r) r.bone.quaternion.multiply(qa.setFromAxisAngle(X, (s ? 1 : -1) * (0.3 * u + 0.12 * Math.sin(stepPh) * walkAmp))); }
+          // 펭귄 두 발 관절(leg_L · leg_R) — 서 있을 때 두 발을 번갈아 아장아장 내딛는다
+          for (let s = 0; s < 2; s++) { const r = legs[s]; if (r) r.bone.quaternion.copy(r.base).multiply(qa.setFromAxisAngle(Z, (s ? 1 : -1) * 0.36 * Math.sin(stepPh) * walkAmp)); }
+        }
       }
       if (yj) {
         for (const r of yjAll) r.bone.quaternion.copy(r.base);

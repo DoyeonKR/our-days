@@ -25,6 +25,7 @@ import type { RaidTier } from "@/lib/bossmark";
 import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, MOON_FISH, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, gameWxNext, gameTimeNext, TIME_NAME, WX_NAME, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { REQUEST_ALL_BONUS, type FishRequest } from "@/lib/fishrequest";
+import { DEPTH_FILTERS, matchDepthFilter, matchFishQuery, type DepthFilter } from "@/lib/fishfilter";
 
 export function GearPic({ k, label }: { k: string; label: string }) {
   if (FISHING_IMAGE_KEYS.has(k)) {
@@ -458,47 +459,92 @@ const famArt = (key: string, seen: ReadonlySet<string>) => {
 /** 잡을 수 있는 물고기 — 지금 여기서 무는 것(확률은 실제 뽑기로 잰다)과 모든 어종이 어디서 잡히는지 */
 export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen, done, onClose }: { spot: FishSpot; baitIdx: number; method: MethodKey; luck: number; moment: FishMoment; level: number; seen: ReadonlySet<string>; done?: readonly string[]; onClose: () => void }) {
   const [view, setView] = useState<"now" | "all">("now");
+  const [depthFilter, setDepthFilter] = useState<DepthFilter>("all");
+  const [query, setQuery] = useState("");
   const rows = useMemo(() => catchTable(spot, luck, baitIdx, method, moment, 3000, done), [spot, luck, baitIdx, method, done, moment.time, moment.wx, moment.moon?.full]); // eslint-disable-line react-hooks/exhaustive-deps
+  const filteredRows = useMemo(
+    () => rows.filter((r) => matchDepthFilter(r.family, depthFilter) && matchFishQuery(r.family, query)),
+    [rows, depthFilter, query],
+  );
   const seenOf = (family: string) => ALL_FORMS.filter((x) => x.family === family && seen.has(x.key)).length;
   const totalOf = (family: string) => ALL_FORMS.filter((x) => x.family === family).length;
   const placed = new Set(SPOTS.flatMap((s) => s.pool.map(([k]) => k)));
   const famOfSpecies = (sp: string) => FAMILIES.find((x) => x.key === sp || x.finals.some((y) => y.key === sp))?.key;
+  const spotSections = useMemo(() => {
+    if (view !== "all") return [];
+    return SPOTS.map((s) => {
+      const spotPool = new Set(s.pool.map(([k]) => k));
+      const guests = FAMILIES.filter((f) => !placed.has(f.key) && TIMED_FISH.some((t) => t.spot === s.key && t.species === f.key));
+      const moons = MOON_FISH.filter((m) => m.spot === s.key)
+        .map((m) => ({ fam: famOfSpecies(m.species), m }))
+        .filter((x): x is { fam: string; m: (typeof MOON_FISH)[number] } => !!x.fam && !spotPool.has(x.fam) && !guests.some((f) => f.key === x.fam));
+      const events = EVENT_FISH.filter((e) => e.spot === s.key && !spotPool.has(e.species) && !guests.some((f) => f.key === e.species) && !moons.some((x) => x.fam === e.species));
+      const keys = [...s.pool.map(([k]) => k), ...guests.map((f) => f.key), ...moons.map((x) => x.fam), ...events.map((e) => e.species)]
+        .filter((k) => matchDepthFilter(k, depthFilter) && matchFishQuery(k, query));
+      return { s, guests, moons, events, keys };
+    }).filter((sec) => sec.keys.length > 0);
+  }, [view, depthFilter, query]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <SheetShell title="잡을 수 있는 물고기" onClose={onClose}>
       <div className="fish-rank-switch" role="group" aria-label="보기">
         <button type="button" aria-pressed={view === "now"} className={`tap ${view === "now" ? "is-on" : ""}`} onClick={() => setView("now")}>지금 여기</button>
         <button type="button" aria-pressed={view === "all"} className={`tap ${view === "all" ? "is-on" : ""}`} onClick={() => setView("all")}>모든 물고기</button>
       </div>
+      <div className="aqua-food mt-2" role="radiogroup" aria-label="수심 거르기">
+        {DEPTH_FILTERS.map(([k, label]) => (
+          <button key={k} type="button" role="radio" aria-checked={depthFilter === k} className={`tap ${depthFilter === k ? "is-on" : ""}`} onClick={() => setDepthFilter(k)}>{label}</button>
+        ))}
+      </div>
+      <div className="mt-2">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="물고기 이름 검색…"
+          aria-label="물고기 이름 검색"
+          className="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-1.5 text-sm text-inherit outline-none focus:border-sky-500/60 dark:border-white/15 dark:bg-white/10"
+        />
+      </div>
       {view === "now" ? (
         <>
           <p className="fish-how">{spot.name} · {BAITS[baitIdx].name} 기준이에요 · 쓰레기가 걸릴 확률 {chanceText(junkChance(luck, method))}</p>
-          <ul className="fish-timed">
-            {rows.map((r) => (
-              <li key={r.family}>
-                <span className="fish-boss-pic"><FishArt artKey={famArt(r.family, seen)} /></span>
-                <span className="min-w-0 flex-1"><strong>{familyName(r.family)}</strong><small>{DEPTH_NAMES[familyDepth(r.family)]} · 도감 {seenOf(r.family)}/{totalOf(r.family)}칸 · 지금 {r.forms.length}가지 모습이 와요</small></span>
-                <b className="fish-chance">{chanceText(r.chance)}</b>
-              </li>
-            ))}
-          </ul>
+          {filteredRows.length === 0 ? (
+            <p className="aqua-note mt-2">조건에 맞는 물고기가 없어요. 수심이나 검색어를 바꿔 보세요.</p>
+          ) : (
+            <ul className="fish-timed">
+              {filteredRows.map((r) => {
+                const timed = TIMED_FISH.find((t) => t.spot === spot.key && t.species === r.family);
+                const moon = MOON_FISH.find((m) => m.spot === spot.key && famOfSpecies(m.species) === r.family);
+                const ev = EVENT_FISH.find((e) => e.spot === spot.key && e.species === r.family);
+                return (
+                  <li key={r.family}>
+                    <span className="fish-boss-pic"><FishArt artKey={famArt(r.family, seen)} /></span>
+                    <span className="min-w-0 flex-1">
+                      <strong>{familyName(r.family)}</strong>
+                      <small>
+                        {DEPTH_NAMES[familyDepth(r.family)]} · {BAITS[familyBaitTier(r.family)].name}부터 · 도감 {seenOf(r.family)}/{totalOf(r.family)}칸 · 지금 {r.forms.length}가지 모습
+                        {ev ? " · 이벤트" : ""}
+                        {timed ? ` · ${timedLabel(timed)}` : ""}
+                        {moon ? ` · ${timedLabel(moon)}` : ""}
+                      </small>
+                    </span>
+                    <b className="fish-chance">{chanceText(r.chance)}</b>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </>
       ) : (
         <>
-          <p className="fish-how">{FAMILIES.length}종 · 도감 {ALL_FORMS.filter((x) => seen.has(x.key)).length}/{ALL_FORMS.length}칸</p>
-          {SPOTS.map((s) => {
-            const spotPool = new Set(s.pool.map(([k]) => k));
-            const guests = FAMILIES.filter((f) => !placed.has(f.key) && TIMED_FISH.some((t) => t.spot === s.key && t.species === f.key));
-            // 보름달 손님(MOON_FISH — 항구 해파리 · 대양 산갈치 · 용궁 달빛해파리)도 그 낚시터 칸에 누락 없이 표시
-            const moons = MOON_FISH.filter((m) => m.spot === s.key)
-              .map((m) => ({ fam: famOfSpecies(m.species), m }))
-              .filter((x): x is { fam: string; m: (typeof MOON_FISH)[number] } => !!x.fam && !spotPool.has(x.fam) && !guests.some((f) => f.key === x.fam));
-            // 이벤트 물고기(갓파 · 유진 — lib/eventfish)도 그 낚시터 칸에
-            const events = EVENT_FISH.filter((e) => e.spot === s.key && !spotPool.has(e.species) && !guests.some((f) => f.key === e.species) && !moons.some((x) => x.fam === e.species));
-            return (
+          <p className="fish-how">{FAMILIES.length}종 · 도감 {ALL_FORMS.filter((x) => seen.has(x.key)).length}/{ALL_FORMS.length}칸{(depthFilter !== "all" || query.trim()) ? ` · 검색 결과 ${spotSections.reduce((n, sec) => n + sec.keys.length, 0)}종` : ""}</p>
+          {spotSections.length === 0 ? (
+            <p className="aqua-note mt-2">조건에 맞는 물고기가 없어요. 수심이나 검색어를 바꿔 보세요.</p>
+          ) : spotSections.map(({ s, guests, moons, events, keys }) => (
               <section key={s.key}>
                 <h3 className="fish-sheet-title">{s.name} <small>{WATER_NAME[s.water]}{level < s.minLevel ? ` · Lv.${s.minLevel}` : ""}</small></h3>
                 <ul className="fish-timed">
-                  {[...s.pool.map(([k]) => k), ...guests.map((f) => f.key), ...moons.map((x) => x.fam), ...events.map((e) => e.species)].map((k) => {
+                  {keys.map((k) => {
                     const ev = events.find((e) => e.species === k);
                     const g = guests.some((f) => f.key === k) ? TIMED_FISH.find((t) => t.spot === s.key && t.species === k) : undefined;
                     const mn = moons.find((x) => x.fam === k)?.m;
@@ -519,8 +565,7 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
                   })}
                 </ul>
               </section>
-            );
-          })}
+          ))}
         </>
       )}
     </SheetShell>

@@ -47,3 +47,25 @@ test("쉼터에 다 올라오면 펭귄은 upright 1, 해달 · 물범은 0 — 
     assert.equal(best > 0.99, fam.endsWith("penguin"), `${fam} upright 최대 ${best.toFixed(2)}`);
   }
 });
+
+test("남극 펭귄 4종(12본)은 걸을 때 왼발·오른발(leg_L/leg_R)이 반대 위상으로 교차하고 서 있으면 멈춘다", async () => {
+  for (const key of ["emperor_penguin", "gentoo_penguin", "chinstrap_penguin", "adelie_penguin", "fry_emperor_penguin"]) {
+    const b = readFileSync(`public/aqua/models/fish/${key}.glb`);
+    const g = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(() => webp as never).parseAsync(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, "");
+    const legL = g.scene.getObjectByName("leg_L"), legR = g.scene.getObjectByName("leg_R");
+    assert.ok(legL && legR, `${key} has leg_L and leg_R`);
+    const anim = fishMotion(g.scene, key.replace(/^(fry_|juv_)/, ""), key);
+    let maxSwing = 0, oppFrames = 0;
+    for (let k = 0; k < 180; k++) {
+      anim(k / 60, 1, { dt: 1 / 60, amp: 0.12, effort: 0.12, speed: 0.35, upright: 1, hover: 1, ground: 1 } as never);
+      if (k > 90) {
+        const l = legL.rotation.z, r = legR.rotation.z;
+        maxSwing = Math.max(maxSwing, Math.abs(l), Math.abs(r));
+        if (l * r < -1e-4) oppFrames++;
+      }
+    }
+    assert.ok(maxSwing > 0.08, `${key} 다리 스윙 폭 ${maxSwing.toFixed(3)}`);
+    assert.ok(oppFrames > 60, `${key} 왼발·오른발 반대 위상 프레임 ${oppFrames}`);
+  }
+});
+

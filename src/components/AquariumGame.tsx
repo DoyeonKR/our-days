@@ -35,6 +35,7 @@ import { eventDef, eventGuest, eventsAt, modsAt, nextEventAfter, occurrence, typ
 import { claimBlock, claimEventDecor, eventSaveOf, eventTints, hasClaimed, tintedInBag, tintName } from "@/lib/aquaeventclaim";
 import type { IslandState } from "@/lib/island";
 import { BreedCard, EventCard, FishCard, FullCompare, LightShop, MemorialCard, Meter, MorphDexCard, MorphTag } from "@/components/aquarium/AquaCards";
+import { AQUA_TRAIT_FILTERS, matchAquaTrait, matchFishQuery, type AquaTraitFilter } from "@/lib/fishfilter";
 
 type Tab = "tank" | "grow" | "decor" | "dex";
 // 넓히기(2026-11-21 리뷰 ⑨) — 늘리기 네 줄 · 다음 수조 조건이 수조 칸 맨 아래를 길게 늘였다. 따로 한 칸으로 뺐다
@@ -121,6 +122,10 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
   const [inspect, setInspect] = useState<string | null>(null);
   const [food, setFood] = useState("flake");
   const [dexFilter, setDexFilter] = useState<DexFilter>("all");
+  const [dexTrait, setDexTrait] = useState<AquaTraitFilter>("all");
+  const [dexQuery, setDexQuery] = useState("");
+  const [tankTrait, setTankTrait] = useState<AquaTraitFilter>("all");
+  const [tankQuery, setTankQuery] = useState("");
   const [localSeen, setLocalSeen] = useState(0);
   const busyRef = useRef(false);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -568,11 +573,36 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
             </section>
           )}
 
-          {a.fish.length > 0 && (
+          {a.fish.length > 0 && (() => {
+            const shownFish = a.fish.filter((f) => matchAquaTrait(f.family, tankTrait) && matchFishQuery(f.family, tankQuery, `${fishNick(a, f.id) ?? ""} ${fishName(f)}`));
+            const filtering = tankTrait !== "all" || tankQuery.trim().length > 0;
+            return (
             <section className="aqua-card">
-              <header><strong>우리 물고기</strong></header>
+              <header><strong>우리 물고기</strong><small>{filtering ? `${shownFish.length}/${a.fish.length}마리` : `${a.fish.length}마리`}</small></header>
+              {(a.fish.length >= 4 || filtering) && (
+                <>
+                  <div className="aqua-food mt-2" role="radiogroup" aria-label="우리 물고기 거르기">
+                    {AQUA_TRAIT_FILTERS.map(([k, label]) => (
+                      <button key={k} type="button" role="radio" aria-checked={tankTrait === k} className={`tap ${tankTrait === k ? "is-on" : ""}`} onClick={() => setTankTrait(k)}>{label}</button>
+                    ))}
+                  </div>
+                  <div className="mt-2">
+                    <input
+                      type="search"
+                      value={tankQuery}
+                      onChange={(e) => setTankQuery(e.target.value)}
+                      placeholder="수조 물고기 이름·별명 검색…"
+                      aria-label="수조 물고기 검색"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-1.5 text-sm text-inherit outline-none focus:border-sky-500/60 dark:border-white/15 dark:bg-white/10"
+                    />
+                  </div>
+                </>
+              )}
+              {shownFish.length === 0 ? (
+                <p className="aqua-note mt-2">조건에 맞는 물고기가 없어요.</p>
+              ) : (
               <ul className="aqua-list">
-                {a.fish.map((f) => {
+                {shownFish.map((f) => {
                   const sp = speciesOf(f.species);
                   return (
                     <li key={f.id}>
@@ -587,8 +617,10 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
                   );
                 })}
               </ul>
+              )}
             </section>
-          )}
+            );
+          })()}
           <BreedCard a={a} />
 
           {a.req && (
@@ -733,35 +765,53 @@ export default function AquariumGame({ coupleId, myUserId, myName = "", partnerN
           <div className="aqua-food mt-2" role="radiogroup" aria-label="도감 거르기">
             {DEX_FILTERS.map(([k, label]) => <button key={k} type="button" role="radio" aria-checked={dexFilter === k} className={`tap ${dexFilter === k ? "is-on" : ""}`} onClick={() => setDexFilter(k)}>{label}</button>)}
           </div>
-          <MorphDexCard a={a} />
-          <div className="aqua-dex-fams">
-          {FAMILIES.map((fam) => {
-            const forms = ALL_FORMS.filter((x) => x.family === fam.key);
-            const met = forms.filter((x) => seenForms.has(x.key)).length;
-            const shown = forms.filter((x) => (dexFilter === "seen" ? seenForms.has(x.key) : dexFilter === "missing" ? !seenForms.has(x.key) : true));
-            if (!shown.length) return null;
-            return (
-              <details key={fam.key} className="aqua-card aqua-dex-fam" open={dexFilter !== "all" ? true : undefined}>
-                <summary><strong>{fam.name}</strong><small>{met}/{forms.length}{a.released?.[fam.key] ? ` · 보내 줌 ${a.released[fam.key]}` : ""}</small></summary>
-                <div className="aqua-dex">
-                  {shown.map((form) => {
-                    const seen = seenForms.has(form.key);
-                    const idx = form.species ? fam.finals.findIndex((x) => x.key === form.species) : -1;
-                    return (
-                      <div key={form.key} className={seen ? "" : "is-hidden"}>
-                        <span className="aqua-dex-pic">{seen ? <FishArt artKey={form.key} /> : <b aria-hidden>?</b>}</span>
-                        <small>{seen ? fishName(form) : "???"}</small>
-                        <span className={gradeClass(form.grade)}>{form.grade}</span>
-                        {isEventFamily(fam.key) && <span className="aqua-grade is-event">이벤트</span>}
-                        {!seen && <small className="aqua-dex-hint">{dexHint(fam.key, form.stage, idx)}</small>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </details>
-            );
-          })}
+          <div className="aqua-food mt-2" role="radiogroup" aria-label="도감 특성 거르기">
+            {AQUA_TRAIT_FILTERS.map(([k, label]) => <button key={k} type="button" role="radio" aria-checked={dexTrait === k} className={`tap ${dexTrait === k ? "is-on" : ""}`} onClick={() => setDexTrait(k)}>{label}</button>)}
           </div>
+          <div className="mt-2">
+            <input
+              type="search"
+              value={dexQuery}
+              onChange={(e) => setDexQuery(e.target.value)}
+              placeholder="도감 물고기 이름 검색…"
+              aria-label="도감 물고기 검색"
+              className="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-1.5 text-sm text-inherit outline-none focus:border-sky-500/60 dark:border-white/15 dark:bg-white/10"
+            />
+          </div>
+          <MorphDexCard a={a} />
+          {(() => {
+            const filtering = dexFilter !== "all" || dexTrait !== "all" || dexQuery.trim().length > 0;
+            const matchedFams = FAMILIES.filter((fam) => matchAquaTrait(fam.key, dexTrait) && matchFishQuery(fam.key, dexQuery));
+            const cards = matchedFams.map((fam) => {
+              const forms = ALL_FORMS.filter((x) => x.family === fam.key);
+              const met = forms.filter((x) => seenForms.has(x.key)).length;
+              const shown = forms.filter((x) => (dexFilter === "seen" ? seenForms.has(x.key) : dexFilter === "missing" ? !seenForms.has(x.key) : true));
+              if (!shown.length) return null;
+              return (
+                <details key={fam.key} className="aqua-card aqua-dex-fam" open={filtering ? true : undefined}>
+                  <summary><strong>{fam.name}</strong><small>{met}/{forms.length}{a.released?.[fam.key] ? ` · 보내 줌 ${a.released[fam.key]}` : ""}</small></summary>
+                  <div className="aqua-dex">
+                    {shown.map((form) => {
+                      const seen = seenForms.has(form.key);
+                      const idx = form.species ? fam.finals.findIndex((x) => x.key === form.species) : -1;
+                      return (
+                        <div key={form.key} className={seen ? "" : "is-hidden"}>
+                          <span className="aqua-dex-pic">{seen ? <FishArt artKey={form.key} /> : <b aria-hidden>?</b>}</span>
+                          <small>{seen ? fishName(form) : "???"}</small>
+                          <span className={gradeClass(form.grade)}>{form.grade}</span>
+                          {isEventFamily(fam.key) && <span className="aqua-grade is-event">이벤트</span>}
+                          {!seen && <small className="aqua-dex-hint">{dexHint(fam.key, form.stage, idx)}</small>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            }).filter(Boolean);
+            return cards.length === 0
+              ? <p className="aqua-note mt-2">조건에 맞는 물고기가 없어요. 필터나 검색어를 바꿔 보세요.</p>
+              : <div className="aqua-dex-fams">{cards}</div>;
+          })()}
         </>
       )}
       </div>

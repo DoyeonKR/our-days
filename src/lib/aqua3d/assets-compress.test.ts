@@ -125,7 +125,7 @@ test("게임과 같은 길(GLTFLoader + MeshoptDecoder)로 모두 열리고 · �
       assert.equal(meshes.length, 1, key);
       const m = meshes[0] as T.SkinnedMesh;
       assert.ok(m.isSkinnedMesh, key);
-      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : /yujin$/.test(key) ? 126 : /(kappa|galapagos_penguin|marine_iguana)$/.test(key) ? 12 : 10, key); // 갓파 · 갈라파고스 펭귄 · 바다이구아나는 다리 뼈 둘(leg_L · leg_R)을 더 — 땅 위에서 번갈아 걷는다
+      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : /yujin$/.test(key) ? 126 : /(kappa|penguin|marine_iguana)$/.test(key) ? 12 : 10, key); // 갓파 · 펭귄 5종 · 바다이구아나는 다리 뼈 둘(leg_L · leg_R)을 더 — 땅 위에서 번갈아 걷는다
       assert.ok(m.geometry.attributes.skinWeight.normalized && m.geometry.attributes.normal.normalized && m.geometry.attributes.uv.normalized, key);
       assert.equal(m.material instanceof T.MeshStandardMaterial && !!m.material.map, true, key);
     }
