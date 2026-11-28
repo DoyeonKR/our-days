@@ -344,51 +344,184 @@ function buildCetacean(kind, stage) {
 function buildPinniped(kind, stage) {
   const m = new Model();
   const isFur = kind === 'galapagos_fur_seal';
-  const cCoat = isFur ? hex('#5c5248') : hex('#9c764e');
-  const cBelly = isFur ? hex('#84786c') : hex('#c8a47a');
+  const cDark = isFur ? hex('#2e2824') : hex('#5a3d24');
+  const cCoat = isFur ? hex('#4c423a') : hex('#8f6840');
+  const cMid = isFur ? hex('#726458') : hex('#b58958');
+  const cBelly = isFur ? hex('#a89b88') : hex('#d8ba8c');
+  const cFlip = isFur ? hex('#24201e') : hex('#3e2d1e');
 
+  // 1. 유선형 몸통 + 두툼한 목 + 둥근 두개골 + 자연스러운 주둥이(물개는 짧고 뭉툭, 바다사자는 조금 더 길고 우아)
+  //    기괴하게 꺾이거나 잘록한 목 없이 머리→목→가슴→허리→골반이 실제 바다사자과처럼 부드럽게 이어진다
+  const bodyLen = 1.92, x0 = 0.94;
   m.sweep('body', (s) => {
-    const x = 0.98 - s * 1.96;
-    let a, b, cy = 0;
-    if (s < 0.08) { // 뾰족한 주둥이(muzzle)
+    const x = x0 - s * bodyLen;
+    // 부드러운 유선형 체형 프로파일(가슴 s~0.38 이 가장 두툼, 뒤쪽 골반으로 매끄럽게 가늘어짐)
+    let a, b, cy;
+    if (s < 0.08) {
+      // 주둥이(muzzle): 물개는 짧고 뭉툭, 바다사자는 약간 더 길다
       const f = s / 0.08;
-      a = 0.032 + 0.045 * f; b = 0.030 + 0.042 * f; cy = 0.16 + 0.01 * f;
-    } else if (s < 0.19) { // 둥근 두개골(head)
-      const f = (s - 0.08) / 0.11;
-      a = 0.077 + 0.045 * Math.sin(f * Math.PI); b = 0.072 + 0.042 * Math.sin(f * Math.PI); cy = 0.17 - 0.02 * f;
-    } else if (s < 0.34) { // 잘록하고 우아하게 솟은 목(neck)
-      const f = (s - 0.19) / 0.15;
-      a = 0.095 + 0.092 * f; b = 0.090 + 0.088 * f; cy = 0.15 - 0.11 * f;
-    } else { // 유선형 몸통 -> 골반
-      const f = (s - 0.34) / 0.66, prof = Math.sin(Math.pow(clamp(1 - f, 0.02, 0.98), 0.66) * Math.PI * 0.5);
-      a = 0.03 + 0.19 * prof; b = 0.03 + 0.18 * prof; cy = 0.04 * (1 - f);
+      const muzzleScale = isFur ? 1.06 : 0.94;
+      a = (0.036 + 0.052 * Math.pow(f, 0.72)) * muzzleScale;
+      b = (0.040 + 0.056 * Math.pow(f, 0.72)) * muzzleScale;
+      cy = 0.055 + 0.015 * f;
+    } else if (s < 0.21) {
+      // 이마와 둥근 두개골(cranium) — 매끄럽게 높아진다
+      const f = (s - 0.08) / 0.13;
+      const dome = Math.sin(f * Math.PI * 0.85);
+      a = 0.088 + 0.052 * dome + 0.028 * f;
+      b = 0.096 + 0.044 * dome + 0.026 * f;
+      cy = 0.070 + 0.022 * Math.sin(f * Math.PI) - 0.012 * f;
+    } else if (s < 0.42) {
+      // 두툼한 목 → 넓은 가슴·어깨(실제 물개·바다사자는 목이 아주 굵고 탄탄하다)
+      const f = (s - 0.21) / 0.21;
+      const sm = f * f * (3 - 2 * f);
+      a = 0.118 + 0.102 * sm;
+      b = 0.122 + 0.106 * sm;
+      cy = 0.058 * (1 - sm) + 0.012 * sm;
+    } else {
+      // 가슴 → 배 → 좁아지는 허리 · 골반
+      const f = (s - 0.42) / 0.58;
+      const prof = Math.pow(Math.max(0.02, 1 - f), 0.72);
+      a = 0.038 + 0.182 * prof;
+      b = 0.042 + 0.186 * prof;
+      cy = 0.012 * (1 - f) - 0.018 * f * f;
     }
-    return { c: [x, cy, 0], u: [0, 1, 0], v: [0, 0, 1], a, b, e: 2.1 };
+    return {
+      c: [x, cy, 0], u: [0, 1, 0], v: [0, 0, 1], a, b, e: 2.08,
+      r: (th) => {
+        const cu = Math.cos(th), sv = Math.sin(th);
+        // 주둥이 양옆 콧수염 볼(whisker pads) 미세 볼륨 + 아래 배쪽 살짝 부드럽게
+        if (s > 0.02 && s < 0.11 && cu < 0.15 && Math.abs(sv) > 0.4) return 1.07;
+        return 1;
+      },
+    };
   }, {
-    ns: 32, nt: 16, capStart: 0.03, capEnd: 0.025, island: [0.02, 0.02, 0.66, 0.56], bone: 'body',
-    paint: (P, n) => {
-      let col = mix(cBelly, cCoat, smooth(-0.32, 0.48, n[1]));
-      if (P[0] > 0.93 && Math.hypot(P[1] - 0.165, P[2]) < 0.034) col = [24, 20, 18]; // 둥근 검은 코
-      return mul(col, 0.90 + 0.18 * fbm([P[0] * 24, P[1] * 24, P[2] * 24], 3));
+    ns: 36, nt: 22, capStart: 0.032, capEnd: 0.028, island: [0.02, 0.02, 0.64, 0.56], bone: 'body',
+    paint: (P, n, [s]) => {
+      // 물속 젖은 이중모 털 결(앞→뒤 방향 이방성 노이즈)
+      const furGrain = fbm([P[0] * 14, P[1] * 38, P[2] * 38], 3);
+      const furFine = fbm([P[0] * 28, P[1] * 64, P[2] * 64], 2);
+      // 등쪽은 짙은 털, 옆구리는 중간 톤, 목 앞·가슴·배는 밝은 크림/은빛 털
+      const backW = smooth(-0.38, 0.48, n[1]);
+      let col = mix(cBelly, cMid, smooth(-0.25, 0.25, n[1]));
+      col = mix(col, cCoat, backW);
+      // 갈라파고스 물개 특유의 어깨·목 부근 은빛 서리 느낌(silver-tipped fur) + 등 어두운 털
+      if (isFur) {
+        const mane = smooth(0.18, 0.42, s) * (1 - smooth(0.45, 0.68, s)) * smooth(-0.1, 0.7, n[1]);
+        col = mix(col, cMid, mane * 0.35 * furGrain);
+        col = mix(col, cDark, smooth(0.55, 0.95, n[1]) * 0.35);
+      } else {
+        // 갈라파고스 바다사자: 등쪽 매끄러운 황갈색 + 앞얼굴/가슴 밝은 크림 톤
+        const chest = smooth(0.14, 0.44, s) * (1 - smooth(0.46, 0.65, s)) * smooth(0.1, -0.5, n[1]);
+        col = mix(col, cBelly, chest * 0.45);
+      }
+      // 얼굴 주둥이 앞쪽 밝은 볼털 + 어두운 코·입선
+      if (s < 0.12) {
+        const muzzleBright = smooth(0.12, 0.04, s) * smooth(0.25, -0.35, n[1]);
+        col = mix(col, cBelly, muzzleBright * 0.38);
+        // 입선(mouth line)
+        if (s < 0.095 && Math.abs(P[1] - 0.032) < 0.008 && Math.abs(P[2]) < 0.055) col = mul(col, 0.38);
+      }
+      // 젖은 검은 코끝(nose leather)
+      if (P[0] > 0.91 && Math.hypot(P[1] - 0.064, P[2]) < 0.032) return [22, 18, 16];
+      return mul(col, 0.86 + 0.22 * furGrain + 0.08 * furFine);
     },
   });
+
+  // 2. 눈(크고 맑은 갈색/검은 바다사자과 눈 + 하이라이트) + 작은 접힌 귓바퀴(pinnae) + 하얀 수염(whiskers)
+  const eyeX = isFur ? 0.78 : 0.76;
+  const eyeR = isFur ? 0.028 : 0.024;
   for (const sd of [1, -1]) {
-    m.sphere('eye' + sd, [0.78, 0.21, sd * 0.076], isFur ? 0.028 : 0.025, { island: [0.88, 0.88, 0.98, 0.98], bone: 0, paint: () => [14, 12, 10] });
-    m.sphere('ear' + sd, [0.66, 0.21, sd * 0.092], 0.020, { island: [0.80, 0.88, 0.86, 0.96], bone: 0, paint: () => cCoat });
+    m.sphere('eye' + sd, [eyeX, 0.105, sd * 0.082], eyeR, {
+      island: [0.88, 0.88, 0.98, 0.98], bone: 0,
+      paint: (P, n) => {
+        const side = Math.abs(n[2]);
+        if (side > 0.70) return n[1] > 0.28 && n[0] > 0.15 ? [225, 232, 238] : [12, 10, 10];
+        if (side > 0.45) return [48, 34, 22];
+        return cDark;
+      },
+    });
+    // 접힌 작은 귓바퀴(물개/바다사자과 고유 특징 — 뒤로 살짝 젖혀진 타원형)
+    m.sweep('ear' + sd, (s) => ({
+      c: [0.64 - s * 0.055, 0.115 - s * 0.015, sd * (0.098 + s * 0.030)],
+      u: [0, 1, 0], v: [1, 0, 0], a: 0.016 * (1 - 0.55 * s), b: 0.011 * (1 - 0.55 * s), e: 2.0,
+    }), { ns: 5, nt: 6, capEnd: 0.005, island: [0.78, 0.86, 0.86, 0.96], bone: 0, paint: () => cDark });
+    // 하얀 수염(좌우 각 2가닥 — 자연스럽게 옆·뒤로 휘어짐)
+    for (let wi = 0; wi < 2; wi++) {
+      const wy = 0.050 - wi * 0.012;
+      m.sweep(`wh_${sd}_${wi}`, (s) => ({
+        c: [0.87 - s * 0.08, wy - s * 0.015, sd * (0.042 + s * (0.10 + wi * 0.02))],
+        u: [0, 1, 0], v: [1, 0, 0], a: 0.0045 * (1 - 0.65 * s), b: 0.0045 * (1 - 0.65 * s),
+      }), { ns: 4, nt: 5, capEnd: 0.001, island: [0.68, 0.88, 0.76, 0.96], bone: 0, paint: () => [226, 220, 206] });
+    }
   }
+
+  // 3. 넓고 튼튼한 노(paddle) 모양 앞지느러미발(fin_L / fin_R) — 어깨가 몸에 깊이 박히고 앞쪽이 둥글게 휘며 끝이 넓은 바다사자과 지느러미발
   const fins = {};
+  const finSpan = isFur ? 0.56 : 0.62;
   for (const sd of [1, -1]) {
-    const r = [0.34, -0.06, sd * 0.15], t = [0.04, -0.22, sd * 0.48];
-    m.sweep(sd > 0 ? 'fin_L' : 'fin_R', (s) => ({ c: [r[0] + (t[0] - r[0]) * s, r[1] + (t[1] - r[1]) * s, r[2] + (t[2] - r[2]) * s], u: [1, 0.1, 0], v: [0, 1, 0], a: 0.11 * (1 - 0.55 * s), b: 0.022 * (1 - 0.6 * s), e: 2.1 }), { ns: 8, nt: 8, capEnd: 0.015, island: [0.68, 0.02, 0.98, 0.44], bone: sd > 0 ? 6 : 8, paint: () => mul(cCoat, 0.72) });
+    const r = [0.24, -0.055, sd * 0.16], t = [-0.26, -0.17, sd * finSpan];
+    m.sweep(sd > 0 ? 'fin_L' : 'fin_R', (s) => {
+      // 앞쪽으로 넓게 호를 그리며 뒤쪽으로 우아하게 젖혀지는 노(paddle) 곡선
+      const fwdCurve = Math.sin(Math.pow(s, 0.72) * Math.PI) * 0.24;
+      const cx = r[0] + (t[0] - r[0]) * s + fwdCurve;
+      const cy = r[1] + (t[1] - r[1]) * s + Math.sin(s * Math.PI) * 0.025;
+      const cz = r[2] + (t[2] - r[2]) * s;
+      // 폭(chord): 중간~끝 전까지 넓고 탄탄하게 유지되다 끝에서 둥글게 마감(절대 뾰족한 막대기 아님!)
+      const chord = 0.165 * (0.72 + 0.42 * Math.sin(Math.pow(s, 0.75) * Math.PI)) * (1 - 0.36 * s * s);
+      const thick = 0.036 * (1 - 0.68 * s);
+      return {
+        c: [cx, cy, cz], u: [1, 0.08, 0], v: [0, 1, 0], a: chord, b: thick, e: 2.1,
+        r: (th) => {
+          // 앞쪽 가장자리(+X)는 두툼하고 둥글게, 뒤쪽 가장자리(-X)는 얇은 지느러미 막
+          const c = Math.cos(th);
+          return c < 0 ? 0.76 + 0.24 * (1 + c) : 1.0;
+        },
+      };
+    }, {
+      ns: 16, nt: 14, capStart: 0.025, capEnd: 0.024, island: [0.66, 0.02, 0.98, 0.48], bone: sd > 0 ? 6 : 8,
+      paint: (P, n, [s]) => {
+        // 어깨 뿌리(s < 0.25)는 몸통 털색에서 자연스럽게 짙은 가죽 지느러미발 색으로 이어짐 + 미세 가죽 주름 결
+        const leather = mix(cCoat, cFlip, smooth(0.08, 0.42, s));
+        const crease = 0.90 + 0.16 * fbm([P[0] * 26, P[1] * 26, P[2] * 26], 2);
+        return mul(leather, crease);
+      },
+    });
     fins[sd > 0 ? 'L' : 'R'] = { root: r, tip: t };
-    // 뒷지느러미발
-    m.sweep('hind' + sd, (s) => ({ c: [-0.84 - s * 0.30, -0.02 - s * 0.04, sd * (0.04 + s * 0.11)], u: [0, 1, 0], v: [0, 0, 1], a: 0.032 * (1 - 0.5 * s), b: 0.065 * (0.7 + 0.5 * s), e: 2.2 }), { ns: 7, nt: 8, capEnd: 0.014, island: [0.02, 0.60, 0.64, 0.96], bone: 5, paint: () => mul(cCoat, 0.68) });
+
+    // 4. 부채꼴 뒷지느러미발(hind_L / hind_R) — 꼬리 양옆으로 넓게 펼쳐지는 물갈퀴
+    m.sweep('hind' + sd, (s) => {
+      const cx = -0.82 - s * 0.38;
+      const cy = -0.02 - s * 0.035;
+      const cz = sd * (0.045 + s * 0.16);
+      const fanW = 0.055 + 0.068 * Math.sin(Math.pow(s, 0.65) * Math.PI);
+      const thick = 0.026 * (1 - 0.58 * s);
+      return { c: [cx, cy, cz], u: [0, 1, 0], v: [0, 0, 1], a: thick, b: fanW, e: 2.15 };
+    }, {
+      ns: 10, nt: 10, capStart: 0.018, capEnd: 0.018, island: [0.02, 0.60, 0.62, 0.96], bone: 5,
+      paint: (P, n, [s]) => mul(mix(cCoat, cFlip, smooth(0.1, 0.55, s)), 0.90 + 0.16 * fbm([P[0] * 24, P[2] * 24, 1], 2)),
+    });
   }
+
+  // 5. 짧은 꼬리(tail)
+  m.sweep('tail', (s) => ({
+    c: [-0.90 - s * 0.14, -0.005 - s * 0.02, 0], u: [0, 1, 0], v: [0, 0, 1],
+    a: 0.032 * (1 - 0.72 * s), b: 0.030 * (1 - 0.72 * s), e: 2.0,
+  }), { ns: 6, nt: 8, capEnd: 0.01, island: [0.66, 0.54, 0.96, 0.80], bone: 5, paint: () => cDark });
+
   return {
-    m, fins, roughness: 0.62,
+    m, fins, roughness: 0.48,
     weight: (part, g, [s]) => {
-      if (part.name === 'fin_L') return [[6, 1 - s * 0.65], [7, s * 0.65]];
-      if (part.name === 'fin_R') return [[8, 1 - s * 0.65], [9, s * 0.65]];
+      if (part.name === 'fin_L') {
+        const rootW = Math.max(0, 1 - s / 0.24) * 0.45;
+        const finW = 1 - rootW;
+        return rootW > 0.01 ? [[1, rootW], [6, finW * (1 - s * 0.65)], [7, finW * s * 0.65]] : [[6, 1 - s * 0.65], [7, s * 0.65]];
+      }
+      if (part.name === 'fin_R') {
+        const rootW = Math.max(0, 1 - s / 0.24) * 0.45;
+        const finW = 1 - rootW;
+        return rootW > 0.01 ? [[1, rootW], [8, finW * (1 - s * 0.65)], [9, finW * s * 0.65]] : [[8, 1 - s * 0.65], [9, s * 0.65]];
+      }
       if (part.bone === 0) return [[0, 1]];
       if (part.bone === 5) return [[5, 1]];
       return spineWeight(g[0]);

@@ -58299,8 +58299,8 @@
       "family": "galapagos_fur_seal",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_galapagos_fur_seal.glb",
-      "triangles": 2832,
-      "bytes": 27432,
+      "triangles": 5276,
+      "bytes": 43588,
       "bones": [
         "spine_0",
         "spine_1",
@@ -58322,7 +58322,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "6a39d082222ac1e155a96531c67c4d7e056dfa6004a7580ecedb36368213cff5",
-      "sha256": "2cb5a8a3d366412b92d07fcbc61957c20d758b0f982f023b1008bc062bf65561",
+      "sha256": "51aa11da842ffeffa737664299bb3f5349e594399e45bd7f25118ecd92508870",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -58555,8 +58555,8 @@
       "family": "galapagos_sea_lion",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_galapagos_sea_lion.glb",
-      "triangles": 2832,
-      "bytes": 29232,
+      "triangles": 5276,
+      "bytes": 46068,
       "bones": [
         "spine_0",
         "spine_1",
@@ -58578,7 +58578,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "913bfc316bda01f04a29282c1470208f7af727e1c430537b8d1d786076d7b130",
-      "sha256": "f1d25af4dfe58417f6ceeca4d8fd3bd21efb199ca280ad571e71953a6bf8b469",
+      "sha256": "5c5ba2b98c7b9148bf51bdd6b07a7dececc904a4ab25ffdaf9f6daf60619214d",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -61919,8 +61919,8 @@
       "family": "galapagos_fur_seal",
       "form": "adult",
       "file": "public/aqua/models/fish/galapagos_fur_seal.glb",
-      "triangles": 2832,
-      "bytes": 27420,
+      "triangles": 5276,
+      "bytes": 43576,
       "bones": [
         "spine_0",
         "spine_1",
@@ -61942,7 +61942,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1d440458202f708f615a3e75d09dc35b4b9fd1a2f7243110775a9c53a217c957",
-      "sha256": "b5a28d10db1379819fe2fc5fc5728947b583218050a0194cd801614dc35394fd",
+      "sha256": "3b3f505b79f43d95aa882dda1b90ba21b767181e0d51401a850cf90c31f77ab8",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -62175,8 +62175,8 @@
       "family": "galapagos_sea_lion",
       "form": "adult",
       "file": "public/aqua/models/fish/galapagos_sea_lion.glb",
-      "triangles": 2832,
-      "bytes": 29220,
+      "triangles": 5276,
+      "bytes": 46056,
       "bones": [
         "spine_0",
         "spine_1",
@@ -62198,7 +62198,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "6e00965c904ec76a7ce6b205215c3b9242a09cc90fc5a77019b1ce870809d1e0",
-      "sha256": "fe927b1635d38fb20b376836071e9061bb7f70c828190e5bfea20ac22eedb15c",
+      "sha256": "683d9684ab51349d63febdaf23dc571be9461af10591ec4fe75160a4b6134c96",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -63519,8 +63519,8 @@
       "family": "galapagos_fur_seal",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_galapagos_fur_seal.glb",
-      "triangles": 2832,
-      "bytes": 27432,
+      "triangles": 5276,
+      "bytes": 43588,
       "bones": [
         "spine_0",
         "spine_1",
@@ -63542,7 +63542,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "e93e5e5d0096dc50775430ebeb2e35ddebe9c41868675bf8fc7a1beb4fb97b21",
-      "sha256": "656e358de0e80c6b25a307e99372a18d160e38ad5dab94f744d4c69f453749e6",
+      "sha256": "5f80ca844a990257b761eaf23a2146ec5d45c5e152b6b942b251f162ef00b31a",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -63775,8 +63775,8 @@
       "family": "galapagos_sea_lion",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_galapagos_sea_lion.glb",
-      "triangles": 2832,
-      "bytes": 29232,
+      "triangles": 5276,
+      "bytes": 46068,
       "bones": [
         "spine_0",
         "spine_1",
@@ -63798,7 +63798,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3b705e72e35ad41b33740edfbe22815368b0878336b15b7dc64258aae51d4122",
-      "sha256": "a35220c59e90f712c36b0af5c00eab6ba724a052a2fd4980253344e3dcc79327",
+      "sha256": "1820b92e66abac4b04f3fdcfe14e1b8c1a87ba7a6b11f5083c07c52b4414f7e0",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
