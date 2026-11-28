@@ -59143,8 +59143,8 @@
       "family": "hawksbill_turtle",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_hawksbill_turtle.glb",
-      "triangles": 2608,
-      "bytes": 31964,
+      "triangles": 5868,
+      "bytes": 98348,
       "bones": [
         "spine_0",
         "spine_1",
@@ -59166,7 +59166,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "7539fb203a2fd279fcdd774b10e07c38d4bb5cbd33b25ed9ee7c755bc79d5fe1",
-      "sha256": "86efab73362178c3e8f77ad29a246ab89e5710041c3fc203c475a0faf12bbccb",
+      "sha256": "9fd8604a673aeeef398b9abf8c2b2214933c4ccbc1fd4e6870bc0de789736c2d",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -59395,8 +59395,8 @@
       "family": "leatherback_turtle",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_leatherback_turtle.glb",
-      "triangles": 7664,
-      "bytes": 82920,
+      "triangles": 5868,
+      "bytes": 49796,
       "bones": [
         "spine_0",
         "spine_1",
@@ -59418,7 +59418,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3e90e5911a3cdd96d518948a6d67bd54fd51831017a15f47776cc870e3b8f4d0",
-      "sha256": "f69fe8226cfb8592000a9df9ed26fc2a0a00bcb01929fd428e658b1248fa33b5",
+      "sha256": "2159f509e1b38798b47de6496b0aa275e3f3885593d32ac95f3d3c045bb0e9c0",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -59479,8 +59479,8 @@
       "family": "loggerhead_turtle",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_loggerhead_turtle.glb",
-      "triangles": 2608,
-      "bytes": 30020,
+      "triangles": 5868,
+      "bytes": 80248,
       "bones": [
         "spine_0",
         "spine_1",
@@ -59502,7 +59502,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "34ddff2cb0074ac6d325db44ebf15ed588511bdbcd52ec225fb8991d9fdf1aae",
-      "sha256": "66c74db756dd1b10c0c41a36d1bfc916759a65de758c7ca3f08d983551123b39",
+      "sha256": "f8fe2368eb52263d8e704312ac9cebdad68b78f4055a7d7c2cf630ae007b8980",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -62763,8 +62763,8 @@
       "family": "hawksbill_turtle",
       "form": "adult",
       "file": "public/aqua/models/fish/hawksbill_turtle.glb",
-      "triangles": 2608,
-      "bytes": 31952,
+      "triangles": 5868,
+      "bytes": 98336,
       "bones": [
         "spine_0",
         "spine_1",
@@ -62786,7 +62786,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b949c91288cc5744c98c52c9d36196fc1b829cffa3a74deaf3664e24dd1c1cb6",
-      "sha256": "9888f756e9afe45bfee42459513d19b0607e3fc0cd462365c4926d1ea49481bf",
+      "sha256": "95e47510de0927b1278b053260dac10c02abc6831481ce77808608646590d2fc",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -64363,8 +64363,8 @@
       "family": "hawksbill_turtle",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_hawksbill_turtle.glb",
-      "triangles": 2608,
-      "bytes": 31964,
+      "triangles": 5868,
+      "bytes": 98348,
       "bones": [
         "spine_0",
         "spine_1",
@@ -64386,7 +64386,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "e06de21fc84f043b5ed7b246c263ca88e9adc5baa21c40cea72006ab500c144a",
-      "sha256": "90fc40f0d3842cf440982c6cb0331ce772f69ec7f5fa53095f962d9408b25be3",
+      "sha256": "6244d3761ba225092d7d59ac78f6aa4f7e3399eb27d732436fc358b1884e7fb9",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -64615,8 +64615,8 @@
       "family": "leatherback_turtle",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_leatherback_turtle.glb",
-      "triangles": 7664,
-      "bytes": 89116,
+      "triangles": 5868,
+      "bytes": 49796,
       "bones": [
         "spine_0",
         "spine_1",
@@ -64638,7 +64638,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "267fc9c943a90544f2f696d95a48341fb174b1fac4629658bfcb343057d1012c",
-      "sha256": "408218081519a852596e84c39f7d6918b739480c159d0b0344cf7a4ca5e447b4",
+      "sha256": "36e5e1810b95818990eaf5d19fb74afa80a9e798c2538e748c318a6ce935d629",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -64699,8 +64699,8 @@
       "family": "loggerhead_turtle",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_loggerhead_turtle.glb",
-      "triangles": 2608,
-      "bytes": 30020,
+      "triangles": 5868,
+      "bytes": 80248,
       "bones": [
         "spine_0",
         "spine_1",
@@ -64722,7 +64722,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d04ebfe2b3b228e9081a962b8768660f756469e840ce12e2357bb9ecd8aec67c",
-      "sha256": "14dec9d6fad9271239589a31502b2f449512db7cf7f5ee2923eec646effe106e",
+      "sha256": "1987b30fcb59eb887838b9e2f695273a626a01b02ae247e4ea97292fd30b3daf",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -67223,8 +67223,8 @@
       "family": "leatherback_turtle",
       "form": "adult",
       "file": "public/aqua/models/fish/leatherback_turtle.glb",
-      "triangles": 7664,
-      "bytes": 89812,
+      "triangles": 5868,
+      "bytes": 49784,
       "bones": [
         "spine_0",
         "spine_1",
@@ -67246,7 +67246,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "58b6642c061079c092e2000fe8fa2964dd58dc949f297d7a8f73b263fc9144a1",
-      "sha256": "6fef1c881af500cde500aeb472cfdf6b0cd0724a6763251c09ecf0c14b7dccbe",
+      "sha256": "7b0db64a824a6a43d3d645261ac9b3137514814964dbba5c1750f64ecfdbd00f",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",
@@ -67307,8 +67307,8 @@
       "family": "loggerhead_turtle",
       "form": "adult",
       "file": "public/aqua/models/fish/loggerhead_turtle.glb",
-      "triangles": 2608,
-      "bytes": 30008,
+      "triangles": 5868,
+      "bytes": 80236,
       "bones": [
         "spine_0",
         "spine_1",
@@ -67330,7 +67330,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "c870dbab5b3258a55cfe10f2e2e10bfe265ff7ab16309bb9294a01ca30d47341",
-      "sha256": "eac8a4d59932b866c300295028d75bed39b78577fde5495df9d2c997a1704e91",
+      "sha256": "0d4839b3d0723268e06e5ae6c0d63e7594d342372d1998dcffe6cb977854ee5c",
       "geometryAuthoring": "part-built (design/aqua3d-review/galapagos/)",
       "coordinateSystem": {
         "up": "+Y",

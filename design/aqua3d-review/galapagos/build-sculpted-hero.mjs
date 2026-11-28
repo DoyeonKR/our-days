@@ -399,58 +399,244 @@ function buildPinniped(kind, stage) {
 // 6. 바다거북 3종 (대모거북 · 붉은바다거북 · 장수거북)
 function buildSeaTurtle(kind, stage) {
   const m = new Model();
-  const isLeather = kind === 'leatherback_turtle', isLogger = kind === 'loggerhead_turtle';
-  const cShell1 = isLeather ? hex('#242a32') : isLogger ? hex('#8a4e2c') : hex('#6b3f1e');
-  const cShell2 = isLeather ? hex('#444e5c') : isLogger ? hex('#b87444') : hex('#c89236');
-  const cSkin = isLeather ? hex('#2c323a') : isLogger ? hex('#a87a4e') : hex('#8e7444');
-  const cBelly = isLeather ? hex('#7e848c') : hex('#dfd2a8');
+  const isLeather = kind === 'leatherback_turtle', isLogger = kind === 'loggerhead_turtle', isHawks = kind === 'hawksbill_turtle';
+  const cShellDark = isLeather ? hex('#1f252d') : isLogger ? hex('#6e3b1e') : hex('#2b180b');
+  const cShellMid = isLeather ? hex('#38414e') : isLogger ? hex('#a45f32') : hex('#8f4d19');
+  const cShellAmber = isLeather ? hex('#546070') : isLogger ? hex('#cfa05a') : hex('#dba13c');
+  const cSkinBase = isLeather ? hex('#282e36') : isLogger ? hex('#b88b5a') : hex('#d8c484');
+  const cScaleDark = isLeather ? hex('#1c2128') : isLogger ? hex('#5c3d22') : hex('#221c14');
+  const cBelly = isLeather ? hex('#7e848c') : hex('#e6dab0');
 
-  // 등껍질(carapace) + 배딱지(plastron)
+  // 2D 보로노이(셀룰러) 비늘/인갑 거리 함수 — 실제 바다거북 머리와 지느러미발의 다각형 검은 비늘 모자이크
+  const hash2 = (ix, iy) => {
+    let h = Math.imul(ix, 374761393) + Math.imul(iy, 668265263);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    const a = ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+    let h2 = Math.imul(ix + 19, 1274126177) + Math.imul(iy - 7, 374761393);
+    h2 = Math.imul(h2 ^ (h2 >>> 13), 668265263);
+    const b = ((h2 ^ (h2 >>> 16)) >>> 0) / 4294967295;
+    return [a, b];
+  };
+  const voronoi2 = (u, v, jitter = 0.72) => {
+    const ix = Math.floor(u), iy = Math.floor(v);
+    let d1 = 9, d2 = 9, cx = 0, cy = 0, id = 0;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const [rx, ry] = hash2(ix + dx, iy + dy);
+      const px = ix + dx + 0.5 + (rx - 0.5) * jitter;
+      const py = iy + dy + 0.5 + (ry - 0.5) * jitter;
+      const d = Math.hypot(u - px, v - py);
+      if (d < d1) { d2 = d1; d1 = d; cx = px; cy = py; id = rx * 0.7 + ry * 0.3; }
+      else if (d < d2) { d2 = d; }
+    }
+    return { edge: d2 - d1, d1, dx: u - cx, dy: v - cy, id };
+  };
+
+  // 대모거북/바다거북 비늘 모자이크 채색 (크림황금빛 피부 틈새 + 짙은 다각형 비늘판)
+  const paintScaledSkin = (P, n, freq = 26, darkBias = 0.62) => {
+    if (isLeather) return mul(cSkinBase, 0.88 + 0.22 * fbm([P[0] * 18, P[1] * 18, P[2] * 18], 2));
+    const u = P[0] * freq + P[1] * freq * 0.35;
+    const v = P[2] * freq + P[1] * freq * 0.85;
+    const cell = voronoi2(u, v, 0.68);
+    // 배쪽·아래쪽은 밝은 크림색, 위쪽·앞쪽 가장자리는 짙은 비늘
+    const bellyFade = smooth(-0.55, 0.15, n[1]);
+    const seamW = isHawks ? 0.14 : 0.17;
+    const isScale = smooth(seamW * 0.7, seamW * 1.45, cell.edge);
+    const scaleShade = mix(cScaleDark, cShellMid, 0.18 + 0.24 * cell.id);
+    const col = mix(cSkinBase, scaleShade, isScale * (0.28 + darkBias * bellyFade));
+    const micro = 0.92 + 0.16 * fbm([P[0] * 42, P[1] * 42, P[2] * 42], 2);
+    return mul(col, micro);
+  };
+
+  // 1. 비대칭 방패형 등갑(Carapace) + 평평한 배딱지(Plastron) + 연판 테두리
+  //    위쪽(+Y)은 중앙 용골이 살아있는 완만한 돔, 아래쪽(-Y)은 평평한 배딱지, 뒤로 갈수록 방패형으로 좁아지며 톱니 연판 요철
+  const shellLen = 1.26, shellX0 = 0.54;
   m.sweep('shell', (s) => {
-    const x = 0.56 - s * 1.24;
-    const f = Math.sin(clamp(s, 0.01, 0.99) * Math.PI);
-    const w = (isLeather ? 0.44 : 0.48) * Math.pow(f, 0.62) * (1 - 0.14 * s);
-    const h = (isLeather ? 0.17 : 0.19) * Math.pow(f, 0.72);
-    return { c: [x, 0.01, 0], u: [0, 1, 0], v: [0, 0, 1], a: Math.max(0.02, h), b: Math.max(0.03, w), e: 2.35 };
+    const x = shellX0 - s * shellLen;
+    const f = Math.sin(clamp(s, 0.008, 0.992) * Math.PI);
+    // 앞쪽 어깨 부근(s~0.35)이 가장 넓고 뒤쪽(s>0.6)은 방패형으로 날렵하게 좁아진다
+    const heart = Math.pow(f, 0.58) * (1.06 - 0.32 * s * s);
+    // 대모거북 특유의 뒤쪽 연판 톱니 요철
+    const serrate = isHawks && s > 0.32 ? 1 + 0.022 * Math.sin(s * Math.PI * 12) * smooth(0.32, 0.65, s) : 1;
+    const w = (isLeather ? 0.44 : 0.49) * heart * serrate;
+    const h = (isLeather ? 0.165 : 0.185) * Math.pow(f, 0.68) * (1 - 0.14 * s);
+    return {
+      c: [x, 0.015 * f, 0], u: [0, 1, 0], v: [0, 0, 1],
+      a: Math.max(0.016, h), b: Math.max(0.024, w), e: 2.2,
+      r: (th) => {
+        const cu = Math.cos(th), sv = Math.sin(th);
+        // 아래쪽(배딱지, cu < 0)은 평평하게 눌러주고, 좌우 테두리(|sv| > 0.8)는 얇은 연판 림으로 확장
+        if (cu < -0.05) return 0.54 + 0.46 * (1 - Math.abs(cu)) ** 1.3;
+        const rim = Math.exp(-Math.pow(cu / 0.24, 2)) * 0.07;
+        const keel = Math.exp(-Math.pow(sv / 0.28, 2)) * (cu > 0.4 ? 0.055 : 0);
+        return 1 + rim + keel;
+      },
+    };
   }, {
-    ns: 22, nt: 18, capStart: 0.03, capEnd: 0.03, island: [0.02, 0.02, 0.62, 0.56], bone: 'body',
+    ns: 32, nt: 26, capStart: 0.025, capEnd: 0.028, island: [0.02, 0.02, 0.62, 0.56], bone: 'body',
     paint: (P, n) => {
-      if (n[1] < -0.25) return mul(cBelly, 0.94 + 0.1 * noise(P[0] * 12, P[1] * 12, P[2] * 12));
+      // 배딱지(Plastron): 따뜻한 크림/상아빛 + 중앙 봉합선 + 좌우 배갑판 선
+      if (n[1] < -0.22) {
+        const midSeam = Math.exp(-Math.pow(P[2] / 0.014, 2)) * 0.14;
+        const crossSeam = Math.exp(-Math.pow(((P[0] + 0.5) * 3.8) % 1 - 0.5, 2) * 180) * 0.08;
+        const mottle = 0.93 + 0.12 * fbm([P[0] * 10, P[2] * 10, 1], 2);
+        return mul(cBelly, (1 - midSeam - crossSeam) * mottle);
+      }
       if (isLeather) {
         const ridge = Math.pow(Math.abs(Math.sin(P[2] * 26)), 6);
         const speck = noise(P[0] * 30, P[1] * 30, P[2] * 30) > 0.78 ? 0.45 : 0;
-        return mix(mix(cShell1, cShell2, ridge * 0.7), [185, 195, 205], speck);
+        return mix(mix(cShellDark, cShellAmber, ridge * 0.7), [185, 195, 205], speck);
       }
-      // 대모/붉은바다거북 등갑 판 무늬
-      const pat = fbm([P[0] * 9, P[1] * 9, P[2] * 9], 3);
-      return mix(cShell1, cShell2, smooth(0.32, 0.72, pat));
+      // 등갑(Carapace): 중앙 척추판(5개) + 양옆 늑판(4쌍) + 가장자리 연판(11쌍)
+      const sNorm = clamp((shellX0 - P[0]) / shellLen, 0, 1);
+      const halfW = Math.max(0.06, 0.49 * Math.pow(Math.sin(clamp(sNorm, 0.02, 0.98) * Math.PI), 0.58) * (1.06 - 0.32 * sNorm * sNorm));
+      const zFrac = Math.abs(P[2]) / halfW;
+      // 가장자리 연판 띠(marginal scutes) — 부드러운 호박빛 테두리와 은은한 음영
+      if (zFrac > 0.83 || sNorm < 0.06 || sNorm > 0.94) {
+        const mPhase = (sNorm * 11) % 1;
+        const mSeam = Math.exp(-Math.pow(Math.min(mPhase, 1 - mPhase) / 0.055, 2));
+        const mNoise = fbm([P[0] * 14, P[2] * 14, 2], 3);
+        const base = mix(cShellMid, cShellAmber, smooth(0.28, 0.72, mNoise) * 0.65);
+        return mul(mix(base, cShellDark, mSeam * 0.55 + (1 - mNoise) * 0.28), 0.92 + 0.14 * fbm([P[0] * 24, P[2] * 24, 5], 2));
+      }
+      // 중앙 척추판(zFrac < 0.33) vs 양옆 늑판(0.33 <= zFrac <= 0.83)
+      const isCentral = zFrac < 0.33;
+      const rowFreq = isCentral ? 4.8 : 4.0;
+      const rowOffset = isCentral ? 0.0 : 0.42;
+      const uScute = sNorm * rowFreq + rowOffset;
+      const vScute = isCentral ? (P[2] / halfW) * 1.45 : (Math.sign(P[2]) * (zFrac - 0.33) / 0.50) * 1.02;
+      const cell = voronoi2(uScute, vScute, 0.16);
+      // 자연스러운 대모거북 유기적 빗살·마블링(tortoiseshell): 인갑마다 고유 오프셋으로 뒤→앞 방향의 불규칙한 호박/적갈/흑갈 결
+      const warp = fbm([P[0] * 7.5 + cell.id * 5, P[2] * 7.5 - cell.id * 3, 1.7], 3);
+      const streak = fbm([P[0] * 13 + warp * 2.2, P[2] * 22 - warp * 1.6, cell.id * 7], 3);
+      const blotch = fbm([P[0] * 5.2 + 3.1, P[2] * 5.8 - 1.4, 4.2], 3);
+      // 뒤쪽이 짙고 앞쪽/가장자리로 갈수록 호박빛이 스며드는 실제 대모거북 인갑 음영
+      const grad = smooth(-0.45, 0.45, cell.dx + (warp - 0.5) * 0.5);
+      let col = mix(cShellDark, cShellMid, smooth(0.25, 0.74, streak * 0.72 + blotch * 0.28));
+      col = mix(col, cShellAmber, smooth(0.46, 0.82, streak * 0.65 + grad * 0.35) * (isHawks ? 0.82 : 0.45));
+      // 인갑 경계 홈(자연스러운 짙은 선) + 겹치는 인갑 가장자리 미세 톤 변화
+      const seam = 1 - smooth(0.018, 0.068, cell.edge);
+      col = mix(col, cShellDark, seam * 0.78);
+      // 물속 자연 광택 · 미세 각질 결 + 해조류/바다 느낌의 미세 올리브 톤
+      const grain = 0.91 + 0.18 * fbm([P[0] * 30, P[1] * 30, P[2] * 30], 2);
+      return mul(col, grain);
     },
   });
-  // 목 + 머리
-  m.sweep('head', (s) => ({
-    c: [0.52 + s * 0.36, 0.02 - 0.02 * s, 0], u: [0, 1, 0], v: [0, 0, 1],
-    a: 0.095 * (1 - 0.45 * s ** 1.4), b: (isLogger ? 0.125 : 0.095) * (1 - 0.45 * s ** 1.4), e: 2.1,
-  }), { ns: 10, nt: 10, capEnd: 0.025, island: [0.66, 0.02, 0.98, 0.30], bone: 0, paint: (P) => mul(cSkin, 0.85 + 0.25 * fbm([P[0] * 22, P[1] * 22, P[2] * 22], 2)) });
-  for (const sd of [1, -1]) m.sphere('eye' + sd, [0.76, 0.05, sd * 0.068], 0.022, { island: [0.88, 0.88, 0.98, 0.98], bone: 0, paint: () => [16, 14, 12] });
 
-  // 긴 날개형 앞지느러미발(fin_L/R) + 뒷지느러미발
-  const fins = {};
+  // 2. 목 + 매부리 머리(Hawksbill hooked beak) — 등갑 앞쪽(x=0.38)에서 자연스럽게 뻗어나온다
+  m.sweep('head', (s) => {
+    const x = 0.38 + s * 0.54;
+    // 목이 등갑에서 살짝 내려왔다 머리를 들며, 끝(s>0.72)에서 매부리처럼 아래로 꺾인다
+    const y = -0.01 + Math.sin(s * Math.PI * 0.85) * 0.042 - (isHawks ? Math.max(0, s - 0.68) * 0.14 : Math.max(0, s - 0.75) * 0.06);
+    // 목(0~0.42)은 굵고 주름짐 → 뒤통수(0.45~0.68)가 볼록 → 주둥이/매부리(0.68~1.0)는 날렵하게 좁아짐
+    const neckBulb = 0.082 + 0.022 * Math.sin(clamp((s - 0.38) / 0.42, 0, 1) * Math.PI);
+    const taper = s > 0.60 ? Math.pow(1 - (s - 0.60) / 0.40, isHawks ? 1.15 : 0.85) : 1;
+    const h = Math.max(0.014, neckBulb * (0.92 * taper + 0.08 * (1 - s)));
+    const w = Math.max(0.012, (isLogger ? 1.24 : isHawks ? 0.86 : 1.0) * neckBulb * taper);
+    return {
+      c: [x, y, 0], u: [0, 1, 0], v: [0, 0, 1], a: h, b: w, e: 2.1,
+      r: (th) => {
+        // 주둥이 아래쪽 입선 미세 오목 + 위쪽 매부리 능선
+        const cu = Math.cos(th);
+        return s > 0.65 && cu < -0.2 ? 0.84 : 1;
+      },
+    };
+  }, {
+    ns: 20, nt: 16, capStart: 0.02, capEnd: 0.022, island: [0.65, 0.02, 0.98, 0.30], bone: 0,
+    paint: (P, n, [s]) => {
+      let col = paintScaledSkin(P, n, 30, 0.68);
+      // 부리 끝(s > 0.76)은 각질화된 어두운 황갈색 매부리 + 입선
+      if (s > 0.74) {
+        const beakCol = mix(cShellMid, cShellDark, 0.55);
+        col = mix(col, beakCol, smooth(0.74, 0.90, s) * 0.75);
+        // 입선(mouth line)
+        if (Math.abs(P[1] + 0.012) < 0.008 && s < 0.95) col = mul(col, 0.35);
+      }
+      // 목 주름 음영(s < 0.42)
+      if (s < 0.44) {
+        const wr = 0.90 + 0.10 * Math.sin(s * 55);
+        col = mul(col, wr);
+      }
+      return col;
+    },
+  });
+
+  // 눈(어두운 갈색 홍채 + 검은 동공 + 작은 반사광 + 눈꺼풀 테두리)
   for (const sd of [1, -1]) {
-    const r = [0.34, -0.04, sd * 0.32], t = [-0.08, -0.09, sd * (isLeather ? 0.92 : 0.78)];
-    m.sweep(sd > 0 ? 'fin_L' : 'fin_R', (s) => ({
-      c: [r[0] + (t[0] - r[0]) * s + Math.sin(s * Math.PI) * 0.12, r[1] + (t[1] - r[1]) * s, r[2] + (t[2] - r[2]) * s],
-      u: [1, 0, 0], v: [0, 1, 0], a: 0.14 * (1 - 0.68 * s), b: 0.026 * (1 - 0.6 * s), e: 2.1,
-    }), { ns: 10, nt: 8, capEnd: 0.015, island: [0.66, 0.34, 0.98, 0.74], bone: sd > 0 ? 6 : 8, paint: (P) => mul(cSkin, 0.84 + 0.24 * fbm([P[0] * 18, P[1] * 18, P[2] * 18], 2)) });
-    fins[sd > 0 ? 'L' : 'R'] = { root: r, tip: t };
-    m.sweep('hind' + sd, (s) => ({
-      c: [-0.58 - s * 0.28, -0.04, sd * (0.14 + s * 0.24)], u: [1, 0, 0], v: [0, 1, 0], a: 0.09 * (1 - 0.45 * s), b: 0.02 * (1 - 0.5 * s), e: 2.1,
-    }), { ns: 6, nt: 8, capEnd: 0.012, island: [0.02, 0.62, 0.58, 0.96], bone: 5, paint: () => cSkin });
+    m.sphere('eye' + sd, [0.76, 0.036, sd * 0.056], 0.022, {
+      island: [0.88, 0.88, 0.98, 0.98], bone: 0,
+      paint: (P, n) => {
+        const side = Math.abs(n[2]);
+        if (side > 0.74) return n[1] > 0.25 && n[0] > 0.2 ? [210, 218, 224] : [14, 12, 10];
+        if (side > 0.48) return [54, 38, 22];
+        return cScaleDark;
+      },
+    });
   }
+
+  // 3. 우아한 긴 날개(낫) 모양 앞지느러미발(fin_L / fin_R) — 어깨가 등갑 안쪽에 깊이 박히고 앞쪽 두툼/뒤쪽 얇은 익형 단면
+  const fins = {};
+  const finSpan = isLeather ? 0.96 : isHawks ? 0.86 : 0.80;
+  for (const sd of [1, -1]) {
+    const r = [0.28, -0.025, sd * 0.24], t = [-0.20, -0.08, sd * finSpan];
+    m.sweep(sd > 0 ? 'fin_L' : 'fin_R', (s) => {
+      // 앞쪽으로 활처럼 휘었다가 뒤쪽 끝으로 날렵하게 빠지는 낫(scythe) 곡선
+      const sweepFwd = Math.sin(Math.pow(s, 0.78) * Math.PI) * 0.22;
+      const archY = Math.sin(s * Math.PI) * 0.035;
+      const cx = r[0] + (t[0] - r[0]) * s + sweepFwd;
+      const cy = r[1] + (t[1] - r[1]) * s + archY;
+      const cz = r[2] + (t[2] - r[2]) * s;
+      // 폭(chord): 중간(s~0.35)이 넓고 끝으로 갈수록 날렵하게 좁아짐
+      const chord = 0.145 * Math.pow(1 - s * 0.78, 0.85) * (0.82 + 0.32 * Math.sin(s * Math.PI));
+      const thick = 0.028 * (1 - 0.68 * s);
+      return {
+        c: [cx, cy, cz], u: [1, 0, 0], v: [0, 1, 0], a: chord, b: thick, e: 2.05,
+        r: (th) => {
+          // 앞쪽 가장자리(+X, cos>0)는 둥글고 두툼, 뒤쪽 가장자리(-X, cos<0)는 날렵하게 얇아지는 익형
+          const c = Math.cos(th);
+          return c < 0 ? 0.72 + 0.28 * (1 + c) : 1.0;
+        },
+      };
+    }, {
+      ns: 18, nt: 14, capStart: 0.02, capEnd: 0.018, island: [0.65, 0.34, 0.98, 0.76], bone: sd > 0 ? 6 : 8,
+      paint: (P, n) => paintScaledSkin(P, n, 24, 0.68),
+    });
+    fins[sd > 0 ? 'L' : 'R'] = { root: r, tip: t };
+
+    // 4. 부채꼴 뒷지느러미발(hind_L / hind_R) — 등갑 뒤쪽 아래에서 자연스럽게 펼쳐짐 + 비늘 모자이크
+    m.sweep('hind' + sd, (s) => {
+      const cx = -0.46 - s * 0.34;
+      const cy = -0.035 - s * 0.02;
+      const cz = sd * (0.12 + s * 0.28);
+      // 끝쪽으로 갈수록 부채꼴로 넓어졌다가 둥글게 마감
+      const fanW = 0.075 + 0.065 * Math.sin(Math.pow(s, 0.7) * Math.PI);
+      const thick = 0.020 * (1 - 0.55 * s);
+      return { c: [cx, cy, cz], u: [0.55, 0, sd * 0.84], v: [0, 1, 0], a: fanW, b: thick, e: 2.1 };
+    }, {
+      ns: 10, nt: 10, capStart: 0.018, capEnd: 0.014, island: [0.02, 0.60, 0.58, 0.96], bone: 5,
+      paint: (P, n) => paintScaledSkin(P, n, 26, 0.62),
+    });
+  }
+
+  // 5. 작은 꼬리(tail)
+  m.sweep('tail', (s) => ({
+    c: [-0.60 - s * 0.14, -0.035 - s * 0.015, 0], u: [0, 1, 0], v: [0, 0, 1],
+    a: 0.032 * (1 - 0.78 * s), b: 0.028 * (1 - 0.78 * s), e: 2.0,
+  }), { ns: 6, nt: 8, capEnd: 0.008, island: [0.64, 0.78, 0.84, 0.96], bone: 5, paint: (P, n) => paintScaledSkin(P, n, 28, 0.55) });
+
   return {
-    m, fins, roughness: 0.64,
+    m, fins, roughness: 0.44,
     weight: (part, g, [s]) => {
-      if (part.name === 'fin_L') return [[6, 1 - s * 0.65], [7, s * 0.65]];
-      if (part.name === 'fin_R') return [[8, 1 - s * 0.65], [9, s * 0.65]];
+      // 앞지느러미발 뿌리(s < 0.2)는 spine_1과 부드럽게 섞어 헤엄칠 때 어깨가 벌어지지 않게 한다
+      if (part.name === 'fin_L') {
+        const rootW = Math.max(0, 1 - s / 0.22) * 0.45;
+        const finW = 1 - rootW;
+        return rootW > 0.01 ? [[1, rootW], [6, finW * (1 - s * 0.65)], [7, finW * s * 0.65]] : [[6, 1 - s * 0.65], [7, s * 0.65]];
+      }
+      if (part.name === 'fin_R') {
+        const rootW = Math.max(0, 1 - s / 0.22) * 0.45;
+        const finW = 1 - rootW;
+        return rootW > 0.01 ? [[1, rootW], [8, finW * (1 - s * 0.65)], [9, finW * s * 0.65]] : [[8, 1 - s * 0.65], [9, s * 0.65]];
+      }
       if (part.bone === 0) return [[0, 1]];
       if (part.bone === 5) return [[5, 1]];
       return spineWeight(g[0]);
