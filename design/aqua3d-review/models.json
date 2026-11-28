@@ -47860,8 +47860,8 @@
       "family": "sea_otter",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_sea_otter.glb",
-      "triangles": 6468,
-      "bytes": 72632,
+      "triangles": 5116,
+      "bytes": 82588,
       "bones": [
         "spine_0",
         "spine_1",
@@ -47882,8 +47882,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "74c635d544d96df8fcbacc2b56bb63f917e46c9479e4520cf20cc5433f1b489b",
-      "sha256": "66449427340d926a1b899bf666c3a91168f2bbb1422dc9a2a4fed00d43e83a8a",
+      "sourceSHA256": "9d456bb0b78df9e0f30d18774a95eba74e8b0d2c06c087be4b4806e2eedadd6a",
+      "sha256": "c6b01847564bcc04f3838228b3ade0d569b43694c940099b0bea44d746b70255",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -47895,14 +47895,14 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "part-built (design/aqua3d-review/seaotter/seaotter-build.mjs, polar/kit.mjs)",
+      "geometryAuthoring": "part-built photo-3view (design/aqua3d-review/mammals/build-sea-otter.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "user_approved_2026-11-15",
-      "approval": "user_approved_2026-11-13",
+      "visualApproval": "user_requested_2026-11-27",
+      "approval": "user_requested_2026-11-27",
       "activation": "not enabled",
       "limits": {
         "triangles": 8000,
@@ -47957,8 +47957,8 @@
       "family": "sea_otter",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_sea_otter.glb",
-      "triangles": 6468,
-      "bytes": 65032,
+      "triangles": 5116,
+      "bytes": 84352,
       "bones": [
         "spine_0",
         "spine_1",
@@ -47979,8 +47979,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "4b6eaf769d847239f04036855397654abe623f7633324481a5ef5ec2fbe33e29",
-      "sha256": "4ec2f3b4f11e42fb2e0d310e90c3bdf1d9359f7e96e8a3849911aad54e171e6b",
+      "sourceSHA256": "f6d593d601a9f9847435abb7d6f4e31479e7f664cdc954a981a99b814e506803",
+      "sha256": "f6d3fe6035e730f1b1142078a51de071b863c3d97b262bcffcce136ae5c8edfe",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -47992,14 +47992,14 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "part-built (design/aqua3d-review/seaotter/seaotter-build.mjs, polar/kit.mjs)",
+      "geometryAuthoring": "part-built photo-3view (design/aqua3d-review/mammals/build-sea-otter.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "user_approved_2026-11-15",
-      "approval": "user_approved_2026-11-13",
+      "visualApproval": "user_requested_2026-11-27",
+      "approval": "user_requested_2026-11-27",
       "activation": "not enabled",
       "limits": {
         "triangles": 8000,
@@ -48054,8 +48054,8 @@
       "family": "sea_otter",
       "form": "adult",
       "file": "public/aqua/models/fish/sea_otter.glb",
-      "triangles": 6468,
-      "bytes": 61800,
+      "triangles": 5116,
+      "bytes": 85488,
       "bones": [
         "spine_0",
         "spine_1",
@@ -48076,8 +48076,8 @@
       "materials": 1,
       "skinMeshes": 1,
       "animations": 0,
-      "sourceSHA256": "5f2329fc5ef00cfec2063a761ac3ef5fbb0b4bf48b6af1b256e05f51dbaff72d",
-      "sha256": "88a8befe21929ea3e30b6d491b45efcb941e58b64658884d89454b0c6d3f5563",
+      "sourceSHA256": "bcaed7816e7cbb394a64b58c72b7a5a7f77f2ee34342d7117c44307eba744856",
+      "sha256": "7a85752b700c779b6f1d17d1c9a33e8504512d657c57937a2de36f8b9c4565d6",
       "authoringProfile": {
         "key": "sea_otter",
         "name": "해달",
@@ -48089,14 +48089,14 @@
         "life": "윗물 · 수면 가까이 배를 하늘로 하고 떠 있다가 몸을 굴려 잠수한다 · 앞발로 먹이를 쥔다",
         "hunt": "-"
       },
-      "geometryAuthoring": "part-built (design/aqua3d-review/seaotter/seaotter-build.mjs, polar/kit.mjs)",
+      "geometryAuthoring": "part-built photo-3view (design/aqua3d-review/mammals/build-sea-otter.mjs)",
       "coordinateSystem": {
         "up": "+Y",
         "front": "+X",
         "origin": "body center"
       },
-      "visualApproval": "user_approved_2026-11-15",
-      "approval": "user_approved_2026-11-13",
+      "visualApproval": "user_requested_2026-11-27",
+      "approval": "user_requested_2026-11-27",
       "activation": "not enabled",
       "limits": {
         "triangles": 8000,
