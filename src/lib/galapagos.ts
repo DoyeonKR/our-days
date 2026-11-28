@@ -104,7 +104,7 @@ export const GALAPAGOS_FAMILIES: readonly GalapagosSpecies[] = [
   { key: "bumphead_parrotfish", name: "혹머리 비늘돔", grade: "영웅", price: 33750, hours: 245.8, minTank: 4, size: 30, cm: 120, fresh: false, ornamental: false, spots: [], poolWeight: 1.6,
     habit: reefSwim({ school: true, speed: 0.2, lo: -2.6, hi: 1.4 }), anatomy: { frequency: 3.1, flex: 0.08 } },
   { key: "galapagos_fur_seal", name: "갈라파고스 물개", grade: "영웅", price: 34050, hours: 246.8, minTank: 4, size: 31, cm: 150, fresh: false, ornamental: false, spots: [], poolWeight: 1.5,
-    habit: mammalSwim({ speed: 0.28, haul: true, breathe: 60, dart: 0.25, pace: 0.85 }), anatomy: { frequency: 1.9, flex: 0.1 } },
+    habit: mammalSwim({ speed: 0.28, haul: true, breathe: 60, breathOnly: true, dart: 0.25, pace: 0.85, tilt: 0.42 }), anatomy: { frequency: 1.9, flex: 0.1 } },
   { key: "giant_trevally", name: "자이언트 트레발리", grade: "영웅", price: 34350, hours: 247.8, minTank: 4, size: 32, cm: 150, fresh: false, ornamental: false, spots: [], poolWeight: 1.6,
     habit: pelagic({ speed: 0.37, dart: 0.4, pace: 1.15 }), anatomy: { frequency: 4.8, flex: 0.065 } },
   { key: "wahoo", name: "꼬치삼치", grade: "영웅", price: 34650, hours: 248.8, minTank: 4, size: 34, cm: 180, fresh: false, ornamental: false, spots: [], poolWeight: 1.6,

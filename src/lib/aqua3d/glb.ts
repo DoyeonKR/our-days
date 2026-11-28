@@ -507,11 +507,12 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   // 두족류: 외투막 앞 마디(spine_3) 자리를 제자리에 묶는다 — 뼈 사슬의 뿌리(spine_0)가 팔 끝이라 팔을 흔들면 외투막이 통째로 옆으로 밀린다
   const offsets = spine.map((r) => (r ? { x: r.pos.x, z: r.pos.z } : { x: 0, z: 0 }));
   const vlift = new Float32Array(6);
-  // 굳은 가슴지느러미(상어 · 다랑어 · 새치, bendProfile.pect) — 몸 기준 세 축(앞 X · 위 Y · 옆 Z)을 지느러미 뼈마다 그 뼈의 쉬는 자세 좌표로 바꿔 둔다.
+  // 굳은 가슴지느러미(상어 · 다랑어 · 새치, bendProfile.pect) 및 바다사자과(물개 · 바다사자 — 3축 8자 수중 비행 스트로크) — 몸 기준 세 축(앞 X · 위 Y · 옆 Z)을 지느러미 뼈마다 그 뼈의 쉬는 자세 좌표로 바꿔 둔다.
   // 몸 X 축으로 + 돌리면 왼쪽(+Z) 끝이 내려가고 오른쪽(−Z) 끝이 오른다(같은 각 = 몸을 기울이기, 반대 각 = 둘 다 오르내리기), Z 축 + 는 앞쪽을 들기, Y 축은 앞뒤로 접기
+  const otariidSeal = /^(galapagos_fur_seal|galapagos_sea_lion|fur_seal|steller_sea_lion|japanese_sea_lion)$/.test(family);
   const stiff = wave.pect === "stiff" || wave.pect === "fold";
   const finAxes = fins.map((r) => {
-    if (!r || !stiff) return null;
+    if (!r || (!stiff && !otariidSeal)) return null;
     inner.updateMatrixWorld(true);
     const rel = inner.getWorldQuaternion(new T.Quaternion()).invert().multiply(r.bone.getWorldQuaternion(new T.Quaternion())).invert();
     return { x: X.clone().applyQuaternion(rel), y: Y.clone().applyQuaternion(rel), z: Z.clone().applyQuaternion(rel) };
@@ -675,27 +676,91 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
         rollS += (target - rollS) * k;
         if (rollS > 0.001) spine[0].bone.quaternion.multiply(q3.setFromAxisAngle(otterRoll, Math.PI * rollS * rollS * (3 - 2 * rollS)));
       }
+    } else if (otariidSeal) {
+      // 바다사자과(갈라파고스 물개 · 바다사자 등) — 실제 수중 비행(파워 스트로크 → 활공 → 페더링 리커버리) + 유연한 척추 상하 아치 + 선회 뱅크 + 휴식 시 두리번거림
+      const ground = Math.max(0, Math.min(1, sp.ground ?? 0));
+      const swimGain = Math.max(0, Math.min(1, ((sp.amp ?? 1) - 0.16) / 0.52)) * (1 - ground);
+      const restGain = 1 - swimGain;
+      const wt = WATER_LIGHT.aquaTime.value || time;
+      const strokePh = clock.beat * 0.72; // 느긋하고 힘 있는 물개 스트로크 박자
+      const otariidStroke = (ph: number) => {
+        const u = ((ph / (Math.PI * 2)) % 1 + 1) % 1;
+        if (u < 0.40) {
+          // 1) 파워 스트로크: 위·앞에서 아래·뒤로 힘차게 쓸어내림
+          const p = u / 0.40, sm = p * p * (3 - 2 * p);
+          return { flap: 0.46 - 0.96 * sm, sweep: 0.34 - 0.76 * sm, feather: -0.28 * Math.sin(p * Math.PI) };
+        }
+        if (u < 0.68) {
+          // 2) 활공(Glide): 지느러미발을 몸 옆 뒤쪽으로 접어 유선형으로 미끄러짐
+          const p = (u - 0.40) / 0.28, sm = p * p * (3 - 2 * p);
+          return { flap: -0.50 + 0.30 * sm, sweep: -0.42 + 0.10 * sm, feather: 0 };
+        }
+        // 3) 리커버리: 앞날을 세워(feather) 물 저항을 줄이며 부드럽게 앞·위로 뻗음
+        const p = (u - 0.68) / 0.32, sm = p * p * (3 - 2 * p);
+        return { flap: -0.20 + 0.66 * sm, sweep: -0.32 + 0.66 * sm, feather: 0.34 * Math.sin(p * Math.PI) };
+      };
+      const st0 = otariidStroke(strokePh), stTip = otariidStroke(strokePh - 0.58);
+      const bank = Math.max(-0.42, Math.min(0.42, -turnS * 0.38)) * swimGain;
+      // 척추: 좌우 선회 C자(angles) + 스트로크 연동 유연한 상하 아치(Z축) + 휴식 시 천천히 숨 쉬며 두리번거림
+      const arch = Math.sin(strokePh - 0.4) * 0.055 * swimGain;
+      const lookYaw = Math.sin(wt * 0.65 + breathPh) * 0.18 * restGain;
+      const breathPitch = Math.sin(wt * 1.4 + breathPh) * 0.035 * restGain;
+      for (let i = 0; i < 6; i++) {
+        const r = spine[i];
+        if (!r) continue;
+        // 휴식 중 두리번거림(lookYaw · breathPitch)은 뿌리(spine_0)만 돌리고 자식(spine_1)에서 되돌려 몸통·바닥 짚은 앞지느러미발은 흔들리지 않게 한다
+        const yaw = angles[i] * (i === 0 ? 1.45 : 1.15) + (i === 0 ? lookYaw : i === 1 ? -lookYaw : 0);
+        const pitch = i === 0 ? (hoverPitch(clock, sp) - arch * 0.75 + breathPitch) : (i === 1 ? arch * 0.9 - breathPitch : i === 2 ? arch * 0.65 : i === 3 ? -arch * 0.45 : -arch * 0.65);
+        turn(r, Y, yaw, Z, pitch);
+        if (i === 0 && Math.abs(bank) > 0.001) r.bone.quaternion.multiply(q3.setFromAxisAngle(X, bank));
+      }
+      // 앞지느러미발(3축 8자 스트로크 + 선회 안쪽 방향타 접기 + 휴식 시 바닥 짚기)
+      const turnNow = sp.turn ?? turnS;
+      for (let s = 0; s < 2; s++) {
+        const side = s ? 1 : -1; // s=0: fin_L(+Z, side=-1), s=1: fin_R(-Z, side=+1)
+        const root = fins[s * 2], tip = fins[s * 2 + 1], ax = finAxes[s * 2], tx = finAxes[s * 2 + 1];
+        // 선회 시 바깥쪽 날개는 더 크게 젓고 안쪽 날개는 살짝 뒤로 접어 방향타 역할
+        const outerBoost = Math.max(0.55, Math.min(1.25, 1 + side * turnNow * 0.35));
+        const flap = (st0.flap * outerBoost) * swimGain + (-0.28) * restGain;
+        const sweep = (st0.sweep * outerBoost) * swimGain + (-0.18 - Math.max(0, -side * turnNow) * 0.25) * swimGain + (-0.12) * restGain;
+        const feather = st0.feather * swimGain;
+        if (root && ax) {
+          root.bone.quaternion.copy(root.base)
+            .multiply(q.setFromAxisAngle(ax.x, side * flap + bank * 0.25))
+            .multiply(q2.setFromAxisAngle(ax.y, side * sweep))
+            .multiply(q3.setFromAxisAngle(ax.z, feather));
+        }
+        if (tip && tx) {
+          const tFlap = (stTip.flap - st0.flap) * 0.65 * swimGain;
+          const tSweep = (stTip.sweep - st0.sweep) * 0.45 * swimGain;
+          tip.bone.quaternion.copy(tip.base)
+            .multiply(q.setFromAxisAngle(tx.x, side * tFlap))
+            .multiply(q2.setFromAxisAngle(tx.y, side * tSweep));
+        }
+      }
     } else {
       if (sweepPh >= 0) { const sw = 0.13 * Math.sin((WATER_LIGHT.aquaTime.value || time) * 0.8 + sweepPh); angles[0] += sw; angles[1] -= sw * 0.6; }
       spine.forEach((r, i) => turn(r, Y, angles[i], i === 0 ? Z : undefined, i === 0 ? hoverPitch(clock, sp) : 0));
     }
-    if (stiff) {
-      // 굳은 날개 — 꼬리 박자에 맞춰 젓지 않는다. 펴 둔 채(상어는 조금 아래로) 오를 땐 앞쪽을 들고 내려갈 땐 숙이고, 돌 땐 안쪽 지느러미를 내려 몸을 기울인다.
-      // 바닥에 앉은 상어(수염상어)는 지느러미를 모래에 짚는다. 다랑어 · 새치는 빨리 갈수록 몸 옆에 접어 붙이고, 급히 돌 땐 다시 편다
-      const ground = Math.max(0, Math.min(1, sp.ground ?? 0)), shark = SHARKS.test(family);
-      const turnNow = sp.turn ?? turnS, bank = Math.max(-0.38, Math.min(0.38, -turnS * 0.32));
-      const attack = Math.max(-0.4, Math.min(0.4, pitchS * 0.9)) * (1 - ground);
-      const fold = wave.pect === "fold" ? Math.max(0, Math.min(1, ((speed ?? 0.5) - 0.55) / 0.8)) * (1 - Math.min(1, Math.abs(turnNow) / 0.8)) * 0.9 : 0;
-      const droop = (shark ? -0.1 : 0) - 0.22 * ground, jiggle = 0.018 * Math.sin(clock.beat - 2.2) * (sp.amp ?? 1);
-      for (let s = 0; s < 2; s++) {
-        const side = s ? 1 : -1, root = fins[s * 2], tip = fins[s * 2 + 1], ax = finAxes[s * 2], tx = finAxes[s * 2 + 1];
-        if (root && ax) {
-          root.bone.quaternion.copy(root.base).multiply(q.setFromAxisAngle(ax.x, side * (droop + jiggle) + bank)).multiply(q2.setFromAxisAngle(ax.z, attack)).multiply(q3.setFromAxisAngle(ax.y, side * fold));
+    if (!otariidSeal) {
+      if (stiff) {
+        // 굳은 날개 — 꼬리 박자에 맞춰 젓지 않는다. 펴 둔 채(상어는 조금 아래로) 오를 땐 앞쪽을 들고 내려갈 땐 숙이고, 돌 땐 안쪽 지느러미를 내려 몸을 기울인다.
+        // 바닥에 앉은 상어(수염상어)는 지느러미를 모래에 짚는다. 다랑어 · 새치는 빨리 갈수록 몸 옆에 접어 붙이고, 급히 돌 땐 다시 편다
+        const ground = Math.max(0, Math.min(1, sp.ground ?? 0)), shark = SHARKS.test(family);
+        const turnNow = sp.turn ?? turnS, bank = Math.max(-0.38, Math.min(0.38, -turnS * 0.32));
+        const attack = Math.max(-0.4, Math.min(0.4, pitchS * 0.9)) * (1 - ground);
+        const fold = wave.pect === "fold" ? Math.max(0, Math.min(1, ((speed ?? 0.5) - 0.55) / 0.8)) * (1 - Math.min(1, Math.abs(turnNow) / 0.8)) * 0.9 : 0;
+        const droop = (shark ? -0.1 : 0) - 0.22 * ground, jiggle = 0.018 * Math.sin(clock.beat - 2.2) * (sp.amp ?? 1);
+        for (let s = 0; s < 2; s++) {
+          const side = s ? 1 : -1, root = fins[s * 2], tip = fins[s * 2 + 1], ax = finAxes[s * 2], tx = finAxes[s * 2 + 1];
+          if (root && ax) {
+            root.bone.quaternion.copy(root.base).multiply(q.setFromAxisAngle(ax.x, side * (droop + jiggle) + bank)).multiply(q2.setFromAxisAngle(ax.z, attack)).multiply(q3.setFromAxisAngle(ax.y, side * fold));
+          }
+          // 끝은 뿌리를 조금 더 따라 휜다(굳은 날개라 조금만)
+          if (tip && tx) tip.bone.quaternion.copy(tip.base).multiply(q.setFromAxisAngle(tx.x, side * 0.25 * (droop + jiggle) + 0.2 * bank));
         }
-        // 끝은 뿌리를 조금 더 따라 휜다(굳은 날개라 조금만)
-        if (tip && tx) tip.bone.quaternion.copy(tip.base).multiply(q.setFromAxisAngle(tx.x, side * 0.25 * (droop + jiggle) + 0.2 * bank));
-      }
-    } else fins.forEach((r, i) => turn(r, ursid ? Z : X, angles[6 + i]));
+      } else fins.forEach((r, i) => turn(r, ursid ? Z : X, angles[6 + i]));
+    }
     if (finData && body) {
       if (body.skeleton.boneMatrices !== finData) { finAt = finSlot(body.skeleton); finData = finAt >= 0 ? (body.skeleton.boneMatrices as Float32Array) : null; }
       if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp) * (RIBBON_FIN.test(family) ? 2.2 : RIGID.test(family) ? 1.8 : 1); } // 몸이 단단한 종은 지느러미 막을 크게 떨어 나아간다 // 전기뱀장어 · 산갈치 · 갈치는 긴 지느러미 물결로 나간다
