@@ -41,7 +41,7 @@ export const FX_SPOTS: Readonly<Record<string, SpotLook>> = {
   sejong: { horizon: 0.32, glint: "#eef8ff", air: "mote" },
   starsea: { horizon: 0.28, glint: "#cfe0ff", air: "star" },
   abyss: { horizon: 0.27, glint: "#97e8ef", air: "star" },
-  galapagos: { horizon: 0.31, glint: "#fff6d6", air: "bird" },
+  galapagos: { horizon: 0.26, glint: "#fff6d6", air: "bird" },
 };
 
 /** 등급(0~7)별 빛 — 물고기를 끌어올릴 때의 빛줄기 · 귀한 놈의 그림자 기운 · 축포 */

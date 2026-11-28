@@ -1024,7 +1024,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       raidResult.current = null;
       raidSave.current = null;
       setBossNote(null);
-      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, art: bossArt(b), seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, marks: raidScores(res.state, b.key, rec?.caught ?? 0), reward: bossReward(b, rec?.caught ?? 0), triesLeft: bossTriesLeft(rec, who, day), bg: FISHING_IMAGE_KEYS.has(spotArtKey(spot)) ? asset(`/fishing/${spotArtKey(spot)}.webp`) : undefined });
+      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, art: bossArt(b), seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, marks: raidScores(res.state, b.key, rec?.caught ?? 0), reward: bossReward(b, rec?.caught ?? 0), triesLeft: bossTriesLeft(rec, who, day), bg: FISHING_IMAGE_KEYS.has(spotArtKey(spot)) ? asset(`/fishing/${spotArtKey(spot)}.webp${spot.key === "galapagos" ? "?v=2" : ""}`) : undefined });
     }).finally(() => {
       raidOpening.current = false;
     });
@@ -1744,7 +1744,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             onKeyUp={onKey}
           >
             <i className="fish-water" aria-hidden />
-            {FISHING_IMAGE_KEYS.has(spotArtKey(spot)) && <i key={spot.key} className="fish-bg" aria-hidden style={{ backgroundImage: `url(${asset(`/fishing/${spotArtKey(spot)}.webp`)})` }} />}
+            {FISHING_IMAGE_KEYS.has(spotArtKey(spot)) && <i key={spot.key} className="fish-bg" aria-hidden style={{ backgroundImage: `url(${asset(`/fishing/${spotArtKey(spot)}.webp${spot.key === "galapagos" ? "?v=2" : ""}`)})` }} />}
             {/* 숙련도 배경(노을 · 밤)은 하늘빛만 갈아 끼운다 — 겹쳐 얹으면 진짜 밤 위의 밤이 화면을 덮는다. 때 손님 · 뽑기의 moment 는 그대로 */}
             <i className={`fish-sky t-${look ?? moment.time} ${moment.wx ? `w-${moment.wx}` : ""}`} aria-hidden />
             <canvas ref={attachFx} className="fish-fx" aria-hidden />
